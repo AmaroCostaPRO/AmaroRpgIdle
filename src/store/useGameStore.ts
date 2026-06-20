@@ -151,8 +151,10 @@ const saveToLocalStorage = (char: Character) => {
 interface GameState {
   character: Character;
   screen: 'menu' | 'character_select' | 'playing' | 'options';
+  zoomLevel: number;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options'): void;
+  setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats): void;
@@ -197,6 +199,14 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
 export const useGameStore = create<GameState>((set) => ({
   character: DEFAULT_CHARACTER('warrior'),
   screen: 'menu',
+  zoomLevel: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_game_zoom');
+      return saved ? parseFloat(saved) : 1.3;
+    } catch {
+      return 1.3;
+    }
+  })(),
 
   setCharacter: (character) => set(() => {
     saveToLocalStorage(character);
@@ -204,6 +214,13 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   setScreen: (screen) => set({ screen }),
+
+  setZoomLevel: (zoomLevel) => set(() => {
+    try {
+      localStorage.setItem('rpg_game_zoom', String(zoomLevel));
+    } catch (e) {}
+    return { zoomLevel };
+  }),
 
   addGold: (amount) => set((state) => {
     const updated = {

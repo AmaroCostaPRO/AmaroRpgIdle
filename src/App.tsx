@@ -11,11 +11,7 @@ const App: React.FC = () => {
   const phaserGameRef = useRef<Phaser.Game | null>(null);
   const screen = useGameStore((state) => state.screen);
 
-  // Estado para armazenar o nível de zoom, persistido no localStorage (padrão 130%/1.3 para telas de alta resolução)
-  const [zoomLevel, setZoomLevel] = useState<number>(() => {
-    const saved = localStorage.getItem('rpg_game_zoom');
-    return saved ? parseFloat(saved) : 1.3;
-  });
+  const zoomLevel = useGameStore((state) => state.zoomLevel);
 
   useEffect(() => {
     if (screen === 'playing' && gameContainerRef.current && !phaserGameRef.current) {
@@ -53,24 +49,7 @@ const App: React.FC = () => {
 
   return (
     <div className="game-root">
-      {/* Seletor de Zoom Persistente */}
-      <div className="zoom-selector panel">
-        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#64748b' }}>
-          Zoom:
-        </span>
-        {[1.0, 1.15, 1.3, 1.5].map((level) => (
-          <button
-            key={level}
-            onClick={() => {
-              setZoomLevel(level);
-              localStorage.setItem('rpg_game_zoom', String(level));
-            }}
-            className={`zoom-btn ${zoomLevel === level ? 'active' : ''}`}
-          >
-            {Math.round(level * 100)}%
-          </button>
-        ))}
-      </div>
+
 
       {/* Conteúdo escalado dinamicamente com base no zoom */}
       <div

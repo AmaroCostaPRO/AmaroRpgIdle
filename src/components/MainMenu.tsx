@@ -5,6 +5,8 @@ export const MainMenu: React.FC = () => {
   const setScreen = useGameStore((state) => state.setScreen);
   const loadSavedGame = useGameStore((state) => state.loadSavedGame);
   const resetAllData = useGameStore((state) => state.resetAllData);
+  const zoomLevel = useGameStore((state) => state.zoomLevel);
+  const setZoomLevel = useGameStore((state) => state.setZoomLevel);
   const [showOptions, setShowOptions] = useState(false);
 
   // Verifica se existe algum save válido no localStorage
@@ -46,6 +48,21 @@ export const MainMenu: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
               <span style={{ color: '#94a3b8' }}>Salvamento Automático</span>
               <span className="badge badge-unlocked">Ativado</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+              <span style={{ color: '#94a3b8' }}>Zoom da Página</span>
+              <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
+                {[1.0, 1.15, 1.3, 1.5].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setZoomLevel(level)}
+                    className={`zoom-btn ${zoomLevel === level ? 'active' : ''}`}
+                    style={{ fontSize: '0.55rem', padding: '0.2rem 0.4rem', border: 'none', cursor: 'pointer' }}
+                  >
+                    {Math.round(level * 100)}%
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
