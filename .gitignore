@@ -1,0 +1,19 @@
+# Dependências (Nunca versionar)
+node_modules/
+
+# Builds e arquivos de compilação
+dist/
+dist-ssr/
+*.local
+
+# Logs e arquivos temporários
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Configurações locais de editores e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,868 @@
+/* ============================================
+   AMARO RPG IDLE — PREMIUM DESIGN SYSTEM
+   Estética AAA Dark Fantasy Medieval
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ── CSS Variables / Design Tokens ── */
+:root {
+  /* Cores primárias */
+  --gold-50: #fefce8;
+  --gold-100: #fef9c3;
+  --gold-200: #fde68a;
+  --gold-300: #fcd34d;
+  --gold-400: #f59e0b;
+  --gold-500: #d97706;
+  --gold-600: #b45309;
+  --gold-glow: rgba(245, 158, 11, 0.35);
+  --gold-glow-strong: rgba(245, 158, 11, 0.6);
+
+  /* Superfícies */
+  --surface-0: #06060a;
+  --surface-1: #0c0c12;
+  --surface-2: #12121a;
+  --surface-3: #1a1a24;
+  --surface-4: #22222e;
+  --surface-glass: rgba(12, 12, 18, 0.85);
+
+  /* Bordas */
+  --border-dim: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(245, 158, 11, 0.25);
+  --border-active: rgba(245, 158, 11, 0.5);
+
+  /* Status */
+  --hp-from: #dc2626;
+  --hp-to: #ef4444;
+  --hp-glow: rgba(239, 68, 68, 0.5);
+  --mana-from: #2563eb;
+  --mana-to: #06b6d4;
+  --mana-glow: rgba(59, 130, 246, 0.5);
+  --xp-from: #f59e0b;
+  --xp-to: #eab308;
+  --xp-glow: rgba(245, 158, 11, 0.4);
+  --prestige-from: #7c3aed;
+  --prestige-to: #6366f1;
+  --prestige-glow: rgba(139, 92, 246, 0.5);
+  --heal-from: #059669;
+  --heal-to: #10b981;
+
+  /* Tipografia */
+  --font-display: 'Cinzel Decorative', 'Cinzel', serif;
+  --font-heading: 'Cinzel', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Sombras */
+  --shadow-panel: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+  --shadow-button: 0 4px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-glow-gold: 0 0 20px var(--gold-glow), 0 0 40px rgba(245, 158, 11, 0.15);
+  --shadow-glow-purple: 0 0 20px var(--prestige-glow), 0 0 40px rgba(139, 92, 246, 0.15);
+
+  /* Raios */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--surface-0);
+  color: #e2e8f0;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar Customizada ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-1); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.3); }
+
+/* ── Animações Premium ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--gold-glow), 0 0 16px rgba(245, 158, 11, 0.1); }
+  50% { box-shadow: 0 0 16px var(--gold-glow-strong), 0 0 32px rgba(245, 158, 11, 0.2); }
+}
+
+@keyframes text-glow-red {
+  0%, 100% { text-shadow: 0 0 4px rgba(239, 68, 68, 0.6), 0 0 8px rgba(239, 68, 68, 0.3); }
+  50% { text-shadow: 0 0 10px rgba(239, 68, 68, 0.95), 0 0 18px rgba(239, 68, 68, 0.5); }
+}
+
+@keyframes text-glow-gold {
+  0%, 100% { text-shadow: 0 0 4px rgba(245, 158, 11, 0.5), 0 0 8px rgba(245, 158, 11, 0.25); }
+  50% { text-shadow: 0 0 10px rgba(245, 158, 11, 0.95), 0 0 18px rgba(245, 158, 11, 0.5); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.2); }
+  50% { border-color: rgba(245, 158, 11, 0.5); }
+}
+
+@keyframes rune-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes hp-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+@keyframes particle-float {
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-40px) scale(0.8); opacity: 0; }
+}
+
+.animate-fadeIn { animation: fadeIn 0.4s ease-out; }
+.animate-slideUp { animation: slideUp 0.5s ease-out; }
+
+/* ── Layout Principal ── */
+.game-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 1.5rem;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(245, 158, 11, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+    var(--surface-0);
+}
+
+.game-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('/assets/menu_bg.png') center/cover no-repeat;
+  opacity: 0.06;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Classes do Layout de Jogo e UI ── */
+.game-layout-container {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 1600px;
+  flex-wrap: wrap;
+}
+
+.phaser-container {
+  width: 800px;
+  height: 600px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border-accent);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), 0 0 2px var(--gold-glow);
+}
+
+.ui-container {
+  width: 520px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Painel Base (Glass Card) ── */
+.panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  position: relative;
+  overflow: hidden;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  pointer-events: none;
+}
+
+/* ── Títulos e Headers de Seção ── */
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold-400);
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-dim);
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold-400), transparent);
+  border-radius: 1px;
+}
+
+/* ── Barras de Progresso ── */
+.progress-track {
+  width: 100%;
+  background: var(--surface-1);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  border: 1px solid var(--border-dim);
+  padding: 2px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.2s ease-out;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.25), transparent);
+  border-radius: inherit;
+}
+
+.progress-hp .progress-fill {
+  background: linear-gradient(90deg, var(--hp-from), var(--hp-to));
+  box-shadow: 0 0 10px var(--hp-glow);
+}
+
+.progress-mana .progress-fill {
+  background: linear-gradient(90deg, var(--mana-from), var(--mana-to));
+  box-shadow: 0 0 10px var(--mana-glow);
+}
+
+.progress-xp .progress-fill {
+  background: linear-gradient(90deg, var(--xp-from), var(--xp-to));
+  box-shadow: 0 0 8px var(--xp-glow);
+}
+
+/* ── Botões Premium ── */
+.btn {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-button);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent);
+  pointer-events: none;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-gold {
+  background: linear-gradient(135deg, #b45309, #92400e);
+  color: var(--gold-100);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: var(--shadow-button), 0 0 20px var(--gold-glow);
+}
+
+.btn-emerald {
+  background: linear-gradient(135deg, #047857, #065f46);
+  color: #d1fae5;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.btn-emerald:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: var(--shadow-button), 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.btn-purple {
+  background: linear-gradient(135deg, #6d28d9, #5b21b6);
+  color: #ede9fe;
+  border-color: rgba(139, 92, 246, 0.3);
+}
+.btn-purple:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: var(--shadow-button), var(--shadow-glow-purple);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #991b1b, #b91c1c);
+}
+
+.btn-ghost {
+  background: var(--surface-3);
+  color: #94a3b8;
+  border-color: var(--border-subtle);
+}
+.btn-ghost:hover {
+  background: var(--surface-4);
+  color: #e2e8f0;
+}
+
+.btn-sm {
+  font-size: 0.6rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+.btn:disabled:hover { transform: none; box-shadow: var(--shadow-button); }
+
+/* ── Tabs (Abas superiores do jogo) ── */
+.tabs-container {
+  display: flex;
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  box-shadow: var(--shadow-panel);
+  gap: 2px;
+}
+
+.tab-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0.55rem 0.5rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.tab-btn:hover { color: #e2e8f0; }
+
+.tab-btn.active {
+  background: var(--surface-3);
+  color: var(--gold-300);
+  border-color: var(--border-accent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 12px var(--gold-glow);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  width: 60%;
+  height: 2px;
+  background: var(--gold-400);
+  border-radius: 1px;
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* ── Skill Node (Árvore de habilidades) ── */
+.skill-node {
+  position: absolute;
+  width: 120px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: var(--font-body);
+}
+
+.skill-node:hover { border-color: rgba(255,255,255,0.2); background: var(--surface-3); }
+
+.skill-node.unlocked {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, #221c17, var(--surface-2));
+}
+
+.skill-node.selected {
+  border-color: var(--gold-400);
+  background: linear-gradient(135deg, #32261a, var(--surface-3));
+  box-shadow: 0 0 16px var(--gold-glow);
+  transform: scale(1.05);
+  z-index: 20;
+}
+
+/* Nós de Prestígio / Ascensão */
+.skill-node.prestige-node.unlocked {
+  border-color: rgba(167, 139, 250, 0.35);
+  background: linear-gradient(135deg, #1c152b, var(--surface-2));
+}
+
+.skill-node.prestige-node.selected {
+  border-color: #a78bfa;
+  background: linear-gradient(135deg, #2b1b40, var(--surface-3));
+  box-shadow: 0 0 16px var(--prestige-glow);
+  transform: scale(1.05);
+  z-index: 20;
+}
+
+.skill-node.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* Indicador de Combate sem caixa preta e com text-shadow suave */
+.combat-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: #ef4444;
+  animation: text-glow-red 2s infinite ease-in-out;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Botão de Habilidade em Combate com feedback de clique físico */
+.btn-skill-combat {
+  background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
+  color: #fff;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-button);
+  font-family: inherit;
+  width: 100%;
+}
+
+.btn-skill-combat:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--surface-4), var(--surface-3));
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-button), 0 0 8px var(--gold-glow);
+}
+
+.btn-skill-combat:active:not(:disabled) {
+  transform: scale(0.94) translateY(1px);
+  border-color: var(--gold-400);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 12px var(--gold-glow-strong);
+}
+
+.btn-skill-combat:disabled {
+  background: var(--surface-2);
+  border-color: rgba(239, 68, 68, 0.25);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ── Badge de tipo (Ativa/Passiva) ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.badge-active { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+.badge-passive { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2); }
+.badge-unlocked { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
+.badge-locked { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+
+/* ── Console de Combate ── */
+.combat-console {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #4ade80;
+  height: 7.5rem;
+  overflow-y: auto;
+}
+
+.combat-console .console-header {
+  font-family: var(--font-heading);
+  color: #475569;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-dim);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Ornamentos decorativos ── */
+.ornament {
+  display: block;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold-400), transparent);
+  margin: 0 auto;
+  border-radius: 2px;
+  position: relative;
+}
+
+.ornament::before {
+  content: '◆';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.5rem;
+  color: var(--gold-400);
+  text-shadow: 0 0 6px var(--gold-glow);
+}
+
+/* ── Menu Principal Title ── */
+.game-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #fcd34d, #f59e0b, #d97706, #fcd34d);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.8));
+}
+
+.game-subtitle {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold-500);
+}
+
+/* ── Game Container (Phaser) ── */
+.phaser-container {
+  border: 2px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 40px rgba(0,0,0,0.5), 0 0 20px var(--gold-glow);
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+.phaser-container::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-lg) + 2px);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), transparent, rgba(139, 92, 246, 0.2));
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Utilitários ── */
+.text-gold { color: var(--gold-400); }
+.text-dim { color: #64748b; }
+.text-muted { color: #475569; }
+.font-display { font-family: var(--font-display); }
+.font-heading { font-family: var(--font-heading); }
+.font-mono { font-family: var(--font-mono); }
+
+/* ── Zoom Selector ── */
+.zoom-selector {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-lg);
+}
+
+.zoom-btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: #64748b;
+}
+
+.zoom-btn:hover { color: #e2e8f0; background: var(--surface-4); }
+
+.zoom-btn.active {
+  background: linear-gradient(135deg, #1e40af, #1d4ed8);
+  color: white;
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+/* ── Classe Selector Cards ── */
+.class-card {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  min-height: 110px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.class-card:hover { border-color: rgba(255,255,255,0.15); background: var(--surface-3); }
+
+.class-card.selected {
+  border-color: var(--gold-400);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), var(--surface-2));
+  box-shadow: 0 0 20px var(--gold-glow);
+}
+
+.class-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Stat Row ── */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border-dim);
+  transition: border-color 0.2s;
+}
+
+.stat-row:hover { border-color: var(--border-subtle); }
+
+/* ── Conteúdo Rolável da Interface do Painel ── */
+.ui-scrollable-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-4) var(--surface-1);
+  padding-right: 6px;
+}
+
+.ui-scrollable-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ui-scrollable-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.ui-scrollable-content::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 3px;
+}
+
+.ui-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-500);
+}
+
+/* ── Responsividade Mobile & Telas Verticais ── */
+@media (max-width: 1350px) {
+  .game-layout-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .ui-container {
+    width: 800px;
+    max-width: 100%;
+    height: 500px;
+  }
+}
+
+@media (max-width: 840px) {
+  .game-layout-container {
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .phaser-container {
+    width: 100vw;
+    height: 75vw; /* Proporção 4:3 (600/800 = 0.75) */
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+
+  /* Força o canvas do Phaser a se redimensionar dentro do container flexível */
+  .phaser-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+  }
+
+  .ui-container {
+    width: 100vw;
+    max-width: 100%;
+    height: calc(100vh - 75vw - 120px); /* Ocupa a altura restante da tela vertical */
+    min-height: 380px;
+    max-height: 550px;
+  }
+
+  /* Ajustes de toque para botões de habilidades ativas (Task 3) */
+  .btn-skill-combat {
+    min-height: 48px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Barra de abas rolável horizontalmente no mobile */
+  .tabs-container {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px;
+    gap: 0.35rem;
+    width: 100%;
+  }
+
+  .tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 1 0 auto;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  /* Permite rolagem horizontal na árvore no mobile */
+  .tree-container {
+    overflow-x: auto;
+  }
+
+  .tree-content-area {
+    min-width: 600px;
+    height: 100%;
+    position: relative;
+  }
+}
+
+/* Classes Genéricas de Árvore (Task 3) */
+.tree-container {
+  position: relative;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tree-content-area {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
