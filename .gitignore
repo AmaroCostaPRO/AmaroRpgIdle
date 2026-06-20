@@ -3,6 +3,7 @@ node_modules/
 
 # Builds e arquivos de compilação
 dist/
+docs/
 dist-ssr/
 *.local
 
