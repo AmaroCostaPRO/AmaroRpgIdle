@@ -864,9 +864,12 @@ body {
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: 2px;
+    padding: 2px 16px; /* Aumentado para acomodar o efeito da máscara */
     gap: 0.35rem;
     width: 100%;
+    /* Feedback visual premium de desvanecimento lateral indicando conteúdo rolável */
+    mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
   }
 
   .tabs-container::-webkit-scrollbar {
