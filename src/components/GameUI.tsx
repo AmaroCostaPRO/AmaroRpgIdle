@@ -10,20 +10,39 @@ import { GameEvent, BaseStats } from '../core/types';
 const GameHUD: React.FC = () => {
   const hpBarRef = useRef<HTMLDivElement>(null);
   const manaBarRef = useRef<HTMLDivElement>(null);
+  const hpTextRef = useRef<HTMLSpanElement>(null);
+  const manaTextRef = useRef<HTMLSpanElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  const [isConsoleExpanded, setIsConsoleExpanded] = useState(false);
 
   useEffect(() => {
-    bridge.registerDomUpdate('player_hp', (val) => {
-      if (hpBarRef.current) hpBarRef.current.style.width = `${val}%`;
+    bridge.registerDomUpdate('player_hp', (pct, current, max) => {
+      if (hpBarRef.current) hpBarRef.current.style.width = `${pct}%`;
+      if (hpTextRef.current && current !== undefined && max !== undefined) {
+        hpTextRef.current.innerText = `${current} / ${max}`;
+      }
     });
 
-    bridge.registerDomUpdate('player_mana', (val) => {
-      if (manaBarRef.current) manaBarRef.current.style.width = `${val}%`;
+    bridge.registerDomUpdate('player_mana', (pct, current, max) => {
+      if (manaBarRef.current) manaBarRef.current.style.width = `${pct}%`;
+      if (manaTextRef.current && current !== undefined && max !== undefined) {
+        manaTextRef.current.innerText = `${current} / ${max}`;
+      }
     });
 
+    const logs: string[] = [];
     const unsubscribeLogs = bridge.subscribe(GameEvent.LOG_EMITTED, (payload) => {
       if (logRef.current && payload.message) {
-        logRef.current.innerText = payload.message;
+        logs.push(payload.message);
+        if (logs.length > 4) {
+          logs.shift();
+        }
+        logRef.current.innerHTML = logs.map((log, idx) => {
+          const isLatest = idx === logs.length - 1;
+          return `<div style="font-family: var(--font-mono); font-size: 0.62rem; line-height: 1.4; margin-bottom: 0.2rem; color: ${isLatest ? '#fff' : '#94a3b8'}; text-shadow: ${isLatest ? '0 0 4px rgba(255,255,255,0.2)' : 'none'}; opacity: ${isLatest ? 1 : 0.45 + idx * 0.12}">${log}</div>`;
+        }).join('');
+        
+        logRef.current.scrollTop = logRef.current.scrollHeight;
       }
     });
 
@@ -42,7 +61,7 @@ const GameHUD: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
             <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Vida (HP)</span>
-            <span className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>Dinâmico</span>
+            <span ref={hpTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>- / -</span>
           </div>
           <div className="progress-track progress-hp" style={{ height: '1rem' }}>
             <div ref={hpBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--hp-from), var(--hp-to))', boxShadow: '0 0 10px var(--hp-glow)' }} />
@@ -53,7 +72,7 @@ const GameHUD: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
             <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Mana</span>
-            <span className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>Dinâmico</span>
+            <span ref={manaTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>- / -</span>
           </div>
           <div className="progress-track progress-mana" style={{ height: '0.75rem' }}>
             <div ref={manaBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--mana-from), var(--mana-to))', boxShadow: '0 0 10px var(--mana-glow)' }} />
@@ -62,9 +81,40 @@ const GameHUD: React.FC = () => {
       </div>
 
       {/* Console de Combate */}
-      <div className="combat-console">
-        <div className="console-header">Console de Combate</div>
-        <div ref={logRef} style={{ color: '#4ade80' }}>Aguardando início do combate sidescrolling...</div>
+      <div className={`combat-console combat-console-wrapper ${isConsoleExpanded ? 'expanded' : 'collapsed'}`}>
+        <button
+          onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
+          className="console-toggle-btn"
+          style={{
+            width: '100%',
+            background: 'none',
+            border: 'none',
+            outline: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            color: 'inherit',
+            display: 'block'
+          }}
+        >
+          <div className="console-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, border: 'none', paddingBottom: 0 }}>
+            <span>Console de Combate</span>
+            <span className="console-arrow">
+              {isConsoleExpanded ? '▲' : '▼'}
+            </span>
+          </div>
+        </button>
+        <div 
+          ref={logRef} 
+          className="console-log-content"
+          style={{ 
+            color: '#4ade80',
+            fontSize: '0.65rem',
+            lineHeight: 1.4
+          }}
+        >
+          Aguardando início do combate sidescrolling...
+        </div>
       </div>
     </div>
   );
@@ -285,70 +335,127 @@ const SkillsTreePanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Visual de Árvore com SVG */}
-      <div className="tree-container" style={{ height: '470px' }}>
-        <div className="tree-content-area">
-          {/* Renderiza as linhas de conexões SVG */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+      {/* Árvore Visual 2D (Desktop) */}
+      <div className="tree-view-desktop">
+        <div className="tree-container" style={{ height: '470px' }}>
+          <div className="tree-content-area">
+            {/* Renderiza as linhas de conexões SVG */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              {classSkills.map(([id, skill]) => {
+                const pos = getSkillPos(id, skill);
+                return skill.dependencies.map((depId: string) => {
+                  const depSkill = SKILLS_CATALOG[depId];
+                  if (!depSkill) return null;
+                  const depPos = getSkillPos(depId, depSkill);
+                  
+                  // Verifica se a conexão está ativa (ambos habilitados)
+                  const depUnlocked = (character.skillLevels[depId] || 0) > 0;
+                  const currentUnlocked = (character.skillLevels[id] || 0) > 0;
+                  const isActive = depUnlocked && currentUnlocked;
+
+                  return (
+                    <line
+                      key={`${depId}-${id}`}
+                      x1={`${depPos.x}%`}
+                      y1={`${depPos.y}px`}
+                      x2={`${pos.x}%`}
+                      y2={`${pos.y}px`}
+                      stroke={isActive ? '#f59e0b' : '#374151'}
+                      strokeWidth={isActive ? '3' : '2'}
+                      strokeDasharray={isActive ? 'none' : '4, 4'}
+                      style={{
+                        filter: isActive ? 'drop-shadow(0px 0px 3px rgba(245,158,11,0.6))' : 'none',
+                        transition: 'all 0.3s'
+                      }}
+                    />
+                  );
+                });
+              })}
+            </svg>
+
+            {/* Renderiza os Nós de Habilidades */}
             {classSkills.map(([id, skill]) => {
               const pos = getSkillPos(id, skill);
-              return skill.dependencies.map((depId: string) => {
-                const depSkill = SKILLS_CATALOG[depId];
-                if (!depSkill) return null;
-                const depPos = getSkillPos(depId, depSkill);
-                
-                // Verifica se a conexão está ativa (ambos habilitados)
-                const depUnlocked = (character.skillLevels[depId] || 0) > 0;
-                const currentUnlocked = (character.skillLevels[id] || 0) > 0;
-                const isActive = depUnlocked && currentUnlocked;
+              const currentLevel = character.skillLevels[id] || 0;
+              const isUnlocked = currentLevel > 0;
+              const isSelected = selectedSkillId === id;
+              const meetsLevelReq = character.level >= skill.requiredLevel;
 
-                return (
-                  <line
-                    key={`${depId}-${id}`}
-                    x1={`${depPos.x}%`}
-                    y1={`${depPos.y}px`}
-                    x2={`${pos.x}%`}
-                    y2={`${pos.y}px`}
-                    stroke={isActive ? '#f59e0b' : '#374151'}
-                    strokeWidth={isActive ? '3' : '2'}
-                    strokeDasharray={isActive ? 'none' : '4, 4'}
-                    style={{
-                      filter: isActive ? 'drop-shadow(0px 0px 3px rgba(245,158,11,0.6))' : 'none',
-                      transition: 'all 0.3s'
-                    }}
-                  />
-                );
-              });
+              // Posições absolutas centralizadas no grid
+              const left = `calc(${pos.x}% - 55px)`;
+              const top = `calc(${pos.y}px - 22px)`;
+
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSelectedSkillId(id)}
+                  style={{ left, top }}
+                  className={`skill-node ${isSelected ? 'selected' : isUnlocked ? 'unlocked' : !meetsLevelReq ? 'locked' : ''}`}
+                >
+                  <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{skill.name}</span>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.15rem' }}>
+                    <span className={`badge ${skill.type === 'active' ? 'badge-active' : 'badge-passive'}`}>
+                      {skill.type === 'active' ? 'Ativ' : 'Pass'}
+                    </span>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lv {currentLevel}/{skill.maxLevel}</span>
+                  </div>
+                </button>
+              );
             })}
-          </svg>
+          </div>
+        </div>
+      </div>
 
-          {/* Renderiza os Nós de Habilidades */}
+      {/* Lista Simplificada Vertical (Mobile) */}
+      <div className="tree-view-mobile">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
           {classSkills.map(([id, skill]) => {
-            const pos = getSkillPos(id, skill);
             const currentLevel = character.skillLevels[id] || 0;
             const isUnlocked = currentLevel > 0;
             const isSelected = selectedSkillId === id;
             const meetsLevelReq = character.level >= skill.requiredLevel;
-
-            // Posições absolutas centralizadas no grid
-            const left = `calc(${pos.x}% - 55px)`;
-            const top = `calc(${pos.y}px - 22px)`;
+            const meetsDeps = skill.dependencies.every(dep => (character.skillLevels[dep] || 0) > 0);
+            const isLocked = !meetsLevelReq || !meetsDeps;
 
             return (
-              <button
+              <div
                 key={id}
                 onClick={() => setSelectedSkillId(id)}
-                style={{ left, top }}
-                className={`skill-node ${isSelected ? 'selected' : isUnlocked ? 'unlocked' : !meetsLevelReq ? 'locked' : ''}`}
+                className={`skill-list-card ${isSelected ? 'selected' : isUnlocked ? 'unlocked' : isLocked ? 'locked' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.6rem 0.8rem',
+                  background: isSelected ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0,0,0,0.3)',
+                  border: isSelected ? '1px solid var(--gold-400)' : '1px solid var(--border-dim)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
               >
-                <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{skill.name}</span>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.15rem' }}>
-                  <span className={`badge ${skill.type === 'active' ? 'badge-active' : 'badge-passive'}`}>
-                    {skill.type === 'active' ? 'Ativ' : 'Pass'}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: isLocked ? '#64748b' : '#fff' }}>
+                      {skill.name}
+                    </span>
+                    <span className={`badge ${skill.type === 'active' ? 'badge-active' : 'badge-passive'}`} style={{ fontSize: '0.55rem' }}>
+                      {skill.type === 'active' ? 'Ativa' : 'Passiva'}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
+                    {isLocked 
+                      ? `Requer Lvl ${skill.requiredLevel}${skill.dependencies.length > 0 ? ` + ${SKILLS_CATALOG[skill.dependencies[0]]?.name}` : ''}`
+                      : `Nível ${currentLevel} / ${skill.maxLevel}`
+                    }
                   </span>
-                  <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lv {currentLevel}/{skill.maxLevel}</span>
                 </div>
-              </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {isLocked && <span style={{ fontSize: '0.6rem', color: '#64748b' }}>🔒 Bloqueada</span>}
+                  {!isLocked && !isUnlocked && <span style={{ fontSize: '0.6rem', color: 'var(--gold-400)' }}>Disponível</span>}
+                  {isUnlocked && <span className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>Lv {currentLevel}</span>}
+                </div>
+              </div>
             );
           })}
         </div>
@@ -437,63 +544,109 @@ const PrestigeTreePanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Diamante com Hub Central */}
-      <div className="tree-container" style={{ height: '430px' }}>
-        <div className="tree-content-area">
-          {/* Linhas SVG conectadas ao Hub central */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            {Object.keys(PRESTIGE_UPGRADES_CATALOG).map((id) => {
+      {/* Árvore Diamante 2D (Desktop) */}
+      <div className="tree-view-desktop">
+        <div className="tree-container" style={{ height: '430px' }}>
+          <div className="tree-content-area">
+            {/* Linhas SVG conectadas ao Hub central */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              {Object.keys(PRESTIGE_UPGRADES_CATALOG).map((id) => {
+                const pos = getUpgradePos(id);
+                const level = character.prestigeUpgrades[id] || 0;
+                const isActive = level > 0;
+                return (
+                  <line
+                    key={id}
+                    x1={`${hubPos.x}%`}
+                    y1={`${hubPos.y}px`}
+                    x2={`${pos.x}%`}
+                    y2={`${pos.y}px`}
+                    stroke={isActive ? '#a78bfa' : '#374151'}
+                    strokeWidth={isActive ? '3' : '2'}
+                    style={{
+                      filter: isActive ? 'drop-shadow(0px 0px 4px rgba(139,92,246,0.6))' : 'none',
+                      transition: 'all 0.3s'
+                    }}
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Hub Central (Cristal de Almas) */}
+            <div 
+              style={{ left: `calc(${hubPos.x}% - 24px)`, top: `calc(${hubPos.y}px - 24px)` }}
+              className="absolute"
+            >
+              <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, var(--prestige-from), #4338ca)', borderRadius: '50%', border: '2px solid #a78bfa', boxShadow: 'var(--shadow-glow-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float 3s ease-in-out infinite' }}>
+                <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Alma</span>
+              </div>
+            </div>
+
+            {/* Nós de Upgrade ao Redor */}
+            {Object.entries(PRESTIGE_UPGRADES_CATALOG).map(([id, upgrade]) => {
               const pos = getUpgradePos(id);
-              const level = character.prestigeUpgrades[id] || 0;
-              const isActive = level > 0;
+              const currentLevel = character.prestigeUpgrades[id] || 0;
+              const isSelected = selectedUpgradeId === id;
+              const isUpgraded = currentLevel > 0;
+
+              const left = `calc(${pos.x}% - 55px)`;
+              const top = `calc(${pos.y}px - 22px)`;
+
               return (
-                <line
+                <button
                   key={id}
-                  x1={`${hubPos.x}%`}
-                  y1={`${hubPos.y}px`}
-                  x2={`${pos.x}%`}
-                  y2={`${pos.y}px`}
-                  stroke={isActive ? '#a78bfa' : '#374151'}
-                  strokeWidth={isActive ? '3' : '2'}
-                  style={{
-                    filter: isActive ? 'drop-shadow(0px 0px 4px rgba(139,92,246,0.6))' : 'none',
-                    transition: 'all 0.3s'
-                  }}
-                />
+                  onClick={() => setSelectedUpgradeId(id)}
+                  style={{ left, top }}
+                  className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
+                >
+                  <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
+                  <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
+                </button>
               );
             })}
-          </svg>
-
-          {/* Hub Central (Cristal de Almas) */}
-          <div 
-            style={{ left: `calc(${hubPos.x}% - 24px)`, top: `calc(${hubPos.y}px - 24px)` }}
-            className="absolute"
-          >
-            <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, var(--prestige-from), #4338ca)', borderRadius: '50%', border: '2px solid #a78bfa', boxShadow: 'var(--shadow-glow-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float 3s ease-in-out infinite' }}>
-              <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Alma</span>
-            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Nós de Upgrade ao Redor */}
+      {/* Lista Simplificada Vertical (Mobile) */}
+      <div className="tree-view-mobile">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
           {Object.entries(PRESTIGE_UPGRADES_CATALOG).map(([id, upgrade]) => {
-            const pos = getUpgradePos(id);
             const currentLevel = character.prestigeUpgrades[id] || 0;
             const isSelected = selectedUpgradeId === id;
             const isUpgraded = currentLevel > 0;
 
-            const left = `calc(${pos.x}% - 55px)`;
-            const top = `calc(${pos.y}px - 22px)`;
-
             return (
-              <button
+              <div
                 key={id}
                 onClick={() => setSelectedUpgradeId(id)}
-                style={{ left, top }}
-                className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
+                className={`prestige-list-card ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.6rem 0.8rem',
+                  background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0,0,0,0.3)',
+                  border: isSelected ? '1px solid #a78bfa' : '1px solid var(--border-dim)',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
               >
-                <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
-                <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
-              </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', textAlign: 'left' }}>
+                  <span className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                    {upgrade.name}
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
+                    {upgrade.description}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className="font-mono" style={{ fontSize: '0.65rem', color: '#a78bfa', fontWeight: 600 }}>
+                    Lv {currentLevel}/{upgrade.maxLevel}
+                  </span>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -734,6 +887,14 @@ const GuidePanel: React.FC = () => {
 export default function GameUI() {
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'prestige' | 'guide'>('combat');
   const setScreen = useGameStore((state) => state.setScreen);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  useEffect(() => {
+    if (showExitConfirm) {
+      const timer = setTimeout(() => setShowExitConfirm(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showExitConfirm]);
 
   const tabs = [
     { id: 'combat' as const, label: 'Combate', icon: '⚔' },
@@ -744,23 +905,33 @@ export default function GameUI() {
   ];
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}>
+    <div className="game-ui-root" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}>
       {/* Cabeçalho do Painel com Botão Sair */}
-      <div className="panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px rgba(16,185,129,0.5)', animation: 'glow-pulse 2s infinite' }} />
           <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>Painel do Herói</span>
         </div>
-        <button
-          onClick={() => { if (confirm('Deseja realmente voltar ao menu principal? Seu progresso atual está salvo.')) setScreen('menu'); }}
-          className="btn btn-danger btn-sm"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-        >
-          <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Sair
-        </button>
+        {showExitConfirm ? (
+          <button
+            onClick={() => setScreen('menu')}
+            className="btn btn-danger btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold' }}
+          >
+            Confirmar Sair?
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowExitConfirm(true)}
+            className="btn btn-danger btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sair
+          </button>
+        )}
       </div>
  
       {/* Abas Superiores — Premium Tab Bar */}

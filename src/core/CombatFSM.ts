@@ -184,8 +184,16 @@ export class CombatFSM {
       this.runAutoCastAI();
     }
 
-    bridge.emit(GameEvent.PLAYER_HP_CHANGED, { current: Math.floor((this.playerHP / this.playerMaxHP) * 100) });
-    bridge.emit(GameEvent.PLAYER_MANA_CHANGED, { current: Math.floor((this.playerMana / this.playerMaxMana) * 100) });
+    bridge.emit(GameEvent.PLAYER_HP_CHANGED, {
+      pct: Math.floor((this.playerHP / this.playerMaxHP) * 100),
+      current: Math.floor(this.playerHP),
+      max: this.playerMaxHP
+    });
+    bridge.emit(GameEvent.PLAYER_MANA_CHANGED, {
+      pct: Math.floor((this.playerMana / this.playerMaxMana) * 100),
+      current: Math.floor(this.playerMana),
+      max: this.playerMaxMana
+    });
 
     switch (this.currentState) {
       case CombatState.IDLE:

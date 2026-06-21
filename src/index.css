@@ -169,6 +169,18 @@ body {
     var(--surface-0);
 }
 
+.game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: all 0.2s;
+  zoom: var(--zoom-level, 1.3);
+  position: relative;
+  z-index: 1;
+}
+
 .game-root::before {
   content: '';
   position: fixed;
@@ -784,16 +796,43 @@ body {
 }
 
 @media (max-width: 840px) {
+  .game-root {
+    /* Mantém o menu centralizado e com padding no mobile */
+    min-height: 100vh;
+  }
+
+  .game-root.is-playing {
+    padding: 0 !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+  }
+
+  .game-wrapper {
+    zoom: 1 !important;
+    width: 100%;
+  }
+
+  .game-wrapper.is-playing {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    min-height: 100vh;
+  }
+
   .game-layout-container {
-    gap: 1rem;
-    padding: 0.5rem;
+    gap: 0;
+    padding: 0;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .phaser-container {
     width: 100vw;
     height: 75vw; /* Proporção 4:3 (600/800 = 0.75) */
     max-width: 100%;
-    border-radius: var(--radius-md);
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Força o canvas do Phaser a se redimensionar dentro do container flexível */
@@ -806,9 +845,11 @@ body {
   .ui-container {
     width: 100vw;
     max-width: 100%;
-    height: calc(100vh - 75vw - 120px); /* Ocupa a altura restante da tela vertical */
+    height: calc(100vh - 75vw); /* Ocupa a altura restante da tela vertical inteira */
     min-height: 380px;
-    max-height: 550px;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Ajustes de toque para botões de habilidades ativas (Task 3) */
@@ -848,6 +889,109 @@ body {
     height: 100%;
     position: relative;
   }
+
+  /* Reordenação do Painel de UI no mobile para colocar o botão sair na base da página */
+  .game-ui-root {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    height: 100% !important;
+  }
+
+  .header-panel {
+    order: 3 !important;
+    margin-top: auto;
+  }
+
+  .tabs-container {
+    order: 1 !important;
+  }
+
+  .ui-scrollable-content {
+    order: 2 !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  /* Estilos Mobile para Visualizações Alternativas (Task 3) */
+  .tree-view-desktop {
+    display: none !important;
+  }
+  .tree-view-mobile {
+    display: block !important;
+  }
+
+  /* Console Colapsável Mobile */
+  .console-toggle-btn {
+    pointer-events: auto !important;
+  }
+  .console-arrow {
+    display: inline-block !important;
+    font-weight: bold;
+    color: var(--gold-400);
+  }
+  .combat-console-wrapper {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem !important;
+    transition: all 0.25s ease-in-out;
+  }
+  .combat-console-wrapper.collapsed {
+    height: 2.2rem !important;
+    overflow: hidden;
+  }
+  .combat-console-wrapper.collapsed .console-log-content {
+    height: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none;
+  }
+  .combat-console-wrapper.expanded {
+    height: 7.5rem !important;
+  }
+  .combat-console-wrapper.expanded .console-log-content {
+    height: 4.8rem !important;
+    opacity: 1 !important;
+    overflow-y: auto;
+    margin-top: 0.4rem;
+  }
+}
+
+/* Classes Gerais (Desktop & Mobile) */
+.tree-view-desktop {
+  display: block;
+}
+.tree-view-mobile {
+  display: none;
+}
+
+/* Console Geral */
+.console-toggle-btn {
+  pointer-events: none;
+}
+.console-arrow {
+  display: none !important;
+}
+.console-log-content {
+  display: block !important;
+  opacity: 1 !important;
+  height: auto !important;
+}
+
+.skill-list-card, .prestige-list-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.skill-list-card:hover, .prestige-list-card:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.05);
+}
+.skill-list-card.selected, .prestige-list-card.selected {
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
 }
 
 /* Classes Genéricas de Árvore (Task 3) */

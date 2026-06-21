@@ -41,29 +41,26 @@ const App: React.FC = () => {
     return () => {
       if (phaserGameRef.current) {
         console.log("Destroying Phaser Game...");
-        phaserGameRef.current.destroy(true);
+        try {
+          phaserGameRef.current.destroy(true);
+        } catch (e) {
+          console.error("Error during Phaser game destruction:", e);
+        }
         phaserGameRef.current = null;
       }
     };
   }, [screen]);
 
   return (
-    <div className="game-root">
+    <div className={`game-root ${screen === 'playing' ? 'is-playing' : ''}`}>
 
 
       {/* Conteúdo escalado dinamicamente com base no zoom */}
       <div
+        className={`game-wrapper ${screen === 'playing' ? 'is-playing' : ''}`}
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          transition: 'all 0.2s',
-          zoom: zoomLevel,
-          position: 'relative',
-          zIndex: 1,
-        }}
+          '--zoom-level': zoomLevel,
+        } as React.CSSProperties}
       >
         {screen === 'menu' && (
           <div style={{ width: '100%', maxWidth: '28rem' }} className="animate-fadeIn">

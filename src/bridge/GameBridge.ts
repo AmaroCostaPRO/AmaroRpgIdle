@@ -8,7 +8,7 @@ class GameBridge {
   private observers: Map<GameEvent, Set<(payload: GameEventPayload) => void>> = new Map();
 
   // High-frequency feedback registry (Bypasses Zustand for performance)
-  private domUpdates: Map<string, (value: number) => void> = new Map();
+  private domUpdates: Map<string, (...args: any[]) => void> = new Map();
 
   /**
    * Subscribe to an event from the Phaser engine.
@@ -38,10 +38,10 @@ class GameBridge {
 
     // Special handling for high-frequency feedback via direct DOM updates
     if (event === GameEvent.PLAYER_HP_CHANGED) {
-      this.domUpdates.get('player_hp')?.(payload.current);
+      this.domUpdates.get('player_hp')?.(payload.pct, payload.current, payload.max);
     }
     if (event === GameEvent.PLAYER_MANA_CHANGED) {
-      this.domUpdates.get('player_mana')?.(payload.current);
+      this.domUpdates.get('player_mana')?.(payload.pct, payload.current, payload.max);
     }
   }
 
@@ -51,7 +51,7 @@ class GameBridge {
    * @param id A unique identifier (e.g., 'player_hp')
    * @param updater A function that takes the new value and applies it directly to a DOM element.
    */
-  registerDomUpdate(id: string, updater: (value: number) => void): void {
+  registerDomUpdate(id: string, updater: (...args: any[]) => void): void {
     this.domUpdates.set(id, updater);
   }
 
