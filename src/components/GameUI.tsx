@@ -904,6 +904,13 @@ export default function GameUI() {
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
   ];
 
+  const activeIndex = tabs.findIndex(t => t.id === activeTab);
+  const extendedTabs = [
+    tabs[tabs.length - 1], // Guia no início
+    ...tabs,
+    tabs[0]                // Combate no final
+  ];
+
   return (
     <div className="game-ui-root" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}>
       {/* Cabeçalho do Painel com Botão Sair */}
@@ -934,8 +941,8 @@ export default function GameUI() {
         )}
       </div>
  
-      {/* Abas Superiores — Premium Tab Bar */}
-      <div className="tabs-container">
+      {/* Abas Superiores — Premium Tab Bar (Desktop) */}
+      <div className="tabs-container tabs-container-desktop">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -947,6 +954,34 @@ export default function GameUI() {
             {tab.label}
           </button>
         ))}
+      </div>
+
+      {/* Abas Superiores — Carrossel Circular de Roleta (Mobile) */}
+      <div className="tabs-container-mobile">
+        <div 
+          className="tabs-carousel-inner"
+          style={{
+            transform: `translateX(calc(33.333% - ${(activeIndex + 1) * 33.333}%))`
+          }}
+        >
+          {extendedTabs.map((tab, idx) => {
+            const isCurrentActive = tab.id === activeTab;
+            return (
+              <button
+                key={`${tab.id}-${idx}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
+                style={{
+                  flex: '0 0 33.333%',
+                  width: '33.333%'
+                }}
+              >
+                <span className="carousel-icon">{tab.icon}</span>
+                <span className="carousel-label">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
  
       {/* Conteúdo Dinâmico */}
