@@ -59,6 +59,7 @@ export interface Character {
   enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 10)
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
+  killCount?: Record<string, number>; // Abates por monstro
 }
 
 export enum GameEvent {

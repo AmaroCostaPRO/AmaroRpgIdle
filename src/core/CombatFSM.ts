@@ -3,18 +3,7 @@ import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG } from '../store/useGameStore';
 
 export const ENEMY_TYPES: EnemyType[] = [
-  {
-    id: 'orc',
-    name: 'Guerreiro Orc',
-    texture: 'enemy_orc',
-    hpMultiplier: 1.0,
-    damageMultiplier: 1.0,
-    attackSpeedMultiplier: 1.0,
-    xpValue: 35,
-    color: '#f87171',
-    flipX: false,
-    yOffset: 0
-  },
+  // === FASE 1: Floresta ===
   {
     id: 'goblin',
     name: 'Goblin Ladino',
@@ -28,28 +17,240 @@ export const ENEMY_TYPES: EnemyType[] = [
     yOffset: 15
   },
   {
-    id: 'skeleton',
-    name: 'Esqueleto Guerreiro',
-    texture: 'enemy_skeleton',
-    hpMultiplier: 1.25,
-    damageMultiplier: 1.15,
+    id: 'shadow_wolf',
+    name: 'Lobo das Sombras',
+    texture: 'enemy_wolf',
+    hpMultiplier: 0.9,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.2,
+    xpValue: 30,
+    color: '#94a3b8',
+    flipX: false,
+    yOffset: 15
+  },
+  {
+    id: 'orc_warrior',
+    name: 'Guerreiro Orc',
+    texture: 'enemy_orc',
+    hpMultiplier: 1.2,
+    damageMultiplier: 1.1,
     attackSpeedMultiplier: 0.9,
-    xpValue: 45,
-    color: '#a1a1aa',
+    xpValue: 40,
+    color: '#f87171',
     flipX: false,
     yOffset: 0
   },
   {
-    id: 'necromancer',
+    id: 'boss_forest_golem',
+    name: 'Golem de Pedra Silvestre',
+    texture: 'boss_forest_golem',
+    hpMultiplier: 2.5,
+    damageMultiplier: 1.4,
+    attackSpeedMultiplier: 0.7,
+    xpValue: 120,
+    color: '#34d399',
+    flipX: false,
+    yOffset: -5
+  },
+
+  // === FASE 2: Deserto ===
+  {
+    id: 'sand_serpent',
+    name: 'Serpente da Areia',
+    texture: 'enemy_sand_serpent',
+    hpMultiplier: 0.85,
+    damageMultiplier: 1.15,
+    attackSpeedMultiplier: 1.1,
+    xpValue: 35,
+    color: '#fbbf24',
+    flipX: false,
+    yOffset: 10
+  },
+  {
+    id: 'desert_bandit',
+    name: 'Bandido Nômade',
+    texture: 'enemy_desert_bandit',
+    hpMultiplier: 1.0,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.25,
+    xpValue: 35,
+    color: '#f59e0b',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'desert_scorpion',
+    name: 'Escorpião de Fogo',
+    texture: 'enemy_scorpion',
+    hpMultiplier: 0.9,
+    damageMultiplier: 1.2,
+    attackSpeedMultiplier: 1.15,
+    xpValue: 38,
+    color: '#ef4444',
+    flipX: false,
+    yOffset: 15
+  },
+  {
+    id: 'boss_sand_scorpion',
+    name: 'Rei Escorpião de Ouro',
+    texture: 'enemy_scorpion',
+    hpMultiplier: 2.8,
+    damageMultiplier: 1.5,
+    attackSpeedMultiplier: 0.95,
+    xpValue: 150,
+    color: '#fbbf24',
+    flipX: false,
+    yOffset: 10
+  },
+
+  // === FASE 3: Neve ===
+  {
+    id: 'frost_wolf',
+    name: 'Lobo Invernal',
+    texture: 'enemy_wolf',
+    hpMultiplier: 0.95,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.2,
+    xpValue: 40,
+    color: '#38bdf8',
+    flipX: false,
+    yOffset: 15
+  },
+  {
+    id: 'ice_elemental',
+    name: 'Elemental de Gelo',
+    texture: 'enemy_ice_elemental',
+    hpMultiplier: 1.15,
+    damageMultiplier: 1.25,
+    attackSpeedMultiplier: 0.9,
+    xpValue: 45,
+    color: '#7dd3fc',
+    flipX: false,
+    yOffset: 5
+  },
+  {
+    id: 'cave_yeti',
+    name: 'Yeti das Cavernas',
+    texture: 'enemy_yeti',
+    hpMultiplier: 1.4,
+    damageMultiplier: 1.1,
+    attackSpeedMultiplier: 0.8,
+    xpValue: 50,
+    color: '#e2e8f0',
+    flipX: false,
+    yOffset: -5
+  },
+  {
+    id: 'boss_frost_dragon',
+    name: 'Dragão de Gelo Ancião',
+    texture: 'boss_frost_dragon',
+    hpMultiplier: 3.2,
+    damageMultiplier: 1.6,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 200,
+    color: '#0ea5e9',
+    flipX: false,
+    yOffset: -10
+  },
+
+  // === FASE 4: Cemitério ===
+  {
+    id: 'skeleton_warrior',
+    name: 'Esqueleto Guerreiro',
+    texture: 'enemy_skeleton',
+    hpMultiplier: 1.0,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.0,
+    xpValue: 45,
+    color: '#94a3b8',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'decaying_zombie',
+    name: 'Zumbi Putrefato',
+    texture: 'enemy_zombie',
+    hpMultiplier: 1.3,
+    damageMultiplier: 0.9,
+    attackSpeedMultiplier: 0.8,
+    xpValue: 48,
+    color: '#84cc16',
+    flipX: false,
+    yOffset: 5
+  },
+  {
+    id: 'tormented_ghost',
+    name: 'Fantasma Atormentado',
+    texture: 'enemy_ghost',
+    hpMultiplier: 0.8,
+    damageMultiplier: 1.3,
+    attackSpeedMultiplier: 1.1,
+    xpValue: 52,
+    color: '#67e8f9',
+    flipX: false,
+    yOffset: 10
+  },
+  {
+    id: 'boss_necromancer',
     name: 'Necromante Sombrio',
     texture: 'enemy_necromancer',
-    hpMultiplier: 2.2,
+    hpMultiplier: 2.7,
     damageMultiplier: 1.6,
-    attackSpeedMultiplier: 0.8,
-    xpValue: 90,
+    attackSpeedMultiplier: 0.9,
+    xpValue: 250,
     color: '#c084fc',
     flipX: true,
     yOffset: 0
+  },
+
+  // === FASE 5: Ruínas ===
+  {
+    id: 'stone_gargoyle',
+    name: 'Gárgula de Pedra',
+    texture: 'enemy_gargoyle',
+    hpMultiplier: 1.2,
+    damageMultiplier: 1.1,
+    attackSpeedMultiplier: 1.1,
+    xpValue: 55,
+    color: '#64748b',
+    flipX: false,
+    yOffset: 10
+  },
+  {
+    id: 'living_armor',
+    name: 'Armadura Possuída',
+    texture: 'enemy_living_armor',
+    hpMultiplier: 1.5,
+    damageMultiplier: 1.25,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 60,
+    color: '#a78bfa',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'demon_imp',
+    name: 'Diabrete Menor',
+    texture: 'enemy_imp',
+    hpMultiplier: 0.9,
+    damageMultiplier: 1.35,
+    attackSpeedMultiplier: 1.3,
+    xpValue: 58,
+    color: '#f43f5e',
+    flipX: false,
+    yOffset: 15
+  },
+  {
+    id: 'boss_archdemon',
+    name: 'Arquidemônio das Ruínas',
+    texture: 'boss_archdemon',
+    hpMultiplier: 3.5,
+    damageMultiplier: 1.7,
+    attackSpeedMultiplier: 0.9,
+    xpValue: 300,
+    color: '#f43f5e',
+    flipX: false,
+    yOffset: -5
   }
 ];
 
@@ -101,18 +302,32 @@ export class CombatFSM {
     const isBoss = defeatedInStage === 10;
     const isNightmare = stage >= 6;
     const hpBoost = isNightmare ? 2.5 : 1.0;
+    const theme = ((stage - 1) % 5) + 1;
 
     if (isBoss) {
-      // 11º Inimigo da fase: BOSS Necromancer
-      this.currentEnemy = ENEMY_TYPES.find(e => e.id === 'necromancer') || ENEMY_TYPES[0];
+      let bossId = 'boss_forest_golem';
+      if (theme === 2) bossId = 'boss_sand_scorpion';
+      else if (theme === 3) bossId = 'boss_frost_dragon';
+      else if (theme === 4) bossId = 'boss_necromancer';
+      else if (theme === 5) bossId = 'boss_archdemon';
+
+      this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
       this.enemyMaxHP = Math.floor((100 + (stage * 35)) * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
-      console.log(`[CombatFSM] BOSS Necromante Spawned. MaxHP: ${this.enemyMaxHP} (Pesadelo: ${isNightmare})`);
+      console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Pesadelo: ${isNightmare})`);
     } else {
-      // Inimigos comuns 1-10
-      const commonEnemies = ENEMY_TYPES.filter(e => e.id !== 'necromancer');
-      const randIndex = (stage + defeatedInStage) % commonEnemies.length;
-      this.currentEnemy = commonEnemies[randIndex];
+      let commonIds: string[] = [];
+      if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
+      else if (theme === 2) commonIds = ['sand_serpent', 'desert_bandit', 'desert_scorpion'];
+      else if (theme === 3) commonIds = ['frost_wolf', 'ice_elemental', 'cave_yeti'];
+      else if (theme === 4) commonIds = ['skeleton_warrior', 'decaying_zombie', 'tormented_ghost'];
+      else if (theme === 5) commonIds = ['stone_gargoyle', 'living_armor', 'demon_imp'];
+
+      const commonEnemies = ENEMY_TYPES.filter(e => commonIds.includes(e.id));
+      const activeList = commonEnemies.length > 0 ? commonEnemies : ENEMY_TYPES.slice(0, 3);
+      
+      const randIndex = defeatedInStage % activeList.length;
+      this.currentEnemy = activeList[randIndex];
       this.enemyMaxHP = Math.floor((100 + (stage * 20)) * this.currentEnemy.hpMultiplier * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     }
@@ -306,6 +521,9 @@ export class CombatFSM {
   private handleEnemyDefeat() {
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === 10;
+
+    // Registra a morte do monstro no bestiário
+    useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
 
     const baseGainedXp = this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0);
     const gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;

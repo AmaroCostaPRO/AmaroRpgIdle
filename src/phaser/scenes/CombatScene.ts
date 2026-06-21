@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent } from '../../core/types';
-import { useGameStore } from '../../store/useGameStore';
+import { useGameStore, CLASS_CONFIGS } from '../../store/useGameStore';
 
 export class CombatScene extends Phaser.Scene {
   private fsm!: CombatFSM;
@@ -36,11 +36,33 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('cleric_sprite', 'assets/cleric_sprite.png');
     this.load.image('rogue_sprite', 'assets/rogue_sprite.png');
 
-    // Inimigos
-    this.load.image('enemy_orc', 'assets/enemy_sprite.png');
+    // Inimigos - Fase 1 (Floresta)
     this.load.image('enemy_goblin', 'assets/goblin_sprite.png');
+    this.load.image('enemy_wolf', 'assets/enemy_wolf.png');
+    this.load.image('enemy_orc', 'assets/enemy_sprite.png');
+    this.load.image('boss_forest_golem', 'assets/boss_forest_golem.png');
+
+    // Inimigos - Fase 2 (Deserto)
+    this.load.image('enemy_sand_serpent', 'assets/enemy_sand_serpent.png');
+    this.load.image('enemy_desert_bandit', 'assets/enemy_desert_bandit.png');
+    this.load.image('enemy_scorpion', 'assets/enemy_scorpion.png');
+
+    // Inimigos - Fase 3 (Neve)
+    this.load.image('enemy_ice_elemental', 'assets/enemy_ice_elemental.png');
+    this.load.image('enemy_yeti', 'assets/enemy_yeti.png');
+    this.load.image('boss_frost_dragon', 'assets/boss_frost_dragon.png');
+
+    // Inimigos - Fase 4 (Cemitério)
     this.load.image('enemy_skeleton', 'assets/skeleton_sprite.png');
+    this.load.image('enemy_zombie', 'assets/enemy_zombie.png');
+    this.load.image('enemy_ghost', 'assets/enemy_ghost.png');
     this.load.image('enemy_necromancer', 'assets/necromancer_sprite.png');
+
+    // Inimigos - Fase 5 (Ruínas)
+    this.load.image('enemy_gargoyle', 'assets/enemy_gargoyle.png');
+    this.load.image('enemy_living_armor', 'assets/enemy_living_armor.png');
+    this.load.image('enemy_imp', 'assets/enemy_imp.png');
+    this.load.image('boss_archdemon', 'assets/boss_archdemon.png');
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
@@ -111,6 +133,22 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_goblin', 'enemy_goblin_transparent');
     this.makeTextureTransparent('enemy_skeleton', 'enemy_skeleton_transparent');
     this.makeTextureTransparent('enemy_necromancer', 'enemy_necromancer_transparent');
+    
+    // Novas Transparências
+    this.makeTextureTransparent('enemy_wolf', 'enemy_wolf_transparent');
+    this.makeTextureTransparent('boss_forest_golem', 'boss_forest_golem_transparent');
+    this.makeTextureTransparent('enemy_sand_serpent', 'enemy_sand_serpent_transparent');
+    this.makeTextureTransparent('enemy_desert_bandit', 'enemy_desert_bandit_transparent');
+    this.makeTextureTransparent('enemy_scorpion', 'enemy_scorpion_transparent');
+    this.makeTextureTransparent('enemy_ice_elemental', 'enemy_ice_elemental_transparent');
+    this.makeTextureTransparent('enemy_yeti', 'enemy_yeti_transparent');
+    this.makeTextureTransparent('boss_frost_dragon', 'boss_frost_dragon_transparent');
+    this.makeTextureTransparent('enemy_zombie', 'enemy_zombie_transparent');
+    this.makeTextureTransparent('enemy_ghost', 'enemy_ghost_transparent');
+    this.makeTextureTransparent('enemy_gargoyle', 'enemy_gargoyle_transparent');
+    this.makeTextureTransparent('enemy_living_armor', 'enemy_living_armor_transparent');
+    this.makeTextureTransparent('enemy_imp', 'enemy_imp_transparent');
+    this.makeTextureTransparent('boss_archdemon', 'boss_archdemon_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -136,21 +174,20 @@ export class CombatScene extends Phaser.Scene {
     }
 
     // Inicializar FSM de combate antes de criar os inimigos para pegar informações corretas
-    this.fsm = new CombatFSM(this, this.enemyBody);
+    this.fsm = new CombatFSM(this, null);
 
     // Inimigo usando a textura do tipo de inimigo ativo
     this.enemyBody = this.add.image(this.ENEMY_START_X, this.ENEMY_START_Y, this.fsm.currentEnemy.texture + '_transparent');
-    this.enemyBody.setDisplaySize(95, 95);
-    this.enemyBody.setFlipX(!!this.fsm.currentEnemy.flipX);
+    this.respawnEnemyAt(this.ENEMY_START_X, this.fsm.currentEnemy);
     
     // Atualiza o target do FSM
     this.fsm['target'] = this.enemyBody;
 
     // Textos informativos
     const classConfig = useGameStore.getState().character;
-    const nameUppercase = classConfig.classId.toUpperCase();
+    const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
-    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65, nameUppercase, { 
+    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65, friendlyName, { 
       fontSize: '11px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
@@ -269,7 +306,7 @@ export class CombatScene extends Phaser.Scene {
       const barWidth = 70;
       const barHeight = 7;
       const x = this.enemyBody.x - barWidth / 2;
-      const y = this.enemyBody.y - 55; // Posição acima da cabeça do sprite
+      const y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 10; // Posição dinâmica acima da cabeça do sprite
 
       // Fundo preto translúcido da barra
       this.enemyHPBar.fillStyle(0x000000, 0.7);
@@ -363,20 +400,25 @@ export class CombatScene extends Phaser.Scene {
   public respawnEnemyAt(startX: number, enemyType: any): void {
     if (this.enemyBody) {
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
-      this.enemyBody.setPosition(startX, this.ENEMY_START_Y + (enemyType.yOffset || 0));
-      this.enemyBody.setScale(1);
-      this.enemyBody.setDisplaySize(95, 95);
+      
+      const isBoss = enemyType.id.startsWith('boss_');
+      const size = isBoss ? 135 : 95;
+      const sizeDiffOffset = isBoss ? 20 : 0;
+      
+      this.enemyBody.setPosition(startX, this.ENEMY_START_Y + (enemyType.yOffset || 0) - sizeDiffOffset);
+      this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
       this.enemyBody.angle = 0;
       this.enemyBody.setFlipX(!!enemyType.flipX);
     }
-    if (this.enemyLevelText) {
-      const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === 10;
+    if (this.enemyLevelText && this.enemyBody) {
+      const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === 10 || enemyType.id.startsWith('boss_');
       const enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
       const isNightmare = this.fsm.enemyLevel >= 6;
       const prefix = isNightmare ? '[Pesadelo] ' : '';
       this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${this.fsm.enemyLevel})`);
       this.enemyLevelText.setColor(enemyType.color);
+      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 25;
     }
 
     this.tweens.add({

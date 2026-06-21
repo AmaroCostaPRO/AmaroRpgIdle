@@ -214,7 +214,7 @@ body {
 }
 
 .ui-container {
-  width: 520px;
+  width: 580px;
   height: 600px;
   display: flex;
   flex-direction: column;
@@ -418,12 +418,12 @@ body {
 .tab-btn {
   flex: 1;
   text-align: center;
-  padding: 0.55rem 0.5rem;
+  padding: 0.55rem 0.35rem;
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #64748b;
   background: transparent;
@@ -431,6 +431,7 @@ body {
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
+  white-space: nowrap;
 }
 
 .tab-btn:hover { color: #e2e8f0; }
@@ -995,6 +996,14 @@ body {
     display: inline-block !important;
     font-weight: bold;
     color: var(--gold-400);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+  }
+  .console-arrow.expanded {
+    transform: rotate(180deg);
+  }
+  .console-arrow.collapsed {
+    transform: rotate(0deg);
   }
   .combat-console-wrapper {
     background: rgba(0, 0, 0, 0.5);
@@ -1034,17 +1043,19 @@ body {
   display: none;
 }
 
-/* Console Geral */
-.console-toggle-btn {
-  pointer-events: none;
-}
-.console-arrow {
-  display: none !important;
-}
-.console-log-content {
-  display: block !important;
-  opacity: 1 !important;
-  height: auto !important;
+/* Console Geral (Desktop apenas para evitar conflito com Mobile) */
+@media (min-width: 841px) {
+  .console-toggle-btn {
+    pointer-events: none;
+  }
+  .console-arrow {
+    display: none !important;
+  }
+  .console-log-content {
+    display: block !important;
+    opacity: 1 !important;
+    height: auto !important;
+  }
 }
 
 .skill-list-card, .prestige-list-card {
@@ -1074,4 +1085,171 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* Estrutura de Seleção de Classes */
+.class-grid-desktop {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 42rem;
+  margin-bottom: 1.5rem;
+}
+
+.class-carousel-mobile {
+  display: none;
+}
+
+.class-select-panel {
+  padding: 2rem;
+}
+
+@media (max-width: 840px) {
+  .class-grid-desktop {
+    display: none !important;
+  }
+
+  .class-carousel-mobile {
+    display: flex !important;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    height: 9.0rem; /* Aumentado de 6.8rem para 9.0rem */
+    overflow: hidden !important;
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .class-carousel-inner {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* Card da Classe no Carrossel Móvel */
+  .class-carousel-card {
+    flex: 0 0 60%; /* Reduzido de 70% para 60% para ver mais os adjacentes */
+    width: 60%;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    position: relative;
+    opacity: 0.45;
+    transform: scale(0.9);
+    pointer-events: auto;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    outline: none;
+  }
+
+  /* Estado Selecionado/Central */
+  .class-carousel-card.active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(0, 0, 0, 0.5));
+    border-color: var(--gold-400);
+    opacity: 1;
+    transform: scale(1.0);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 8px rgba(245, 158, 11, 0.12);
+  }
+
+  /* Estilos específicos para bloqueado no carrossel */
+  .class-carousel-card.locked {
+    border-color: rgba(239, 68, 68, 0.2);
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .class-carousel-card.locked:not(.active) {
+    opacity: 0.35;
+  }
+
+  /* Setas do Carrossel de Classe */
+  .class-carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.2rem;
+    height: 2.2rem;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid var(--gold-400);
+    border-radius: 50%;
+    color: var(--gold-400);
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    outline: none;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .class-carousel-arrow:active {
+    background: var(--gold-400);
+    color: #000;
+    box-shadow: 0 0 10px var(--gold-400);
+  }
+
+  .class-carousel-arrow.left {
+    left: 0.25rem;
+  }
+
+  .class-carousel-arrow.right {
+    right: 0.25rem;
+  }
+
+  /* Redução de padding da janela de classes */
+  .class-select-panel {
+    padding: 0.75rem !important;
+    min-height: auto !important;
+  }
+
+  /* Centralização das informações detalhadas e atributos iniciais no mobile */
+  .class-details-container {
+    justify-content: center !important;
+    text-align: center;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .class-details-text {
+    min-width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .class-details-stats {
+    margin: 0 auto !important; /* Centraliza a tabela de atributos */
+  }
+}
+
+/* ── Animações e Classes da Transição de Ascensão ── */
+@keyframes prestigeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes prestigeFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.prestige-overlay-fade-in {
+  animation: prestigeFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.prestige-overlay-fade-out {
+  animation: prestigeFadeOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

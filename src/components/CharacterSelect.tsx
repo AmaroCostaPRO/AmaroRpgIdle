@@ -9,6 +9,17 @@ export const CharacterSelect: React.FC = () => {
   
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
 
+  const classes = Object.entries(CLASS_CONFIGS);
+  const activeIndex = classes.findIndex(([classId]) => classId === selectedClass);
+  const extendedClasses = [
+    classes[classes.length - 1], // Último no início
+    ...classes,
+    classes[0]                  // Primeiro no fim
+  ];
+
+  const prevClassId = classes[(activeIndex - 1 + classes.length) % classes.length][0];
+  const nextClassId = classes[(activeIndex + 1) % classes.length][0];
+
   const handleStartGame = () => {
     if (isClassUnlocked(selectedClass, classLevels)) {
       startNewGame(selectedClass);
@@ -36,7 +47,7 @@ export const CharacterSelect: React.FC = () => {
   };
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: '2rem', minHeight: '550px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'auto', position: 'relative' }}>
+    <div className="panel animate-slideUp class-select-panel" style={{ minHeight: '550px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'auto', position: 'relative' }}>
       {/* Glow de fundo */}
       <div style={{ position: 'absolute', top: '-6rem', width: '20rem', height: '20rem', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
 
@@ -45,9 +56,9 @@ export const CharacterSelect: React.FC = () => {
       </h2>
       <div className="ornament" style={{ marginBottom: '1.5rem' }} />
 
-      {/* Grid de Classes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', width: '100%', maxWidth: '42rem', marginBottom: '1.5rem' }}>
-        {Object.entries(CLASS_CONFIGS).map(([classId, config]) => {
+      {/* Grid de Classes (Desktop) */}
+      <div className="class-grid-desktop">
+        {classes.map(([classId, config]) => {
           const unlocked = isClassUnlocked(classId, classLevels);
           const isSelected = selectedClass === classId;
 
@@ -105,6 +116,95 @@ export const CharacterSelect: React.FC = () => {
         })}
       </div>
 
+      {/* Carrossel de Classes (Mobile) */}
+      <div className="class-carousel-mobile">
+        {/* Seta Esquerda */}
+        <button 
+          onClick={() => setSelectedClass(prevClassId)}
+          className="class-carousel-arrow left"
+          aria-label="Classe anterior"
+        >
+          ‹
+        </button>
+
+        <div 
+          className="class-carousel-inner"
+          style={{
+            transform: `translateX(calc(20% - ${(activeIndex + 1) * 60}%))`
+          }}
+        >
+          {extendedClasses.map(([classId, config], idx) => {
+            const unlocked = isClassUnlocked(classId, classLevels);
+            const isSelected = selectedClass === classId;
+
+            let requirementText = '';
+            if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 10';
+            if (classId === 'cleric') requirementText = 'Req: Mago Nvl 10';
+            if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 10';
+
+            let parentClass = '';
+            if (classId === 'paladin') parentClass = 'warrior';
+            if (classId === 'cleric') parentClass = 'mage';
+            if (classId === 'rogue') parentClass = 'ranger';
+            const currentParentLevel = parentClass ? (classLevels[parentClass] || 1) : 0;
+
+            return (
+              <button
+                key={`${classId}-${idx}`}
+                onClick={() => setSelectedClass(classId)}
+                className={`class-carousel-card ${isSelected ? 'active' : ''} ${!unlocked ? 'locked' : ''}`}
+                style={{
+                  flex: '0 0 60%',
+                  width: '60%'
+                }}
+              >
+                {!unlocked && (
+                  <div style={{ position: 'absolute', top: '0.4rem', right: '0.4rem' }}>
+                    <span className="badge badge-locked" style={{ fontSize: '0.58rem', padding: '0.15rem 0.4rem' }}>Bloq.</span>
+                  </div>
+                )}
+                {unlocked && isSelected && (
+                  <div style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', color: 'var(--gold-400)', fontSize: '0.6rem', animation: 'glow-pulse 2s infinite' }}>
+                    ●
+                  </div>
+                )}
+
+                {/* Ícone da classe */}
+                <span style={{ fontSize: '1.7rem', marginBottom: '0.3rem', filter: !unlocked ? 'grayscale(1)' : 'none' }}>
+                  {classIcons[classId] || '⚔'}
+                </span>
+
+                <span className="font-heading" style={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: '0.05em', color: '#fff' }}>
+                  {config.name}
+                </span>
+                
+                <div style={{ marginTop: '0.35rem' }}>
+                  {unlocked ? (
+                    <span style={{ fontSize: '0.65rem', color: 'var(--gold-400)', fontFamily: 'var(--font-mono)', fontWeight: 500, padding: '0.15rem 0.5rem', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: 'var(--radius-pill)' }}>
+                      {getPrimaryStatName(config.primaryStat)}
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                      <span style={{ fontSize: '0.62rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
+                      <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {currentParentLevel}/10</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Seta Direita */}
+        <button 
+          onClick={() => setSelectedClass(nextClassId)}
+          className="class-carousel-arrow right"
+          aria-label="Próxima classe"
+        >
+          ›
+        </button>
+      </div>
+
       {/* Detalhes da Classe Selecionada */}
       {(() => {
         const config = CLASS_CONFIGS[selectedClass];
@@ -112,8 +212,8 @@ export const CharacterSelect: React.FC = () => {
         if (!config) return null;
 
         return (
-          <div className="animate-fadeIn" style={{ width: '100%', maxWidth: '42rem', background: 'rgba(0,0,0,0.4)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-dim)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '200px' }}>
+          <div className="animate-fadeIn class-details-container" style={{ width: '100%', maxWidth: '42rem', background: 'rgba(0,0,0,0.4)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-dim)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div className="class-details-text" style={{ flex: 1, minWidth: '200px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                 <h3 className="font-heading" style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>{config.name}</h3>
                 <span className={`badge ${unlocked ? 'badge-unlocked' : 'badge-locked'}`}>
@@ -128,7 +228,7 @@ export const CharacterSelect: React.FC = () => {
             </div>
 
             {/* Atributos Iniciais */}
-            <div style={{ width: '14rem', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="class-details-stats" style={{ width: '14rem', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <h4 className="section-title" style={{ fontSize: '0.6rem' }}>Status Iniciais</h4>
               {[
                 { label: 'Força (Str)', value: config.baseStats.strength },

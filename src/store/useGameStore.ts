@@ -171,6 +171,7 @@ interface GameState {
   resetStageProgress(): void;
   resetAllData(): void;
   toggleAutoCast(): void;
+  registerEnemyKill(enemyId: string): void;
 }
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -193,6 +194,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     enemiesDefeatedInStage: 0,
     classLevels: {},
     autoCastEnabled: false,
+    killCount: {},
   };
 };
 
@@ -308,7 +310,12 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   performPrestige: () => set((state) => {
-    const pointsEarned = Math.max(1, Math.floor(state.character.level * 1.5));
+    const level = state.character.level;
+    const xp = state.character.xp;
+    const totalXp = 50 * level * (level - 1) + xp;
+    const pointsEarned = Math.floor(Math.pow(totalXp / 1000, 0.7));
+
+    if (pointsEarned <= 0) return state;
     const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;
     
     // Recalcular os novos stats iniciais com base nos upgrades de prestígio permanentes já adquiridos
@@ -471,6 +478,7 @@ export const useGameStore = create<GameState>((set) => ({
       enemiesDefeatedInStage: 0,
       classLevels: currentClassLevels,
       autoCastEnabled: state.character.autoCastEnabled ?? false,
+      killCount: state.character.killCount || {},
     };
 
     saveToLocalStorage(newChar);
@@ -493,6 +501,7 @@ export const useGameStore = create<GameState>((set) => ({
             prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
             classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
             unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
+            killCount: { ...defaults.killCount, ...(char.killCount || {}) },
           };
           set({ character: merged, screen: 'playing' });
           return true;
@@ -538,6 +547,20 @@ export const useGameStore = create<GameState>((set) => ({
     const updated = {
       ...state.character,
       autoCastEnabled: !state.character.autoCastEnabled
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  registerEnemyKill: (enemyId) => set((state) => {
+    const currentKills = state.character.killCount || {};
+    const updatedKills = {
+      ...currentKills,
+      [enemyId]: (currentKills[enemyId] || 0) + 1
+    };
+    const updated = {
+      ...state.character,
+      killCount: updatedKills
     };
     saveToLocalStorage(updated);
     return { character: updated };

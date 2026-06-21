@@ -1,12 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amaro RPG Idle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- SEO Primário -->
+    <title>Amaro RPG Idle - Fantasia Sombria Incremental</title>
+    <meta name="description" content="Amaro RPG Idle é um jogo incremental premium com temática dark fantasy. Escolha sua classe (Guerreiro, Mago, Arqueiro, Paladino, Clérigo ou Ladrão), distribua atributos, aprimore habilidades mágicas e ascenda espiritualmente para enfrentar chefes lendários em combates automáticos dinâmicos." />
+    <meta name="keywords" content="amaro rpg idle, rpg idle, rpg incremental, jogo incremental, rpg de texto, clicker, fantasia sombria, dark fantasy, phaser, react game, prestige game, pwa game" />
+    <meta name="author" content="Amaro Costa" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Amaro RPG Idle - Fantasia Sombria Incremental" />
+    <meta property="og:description" content="Escolha seu herói, enfrente criaturas das trevas e libere poderes devastadores neste RPG Idle premium com visual moderno." />
+    <meta property="og:image" content="/icon-512.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Amaro RPG Idle - Fantasia Sombria Incremental" />
+    <meta property="twitter:description" content="Escolha seu herói, enfrente criaturas das trevas e libere poderes devastadores neste RPG Idle premium com visual moderno." />
+    <meta property="twitter:image" content="/icon-512.png" />
+
+    <!-- PWA & Mobile Capabilities -->
+    <meta name="theme-color" content="#0b0f19" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Amaro RPG" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Scripts Externos -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Script de Registro do Service Worker para Instalação PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              console.log('[PWA] Service Worker registrado com sucesso sob o escopo:', reg.scope);
+            })
+            .catch((err) => {
+              console.error('[PWA] Falha ao registrar o Service Worker:', err);
+            });
+        });
+      }
+    </script>
   </head>
-  <body>
+  <body style="background-color: #0b0f19; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh;">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

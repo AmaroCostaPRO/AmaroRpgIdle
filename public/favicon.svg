@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente Dourado para as Bordas e Runas -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe082" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <!-- Gradiente Roxo/Glow para a Joia da Alma -->
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e9d5ff" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#4c1d95" />
+    </linearGradient>
+    <!-- Sombra de Glow para dar aquele efeito místico -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Escudo Central -->
+  <!-- Traçado do Escudo Medieval Nobre -->
+  <path d="M 256,48 
+           C 340,48 420,80 440,160 
+           C 440,280 340,400 256,464 
+           C 172,400 72,280 72,160 
+           C 92,80 172,48 256,48 Z" 
+        fill="#111827" 
+        stroke="url(#goldGrad)" 
+        stroke-width="32" 
+        stroke-linejoin="round" />
+
+  <!-- Detalhe da Runas Internas (Borda Dourada Interna) -->
+  <path d="M 256,80 
+           C 315,80 375,105 390,160 
+           C 390,250 315,340 256,390 
+           C 197,340 122,250 122,160 
+           C 137,105 197,80 256,80 Z" 
+        fill="none" 
+        stroke="url(#goldGrad)" 
+        stroke-dasharray="16, 12" 
+        stroke-width="12" />
+
+  <!-- Cristal de Alma (Losango/Diamante Roxo Místico Centralizado) -->
+  <path d="M 256,150 
+           L 326,256 
+           L 256,362 
+           L 186,256 Z" 
+        fill="url(#purpleGrad)" 
+        stroke="#ffffff" 
+        stroke-width="8" 
+        filter="url(#glow)" />
+        
+  <!-- Brilho no Cristal -->
+  <path d="M 256,150 
+           L 290,256 
+           L 256,362 Z" 
+        fill="#ffffff" 
+        opacity="0.25" />
+</svg>
