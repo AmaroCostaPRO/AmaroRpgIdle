@@ -229,8 +229,6 @@ const ActiveSkillsPanel: React.FC = () => {
 const AttributePanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const upgradeAttribute = useGameStore((state) => state.upgradeAttribute);
-  const addXp = useGameStore((state) => state.addXp);
-
   const availablePoints = character.attributePoints;
   const xpNeeded = character.level * 100;
 
@@ -290,9 +288,6 @@ const AttributePanel: React.FC = () => {
             {availablePoints}
           </span>
         </div>
-        <button className="btn btn-emerald" style={{ width: '100%', marginTop: '0.4rem' }} onClick={() => addXp(50)}>
-          Ganhar +50 XP (Modo de Teste)
-        </button>
       </div>
     </div>
   );

@@ -182,7 +182,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   };
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: isInGame ? '400px' : '520px', maxHeight: isInGame ? '85vh' : undefined, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: isInGame ? 'auto' : 'visible', position: 'relative' }}>
+    <div className="panel animate-slideUp" style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: isInGame ? '400px' : 'auto', maxHeight: isInGame ? '85vh' : undefined, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: isInGame ? 'auto' : 'visible', position: 'relative' }}>
       {/* Glow de fundo */}
       {!isInGame && (
         <>
@@ -191,10 +191,10 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
         </>
       )}
 
-      <h2 className="font-display" style={{ fontSize: isInGame ? '1.1rem' : '1.3rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-400)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <h2 className="font-display" style={{ fontSize: isInGame ? '1.1rem' : '1.3rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-400)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
         💾 Slots de Salvamento
       </h2>
-      <div className="ornament" style={{ marginBottom: '1.5rem' }} />
+      <div className="ornament" style={{ marginBottom: '1.5rem', flexShrink: 0 }} />
 
       {/* Painel informativo de salvamento em tempo de jogo */}
       {isInGame && (
@@ -211,7 +211,8 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            zIndex: 10
+            zIndex: 10,
+            flexShrink: 0
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', textAlign: 'left' }}>
@@ -442,7 +443,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
         <button 
           onClick={() => { playClick(); setScreen('menu'); }} 
           className="btn btn-ghost" 
-          style={{ marginTop: 'auto', width: '100%', maxWidth: '14rem', padding: '0.75rem', fontSize: '0.68rem' }}
+          style={{ marginTop: '1.5rem', width: '100%', maxWidth: '14rem', padding: '0.75rem', fontSize: '0.68rem', flexShrink: 0 }}
         >
           Voltar ao Menu Principal
         </button>
@@ -451,7 +452,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
           <button 
             onClick={() => { playClick(); onBackToCombat(); }} 
             className="btn btn-ghost" 
-            style={{ marginTop: 'auto', width: '100%', maxWidth: '14rem', padding: '0.75rem', fontSize: '0.68rem' }}
+            style={{ marginTop: 'auto', width: '100%', maxWidth: '14rem', padding: '0.75rem', fontSize: '0.68rem', flexShrink: 0 }}
           >
             Voltar para o Combate
           </button>
