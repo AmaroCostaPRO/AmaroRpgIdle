@@ -4,6 +4,7 @@ import { CombatScene } from './phaser/scenes/CombatScene';
 import GameUI from './components/GameUI';
 import { MainMenu } from './components/MainMenu';
 import { CharacterSelect } from './components/CharacterSelect';
+import { SavesMenu } from './components/SavesMenu';
 import { useGameStore } from './store/useGameStore';
 import { AudioManager } from './core/AudioManager';
 
@@ -76,6 +77,12 @@ const App: React.FC = () => {
         {screen === 'character_select' && (
           <div style={{ width: '100%', maxWidth: '42rem' }} className="animate-fadeIn">
             <CharacterSelect />
+          </div>
+        )}
+
+        {screen === 'saves' && (
+          <div style={{ width: '100%', maxWidth: '42rem' }} className="animate-fadeIn">
+            <SavesMenu />
           </div>
         )}
 

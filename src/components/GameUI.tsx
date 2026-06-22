@@ -4,6 +4,7 @@ import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats } from '../core/types';
 import { ENEMY_TYPES } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
+import { SavesMenu } from './SavesMenu';
 
 
 /**
@@ -1552,7 +1553,7 @@ const BestiaryPanel: React.FC = () => {
 };
 
 export default function GameUI() {
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'prestige' | 'bestiary' | 'guide'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -1601,6 +1602,7 @@ export default function GameUI() {
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
+    { id: 'saves' as const, label: 'Saves', icon: '💾' },
   ];
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab);
@@ -1759,6 +1761,7 @@ export default function GameUI() {
         {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
         {activeTab === 'bestiary' && <BestiaryPanel />}
         {activeTab === 'guide' && <GuidePanel />}
+        {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
       </div>
 
       {/* Overlay de Transição de Ascensão */}

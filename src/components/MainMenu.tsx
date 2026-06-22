@@ -237,11 +237,11 @@ export const MainMenu: React.FC = () => {
         </button>
  
         <button
-          onClick={() => { playClick(); setScreen('character_select'); }}
+          onClick={() => { playClick(); setScreen('saves'); }}
           className="btn btn-gold"
           style={{ width: '100%', padding: '0.85rem', fontSize: '0.72rem' }}
         >
-          ✦ Novo Jogo
+          💾 Slots de Salvamento
         </button>
  
         <button

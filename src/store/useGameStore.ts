@@ -132,17 +132,63 @@ export const SKILLS_CATALOG: Record<string, {
   heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
 };
 
+export const GLOBAL_CLASS_LEVELS_KEY = 'medieval_idle_global_class_levels';
+
+export const getGlobalClassLevels = (): Record<string, number> => {
+  try {
+    const saved = localStorage.getItem(GLOBAL_CLASS_LEVELS_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const updateGlobalClassLevels = (classLevels: Record<string, number>) => {
+  try {
+    const currentGlobal = getGlobalClassLevels();
+    const updated = { ...currentGlobal };
+    Object.entries(classLevels).forEach(([classId, level]) => {
+      updated[classId] = Math.max(updated[classId] || 0, level);
+    });
+    localStorage.setItem(GLOBAL_CLASS_LEVELS_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Erro ao atualizar níveis globais de classe:', e);
+  }
+};
+
 export const isClassUnlocked = (classId: string, classLevels: Record<string, number>): boolean => {
   if (classId === 'warrior' || classId === 'mage' || classId === 'ranger') return true;
-  if (classId === 'paladin') return (classLevels['warrior'] || 0) >= 10;
-  if (classId === 'cleric') return (classLevels['mage'] || 0) >= 10;
-  if (classId === 'rogue') return (classLevels['ranger'] || 0) >= 10;
+  
+  const globalClassLevels = getGlobalClassLevels();
+  const getLevel = (id: string) => Math.max(classLevels[id] || 0, globalClassLevels[id] || 0);
+
+  if (classId === 'paladin') return getLevel('warrior') >= 10;
+  if (classId === 'cleric') return getLevel('mage') >= 10;
+  if (classId === 'rogue') return getLevel('ranger') >= 10;
   return false;
 };
 
 const saveToLocalStorage = (char: Character) => {
   try {
-    localStorage.setItem('medieval_idle_save', JSON.stringify(char));
+    // Adiciona carimbo de data/hora do salvamento
+    const updatedChar = {
+      ...char,
+      lastSaved: new Date().toISOString()
+    };
+    
+    // Salva o save ativo padrão (para compatibilidade/carregamento rápido)
+    localStorage.setItem('medieval_idle_save', JSON.stringify(updatedChar));
+    
+    // Atualiza os níveis globais de classe com os dados desse save
+    if (updatedChar.classLevels) {
+      updateGlobalClassLevels(updatedChar.classLevels);
+    }
+
+    // Salva no slot ativo atual, se houver um selecionado
+    const currentSlot = localStorage.getItem('medieval_idle_current_slot');
+    if (currentSlot) {
+      localStorage.setItem(`medieval_idle_save_slot_${currentSlot}`, JSON.stringify(updatedChar));
+    }
   } catch (e) {
     console.error('Falha ao salvar jogo no localStorage:', e);
   }
@@ -150,18 +196,19 @@ const saveToLocalStorage = (char: Character) => {
 
 interface GameState {
   character: Character;
-  screen: 'menu' | 'character_select' | 'playing' | 'options';
+  screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves';
   zoomLevel: number;
   sfxEnabled: boolean;
   bgmEnabled: boolean;
   sfxVolume: number;
   bgmVolume: number;
+  currentSlot: number | null;
   toggleSfx(): void;
   toggleBgm(): void;
   setSfxVolume(vol: number): void;
   setBgmVolume(vol: number): void;
   setCharacter(character: Character): void;
-  setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options'): void;
+  setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
   addXp(amount: number): void;
@@ -180,6 +227,14 @@ interface GameState {
   resetAllData(): void;
   toggleAutoCast(): void;
   registerEnemyKill(enemyId: string): void;
+  
+  // Novos métodos de gerenciamento de save slots
+  setCurrentSlot(slot: number | null): void;
+  saveGameToSlot(slotIndex: number): void;
+  loadGameFromSlot(slotIndex: number): boolean;
+  deleteSlot(slotIndex: number): void;
+  importSave(slotIndex: number, rawData: string): boolean;
+  exportSave(slotIndex: number): string | null;
 }
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -209,6 +264,14 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
 export const useGameStore = create<GameState>((set) => ({
   character: DEFAULT_CHARACTER('warrior'),
   screen: 'menu',
+  currentSlot: (() => {
+    try {
+      const saved = localStorage.getItem('medieval_idle_current_slot');
+      return saved ? parseInt(saved, 10) : null;
+    } catch {
+      return null;
+    }
+  })(),
   zoomLevel: (() => {
     try {
       const saved = localStorage.getItem('rpg_game_zoom');
@@ -577,7 +640,21 @@ export const useGameStore = create<GameState>((set) => ({
             unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
             killCount: { ...defaults.killCount, ...(char.killCount || {}) },
           };
-          set({ character: merged, screen: 'playing' });
+
+          const currentSlotVal = (() => {
+            try {
+              const savedSlot = localStorage.getItem('medieval_idle_current_slot');
+              return savedSlot ? parseInt(savedSlot, 10) : null;
+            } catch {
+              return null;
+            }
+          })();
+
+          if (merged.classLevels) {
+            updateGlobalClassLevels(merged.classLevels);
+          }
+
+          set({ character: merged, currentSlot: currentSlotVal, screen: 'playing' });
           return true;
         }
       }
@@ -612,9 +689,14 @@ export const useGameStore = create<GameState>((set) => ({
   resetAllData: () => set(() => {
     try {
       localStorage.removeItem('medieval_idle_save');
+      localStorage.removeItem('medieval_idle_current_slot');
+      localStorage.removeItem(GLOBAL_CLASS_LEVELS_KEY);
+      for (let i = 1; i <= 6; i++) {
+        localStorage.removeItem(`medieval_idle_save_slot_${i}`);
+      }
     } catch (e) {}
     const fresh = DEFAULT_CHARACTER('warrior');
-    return { character: fresh, screen: 'menu' };
+    return { character: fresh, currentSlot: null, screen: 'menu' };
   }),
 
   toggleAutoCast: () => set((state) => {
@@ -638,5 +720,136 @@ export const useGameStore = create<GameState>((set) => ({
     };
     saveToLocalStorage(updated);
     return { character: updated };
-  })
+  }),
+
+  setCurrentSlot: (slot) => set(() => {
+    try {
+      if (slot === null) {
+        localStorage.removeItem('medieval_idle_current_slot');
+      } else {
+        localStorage.setItem('medieval_idle_current_slot', String(slot));
+      }
+    } catch (e) {}
+    return { currentSlot: slot };
+  }),
+
+  saveGameToSlot: (slotIndex) => set((state) => {
+    const updatedChar = {
+      ...state.character,
+      lastSaved: new Date().toISOString()
+    };
+    try {
+      localStorage.setItem(`medieval_idle_save_slot_${slotIndex}`, JSON.stringify(updatedChar));
+      localStorage.setItem('medieval_idle_save', JSON.stringify(updatedChar));
+      localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
+      
+      if (updatedChar.classLevels) {
+        updateGlobalClassLevels(updatedChar.classLevels);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar no slot:', e);
+    }
+    return { character: updatedChar, currentSlot: slotIndex };
+  }),
+
+  loadGameFromSlot: (slotIndex) => {
+    try {
+      const saved = localStorage.getItem(`medieval_idle_save_slot_${slotIndex}`);
+      if (saved) {
+        const char = JSON.parse(saved) as Character;
+        if (char && char.classId) {
+          const defaults = DEFAULT_CHARACTER(char.classId);
+          const merged: Character = {
+            ...defaults,
+            ...char,
+            baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
+            growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
+            skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
+            prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
+            classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
+            unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
+            killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+          };
+
+          if (merged.classLevels) {
+            updateGlobalClassLevels(merged.classLevels);
+          }
+
+          localStorage.setItem('medieval_idle_save', JSON.stringify(merged));
+          localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
+          set({ character: merged, currentSlot: slotIndex, screen: 'playing' });
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error(`Erro ao carregar slot ${slotIndex}:`, e);
+    }
+    return false;
+  },
+
+  deleteSlot: (slotIndex) => set((state) => {
+    try {
+      localStorage.removeItem(`medieval_idle_save_slot_${slotIndex}`);
+      const currentSlot = localStorage.getItem('medieval_idle_current_slot');
+      if (currentSlot === String(slotIndex)) {
+        localStorage.removeItem('medieval_idle_current_slot');
+        localStorage.removeItem('medieval_idle_save');
+        return { currentSlot: null, character: DEFAULT_CHARACTER('warrior') };
+      }
+    } catch (e) {
+      console.error(`Erro ao deletar slot ${slotIndex}:`, e);
+    }
+    return {};
+  }),
+
+  importSave: (slotIndex, rawData) => {
+    try {
+      const decodedStr = atob(rawData.trim());
+      const char = JSON.parse(decodedStr) as Character;
+      if (char && char.classId && typeof char.level === 'number') {
+        const defaults = DEFAULT_CHARACTER(char.classId);
+        const merged: Character = {
+          ...defaults,
+          ...char,
+          baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
+          growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
+          skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
+          prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
+          classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
+          unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
+          killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+          lastSaved: new Date().toISOString()
+        };
+
+        if (merged.classLevels) {
+          updateGlobalClassLevels(merged.classLevels);
+        }
+
+        localStorage.setItem(`medieval_idle_save_slot_${slotIndex}`, JSON.stringify(merged));
+        
+        const currentSlot = localStorage.getItem('medieval_idle_current_slot');
+        if (currentSlot === String(slotIndex) || !currentSlot) {
+          localStorage.setItem('medieval_idle_save', JSON.stringify(merged));
+          localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
+          set({ character: merged, currentSlot: slotIndex });
+        }
+        return true;
+      }
+    } catch (e) {
+      console.error('Falha ao importar save:', e);
+    }
+    return false;
+  },
+
+  exportSave: (slotIndex) => {
+    try {
+      const saved = localStorage.getItem(`medieval_idle_save_slot_${slotIndex}`);
+      if (saved) {
+        return btoa(saved);
+      }
+    } catch (e) {
+      console.error('Falha ao exportar save:', e);
+    }
+    return null;
+  }
 }));

@@ -60,6 +60,7 @@ export interface Character {
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
   killCount?: Record<string, number>; // Abates por monstro
+  lastSaved?: string; // Data e hora do último salvamento
 }
 
 export enum GameEvent {
