@@ -159,7 +159,7 @@ export class AudioManager {
     if (!this.initCtx() || !this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const duration = 0.15;
+    const duration = 0.12; // Um pouco mais rápido e responsivo
 
     // Criar Buffer de Ruído Branco
     const bufferSize = this.ctx.sampleRate * duration;
@@ -172,16 +172,17 @@ export class AudioManager {
     const noise = this.ctx.createBufferSource();
     noise.buffer = buffer;
 
-    // Filtro Passa-Altas para dar o som de "vento" do corte
+    // Filtro Bandpass para focar no som de deslocamento de ar (corte) e remover agudos estridentes
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.setValueAtTime(1000, now);
-    filter.frequency.exponentialRampToValueAtTime(3000, now + duration);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400, now);
+    filter.frequency.exponentialRampToValueAtTime(700, now + duration);
+    filter.Q.setValueAtTime(2.0, now); // Controla a largura de banda para um som limpo
 
-    // Controle de volume
+    // Controle de volume (reduzido de 0.8 para 0.32)
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(this.sfxVolume * 0.8, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.32, now);
+    gain.gain.exponentialRampToValueAtTime(0.005, now + duration);
 
     noise.connect(filter);
     filter.connect(gain);
