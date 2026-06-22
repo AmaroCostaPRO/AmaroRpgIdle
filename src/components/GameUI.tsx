@@ -3,6 +3,7 @@ import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS 
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats } from '../core/types';
 import { ENEMY_TYPES } from '../core/CombatFSM';
+import { AudioManager } from '../core/AudioManager';
 
 
 /**
@@ -169,7 +170,12 @@ const ActiveSkillsPanel: React.FC = () => {
             return (
               <button
                 key={id}
-                onClick={() => !isOnCooldown && triggerSkill(id)}
+                onClick={() => {
+                  if (!isOnCooldown) {
+                    AudioManager.getInstance().playClick();
+                    triggerSkill(id);
+                  }
+                }}
                 disabled={isOnCooldown}
                 className="btn-skill-combat"
               >
@@ -197,7 +203,10 @@ const ActiveSkillsPanel: React.FC = () => {
             <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Usa habilidades fora de recarga.</span>
           </div>
           <button
-            onClick={() => useGameStore.getState().toggleAutoCast()}
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              useGameStore.getState().toggleAutoCast();
+            }}
             className={`btn btn-sm ${character.autoCastEnabled ? 'btn-emerald' : 'btn-ghost'}`}
           >
             {character.autoCastEnabled ? 'ATIVADO' : 'DESATIVADO'}
@@ -429,7 +438,10 @@ const SkillsTreePanel: React.FC = () => {
             >
               {/* Botão de Fechar Modal (X) */}
               <button 
-                onClick={() => setShowSkillModal(false)}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setShowSkillModal(false);
+                }}
                 style={{
                   position: 'absolute',
                   top: '1.25rem',
@@ -469,7 +481,10 @@ const SkillsTreePanel: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button 
-                      onClick={() => setShowSkillModal(false)}
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        setShowSkillModal(false);
+                      }}
                       className="btn btn-sm btn-ghost"
                     >
                       Fechar
@@ -529,6 +544,7 @@ const SkillsTreePanel: React.FC = () => {
                 {/* Cabeçalho do Card Clicável para Expansão */}
                 <div
                   onClick={() => {
+                    AudioManager.getInstance().playClick();
                     if (selectedSkillId === id) {
                       setSelectedSkillId('');
                     } else {
@@ -738,6 +754,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 <button
                   key={id}
                   onClick={() => {
+                    AudioManager.getInstance().playClick();
                     setSelectedUpgradeId(id);
                     setShowPrestigeModal(true);
                   }}
@@ -770,7 +787,10 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
             >
               {/* Botão de Fechar Modal (X) */}
               <button 
-                onClick={() => setShowPrestigeModal(false)}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setShowPrestigeModal(false);
+                }}
                 style={{
                   position: 'absolute',
                   top: '1.25rem',
@@ -812,7 +832,10 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button 
-                          onClick={() => setShowPrestigeModal(false)}
+                          onClick={() => {
+                            AudioManager.getInstance().playClick();
+                            setShowPrestigeModal(false);
+                          }}
                           className="btn btn-sm btn-ghost"
                         >
                           Fechar
@@ -863,6 +886,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 {/* Cabeçalho do Card Clicável para Expansão */}
                 <div
                   onClick={() => {
+                    AudioManager.getInstance().playClick();
                     if (selectedUpgradeId === id) {
                       setSelectedUpgradeId('');
                     } else {
@@ -949,7 +973,10 @@ const GuidePanel: React.FC = () => {
         {Object.entries(CLASS_CONFIGS).map(([id, config]) => (
           <button
             key={id}
-            onClick={() => setSelectedClass(id)}
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setSelectedClass(id);
+            }}
             className={`tab-btn ${selectedClass === id ? 'active' : ''}`}
             style={{ padding: '0.4rem', fontSize: '0.6rem' }}
           >
@@ -976,8 +1003,8 @@ const GuidePanel: React.FC = () => {
           switch (stat) {
             case 'strength': return 'Força (Strength)';
             case 'magic': return 'Magia (Magic)';
-            case 'dexterity': return 'Destreza (Dexterity)';
-            case 'constitution': return 'Constituição (Constitution)';
+            case 'dexterity': return 'Destreza (Destreza)';
+            case 'constitution': return 'Constituição (Constituição)';
             default: return stat;
           }
         };
@@ -1234,7 +1261,12 @@ const BestiaryPanel: React.FC = () => {
                 return (
                   <button
                     key={enemy.id}
-                    onClick={() => isUnlocked && setSelectedEnemy(enemy)}
+                    onClick={() => {
+                      if (isUnlocked) {
+                        AudioManager.getInstance().playClick();
+                        setSelectedEnemy(enemy);
+                      }
+                    }}
                     onMouseEnter={() => isUnlocked && setHoveredEnemyId(enemy.id)}
                     onMouseLeave={() => setHoveredEnemyId(null)}
                     disabled={!isUnlocked}
@@ -1360,7 +1392,10 @@ const BestiaryPanel: React.FC = () => {
               zIndex: 999999,
               animation: 'fadeIn 0.2s ease-out'
             }}
-            onClick={() => setSelectedEnemy(null)}
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setSelectedEnemy(null);
+            }}
           >
             <div 
               style={{
@@ -1380,7 +1415,10 @@ const BestiaryPanel: React.FC = () => {
             >
               {/* Fechar modal */}
               <button 
-                onClick={() => setSelectedEnemy(null)}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSelectedEnemy(null);
+                }}
                 style={{
                   position: 'absolute',
                   top: '0.75rem',
@@ -1486,7 +1524,10 @@ const BestiaryPanel: React.FC = () => {
 
               {/* Fechar Button */}
               <button 
-                onClick={() => setSelectedEnemy(null)} 
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSelectedEnemy(null);
+                }} 
                 className="btn btn-sm"
                 style={{
                   width: '100%',
@@ -1514,6 +1555,11 @@ export default function GameUI() {
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'prestige' | 'bestiary' | 'guide'>('combat');
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const sfxEnabled = useGameStore((state) => state.sfxEnabled);
+  const bgmEnabled = useGameStore((state) => state.bgmEnabled);
+  const toggleSfx = useGameStore((state) => state.toggleSfx);
+  const toggleBgm = useGameStore((state) => state.toggleBgm);
 
   const performPrestige = useGameStore((state) => state.performPrestige);
   const [prestigeTransition, setPrestigeTransition] = useState<'idle' | 'fade-in' | 'fade-out'>('idle');
@@ -1572,26 +1618,83 @@ export default function GameUI() {
           <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px rgba(16,185,129,0.5)', animation: 'glow-pulse 2s infinite' }} />
           <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>Painel do Herói</span>
         </div>
-        {showExitConfirm ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Controles rápidos de Áudio */}
           <button
-            onClick={() => setScreen('menu')}
-            className="btn btn-danger btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold' }}
+            onClick={() => {
+              toggleBgm();
+              AudioManager.getInstance().playClick();
+            }}
+            style={{
+              background: bgmEnabled ? 'rgba(139, 92, 246, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              color: bgmEnabled ? 'var(--gold-400)' : '#f87171',
+              border: bgmEnabled ? '1px solid rgba(139, 92, 246, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+              padding: '0.2rem 0.4rem',
+              borderRadius: '4px',
+              fontSize: '0.55rem',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              transition: 'all 0.2s ease'
+            }}
+            title="Alternar Música"
           >
-            Confirmar Sair?
+            🎵 {bgmEnabled ? 'Música' : 'Mudo'}
           </button>
-        ) : (
           <button
-            onClick={() => setShowExitConfirm(true)}
-            className="btn btn-danger btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={() => {
+              toggleSfx();
+              setTimeout(() => AudioManager.getInstance().playClick(), 30);
+            }}
+            style={{
+              background: sfxEnabled ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              color: sfxEnabled ? '#34d399' : '#f87171',
+              border: sfxEnabled ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+              padding: '0.2rem 0.4rem',
+              borderRadius: '4px',
+              fontSize: '0.55rem',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+              transition: 'all 0.2s ease',
+              marginRight: '0.5rem'
+            }}
+            title="Alternar Efeitos"
           >
-            <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sair
+            🔊 {sfxEnabled ? 'Sons' : 'Mudo'}
           </button>
-        )}
+          
+          {showExitConfirm ? (
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setScreen('menu');
+              }}
+              className="btn btn-danger btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 'bold' }}
+            >
+              Confirmar Sair?
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setShowExitConfirm(true);
+              }}
+              className="btn btn-danger btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sair
+            </button>
+          )}
+        </div>
       </div>
   
       {/* Abas Superiores — Premium Tab Bar (Desktop) */}
@@ -1599,7 +1702,10 @@ export default function GameUI() {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setActiveTab(tab.id);
+            }}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
             style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap' }}
           >
@@ -1622,7 +1728,10 @@ export default function GameUI() {
             return (
               <button
                 key={`${tab.id}-${idx}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setActiveTab(tab.id);
+                }}
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
                 style={{
                   flex: '0 0 33.333%',

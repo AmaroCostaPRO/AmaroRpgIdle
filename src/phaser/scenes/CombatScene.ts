@@ -3,6 +3,7 @@ import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS } from '../../store/useGameStore';
+import { AudioManager } from '../../core/AudioManager';
 
 export class CombatScene extends Phaser.Scene {
   private fsm!: CombatFSM;
@@ -351,6 +352,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animatePlayerAttack(): void {
+    AudioManager.getInstance().playSlash();
     this.tweens.add({
       targets: this.playerBody,
       x: this.PLAYER_START_X + 45,
@@ -395,6 +397,8 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateEnemyDeath(): void {
+    const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_') || false;
+    AudioManager.getInstance().playEnemyDefeat(isBoss);
     this.tweens.add({
       targets: this.enemyBody,
       scaleX: 0,
@@ -438,6 +442,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animatePlayerDeath(): void {
+    AudioManager.getInstance().playPlayerDefeat();
     this.tweens.add({
       targets: this.playerBody,
       angle: -90,
@@ -460,6 +465,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateSlashEffect(): void {
+    AudioManager.getInstance().playSlash();
     const slash = this.add.line(
       this.enemyBody.x, this.enemyBody.y,
       -45, -45, 45, 45,
@@ -478,6 +484,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateFireballEffect(): void {
+    AudioManager.getInstance().playFireball();
     const fireball = this.add.circle(this.playerBody.x, this.playerBody.y, 12, 0xf97316);
     fireball.setStrokeStyle(2, 0xfebd29);
 
@@ -505,6 +512,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateHealEffect(): void {
+    AudioManager.getInstance().playHeal();
     const healRing = this.add.circle(this.playerBody.x, this.playerBody.y + 10, 30, 0x10b981, 0.0);
     healRing.setStrokeStyle(3, 0x34d399);
 

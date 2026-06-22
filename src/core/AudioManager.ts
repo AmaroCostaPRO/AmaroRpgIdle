@@ -1,0 +1,586 @@
+import { useGameStore } from '../store/useGameStore';
+
+export class AudioManager {
+  private static instance: AudioManager;
+  private ctx: AudioContext | null = null;
+  
+  // Volumes padrão
+  private sfxVolume = 0.25;
+  private bgmVolume = 0.12;
+
+  // Estado da música de fundo algorítmica
+  private bgmIntervalId: any = null;
+  private currentBgmNodes: Set<AudioNode> = new Set();
+  private bgmBeat = 0;
+  private bgmChordIdx = 0;
+
+  private constructor() {
+    let prevLevel = 1;
+    let prevAttrPoints = 5;
+    let prevSkillPoints = 1;
+    let prevPrestigePoints = 0;
+    let prevPrestigeUpgrades: Record<string, number> = {};
+    let initialized = false;
+
+    // Escuta mudanças no Zustand store para atualizar configurações e tocar efeitos reativos
+    useGameStore.subscribe((state) => {
+      if (!state || !state.character) return;
+
+      const currentLevel = state.character.level;
+      const currentAttrPoints = state.character.attributePoints;
+      const currentSkillPoints = state.character.skillPoints;
+      const currentPrestigePoints = state.character.prestigePoints || 0;
+      const currentPrestigeUpgrades = state.character.prestigeUpgrades || {};
+
+      this.updateSettings(state.sfxEnabled ?? true, state.bgmEnabled ?? true);
+
+      if (!initialized) {
+        prevLevel = currentLevel;
+        prevAttrPoints = currentAttrPoints;
+        prevSkillPoints = currentSkillPoints;
+        prevPrestigePoints = currentPrestigePoints;
+        prevPrestigeUpgrades = { ...currentPrestigeUpgrades };
+        initialized = true;
+        return;
+      }
+
+      // 1. Detectar Level Up
+      if (currentLevel > prevLevel) {
+        this.playLevelUp();
+      }
+      // 2. Detectar Prestígio (level resetou para 1 e prestigePoints subiram)
+      else if (currentLevel === 1 && prevLevel > 1 && currentPrestigePoints > prevPrestigePoints) {
+        this.playPrestige();
+      }
+      // 3. Detectar upgrade de atributo
+      else if (currentAttrPoints < prevAttrPoints && currentLevel === prevLevel) {
+        this.playUpgrade();
+      }
+      // 4. Detectar upgrade de skill
+      else if (currentSkillPoints < prevSkillPoints && currentLevel === prevLevel) {
+        this.playUpgrade();
+      }
+      // 5. Detectar upgrade de prestígio
+      else {
+        let upgradeBought = false;
+        for (const [key, val] of Object.entries(currentPrestigeUpgrades)) {
+          const prevVal = prevPrestigeUpgrades[key] || 0;
+          if (val > prevVal) {
+            upgradeBought = true;
+            break;
+          }
+        }
+        if (upgradeBought && currentPrestigePoints < prevPrestigePoints) {
+          this.playUpgrade();
+        }
+      }
+
+      // Salva estados anteriores para a próxima comparação
+      prevLevel = currentLevel;
+      prevAttrPoints = currentAttrPoints;
+      prevSkillPoints = currentSkillPoints;
+      prevPrestigePoints = currentPrestigePoints;
+      prevPrestigeUpgrades = { ...currentPrestigeUpgrades };
+    });
+  }
+
+  public static getInstance(): AudioManager {
+    if (!AudioManager.instance) {
+      AudioManager.instance = new AudioManager();
+    }
+    return AudioManager.instance;
+  }
+
+  /**
+   * Inicializa ou resume o AudioContext do navegador.
+   * Precisa ser disparado por um gesto/clique do usuário devido a políticas de autoplay.
+   */
+  private initCtx(): boolean {
+    if (!this.ctx) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        this.ctx = new AudioContextClass();
+      } catch (e) {
+        console.error('[AudioManager] Falha ao criar AudioContext:', e);
+        return false;
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch((e) => console.warn('[AudioManager] Erro ao resumir contexto:', e));
+    }
+    return true;
+  }
+
+  /**
+   * Atualiza as configurações de áudio com base no estado global.
+   */
+  private updateSettings(sfxEnabled: boolean, bgmEnabled: boolean) {
+    if (bgmEnabled) {
+      this.startBGM();
+    } else {
+      this.stopBGM();
+    }
+  }
+
+  /**
+   * Som de Clique de Botão
+   */
+  public playClick() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.type = 'sine';
+    const now = this.ctx.currentTime;
+
+    osc.frequency.setValueAtTime(550, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+
+    gain.gain.setValueAtTime(this.sfxVolume * 0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+    osc.start(now);
+    osc.stop(now + 0.08);
+  }
+
+  /**
+   * Som de Ataque Físico / Corte (Slash)
+   * Sintetiza ruído branco com filtro passa-altas para simular o vento/corte da espada.
+   */
+  public playSlash() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 0.15;
+
+    // Criar Buffer de Ruído Branco
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    // Filtro Passa-Altas para dar o som de "vento" do corte
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(1000, now);
+    filter.frequency.exponentialRampToValueAtTime(3000, now + duration);
+
+    // Controle de volume
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(this.sfxVolume * 0.8, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + duration);
+  }
+
+  /**
+   * Som de Bola de Fogo (Fireball)
+   * Sintetiza uma frequência decrescente áspera com filtro passa-baixas para dar a sensação de chama pesada.
+   */
+  public playFireball() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 0.35;
+
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.linearRampToValueAtTime(80, now + duration);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(200, now + duration);
+
+    gain.gain.setValueAtTime(this.sfxVolume * 0.7, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * Som de Cura (Heal)
+   * Gera uma bela cascata harmônica e brilhante com arpejos senoidais rápidos.
+   */
+  public playHeal() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // Arpejo de Dó Maior (C Major Chord)
+    
+    notes.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + index * 0.06);
+
+      // Volume suave para cada nota do chime
+      gain.gain.setValueAtTime(0, now + index * 0.06);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + index * 0.06 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.06 + 0.25);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.06);
+      osc.stop(now + index * 0.06 + 0.3);
+    });
+  }
+
+  /**
+   * Som de Upgrade (Melhoria de atributo ou habilidade)
+   * Duas notas rápidas e harmoniosas em tom ascendente.
+   */
+  public playUpgrade() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 783.99]; // C5 -> G5
+
+    notes.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.09);
+
+      gain.gain.setValueAtTime(0.01, now + index * 0.09);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + index * 0.09 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + index * 0.09 + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.09);
+      osc.stop(now + index * 0.09 + 0.25);
+    });
+  }
+
+  /**
+   * Som de Level Up (Vitória / Subir de nível)
+   * Um arpejo triunfal clássico estilo 8-bits.
+   */
+  public playLevelUp() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // C5 -> E5 -> G5 -> C6
+    const melody = [523.25, 659.25, 783.99, 1046.50];
+
+    melody.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = index === melody.length - 1 ? 'square' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.12);
+
+      gain.gain.setValueAtTime(0.01, now + index * 0.12);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.45, now + index * 0.12 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.002, now + index * 0.12 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.12);
+      osc.stop(now + index * 0.12 + 0.4);
+    });
+  }
+
+  /**
+   * Som de Prestígio / Ascensão
+   * Uma espiral cósmica e majestosa com modulação de frequência.
+   */
+  public playPrestige() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 1.0;
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(150, now);
+    osc1.frequency.exponentialRampToValueAtTime(900, now + duration);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(300, now);
+    osc2.frequency.exponentialRampToValueAtTime(1800, now + duration);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + duration * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  }
+
+  /**
+   * Som de Derrota do Inimigo
+   */
+  public playEnemyDefeat(isBoss = false) {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    
+    if (isBoss) {
+      this.playBossDefeatMelody();
+      return;
+    }
+    
+    if (!this.initCtx() || !this.ctx) return;
+
+    // Som de derrota de monstro comum: impacto grave de 8-bits
+    const now = this.ctx.currentTime;
+    const duration = 0.22;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + duration);
+
+    gain.gain.setValueAtTime(this.sfxVolume * 0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * Som de Vitória do Chefe
+   */
+  private playBossDefeatMelody() {
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Pequena fanfarra heróica acelerada
+    const melody = [587.33, 587.33, 587.33, 783.99, 987.77]; // D5, D5, D5, G5, B5
+    const durations = [0.12, 0.12, 0.12, 0.24, 0.48];
+    let timeOffset = 0;
+
+    melody.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now + timeOffset);
+
+      gain.gain.setValueAtTime(0, now + timeOffset);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + timeOffset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.002, now + timeOffset + durations[idx] - 0.02);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + timeOffset);
+      osc.stop(now + timeOffset + durations[idx]);
+
+      timeOffset += durations[idx] * 0.85; // overlap das notas
+    });
+  }
+
+  /**
+   * Som de Derrota do Jogador (Morte)
+   */
+  public playPlayerDefeat() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 0.7;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.linearRampToValueAtTime(60, now + duration);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(500, now);
+    filter.frequency.exponentialRampToValueAtTime(100, now + duration);
+
+    gain.gain.setValueAtTime(this.sfxVolume * 0.8, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * Inicializa o Arpejador BGM Algorítmico em loop
+   */
+  private startBGM() {
+    const bgmEnabled = useGameStore.getState().bgmEnabled ?? true;
+    if (!bgmEnabled) return;
+    
+    // Se o loop já estiver rodando, não duplica
+    if (this.bgmIntervalId) return;
+
+    // Inicializa o contexto caso ainda não tenha sido
+    this.initCtx();
+
+    // Notas de acordes (Escala Lá Menor Natural para Fantasia Sombria)
+    const chords = [
+      [110.00, 220.00, 261.63, 329.63, 440.00], // Am (A2, A3, C4, E4, A4)
+      [87.31, 174.61, 261.63, 349.23, 440.00],  // Fmaj (F2, F3, C4, F4, A4)
+      [130.81, 261.63, 329.63, 392.00, 523.25], // Cmaj (C3, C4, E4, G4, C5)
+      [98.00, 196.00, 246.94, 293.66, 392.00]   // Gmaj (G2, G3, B3, D4, G4)
+    ];
+
+    const playBgmStep = () => {
+      if (!this.ctx || this.ctx.state === 'suspended') return;
+      
+      const enabled = useGameStore.getState().bgmEnabled ?? true;
+      if (!enabled) {
+        this.stopBGM();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      const currentChord = chords[this.bgmChordIdx];
+
+      // A cada 8 batidas, mudamos de acorde
+      if (this.bgmBeat % 8 === 0) {
+        // Tocar a nota base grave (sub-bass) sustentada no início de cada acorde
+        const bassFreq = currentChord[0];
+        this.playSynthNote(bassFreq, 'sine', 1.8, this.bgmVolume * 0.65, now);
+      }
+
+      // Arpejo melódico suave (toca notas individuais do acorde atual)
+      // Usamos posições pseudo-aleatórias/sequenciais das notas harmônicas
+      const noteIdx = (this.bgmBeat * 2) % (currentChord.length - 1) + 1;
+      const noteFreq = currentChord[noteIdx];
+      
+      // Notas do arpejo com oscilador triangular (som suave de flauta/flauta doce antiga)
+      this.playSynthNote(noteFreq, 'triangle', 0.8, this.bgmVolume * 0.45, now);
+
+      // Adiciona uma nota melódica aguda decorativa de vez em quando
+      if (this.bgmBeat % 4 === 2) {
+        const leadFreq = currentChord[currentChord.length - 1] * (this.bgmBeat % 8 === 2 ? 1 : 1.2);
+        this.playSynthNote(leadFreq, 'sine', 1.2, this.bgmVolume * 0.25, now);
+      }
+
+      // Incrementar batida
+      this.bgmBeat++;
+      if (this.bgmBeat % 8 === 0) {
+        this.bgmChordIdx = (this.bgmChordIdx + 1) % chords.length;
+      }
+    };
+
+    // Um beat a cada 450ms (~133 BPM em arpejo curto)
+    this.bgmIntervalId = setInterval(playBgmStep, 450);
+  }
+
+  /**
+   * Helper para tocar notas sintéticas da música de fundo e gerenciar referências para interrupção rápida
+   */
+  private playSynthNote(freq: number, type: OscillatorType, duration: number, volume: number, startTime: number) {
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    // Envelopes de volume suaves para evitar cliques audíveis (Pops)
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+
+    // Salva referências para se o jogador mutar a música no meio do arpejo
+    this.currentBgmNodes.add(osc);
+    this.currentBgmNodes.add(gain);
+
+    setTimeout(() => {
+      this.currentBgmNodes.delete(osc);
+      this.currentBgmNodes.delete(gain);
+    }, (duration + 0.2) * 1000);
+  }
+
+  /**
+   * Para a música de fundo e limpa osciladores ativos
+   */
+  private stopBGM() {
+    if (this.bgmIntervalId) {
+      clearInterval(this.bgmIntervalId);
+      this.bgmIntervalId = null;
+    }
+
+    // Mutar/desconectar todos os nós de BGM ativados no momento
+    this.currentBgmNodes.forEach((node) => {
+      try {
+        if (node instanceof GainNode) {
+          node.gain.cancelScheduledValues(0);
+          node.gain.setValueAtTime(0, 0);
+        } else if (node instanceof OscillatorNode) {
+          node.stop();
+        }
+        node.disconnect();
+      } catch (e) {}
+    });
+    this.currentBgmNodes.clear();
+    this.bgmBeat = 0;
+    this.bgmChordIdx = 0;
+  }
+}

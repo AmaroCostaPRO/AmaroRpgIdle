@@ -152,6 +152,10 @@ interface GameState {
   character: Character;
   screen: 'menu' | 'character_select' | 'playing' | 'options';
   zoomLevel: number;
+  sfxEnabled: boolean;
+  bgmEnabled: boolean;
+  toggleSfx(): void;
+  toggleBgm(): void;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options'): void;
   setZoomLevel(zoomLevel: number): void;
@@ -209,6 +213,40 @@ export const useGameStore = create<GameState>((set) => ({
       return 1.3;
     }
   })(),
+
+  sfxEnabled: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_sfx_enabled');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  })(),
+
+  bgmEnabled: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_bgm_enabled');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  })(),
+
+  toggleSfx: () => set((state) => {
+    const val = !state.sfxEnabled;
+    try {
+      localStorage.setItem('rpg_sfx_enabled', String(val));
+    } catch (e) {}
+    return { sfxEnabled: val };
+  }),
+
+  toggleBgm: () => set((state) => {
+    const val = !state.bgmEnabled;
+    try {
+      localStorage.setItem('rpg_bgm_enabled', String(val));
+    } catch (e) {}
+    return { bgmEnabled: val };
+  }),
 
   setCharacter: (character) => set(() => {
     saveToLocalStorage(character);

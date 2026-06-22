@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore, CLASS_CONFIGS, isClassUnlocked } from '../store/useGameStore';
 import { BaseStats } from '../core/types';
+import { AudioManager } from '../core/AudioManager';
 
 export const CharacterSelect: React.FC = () => {
   const setScreen = useGameStore((state) => state.setScreen);
@@ -21,6 +22,7 @@ export const CharacterSelect: React.FC = () => {
   const nextClassId = classes[(activeIndex + 1) % classes.length][0];
 
   const handleStartGame = () => {
+    AudioManager.getInstance().playClick();
     if (isClassUnlocked(selectedClass, classLevels)) {
       startNewGame(selectedClass);
     }
@@ -76,7 +78,10 @@ export const CharacterSelect: React.FC = () => {
           return (
             <button
               key={classId}
-              onClick={() => setSelectedClass(classId)}
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setSelectedClass(classId);
+              }}
               className={`class-card ${isSelected ? 'selected' : ''} ${!unlocked ? 'locked' : ''}`}
             >
               {!unlocked && (
@@ -120,7 +125,10 @@ export const CharacterSelect: React.FC = () => {
       <div className="class-carousel-mobile">
         {/* Seta Esquerda */}
         <button 
-          onClick={() => setSelectedClass(prevClassId)}
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setSelectedClass(prevClassId);
+          }}
           className="class-carousel-arrow left"
           aria-label="Classe anterior"
         >
@@ -151,7 +159,10 @@ export const CharacterSelect: React.FC = () => {
             return (
               <button
                 key={`${classId}-${idx}`}
-                onClick={() => setSelectedClass(classId)}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSelectedClass(classId);
+                }}
                 className={`class-carousel-card ${isSelected ? 'active' : ''} ${!unlocked ? 'locked' : ''}`}
                 style={{
                   flex: '0 0 60%',
@@ -197,7 +208,10 @@ export const CharacterSelect: React.FC = () => {
 
         {/* Seta Direita */}
         <button 
-          onClick={() => setSelectedClass(nextClassId)}
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setSelectedClass(nextClassId);
+          }}
           className="class-carousel-arrow right"
           aria-label="Próxima classe"
         >
@@ -248,7 +262,7 @@ export const CharacterSelect: React.FC = () => {
 
       {/* Botões de Ação */}
       <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', width: '100%', maxWidth: '22rem' }}>
-        <button onClick={() => setScreen('menu')} className="btn btn-ghost" style={{ flex: 1 }}>
+        <button onClick={() => { AudioManager.getInstance().playClick(); setScreen('menu'); }} className="btn btn-ghost" style={{ flex: 1 }}>
           Voltar
         </button>
         <button
