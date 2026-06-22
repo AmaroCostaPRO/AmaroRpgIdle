@@ -460,7 +460,7 @@ export class CombatFSM {
   private handleIdle(): void {
     if (this.target) {
       const distance = this.getDistanceToTarget();
-      if (distance > 300) {
+      if (distance > 400) {
         this.currentState = CombatState.MOVING;
       } else {
         this.currentState = CombatState.ATTACKING;
@@ -474,7 +474,7 @@ export class CombatFSM {
     this.scene.scrollWorld(delta);
 
     const distance = this.getDistanceToTarget();
-    if (distance <= 300) {
+    if (distance <= 400) {
       this.currentState = CombatState.ATTACKING;
       this.scene.resetPlayerPosition();
     }
@@ -482,7 +482,7 @@ export class CombatFSM {
 
   private handleAttacking(delta: number): void {
     const distance = this.getDistanceToTarget();
-    if (distance > 320) {
+    if (distance > 420) {
       this.currentState = CombatState.MOVING;
       return;
     }

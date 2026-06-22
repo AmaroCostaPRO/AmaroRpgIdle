@@ -5,6 +5,8 @@ import { GameEvent } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 
+export const ZOOM_FACTOR = 1.35;
+
 export class CombatScene extends Phaser.Scene {
   private fsm!: CombatFSM;
   private background!: Phaser.GameObjects.TileSprite;
@@ -16,9 +18,9 @@ export class CombatScene extends Phaser.Scene {
   private unsubscribeSkill?: () => void;
 
   public readonly PLAYER_START_X = 200;
-  public readonly PLAYER_START_Y = 485;
+  public readonly PLAYER_START_Y = Math.round(600 - 115 * ZOOM_FACTOR);
   public readonly ENEMY_START_X = 900;
-  public readonly ENEMY_START_Y = 485;
+  public readonly ENEMY_START_Y = Math.round(600 - 115 * ZOOM_FACTOR);
 
   constructor() {
     super('CombatScene');
@@ -157,7 +159,10 @@ export class CombatScene extends Phaser.Scene {
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
-    this.background.setTileScale(600 / 1024, 600 / 1024);
+    const baseBgScale = 600 / 1024;
+    const currentBgScale = baseBgScale * ZOOM_FACTOR;
+    this.background.setTileScale(currentBgScale, currentBgScale);
+    this.background.tilePositionY = 1024 - (600 / currentBgScale);
 
     // Barra de vida flutuante do inimigo
     this.enemyHPBar = this.add.graphics();
@@ -173,7 +178,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
-    this.playerBody.setDisplaySize(95, 95);
+    this.playerBody.setDisplaySize(95 * ZOOM_FACTOR, 95 * ZOOM_FACTOR);
     this.playerBody.setFlipX(false);
 
     // Inicializar FSM de combate antes de criar os inimigos para pegar informações corretas
@@ -190,7 +195,7 @@ export class CombatScene extends Phaser.Scene {
     const classConfig = useGameStore.getState().character;
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
-    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65, friendlyName, { 
+    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65 * ZOOM_FACTOR, friendlyName, { 
       fontSize: '11px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
@@ -199,7 +204,7 @@ export class CombatScene extends Phaser.Scene {
       strokeThickness: 3
     }).setOrigin(0.5);
 
-    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65, `${this.fsm.currentEnemy.name} (Lv. ${this.fsm.enemyLevel})`, { 
+    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65 * ZOOM_FACTOR, `${this.fsm.currentEnemy.name} (Lv. ${this.fsm.enemyLevel})`, { 
       fontSize: '11px', 
       color: this.fsm.currentEnemy.color, 
       fontStyle: 'bold', 
@@ -289,7 +294,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.background.texture.key !== textureKey) {
       console.log(`[CombatScene] Atualizando background para: ${textureKey}`);
       this.background.setTexture(textureKey);
-      this.background.setTileScale(600 / 1024, 600 / 1024);
+      const baseBgScale = 600 / 1024;
+      const currentBgScale = baseBgScale * ZOOM_FACTOR;
+      this.background.setTileScale(currentBgScale, currentBgScale);
+      this.background.tilePositionY = 1024 - (600 / currentBgScale);
     }
 
     // Se estágio >= 6, aplicar tint maligno/sombrio
@@ -313,10 +321,10 @@ export class CombatScene extends Phaser.Scene {
     
     // Só desenha se o inimigo estiver vivo e visível
     if (this.fsm.enemyHP > 0 && this.fsm.getCurrentState() !== CombatState.DEAD && this.enemyBody.alpha > 0.1) {
-      const barWidth = 70;
-      const barHeight = 7;
+      const barWidth = 70 * ZOOM_FACTOR;
+      const barHeight = 7 * ZOOM_FACTOR;
       const x = this.enemyBody.x - barWidth / 2;
-      const y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 10; // Posição dinâmica acima da cabeça do sprite
+      const y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 10 * ZOOM_FACTOR; // Posição dinâmica acima da cabeça do sprite
 
       // Fundo preto translúcido da barra
       this.enemyHPBar.fillStyle(0x000000, 0.7);
@@ -355,7 +363,7 @@ export class CombatScene extends Phaser.Scene {
     AudioManager.getInstance().playSlash();
     this.tweens.add({
       targets: this.playerBody,
-      x: this.PLAYER_START_X + 45,
+      x: this.PLAYER_START_X + 45 * ZOOM_FACTOR,
       duration: 100,
       yoyo: true,
       ease: 'Quad.easeOut',
@@ -368,7 +376,7 @@ export class CombatScene extends Phaser.Scene {
   public animateEnemyAttack(): void {
     this.tweens.add({
       targets: this.enemyBody,
-      x: this.enemyBody.x - 45,
+      x: this.enemyBody.x - 45 * ZOOM_FACTOR,
       duration: 100,
       yoyo: true,
       ease: 'Quad.easeOut'
@@ -415,10 +423,10 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
       
       const isBoss = enemyType.id.startsWith('boss_');
-      const size = isBoss ? 135 : 95;
-      const sizeDiffOffset = isBoss ? 20 : 0;
+      const size = (isBoss ? 135 : 95) * ZOOM_FACTOR;
+      const sizeDiffOffset = (isBoss ? 20 : 0) * ZOOM_FACTOR;
       
-      this.enemyBody.setPosition(startX, this.ENEMY_START_Y + (enemyType.yOffset || 0) - sizeDiffOffset);
+      this.enemyBody.setPosition(startX, this.ENEMY_START_Y + (enemyType.yOffset || 0) * ZOOM_FACTOR - sizeDiffOffset);
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
       this.enemyBody.angle = 0;
@@ -431,7 +439,7 @@ export class CombatScene extends Phaser.Scene {
       const prefix = isNightmare ? '[Pesadelo] ' : '';
       this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${this.fsm.enemyLevel})`);
       this.enemyLevelText.setColor(enemyType.color);
-      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 25;
+      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 25 * ZOOM_FACTOR;
     }
 
     this.tweens.add({
@@ -447,7 +455,7 @@ export class CombatScene extends Phaser.Scene {
       targets: this.playerBody,
       angle: -90,
       alpha: 0.5,
-      y: this.PLAYER_START_Y + 15,
+      y: this.PLAYER_START_Y + 15 * ZOOM_FACTOR,
       duration: 400
     });
   }
@@ -466,12 +474,13 @@ export class CombatScene extends Phaser.Scene {
 
   public animateSlashEffect(): void {
     AudioManager.getInstance().playSlash();
+    const slashSize = 45 * ZOOM_FACTOR;
     const slash = this.add.line(
       this.enemyBody.x, this.enemyBody.y,
-      -45, -45, 45, 45,
+      -slashSize, -slashSize, slashSize, slashSize,
       0xf43f5e, 1.0
     );
-    slash.setLineWidth(5);
+    slash.setLineWidth(5 * ZOOM_FACTOR);
 
     this.cameras.main.shake(120, 0.01);
 
@@ -485,8 +494,8 @@ export class CombatScene extends Phaser.Scene {
 
   public animateFireballEffect(): void {
     AudioManager.getInstance().playFireball();
-    const fireball = this.add.circle(this.playerBody.x, this.playerBody.y, 12, 0xf97316);
-    fireball.setStrokeStyle(2, 0xfebd29);
+    const fireball = this.add.circle(this.playerBody.x, this.playerBody.y, 12 * ZOOM_FACTOR, 0xf97316);
+    fireball.setStrokeStyle(2 * ZOOM_FACTOR, 0xfebd29);
 
     this.tweens.add({
       targets: fireball,
@@ -497,7 +506,7 @@ export class CombatScene extends Phaser.Scene {
       onComplete: () => {
         fireball.destroy();
         
-        const explosion = this.add.circle(this.enemyBody.x, this.enemyBody.y, 40, 0xfebd29, 0.7);
+        const explosion = this.add.circle(this.enemyBody.x, this.enemyBody.y, 40 * ZOOM_FACTOR, 0xfebd29, 0.7);
         this.tweens.add({
           targets: explosion,
           scaleX: 1.6,
@@ -513,15 +522,15 @@ export class CombatScene extends Phaser.Scene {
 
   public animateHealEffect(): void {
     AudioManager.getInstance().playHeal();
-    const healRing = this.add.circle(this.playerBody.x, this.playerBody.y + 10, 30, 0x10b981, 0.0);
-    healRing.setStrokeStyle(3, 0x34d399);
+    const healRing = this.add.circle(this.playerBody.x, this.playerBody.y + 10 * ZOOM_FACTOR, 30 * ZOOM_FACTOR, 0x10b981, 0.0);
+    healRing.setStrokeStyle(3 * ZOOM_FACTOR, 0x34d399);
 
     this.tweens.add({
       targets: healRing,
       scaleX: 1.3,
       scaleY: 1.3,
       alpha: { from: 1.0, to: 0.0 },
-      y: this.playerBody.y - 25,
+      y: this.playerBody.y - 25 * ZOOM_FACTOR,
       duration: 500,
       onComplete: () => healRing.destroy()
     });
