@@ -12,6 +12,7 @@ export class CombatScene extends Phaser.Scene {
   private enemyLevelText!: Phaser.GameObjects.Text;
   private stageText!: Phaser.GameObjects.Text;
   private enemyHPBar!: Phaser.GameObjects.Graphics;
+  private unsubscribeSkill?: () => void;
 
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = 485;
@@ -67,6 +68,9 @@ export class CombatScene extends Phaser.Scene {
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
   private makeTextureTransparent(textureKey: string, outputKey: string): void {
+    if (this.textures.exists(outputKey)) {
+      return;
+    }
     const texture = this.textures.get(textureKey);
     if (!texture) return;
     
@@ -214,8 +218,15 @@ export class CombatScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Ouvir comandos de skill
-    bridge.subscribe(GameEvent.EQUIP_SKILL, (payload) => {
+    this.unsubscribeSkill = bridge.subscribe(GameEvent.EQUIP_SKILL, (payload) => {
       this.fsm.triggerSkill(payload.skillId);
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.cleanup();
+    });
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => {
+      this.cleanup();
     });
 
     console.log(`[Phaser] CombatScene configurada para classe ${classId}!`);
@@ -506,5 +517,16 @@ export class CombatScene extends Phaser.Scene {
       duration: 500,
       onComplete: () => healRing.destroy()
     });
+  }
+
+  private cleanup(): void {
+    if (this.unsubscribeSkill) {
+      this.unsubscribeSkill();
+      this.unsubscribeSkill = undefined;
+    }
+    if (this.fsm) {
+      this.fsm.cleanup();
+    }
+    console.log('[CombatScene] Cleaned up subscriptions.');
   }
 }

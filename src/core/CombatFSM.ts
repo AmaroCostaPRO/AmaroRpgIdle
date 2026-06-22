@@ -284,6 +284,13 @@ export class CombatFSM {
   private cooldownEmitTimer: number = 0;
   private autoCastTimer: number = 0;
 
+  private storeUnsubscribe?: () => void;
+  private lastEmitHP: number = -1;
+  private lastEmitMaxHP: number = -1;
+  private lastEmitMana: number = -1;
+  private lastEmitMaxMana: number = -1;
+  private hadActiveCooldowns: boolean = true;
+
   constructor(scene: any, initialTarget?: any) {
     this.scene = scene;
     this.target = initialTarget;
@@ -292,9 +299,16 @@ export class CombatFSM {
     this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
     this.updateStatsFromStore();
 
-    useGameStore.subscribe(() => {
+    this.storeUnsubscribe = useGameStore.subscribe(() => {
       this.updateStatsFromStore();
     });
+  }
+
+  public cleanup(): void {
+    if (this.storeUnsubscribe) {
+      this.storeUnsubscribe();
+      this.storeUnsubscribe = undefined;
+    }
   }
 
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
@@ -386,10 +400,14 @@ export class CombatFSM {
       }
     });
 
+    const hasActiveCooldowns = Object.values(this.skillCooldowns).some(val => val > 0);
     this.cooldownEmitTimer += delta;
     if (this.cooldownEmitTimer >= 250) {
       this.cooldownEmitTimer = 0;
-      bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+      if (hasActiveCooldowns || this.hadActiveCooldowns) {
+        bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+        this.hadActiveCooldowns = hasActiveCooldowns;
+      }
     }
 
     // Executar Auto-Cast
@@ -399,16 +417,28 @@ export class CombatFSM {
       this.runAutoCastAI();
     }
 
-    bridge.emit(GameEvent.PLAYER_HP_CHANGED, {
-      pct: Math.floor((this.playerHP / this.playerMaxHP) * 100),
-      current: Math.floor(this.playerHP),
-      max: this.playerMaxHP
-    });
-    bridge.emit(GameEvent.PLAYER_MANA_CHANGED, {
-      pct: Math.floor((this.playerMana / this.playerMaxMana) * 100),
-      current: Math.floor(this.playerMana),
-      max: this.playerMaxMana
-    });
+    const currentHP = Math.floor(this.playerHP);
+    const currentMana = Math.floor(this.playerMana);
+
+    if (currentHP !== this.lastEmitHP || this.playerMaxHP !== this.lastEmitMaxHP) {
+      this.lastEmitHP = currentHP;
+      this.lastEmitMaxHP = this.playerMaxHP;
+      bridge.emit(GameEvent.PLAYER_HP_CHANGED, {
+        pct: Math.floor((currentHP / this.playerMaxHP) * 100),
+        current: currentHP,
+        max: this.playerMaxHP
+      });
+    }
+
+    if (currentMana !== this.lastEmitMana || this.playerMaxMana !== this.lastEmitMaxMana) {
+      this.lastEmitMana = currentMana;
+      this.lastEmitMaxMana = this.playerMaxMana;
+      bridge.emit(GameEvent.PLAYER_MANA_CHANGED, {
+        pct: Math.floor((currentMana / this.playerMaxMana) * 100),
+        current: currentMana,
+        max: this.playerMaxMana
+      });
+    }
 
     switch (this.currentState) {
       case CombatState.IDLE:
@@ -468,7 +498,7 @@ export class CombatFSM {
 
   private performPlayerAttack() {
     const speedMultiplier = 1 + (this.characterData.baseStats.dexterity * 0.02);
-    this.attackCooldown = Math.max(400, 1500 / speedMultiplier);
+    this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
     const classId = this.characterData.classId || 'warrior';
@@ -500,8 +530,8 @@ export class CombatFSM {
   }
 
   private performEnemyAttack() {
-    const baseCooldown = 1800 - (this.enemyLevel * 15);
-    this.enemyAttackCooldown = Math.max(500, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
+    const baseCooldown = 3600 - (this.enemyLevel * 30);
+    this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
 
     const isNightmare = this.enemyLevel >= 6;
     const dmgBoost = isNightmare ? 2.5 : 1.0;
