@@ -154,8 +154,12 @@ interface GameState {
   zoomLevel: number;
   sfxEnabled: boolean;
   bgmEnabled: boolean;
+  sfxVolume: number;
+  bgmVolume: number;
   toggleSfx(): void;
   toggleBgm(): void;
+  setSfxVolume(vol: number): void;
+  setBgmVolume(vol: number): void;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options'): void;
   setZoomLevel(zoomLevel: number): void;
@@ -232,6 +236,24 @@ export const useGameStore = create<GameState>((set) => ({
     }
   })(),
 
+  sfxVolume: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_sfx_volume');
+      return saved !== null ? parseFloat(saved) : 0.5;
+    } catch {
+      return 0.5;
+    }
+  })(),
+
+  bgmVolume: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_bgm_volume');
+      return saved !== null ? parseFloat(saved) : 0.5;
+    } catch {
+      return 0.5;
+    }
+  })(),
+
   toggleSfx: () => set((state) => {
     const val = !state.sfxEnabled;
     try {
@@ -246,6 +268,20 @@ export const useGameStore = create<GameState>((set) => ({
       localStorage.setItem('rpg_bgm_enabled', String(val));
     } catch (e) {}
     return { bgmEnabled: val };
+  }),
+
+  setSfxVolume: (vol) => set(() => {
+    try {
+      localStorage.setItem('rpg_sfx_volume', String(vol));
+    } catch (e) {}
+    return { sfxVolume: vol };
+  }),
+
+  setBgmVolume: (vol) => set(() => {
+    try {
+      localStorage.setItem('rpg_bgm_volume', String(vol));
+    } catch (e) {}
+    return { bgmVolume: vol };
   }),
 
   setCharacter: (character) => set(() => {

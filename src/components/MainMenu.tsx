@@ -11,8 +11,12 @@ export const MainMenu: React.FC = () => {
   
   const sfxEnabled = useGameStore((state) => state.sfxEnabled);
   const bgmEnabled = useGameStore((state) => state.bgmEnabled);
+  const sfxVolume = useGameStore((state) => state.sfxVolume);
+  const bgmVolume = useGameStore((state) => state.bgmVolume);
   const toggleSfx = useGameStore((state) => state.toggleSfx);
   const toggleBgm = useGameStore((state) => state.toggleBgm);
+  const setSfxVolume = useGameStore((state) => state.setSfxVolume);
+  const setBgmVolume = useGameStore((state) => state.setBgmVolume);
 
   const [showOptions, setShowOptions] = useState(false);
 
@@ -76,6 +80,32 @@ export const MainMenu: React.FC = () => {
                 {bgmEnabled ? 'Ligada' : 'Desligada'}
               </button>
             </div>
+
+            {/* Controle de Volume BGM */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '-0.3rem', marginBottom: '0.5rem', paddingLeft: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: '#64748b' }}>
+                <span>Volume da Música</span>
+                <span>{Math.round(bgmVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={bgmVolume}
+                disabled={!bgmEnabled}
+                onChange={(e) => setBgmVolume(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: bgmEnabled ? 'var(--gold-400)' : '#475569',
+                  cursor: bgmEnabled ? 'pointer' : 'not-allowed',
+                  height: '4px',
+                  background: 'rgba(255,255,255,0.08)',
+                  borderRadius: '2px',
+                  outline: 'none'
+                }}
+              />
+            </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
               <span style={{ color: '#94a3b8' }}>Efeitos de Som (SFX)</span>
@@ -99,6 +129,32 @@ export const MainMenu: React.FC = () => {
               >
                 {sfxEnabled ? 'Ligados' : 'Desligados'}
               </button>
+            </div>
+
+            {/* Controle de Volume SFX */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '-0.3rem', marginBottom: '0.5rem', paddingLeft: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: '#64748b' }}>
+                <span>Volume dos Efeitos</span>
+                <span>{Math.round(sfxVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={sfxVolume}
+                disabled={!sfxEnabled}
+                onChange={(e) => setSfxVolume(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: sfxEnabled ? 'var(--gold-400)' : '#475569',
+                  cursor: sfxEnabled ? 'pointer' : 'not-allowed',
+                  height: '4px',
+                  background: 'rgba(255,255,255,0.08)',
+                  borderRadius: '2px',
+                  outline: 'none'
+                }}
+              />
             </div>
  
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>

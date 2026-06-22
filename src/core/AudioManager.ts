@@ -22,17 +22,39 @@ export class AudioManager {
     let prevPrestigeUpgrades: Record<string, number> = {};
     let initialized = false;
 
+    // Inicializa volumes e configurações com o estado atual do store no momento da criação
+    const initialState = useGameStore.getState();
+    this.sfxVolume = (initialState.sfxVolume ?? 0.5) * 0.5;
+    this.bgmVolume = (initialState.bgmVolume ?? 0.5) * 0.25;
+    this.updateSettings(initialState.sfxEnabled ?? true, initialState.bgmEnabled ?? true);
+
+    // Ouvintes globais para resumir o contexto de áudio no primeiro clique ou interação na página (Autoplay Policy)
+    const resumeAudio = () => {
+      if (this.initCtx()) {
+        window.removeEventListener('click', resumeAudio);
+        window.removeEventListener('keydown', resumeAudio);
+      }
+    };
+    window.addEventListener('click', resumeAudio);
+    window.addEventListener('keydown', resumeAudio);
+
     // Escuta mudanças no Zustand store para atualizar configurações e tocar efeitos reativos
     useGameStore.subscribe((state) => {
-      if (!state || !state.character) return;
+      if (!state) return;
+
+      // Atualiza volumes dinamicamente
+      this.sfxVolume = (state.sfxVolume ?? 0.5) * 0.5;
+      this.bgmVolume = (state.bgmVolume ?? 0.5) * 0.25;
+
+      this.updateSettings(state.sfxEnabled ?? true, state.bgmEnabled ?? true);
+
+      if (!state.character) return;
 
       const currentLevel = state.character.level;
       const currentAttrPoints = state.character.attributePoints;
       const currentSkillPoints = state.character.skillPoints;
       const currentPrestigePoints = state.character.prestigePoints || 0;
       const currentPrestigeUpgrades = state.character.prestigeUpgrades || {};
-
-      this.updateSettings(state.sfxEnabled ?? true, state.bgmEnabled ?? true);
 
       if (!initialized) {
         prevLevel = currentLevel;

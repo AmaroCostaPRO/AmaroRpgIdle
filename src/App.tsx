@@ -5,13 +5,18 @@ import GameUI from './components/GameUI';
 import { MainMenu } from './components/MainMenu';
 import { CharacterSelect } from './components/CharacterSelect';
 import { useGameStore } from './store/useGameStore';
+import { AudioManager } from './core/AudioManager';
 
 const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<Phaser.Game | null>(null);
   const screen = useGameStore((state) => state.screen);
-
   const zoomLevel = useGameStore((state) => state.zoomLevel);
+
+  // Inicializa o gerenciador de áudio na montagem do App
+  useEffect(() => {
+    AudioManager.getInstance();
+  }, []);
 
   useEffect(() => {
     if (screen === 'playing' && gameContainerRef.current && !phaserGameRef.current) {
