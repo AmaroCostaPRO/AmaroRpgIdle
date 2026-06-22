@@ -275,9 +275,9 @@ export const useGameStore = create<GameState>((set) => ({
   zoomLevel: (() => {
     try {
       const saved = localStorage.getItem('rpg_game_zoom');
-      return saved ? parseFloat(saved) : 1.3;
+      return saved ? parseFloat(saved) : 1.0;
     } catch {
-      return 1.3;
+      return 1.0;
     }
   })(),
 

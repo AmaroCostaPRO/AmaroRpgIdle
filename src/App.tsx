@@ -75,13 +75,13 @@ const App: React.FC = () => {
         )}
 
         {screen === 'character_select' && (
-          <div style={{ width: '100%', maxWidth: '42rem' }} className="animate-fadeIn">
+          <div style={{ width: '100%', maxWidth: '52rem' }} className="animate-fadeIn">
             <CharacterSelect />
           </div>
         )}
 
         {screen === 'saves' && (
-          <div style={{ width: '100%', maxWidth: '42rem' }} className="animate-fadeIn">
+          <div style={{ width: '100%', maxWidth: '52rem' }} className="animate-fadeIn">
             <SavesMenu />
           </div>
         )}

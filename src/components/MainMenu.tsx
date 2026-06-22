@@ -42,7 +42,7 @@ export const MainMenu: React.FC = () => {
 
   if (showOptions) {
     return (
-      <div className="panel animate-fadeIn" style={{ padding: '2.5rem', minHeight: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      <div className="panel animate-fadeIn" style={{ padding: '2.5rem', minHeight: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflowY: 'auto' }}>
         {/* Glows de fundo */}
         <div style={{ position: 'absolute', top: '-10rem', left: '-10rem', width: '24rem', height: '24rem', background: 'rgba(59, 130, 246, 0.06)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-10rem', right: '-10rem', width: '24rem', height: '24rem', background: 'rgba(139, 92, 246, 0.06)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none' }} />
@@ -160,7 +160,7 @@ export const MainMenu: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
               <span style={{ color: '#94a3b8' }}>Zoom da Página</span>
               <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-dim)' }}>
-                {[1.0, 1.15, 1.3, 1.5].map((level) => (
+                {[0.8, 0.9, 1.0, 1.15, 1.3].map((level) => (
                   <button
                     key={level}
                     onClick={() => {
@@ -208,7 +208,7 @@ export const MainMenu: React.FC = () => {
   }
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: '3rem 2rem', minHeight: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+    <div className="panel animate-slideUp" style={{ padding: '3rem 2rem', minHeight: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflowY: 'auto' }}>
       {/* Luzes de fundo mágicas */}
       <div style={{ position: 'absolute', top: '-8rem', width: '22rem', height: '22rem', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-8rem', width: '22rem', height: '22rem', background: 'rgba(139, 92, 246, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
