@@ -49,7 +49,7 @@ export const CharacterSelect: React.FC = () => {
   };
 
   return (
-    <div className="panel animate-slideUp class-select-panel" style={{ minHeight: '550px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto', position: 'relative' }}>
+    <div className="panel animate-slideUp class-select-panel" style={{ minHeight: '550px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', position: 'relative' }}>
       {/* Glow de fundo */}
       <div style={{ position: 'absolute', top: '-6rem', width: '20rem', height: '20rem', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
 

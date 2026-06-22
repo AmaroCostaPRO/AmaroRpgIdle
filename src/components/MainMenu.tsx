@@ -42,7 +42,7 @@ export const MainMenu: React.FC = () => {
 
   if (showOptions) {
     return (
-      <div className="panel animate-fadeIn" style={{ padding: '2.5rem', minHeight: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflowY: 'auto' }}>
+      <div className="panel animate-fadeIn" style={{ padding: '2.5rem', minHeight: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Glows de fundo */}
         <div style={{ position: 'absolute', top: '-10rem', left: '-10rem', width: '24rem', height: '24rem', background: 'rgba(59, 130, 246, 0.06)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-10rem', right: '-10rem', width: '24rem', height: '24rem', background: 'rgba(139, 92, 246, 0.06)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none' }} />
@@ -208,7 +208,7 @@ export const MainMenu: React.FC = () => {
   }
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: '3rem 2rem', minHeight: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflowY: 'auto' }}>
+    <div className="panel animate-slideUp" style={{ padding: '3rem 2rem', minHeight: '500px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
       {/* Luzes de fundo mágicas */}
       <div style={{ position: 'absolute', top: '-8rem', width: '22rem', height: '22rem', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-8rem', width: '22rem', height: '22rem', background: 'rgba(139, 92, 246, 0.04)', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />

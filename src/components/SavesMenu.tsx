@@ -182,7 +182,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   };
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: isInGame ? '400px' : '520px', maxHeight: isInGame ? '85vh' : '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto', position: 'relative' }}>
+    <div className="panel animate-slideUp" style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: isInGame ? '400px' : '520px', maxHeight: isInGame ? '85vh' : undefined, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowY: isInGame ? 'auto' : 'visible', position: 'relative' }}>
       {/* Glow de fundo */}
       {!isInGame && (
         <>
@@ -266,7 +266,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
       )}
 
       {/* Grid de Slots */}
-      <div className="saves-grid">
+      <div className={isInGame ? "saves-grid-ingame" : "saves-grid"}>
         {slots.map((slot) => {
           const char = slot.character;
           const isActive = currentSlot === slot.slotIndex;

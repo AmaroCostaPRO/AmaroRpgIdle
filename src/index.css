@@ -1136,6 +1136,17 @@ body {
   z-index: 10;
 }
 
+/* Grid de Saves responsivo de 2 colunas dentro do jogo (desktop lateral) */
+.saves-grid-ingame {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 42rem;
+  margin-bottom: 2rem;
+  z-index: 10;
+}
+
 .class-carousel-mobile {
   display: none;
 }
@@ -1156,7 +1167,8 @@ body {
     width: 100%;
   }
 
-  .saves-grid {
+  .saves-grid,
+  .saves-grid-ingame {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     margin-bottom: 1.5rem;
   }
