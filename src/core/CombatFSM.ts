@@ -13,8 +13,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     attackSpeedMultiplier: 1.35,
     xpValue: 25,
     color: '#4ade80',
-    flipX: true,
-    yOffset: 15
+    flipX: false,
+    yOffset: 0
   },
   {
     id: 'shadow_wolf',
@@ -26,7 +26,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 30,
     color: '#94a3b8',
     flipX: false,
-    yOffset: 15
+    yOffset: 0
   },
   {
     id: 'orc_warrior',
@@ -50,7 +50,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 120,
     color: '#34d399',
     flipX: false,
-    yOffset: -5
+    yOffset: 0
   },
 
   // === FASE 2: Deserto ===
@@ -64,7 +64,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 35,
     color: '#fbbf24',
     flipX: false,
-    yOffset: 10
+    yOffset: 0
   },
   {
     id: 'desert_bandit',
@@ -88,7 +88,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 38,
     color: '#ef4444',
     flipX: false,
-    yOffset: 15
+    yOffset: 0
   },
   {
     id: 'boss_sand_scorpion',
@@ -100,7 +100,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 150,
     color: '#fbbf24',
     flipX: false,
-    yOffset: 10
+    yOffset: 0
   },
 
   // === FASE 3: Neve ===
@@ -114,7 +114,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 40,
     color: '#38bdf8',
     flipX: false,
-    yOffset: 15
+    yOffset: 0
   },
   {
     id: 'ice_elemental',
@@ -126,7 +126,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 45,
     color: '#7dd3fc',
     flipX: false,
-    yOffset: 5
+    yOffset: 0
   },
   {
     id: 'cave_yeti',
@@ -138,7 +138,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 50,
     color: '#e2e8f0',
     flipX: false,
-    yOffset: -5
+    yOffset: 0
   },
   {
     id: 'boss_frost_dragon',
@@ -150,7 +150,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 200,
     color: '#0ea5e9',
     flipX: false,
-    yOffset: -10
+    yOffset: 0
   },
 
   // === FASE 4: Cemitério ===
@@ -176,7 +176,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 48,
     color: '#84cc16',
     flipX: false,
-    yOffset: 5
+    yOffset: 0
   },
   {
     id: 'tormented_ghost',
@@ -188,7 +188,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 52,
     color: '#67e8f9',
     flipX: false,
-    yOffset: 10
+    yOffset: 0
   },
   {
     id: 'boss_necromancer',
@@ -199,7 +199,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     attackSpeedMultiplier: 0.9,
     xpValue: 250,
     color: '#c084fc',
-    flipX: true,
+    flipX: false,
     yOffset: 0
   },
 
@@ -214,7 +214,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 55,
     color: '#64748b',
     flipX: false,
-    yOffset: 10
+    yOffset: 0
   },
   {
     id: 'living_armor',
@@ -238,7 +238,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 58,
     color: '#f43f5e',
     flipX: false,
-    yOffset: 15
+    yOffset: 0
   },
   {
     id: 'boss_archdemon',
@@ -250,7 +250,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 300,
     color: '#f43f5e',
     flipX: false,
-    yOffset: -5
+    yOffset: 0
   }
 ];
 

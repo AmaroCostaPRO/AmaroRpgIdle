@@ -104,11 +104,11 @@ export class CombatScene extends Phaser.Scene {
 
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
-      const g = data[i + 2]; // O canal g e b
+      const g = data[i + 1];
       const b = data[i + 2];
 
       const isBackground = backgroundColors.some(c => {
-        return Math.abs(c.r - r) + Math.abs(c.g - data[i+1]) + Math.abs(c.b - b) < tolerance;
+        return Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < tolerance;
       });
 
       if (isBackground) {
@@ -169,9 +169,7 @@ export class CombatScene extends Phaser.Scene {
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
     this.playerBody.setDisplaySize(95, 95);
-    if (classId === 'mage' || classId === 'paladin') {
-      this.playerBody.setFlipX(true);
-    }
+    this.playerBody.setFlipX(false);
 
     // Inicializar FSM de combate antes de criar os inimigos para pegar informações corretas
     this.fsm = new CombatFSM(this, null);
