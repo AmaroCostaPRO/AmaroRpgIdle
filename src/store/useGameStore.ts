@@ -68,6 +68,44 @@ export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; descripti
   perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +3 em Constitution por nível', stat: 'constitution', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
 };
 
+// Multiplicadores base para as habilidades ativas (conforme a descrição)
+export const SKILL_BASE_MULTIPLIERS: Record<string, number> = {
+  // Warrior
+  slash: 1.5,
+  shield_bash: 1.2,
+  execute: 3.0,
+  bladestorm: 4.0,
+
+  // Mage
+  fireball: 2.5,
+  frostbolt: 1.5,
+  lightning: 3.5,
+  meteor: 5.0,
+
+  // Ranger
+  arrow_shot: 1.5,
+  poison_arrow: 1.0,
+  double_shot: 2.8,
+  rain_arrows: 4.2,
+
+  // Paladin
+  holy_strike: 1.5,
+  shield_righteousness: 1.2,
+  smite_paladin: 2.5, // Misto
+  consecration: 3.8,
+
+  // Cleric
+  holy_smite: 1.5,
+  wrath_heaven: 3.0,
+  divine_judgement: 4.5,
+
+  // Rogue
+  stab: 1.8,
+  poison_dagger: 1.2,
+  backstab: 3.2,
+  death_blossom: 4.5
+};
+
 // Catálogo estático de Habilidades (Árvore de Habilidades por Classe)
 export const SKILLS_CATALOG: Record<string, {
   name: string;

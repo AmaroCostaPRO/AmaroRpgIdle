@@ -1,6 +1,7 @@
 import { GameEvent, EnemyType, ENEMIES_PER_STAGE } from './types';
 import { bridge } from '../bridge/GameBridge';
-import { useGameStore, SKILLS_CATALOG } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
+
 
 export const ENEMY_TYPES: EnemyType[] = [
   // === FASE 1: Floresta ===
@@ -319,7 +320,7 @@ export class CombatFSM {
     const theme = ((stage - 1) % 5) + 1;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis
-    const difficultyScale = Math.pow(1.45, stage - 1);
+    const difficultyScale = Math.pow(1.65, stage - 1);
 
     if (isBoss) {
       let bossId = 'boss_forest_golem';
@@ -329,7 +330,7 @@ export class CombatFSM {
       else if (theme === 5) bossId = 'boss_archdemon';
 
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
-      this.enemyMaxHP = Math.floor((120 + (stage * 40)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+      this.enemyMaxHP = Math.floor((120 + (stage * 35)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
       console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Pesadelo: ${isNightmare})`);
     } else {
@@ -345,7 +346,7 @@ export class CombatFSM {
       
       const randIndex = defeatedInStage % activeList.length;
       this.currentEnemy = activeList[randIndex];
-      this.enemyMaxHP = Math.floor((100 + (stage * 25)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
+      this.enemyMaxHP = Math.floor((120 + (stage * 35)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     }
   }
@@ -519,7 +520,7 @@ export class CombatFSM {
       damageType = 'sagrado';
     }
 
-    const damage = Math.floor(primaryStatVal * 1.5 + Math.random() * 3);
+    const damage = Math.floor(primaryStatVal * 1.0 + Math.random() * 3);
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
@@ -664,7 +665,8 @@ export class CombatFSM {
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
     if (skillId === 'heal' || skillId === 'holy_light') {
-      const healAmount = Math.floor(this.characterData.baseStats.magic * 3 + 12 * skillLvl);
+      // Restaura 30% do HP máximo, mais 5% a cada nível adicional
+      const healAmount = Math.floor(this.playerMaxHP * (0.30 + (skillLvl - 1) * 0.05));
       this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
       this.scene.animateHealEffect();
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healAmount}`, '#10b981');
@@ -672,30 +674,42 @@ export class CombatFSM {
       return;
     }
 
-    // Dano das habilidades ativas baseado no atributo principal
-    const classId = this.characterData.classId || 'warrior';
+    // Dano das habilidades ativas baseado no atributo principal da própria habilidade (skill.classId)
+    const skillClass = skill.classId;
     let primaryStatVal = this.characterData.baseStats.strength;
-    let damageType = 'golpe';
+    let damageType = 'físico';
 
-    if (classId === 'mage' || classId === 'cleric') {
+    if (skillClass === 'mage' || skillClass === 'cleric') {
       primaryStatVal = this.characterData.baseStats.magic;
       damageType = 'mágico';
-    } else if (classId === 'ranger' || classId === 'rogue') {
+    } else if (skillClass === 'ranger' || skillClass === 'rogue') {
       primaryStatVal = this.characterData.baseStats.dexterity;
-      damageType = 'perfurante';
-    } else if (classId === 'paladin') {
+      damageType = 'de perfuração';
+    } else if (skillClass === 'paladin') {
       primaryStatVal = this.characterData.baseStats.constitution;
-      damageType = 'punidor';
+      damageType = 'sagrado';
+    } else if (skillClass === 'warrior') {
+      primaryStatVal = this.characterData.baseStats.strength;
+      damageType = 'físico';
     }
 
-    // Escalamento baseado em tier (requiredLevel) e nível da skill
-    const damageMultiplier = 1.0 + (skill.requiredLevel * 0.25) + (skillLvl * 0.15);
-    const dmg = Math.floor(primaryStatVal * damageMultiplier + Math.random() * 5);
+    // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
+    let dmg = 0;
+    if (skillId === 'smite_paladin') {
+      // Dano misto: 250% da média de constituição e força (ou seja, 1.25x cada)
+      const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
+      dmg = Math.floor((this.characterData.baseStats.constitution * 1.25 + this.characterData.baseStats.strength * 1.25) * levelMultiplier + Math.random() * 5);
+      damageType = 'sagrado';
+    } else {
+      const baseMult = SKILL_BASE_MULTIPLIERS[skillId] || 1.0;
+      const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
+      dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
+    }
 
     this.enemyHP = Math.max(0, this.enemyHP - dmg);
 
-    // Determina a animação apropriada
-    if (classId === 'mage' || classId === 'cleric') {
+    // Determina a animação apropriada e cor de texto
+    if (skillClass === 'mage' || skillClass === 'cleric') {
       this.scene.animateFireballEffect();
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f97316');
     } else {

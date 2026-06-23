@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats } from '../core/types';
 import { ENEMY_TYPES } from '../core/CombatFSM';
@@ -301,9 +301,13 @@ const SkillsTreePanel: React.FC = () => {
   const availableSkillPoints = character.skillPoints;
 
   // Filtra as habilidades da classe atual + curas comuns
-  const classSkills = Object.entries(SKILLS_CATALOG).filter(
-    ([id, s]) => s.classId === classId || s.classId === 'common'
-  );
+  const classSkills = Object.entries(SKILLS_CATALOG)
+    .filter(([id, s]) => s.classId === classId || s.classId === 'common')
+    .sort(([idA], [idB]) => {
+      if (idA === 'heal') return -1;
+      if (idB === 'heal') return 1;
+      return 0;
+    });
 
   // Mapeia coordenadas absolutas em porcentagem no grid da árvore de habilidades
   const getSkillPos = (id: string, skill: any) => {
@@ -464,6 +468,46 @@ const SkillsTreePanel: React.FC = () => {
                     </span>
                   </div>
                   <p style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.5rem', lineHeight: 1.6 }}>{selectedSkill.description}</p>
+                  {selectedSkill.type === 'active' && (() => {
+                    const skillLvl = character.skillLevels[selectedSkillId] || 0;
+                    const baseMult = SKILL_BASE_MULTIPLIERS[selectedSkillId];
+                    
+                    let currentText = 'Bloqueado';
+                    let nextText = '';
+
+                    if (selectedSkillId === 'heal') {
+                      if (skillLvl > 0) {
+                        currentText = `Restaura ${(30 + (skillLvl - 1) * 5)}% do HP Máx`;
+                      }
+                      if (skillLvl < selectedSkill.maxLevel) {
+                        nextText = `Restaura ${(30 + skillLvl * 5)}% do HP Máx`;
+                      }
+                    } else if (baseMult) {
+                      if (skillLvl > 0) {
+                        const currentPct = (baseMult * (1 + (skillLvl - 1) * 0.15) * 100).toFixed(1);
+                        currentText = `Causa ${currentPct}% de Dano`;
+                      }
+                      if (skillLvl < selectedSkill.maxLevel) {
+                        const nextPct = (baseMult * (1 + skillLvl * 0.15) * 100).toFixed(1);
+                        nextText = `Causa ${nextPct}% de Dano`;
+                      }
+                    }
+
+                    return (
+                      <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.68rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#94a3b8' }}>Efeito Atual:</span>
+                          <span style={{ color: skillLvl > 0 ? 'var(--gold-400)' : '#64748b', fontWeight: 700 }}>{currentText}</span>
+                        </div>
+                        {nextText && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#64748b' }}>Próximo Nível:</span>
+                            <span style={{ color: '#10b981', fontWeight: 600 }}>{nextText}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
@@ -598,6 +642,45 @@ const SkillsTreePanel: React.FC = () => {
                     <p style={{ fontSize: '0.65rem', color: '#cbd5e1', lineHeight: 1.5 }}>
                       {skill.description}
                     </p>
+                    {skill.type === 'active' && (() => {
+                      const baseMult = SKILL_BASE_MULTIPLIERS[id];
+                      
+                      let currentText = 'Bloqueado';
+                      let nextText = '';
+
+                      if (id === 'heal') {
+                        if (currentLevel > 0) {
+                          currentText = `Restaura ${(30 + (currentLevel - 1) * 5)}% do HP Máx`;
+                        }
+                        if (currentLevel < skill.maxLevel) {
+                          nextText = `Restaura ${(30 + currentLevel * 5)}% do HP Máx`;
+                        }
+                      } else if (baseMult) {
+                        if (currentLevel > 0) {
+                          const currentPct = (baseMult * (1 + (currentLevel - 1) * 0.15) * 100).toFixed(1);
+                          currentText = `Causa ${currentPct}% de Dano`;
+                        }
+                        if (currentLevel < skill.maxLevel) {
+                          const nextPct = (baseMult * (1 + currentLevel * 0.15) * 100).toFixed(1);
+                          nextText = `Causa ${nextPct}% de Dano`;
+                        }
+                      }
+
+                      return (
+                        <div style={{ padding: '0.4rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.62rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#94a3b8' }}>Efeito Atual:</span>
+                            <span style={{ color: currentLevel > 0 ? 'var(--gold-400)' : '#64748b', fontWeight: 700 }}>{currentText}</span>
+                          </div>
+                          {nextText && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#64748b' }}>Próximo Nível:</span>
+                              <span style={{ color: '#10b981', fontWeight: 600 }}>{nextText}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                       <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
@@ -1107,7 +1190,7 @@ const GuidePanel: React.FC = () => {
                 <div>
                   <strong className="text-white block font-semibold">Ataque Básico da Classe ({config.name})</strong>
                   <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Dano Básico = Atributo Principal ({getPrimaryStatName(config.primaryStat).split(' ')[0]}) × 1.5 + Random(0, 2)
+                    Dano Básico = Atributo Principal ({getPrimaryStatName(config.primaryStat).split(' ')[0]}) × 1.0 + Random(0, 2)
                   </code>
                 </div>
               </div>
@@ -1118,14 +1201,17 @@ const GuidePanel: React.FC = () => {
               <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-widest block">Matemática das Habilidades Ativas</span>
               <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                 <div>
-                  <strong className="text-white block font-semibold">Habilidades de Dano</strong>
+                  <strong className="text-white block font-semibold">Habilidades de Dano Comum</strong>
                   <code className="text-amber-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Mult. Dano = 1.0 + (Tier × 0.25) + (Nível da Habilidade × 0.15)
+                    Dano = Atributo Principal × Mult. Base × (1 + (Nível - 1) × 0.15) + Random(0, 4)
                   </code>
-                  <code className="text-amber-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Dano Final = Atributo Principal × Mult. Dano + Random(0, 4)
+                  <p className="text-gray-500 text-[8px] mt-0.5">O Multiplicador Base varia por habilidade (ex: Golpe Rápido: 1.5x, Bola de Fogo: 2.5x).</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Julgamento (Smite) do Paladino</strong>
+                  <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Dano Sagrado = (Constituição × 1.25 + Força × 1.25) × (1 + (Nível - 1) × 0.15) + Random(0, 4)
                   </code>
-                  <p className="text-gray-500 text-[8px] mt-0.5">O Tier corresponde ao nível requerido para desbloquear a habilidade (1, 3, 7 ou 11).</p>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold">Habilidade de Cura (Cura)</strong>
@@ -1146,15 +1232,27 @@ const GuidePanel: React.FC = () => {
                   <p className="text-gray-400 text-[9px] mt-0.5">
                     Fase 1: Floresta | Fase 2: Deserto | Fase 3: Neve | Fase 4: Cemitério | Fase 5: Ruínas.
                   </p>
-                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Vida dos Monstros = (100 + Fase × 20) × Mult. do Monstro</code>
-                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Dano dos Monstros = (5 + Fase × 1.5) × Mult. do Monstro</code>
+                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Fator Dificuldade = 1.65 ^ (Fase - 1)
+                  </code>
+                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    HP Normal = (120 + Fase × 35) × Fator Dificuldade × Mult. HP Monstro
+                  </code>
+                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    HP Chefe = (120 + Fase × 35) × Fator Dificuldade × Mult. HP Chefe × 3.0
+                  </code>
+                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Dano Monstros = (5 + Fase × 2.0 + Random(0, 1)) × 1.3 ^ (Fase - 1) × Mult. Dano Monstro
+                  </code>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold">Fases Pesadelo (6 a 10)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
                     As mesmas fases com tint maligno avermelhado, maior agressividade e status maciçamente aumentados.
                   </p>
-                  <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Status Pesadelo = Status Base × 2.5 (+150% de Vida e Dano)</code>
+                  <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Status Pesadelo = Status Base × 2.5 (+150% de HP e Dano)
+                  </code>
                 </div>
               </div>
             </div>
@@ -1170,15 +1268,15 @@ const GuidePanel: React.FC = () => {
                   <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
                   <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
                     <li>
-                      <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, atributos normais comprados com Gold, Gold acumulado, progresso atual do combate (fase de combate volta para a Fase 1) e mana/HP.
+                      <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos normais distribuídos pelo jogador, progresso atual do combate (fase de combate volta para a Fase 1) e mana/HP.
                     </li>
                     <li>
                       <span className="text-gray-400">O que é mantido (Permanente):</span> Classe escolhida e seu progresso de maestria, Habilidades desbloqueadas (com seus respectivos níveis) e todas as melhorias compradas com Pontos de Prestígio (PP).
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>
-                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor((XP Acumulada / 1000) ^ 0.7)</code>
-                      <span className="text-gray-500 text-[8px] block mt-0.5">(Requer pelo menos Nível 5 para obter o primeiro Ponto de Prestígio)</span>
+                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor((XP Acumulada / 1000) ^ 0.85)</code>
+                      <span className="text-gray-500 text-[8px] block mt-0.5">(Requer pelo menos Nível 5 para obter o primeiro Ponto de Prestígio. A XP acumulada conta toda a XP gasta em níveis anteriores mais a atual)</span>
                     </li>
                   </ul>
                 </div>

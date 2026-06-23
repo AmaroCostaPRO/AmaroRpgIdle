@@ -16,6 +16,7 @@ export class CombatScene extends Phaser.Scene {
   private stageText!: Phaser.GameObjects.Text;
   private enemyHPBar!: Phaser.GameObjects.Graphics;
   private unsubscribeSkill?: () => void;
+  private currentBgTexture: string = 'background';
 
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
@@ -294,9 +295,10 @@ export class CombatScene extends Phaser.Scene {
     else if (stageTheme === 4) textureKey = 'cemetery_background';
     else if (stageTheme === 5) textureKey = 'ruins_background';
 
-    if (this.background.texture.key !== textureKey) {
+    if (this.currentBgTexture !== textureKey) {
       console.log(`[CombatScene] Atualizando background para: ${textureKey}`);
       this.background.setTexture(textureKey);
+      this.currentBgTexture = textureKey;
       const baseBgScale = 600 / 1024;
       const currentBgScale = baseBgScale * ZOOM_FACTOR;
       this.background.setTileScale(currentBgScale, currentBgScale);
