@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
-import { GameEvent, BaseStats } from '../core/types';
+import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
+import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { ENEMY_TYPES } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
@@ -242,6 +243,7 @@ const AttributePanel: React.FC = () => {
       case 'magic': return 'Magia (Dano Mago/Clérigo)';
       case 'dexterity': return 'Destreza (Dano Arqueiro/Ladrão)';
       case 'constitution': return 'Constituição (Dano Paladino)';
+      case 'luck': return 'Sorte (Drop & Raridade de Itens)';
       default: return attr;
     }
   };
@@ -290,6 +292,555 @@ const AttributePanel: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const EquipmentPanel: React.FC = () => {
+  const character = useGameStore((state) => state.character);
+  const equipItem = useGameStore((state) => state.equipItem);
+  const unequipItem = useGameStore((state) => state.unequipItem);
+  const discardItem = useGameStore((state) => state.discardItem);
+
+  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  const finalStats = StatEngine.calculateFinalStats(character);
+  const baseStats = character.baseStats;
+
+  // Contabilizar peças dos conjuntos equipados
+  const equippedItems = Object.values(character.equipment || {}).filter(Boolean) as EquipmentItem[];
+  const setCounts: Record<string, number> = {};
+  equippedItems.forEach((item) => {
+    if (item.setName) {
+      setCounts[item.setName] = (setCounts[item.setName] || 0) + 1;
+    }
+  });
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'raro': return '#3b82f6';
+      case 'lendário': return '#f59e0b';
+      default: return '#94a3b8';
+    }
+  };
+
+  const getRarityBg = (rarity: string) => {
+    switch (rarity) {
+      case 'raro': return 'rgba(59, 130, 246, 0.15)';
+      case 'lendário': return 'rgba(245, 158, 11, 0.15)';
+      default: return 'rgba(148, 163, 184, 0.1)';
+    }
+  };
+
+  const slotLabels: Record<string, string> = {
+    head: 'Cabeça',
+    chest: 'Peito',
+    legs: 'Pernas',
+    gloves: 'Luvas',
+    weapon: 'Arma'
+  };
+
+  const slotIcons: Record<string, string> = {
+    head: '🪖',
+    chest: '👕',
+    legs: '👖',
+    gloves: '🧤',
+    weapon: '⚔️'
+  };
+
+  const statLabels: Record<string, string> = {
+    strength: 'Força',
+    magic: 'Magia',
+    dexterity: 'Destreza',
+    constitution: 'Constituição',
+    luck: 'Sorte'
+  };
+
+  const maxSlots = character.inventorySlots || 30;
+  const inventoryGrid = Array.from({ length: maxSlots }, (_, i) => character.inventory[i] || null);
+
+  const handleEquip = (item: EquipmentItem) => {
+    AudioManager.getInstance().playClick();
+    equipItem(item.id);
+    setSelectedItem(null);
+  };
+
+  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon') => {
+    AudioManager.getInstance().playClick();
+    unequipItem(slot);
+    setSelectedSlot(null);
+  };
+
+  const handleDiscard = (itemId: string) => {
+    AudioManager.getInstance().playClick();
+    discardItem(itemId);
+    setSelectedItem(null);
+    setShowDiscardConfirm(false);
+  };
+
+  return (
+    <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      
+      {/* Layout de Duas Colunas Superior */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+        
+        {/* Visualização de Equipados */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
+            Equipamento Atual
+          </h3>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateRows: 'repeat(3, auto)',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.75rem',
+            alignItems: 'center',
+            justifyItems: 'center',
+            background: 'rgba(0,0,0,0.2)',
+            padding: '1rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-dim)',
+            position: 'relative'
+          }}>
+            {/* Cabeça */}
+            <div style={{ gridRow: '1', gridColumn: '2' }}>
+              <EquipmentSlot 
+                slot="head" 
+                item={character.equipment.head} 
+                onClick={() => character.equipment.head && setSelectedSlot('head')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Luvas */}
+            <div style={{ gridRow: '2', gridColumn: '1' }}>
+              <EquipmentSlot 
+                slot="gloves" 
+                item={character.equipment.gloves} 
+                onClick={() => character.equipment.gloves && setSelectedSlot('gloves')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Peito */}
+            <div style={{ gridRow: '2', gridColumn: '2' }}>
+              <EquipmentSlot 
+                slot="chest" 
+                item={character.equipment.chest} 
+                onClick={() => character.equipment.chest && setSelectedSlot('chest')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Arma */}
+            <div style={{ gridRow: '2', gridColumn: '3' }}>
+              <EquipmentSlot 
+                slot="weapon" 
+                item={character.equipment.weapon} 
+                onClick={() => character.equipment.weapon && setSelectedSlot('weapon')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Pernas */}
+            <div style={{ gridRow: '3', gridColumn: '2' }}>
+              <EquipmentSlot 
+                slot="legs" 
+                item={character.equipment.legs} 
+                onClick={() => character.equipment.legs && setSelectedSlot('legs')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Atributos Consolidados & Sets */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
+            Atributos Totais & Conjuntos
+          </h3>
+
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.5rem', 
+            background: 'rgba(0,0,0,0.2)', 
+            padding: '0.75rem', 
+            borderRadius: 'var(--radius-md)', 
+            border: '1px solid var(--border-dim)' 
+          }}>
+            {Object.keys(baseStats).map((statKey) => {
+              const base = baseStats[statKey as keyof BaseStats] || 0;
+              const final = finalStats[statKey as keyof BaseStats] || 0;
+              const bonus = final - base;
+
+              return (
+                <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <span className="font-heading" style={{ fontWeight: 600, color: '#cbd5e1' }}>{statLabels[statKey] || statKey}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span className="font-mono" style={{ fontWeight: 700 }}>{final}</span>
+                    {bonus > 0 && (
+                      <span className="font-mono" style={{ color: '#10b981', fontSize: '0.62rem' }}>+{bonus}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Listagem de Bônus de Conjunto Ativos */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.4rem',
+            background: 'rgba(0,0,0,0.15)',
+            padding: '0.6rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(255, 255, 255, 0.04)'
+          }}>
+            <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Conjuntos Ativos
+            </span>
+            {Object.keys(SET_BONUSES).map((setName) => {
+              const count = setCounts[setName] || 0;
+              const config = SET_BONUSES[setName];
+              if (!config) return null;
+              
+              const isAnyBonusActive = count >= 2;
+
+              return (
+                <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+                    <span style={{ fontWeight: 700, color: isAnyBonusActive ? 'var(--gold-400)' : '#cbd5e1' }}>{setName}</span>
+                    <span className="font-mono" style={{ fontSize: '0.6rem' }}>{count}/5 Peças</span>
+                  </div>
+                  {isAnyBonusActive && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.1rem' }}>
+                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 2 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 2 ? '#34d399' : '#64748b', border: count >= 2 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                        (2) +15 Atributo
+                      </span>
+                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 3 ? '#34d399' : '#64748b', border: count >= 3 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                        (3) +20 Con/For
+                      </span>
+                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 5 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 5 ? '#34d399' : '#64748b', border: count >= 5 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                        (5) +35 Atributo
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {Object.values(setCounts).length === 0 && (
+              <span style={{ fontSize: '0.6rem', color: '#64748b', fontStyle: 'italic' }}>Nenhum conjunto ativo equipado.</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Inventário */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', margin: 0 }}>
+            Inventário de Itens
+          </h3>
+          <span className="font-mono" style={{ fontSize: '0.62rem', color: '#cbd5e1' }}>
+            Slots ocupados: {character.inventory.length} / {maxSlots}
+          </span>
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))', 
+          gap: '0.5rem',
+          background: 'rgba(0,0,0,0.15)',
+          padding: '0.75rem',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-dim)'
+        }}>
+          {inventoryGrid.map((item, idx) => {
+            if (!item) {
+              return (
+                <div 
+                  key={`empty-${idx}`} 
+                  style={{
+                    aspectRatio: '1',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px dashed rgba(255,255,255,0.06)',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.55rem',
+                    color: '#334155',
+                    userSelect: 'none'
+                  }}
+                >
+                  {idx + 1}
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSelectedItem(item);
+                }}
+                className="inventory-item-slot"
+                style={{
+                  aspectRatio: '1',
+                  background: getRarityBg(item.rarity),
+                  border: `2px solid ${getRarityColor(item.rarity)}`,
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  padding: 0,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>{slotIcons[item.slot]}</span>
+                {item.rarity === 'legendary' && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    right: '2px', 
+                    width: '4px', 
+                    height: '4px', 
+                    borderRadius: '50%', 
+                    background: '#f59e0b',
+                    boxShadow: '0 0 4px #f59e0b'
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Modal / Detalhes de Item do Inventário */}
+      {selectedItem && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999999,
+          padding: '1rem'
+        }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+            border: `2px solid ${getRarityColor(selectedItem.rarity)}`,
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem',
+            width: '100%',
+            maxWidth: '320px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+            <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
+
+            <div>
+              <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(selectedItem.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
+              </span>
+              <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(selectedItem.rarity) }}>
+                {selectedItem.name}
+              </h4>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                {Object.entries(selectedItem.stats).map(([stat, val]) => (
+                  <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                    +{val} {statLabels[stat] || stat}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {selectedItem.setName && (
+              <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
+                Conjunto: {selectedItem.setName}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+              <button 
+                onClick={() => handleEquip(selectedItem)}
+                className="btn btn-sm btn-gold" 
+                style={{ width: '100%' }}
+              >
+                Equipar Item
+              </button>
+
+              {showDiscardConfirm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button onClick={() => handleDiscard(selectedItem.id)} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
+                    <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowDiscardConfirm(true)}
+                  className="btn btn-sm btn-danger" 
+                  style={{ width: '100%', opacity: 0.8 }}
+                >
+                  Descartar / Destruir
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Detalhes de Item Equipado */}
+      {selectedSlot && character.equipment[selectedSlot] && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999999,
+          padding: '1rem'
+        }} onClick={() => setSelectedSlot(null)}>
+          {(() => {
+            const item = character.equipment[selectedSlot]!;
+            return (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+                border: `2px solid ${getRarityColor(item.rarity)}`,
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem',
+                width: '100%',
+                maxWidth: '320px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                position: 'relative'
+              }} onClick={(e) => e.stopPropagation()}>
+                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedSlot(null)}>✕</button>
+
+                <div>
+                  <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(item.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    EQUIPADO • {slotLabels[selectedSlot]}
+                  </span>
+                  <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(item.rarity) }}>
+                    {item.name}
+                  </h4>
+                </div>
+
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                    {Object.entries(item.stats).map(([stat, val]) => (
+                      <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                        +{val} {statLabels[stat] || stat}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {item.setName && (
+                  <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
+                    Conjunto: {item.setName}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                  <button 
+                    onClick={() => handleUnequip(selectedSlot)}
+                    className="btn btn-sm btn-gold" 
+                    style={{ width: '100%' }}
+                  >
+                    Desequipar Item
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Componente auxiliar para renderizar cada slot de equipamento
+const EquipmentSlot: React.FC<{
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon';
+  item: EquipmentItem | null;
+  onClick: () => void;
+  icons: Record<string, string>;
+  labels: Record<string, string>;
+  getRarityColor: (rarity: string) => string;
+  getRarityBg: (rarity: string) => string;
+}> = ({ slot, item, onClick, icons, labels, getRarityColor, getRarityBg }) => {
+  return (
+    <button
+      onClick={() => item && onClick()}
+      style={{
+        width: '52px',
+        height: '52px',
+        background: item ? getRarityBg(item.rarity) : 'rgba(0,0,0,0.4)',
+        border: item ? `2px solid ${getRarityColor(item.rarity)}` : '1px dashed rgba(255,255,255,0.08)',
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: item ? 'pointer' : 'default',
+        padding: 0,
+        position: 'relative'
+      }}
+      title={item ? `${item.name} (${labels[slot]})` : `Vazio (${labels[slot]})`}
+    >
+      <span style={{ fontSize: '1.2rem', opacity: item ? 1 : 0.25 }}>
+        {icons[slot]}
+      </span>
+      <span style={{ 
+        position: 'absolute', 
+        bottom: '2px', 
+        fontSize: '0.45rem', 
+        color: item ? getRarityColor(item.rarity) : '#475569',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em'
+      }}>
+        {labels[slot]}
+      </span>
+    </button>
   );
 };
 
@@ -1674,7 +2225,7 @@ const BestiaryPanel: React.FC = () => {
 };
 
 export default function GameUI() {
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -1720,6 +2271,7 @@ export default function GameUI() {
     { id: 'combat' as const, label: 'Combate', icon: '⚔' },
     { id: 'attributes' as const, label: 'Atributos', icon: '◆' },
     { id: 'skills' as const, label: 'Habilidades', icon: '★' },
+    { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
@@ -1879,6 +2431,7 @@ export default function GameUI() {
         )}
         {activeTab === 'attributes' && <AttributePanel />}
         {activeTab === 'skills' && <SkillsTreePanel />}
+        {activeTab === 'equipment' && <EquipmentPanel />}
         {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
         {activeTab === 'bestiary' && <BestiaryPanel />}
         {activeTab === 'guide' && <GuidePanel />}

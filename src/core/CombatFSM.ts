@@ -1,6 +1,7 @@
-import { GameEvent, EnemyType, ENEMIES_PER_STAGE } from './types';
+import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem } from './types';
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
+import { StatEngine } from './StatEngine';
 
 
 export const ENEMY_TYPES: EnemyType[] = [
@@ -266,6 +267,7 @@ export enum CombatState {
 export class CombatFSM {
   private currentState: CombatState = CombatState.IDLE;
   public characterData: any;
+  private playerFinalStats!: BaseStats;
   private target?: any;
 
   public playerHP: number = 100;
@@ -354,9 +356,10 @@ export class CombatFSM {
   private updateStatsFromStore() {
     const char = useGameStore.getState().character;
     this.characterData = char;
+    this.playerFinalStats = StatEngine.calculateFinalStats(char);
 
     const prevMaxHP = this.playerMaxHP;
-    this.playerMaxHP = char.baseStats.constitution * 12;
+    this.playerMaxHP = this.playerFinalStats.constitution * 12;
 
     if (this.playerMaxHP > prevMaxHP) {
       this.playerHP += (this.playerMaxHP - prevMaxHP);
@@ -364,7 +367,7 @@ export class CombatFSM {
     this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
 
     const prevMaxMana = this.playerMaxMana;
-    this.playerMaxMana = char.baseStats.magic * 10;
+    this.playerMaxMana = this.playerFinalStats.magic * 10;
     if (this.playerMaxMana > prevMaxMana) {
       this.playerMana += (this.playerMaxMana - prevMaxMana);
     }
@@ -394,8 +397,8 @@ export class CombatFSM {
     if (this.enemyAttackCooldown > 0) this.enemyAttackCooldown -= delta;
 
     // Recuperação de HP/Mana baseada em atributos
-    this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.characterData.baseStats.constitution * 0.05 * (delta / 1000)));
-    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.characterData.baseStats.magic * 0.05 * (delta / 1000)));
+    this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.playerFinalStats.constitution * 0.05 * (delta / 1000)));
+    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.playerFinalStats.magic * 0.05 * (delta / 1000)));
 
     // Atualizar cooldowns
     Object.keys(this.skillCooldowns).forEach((skillId) => {
@@ -501,22 +504,22 @@ export class CombatFSM {
   }
 
   private performPlayerAttack() {
-    const speedMultiplier = 1 + (this.characterData.baseStats.dexterity * 0.02);
+    const speedMultiplier = 1 + (this.playerFinalStats.dexterity * 0.02);
     this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
     const classId = this.characterData.classId || 'warrior';
-    let primaryStatVal = this.characterData.baseStats.strength;
+    let primaryStatVal = this.playerFinalStats.strength;
     let damageType = 'físico';
 
     if (classId === 'mage' || classId === 'cleric') {
-      primaryStatVal = this.characterData.baseStats.magic;
+      primaryStatVal = this.playerFinalStats.magic;
       damageType = 'mágico';
     } else if (classId === 'ranger' || classId === 'rogue') {
-      primaryStatVal = this.characterData.baseStats.dexterity;
+      primaryStatVal = this.playerFinalStats.dexterity;
       damageType = 'de perfuração';
     } else if (classId === 'paladin') {
-      primaryStatVal = this.characterData.baseStats.constitution;
+      primaryStatVal = this.playerFinalStats.constitution;
       damageType = 'sagrado';
     }
 
@@ -574,6 +577,107 @@ export class CombatFSM {
     }
 
     useGameStore.getState().addXp(gainedXp);
+
+    // === SISTEMA DE DROP DE EQUIPAMENTOS ===
+    const luck = this.playerFinalStats.luck || 0;
+    const baseDropChance = 0.05;
+    const dropChance = isBoss ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002);
+    
+    if (Math.random() < dropChance) {
+      const slots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
+      const slot = slots[Math.floor(Math.random() * slots.length)];
+      
+      const rareWeight = Math.min(600, 250 + luck * 5);
+      const legendaryWeight = Math.min(300, 50 + luck * 2);
+      const commonWeight = Math.max(100, 700 - (rareWeight - 250) - (legendaryWeight - 50));
+      
+      const totalWeight = commonWeight + rareWeight + legendaryWeight;
+      const roll = Math.random() * totalWeight;
+      
+      let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
+      if (roll < legendaryWeight) {
+        rarity = 'legendary';
+      } else if (roll < legendaryWeight + rareWeight) {
+        rarity = 'rare';
+      }
+      
+      const stage = char.currentStage;
+      const mult = rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0);
+      const classId = char.classId;
+      
+      const possibleStatsMap: Record<string, string[]> = {
+        warrior: ['strength', 'constitution', 'luck'],
+        mage: ['magic', 'constitution', 'luck'],
+        ranger: ['dexterity', 'constitution', 'luck'],
+        paladin: ['constitution', 'strength', 'luck'],
+        cleric: ['magic', 'constitution', 'luck'],
+        rogue: ['dexterity', 'strength', 'luck']
+      };
+      
+      const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
+      const itemStats: Partial<BaseStats> = {};
+      const numAttributes = rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+      
+      const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+      pickedStats.forEach((statKey) => {
+        const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
+        itemStats[statKey as keyof BaseStats] = val;
+      });
+      
+      const setNames: Record<string, string> = {
+        warrior: 'Set do Senhor da Guerra',
+        mage: 'Set do Mestre Arcano',
+        ranger: 'Set do Rastreador das Sombras',
+        paladin: 'Set do Guardião Divino',
+        cleric: 'Set do Sumosacerdote',
+        rogue: 'Set do Assassino Fantasma'
+      };
+      
+      const slotNames: Record<string, Record<string, string>> = {
+        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
+        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
+        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
+        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
+        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
+        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' }
+      };
+      
+      const baseName = slotNames[classId]?.[slot] || 'Equipamento';
+      let name = '';
+      let setName: string | undefined = undefined;
+      
+      if (rarity === 'legendary') {
+        name = `${baseName} do Soberano`;
+        setName = setNames[classId];
+      } else if (rarity === 'rare') {
+        name = `${baseName} do Destino`;
+        setName = setNames[classId];
+      } else {
+        name = `${baseName} Rústico`;
+      }
+      
+      const newItem: EquipmentItem = {
+        id: `${classId}-${slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        slot,
+        rarity,
+        stats: itemStats,
+        setName,
+        classId,
+        spriteName: `${classId}-${slot}`
+      };
+      
+      const added = useGameStore.getState().addItemToInventory(newItem);
+      if (added) {
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `Você encontrou: [${newItem.name}] (${rarity.toUpperCase()})!` 
+        });
+      } else {
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `Um item [${newItem.name}] caiu, mas seu inventário está cheio!` 
+        });
+      }
+    }
 
     if (isBoss) {
       useGameStore.getState().advanceStage();
@@ -676,20 +780,20 @@ export class CombatFSM {
 
     // Dano das habilidades ativas baseado no atributo principal da própria habilidade (skill.classId)
     const skillClass = skill.classId;
-    let primaryStatVal = this.characterData.baseStats.strength;
+    let primaryStatVal = this.playerFinalStats.strength;
     let damageType = 'físico';
 
     if (skillClass === 'mage' || skillClass === 'cleric') {
-      primaryStatVal = this.characterData.baseStats.magic;
+      primaryStatVal = this.playerFinalStats.magic;
       damageType = 'mágico';
     } else if (skillClass === 'ranger' || skillClass === 'rogue') {
-      primaryStatVal = this.characterData.baseStats.dexterity;
+      primaryStatVal = this.playerFinalStats.dexterity;
       damageType = 'de perfuração';
     } else if (skillClass === 'paladin') {
-      primaryStatVal = this.characterData.baseStats.constitution;
+      primaryStatVal = this.playerFinalStats.constitution;
       damageType = 'sagrado';
     } else if (skillClass === 'warrior') {
-      primaryStatVal = this.characterData.baseStats.strength;
+      primaryStatVal = this.playerFinalStats.strength;
       damageType = 'físico';
     }
 
@@ -698,7 +802,7 @@ export class CombatFSM {
     if (skillId === 'smite_paladin') {
       // Dano misto: 250% da média de constituição e força (ou seja, 1.25x cada)
       const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
-      dmg = Math.floor((this.characterData.baseStats.constitution * 1.25 + this.characterData.baseStats.strength * 1.25) * levelMultiplier + Math.random() * 5);
+      dmg = Math.floor((this.playerFinalStats.constitution * 1.25 + this.playerFinalStats.strength * 1.25) * levelMultiplier + Math.random() * 5);
       damageType = 'sagrado';
     } else {
       const baseMult = SKILL_BASE_MULTIPLIERS[skillId] || 1.0;

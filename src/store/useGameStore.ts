@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, BaseStats } from '../core/types';
+import { Character, BaseStats, EquipmentItem } from '../core/types';
 
 // Configurações de Atributos e Crescimento para cada Classe
 export const CLASS_CONFIGS: Record<string, {
@@ -13,48 +13,48 @@ export const CLASS_CONFIGS: Record<string, {
   warrior: {
     name: 'Guerreiro',
     description: 'Um combatente robusto especializado em combate corporal, cujo dano escala com Força.',
-    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14 },
-    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5 },
+    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5 },
+    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5 },
     initialSkills: ['slash'],
     primaryStat: 'strength'
   },
   mage: {
     name: 'Mago',
     description: 'Mestre das artes arcanas que conjura magias destrutivas de fogo, gelo e eletricidade.',
-    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8 },
-    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1 },
+    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5 },
+    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5 },
     initialSkills: ['fireball'],
     primaryStat: 'magic'
   },
   ranger: {
     name: 'Arqueiro',
     description: 'Atirador ágil que abate inimigos à distância com arco e flechas envenenadas.',
-    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9 },
-    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5 },
+    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8 },
+    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8 },
     initialSkills: ['arrow_shot'],
     primaryStat: 'dexterity'
   },
   paladin: {
     name: 'Paladino',
     description: 'Guerreiro sagrado que defende a justiça divina. Seu dano escala com Constituição.',
-    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16 },
-    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3 },
+    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5 },
+    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5 },
     initialSkills: ['holy_strike'],
     primaryStat: 'constitution'
   },
   cleric: {
     name: 'Clérigo',
     description: 'Servo dos deuses encarregado de curar aliados e punir infiéis com a ira divina.',
-    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11 },
-    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2 },
+    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11, luck: 6 },
+    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2, luck: 0.6 },
     initialSkills: ['holy_smite', 'heal'],
     primaryStat: 'magic'
   },
   rogue: {
     name: 'Ladrão',
     description: 'Assassino sorrateiro que ataca pelas sombras com adagas letais. Especialista em crítico.',
-    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8 },
-    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1 },
+    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10 },
+    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0 },
     initialSkills: ['stab'],
     primaryStat: 'dexterity'
   }
@@ -273,6 +273,12 @@ interface GameState {
   deleteSlot(slotIndex: number): void;
   importSave(slotIndex: number, rawData: string): boolean;
   exportSave(slotIndex: number): string | null;
+
+  // Novos métodos de equipamentos e inventário (v1.1.0)
+  equipItem(itemId: string): void;
+  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon'): void;
+  discardItem(itemId: string): void;
+  addItemToInventory(item: EquipmentItem): boolean;
 }
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -296,6 +302,9 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     classLevels: {},
     autoCastEnabled: false,
     killCount: {},
+    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+    inventory: [],
+    inventorySlots: 30,
   };
 };
 
@@ -635,6 +644,8 @@ export const useGameStore = create<GameState>((set) => ({
       }
     });
 
+    const defaults = DEFAULT_CHARACTER(classId);
+
     const newChar: Character = {
       id: 'default-char',
       classId: classId,
@@ -654,6 +665,9 @@ export const useGameStore = create<GameState>((set) => ({
       classLevels: currentClassLevels,
       autoCastEnabled: state.character.autoCastEnabled ?? false,
       killCount: state.character.killCount || {},
+      equipment: defaults.equipment,
+      inventory: defaults.inventory,
+      inventorySlots: defaults.inventorySlots,
     };
 
     saveToLocalStorage(newChar);
@@ -677,6 +691,9 @@ export const useGameStore = create<GameState>((set) => ({
             classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
             unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
             killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+            equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
+            inventory: char.inventory || defaults.inventory,
+            inventorySlots: char.inventorySlots || defaults.inventorySlots,
           };
 
           const currentSlotVal = (() => {
@@ -807,6 +824,9 @@ export const useGameStore = create<GameState>((set) => ({
             classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
             unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
             killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+            equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
+            inventory: char.inventory || defaults.inventory,
+            inventorySlots: char.inventorySlots || defaults.inventorySlots,
           };
 
           if (merged.classLevels) {
@@ -856,6 +876,9 @@ export const useGameStore = create<GameState>((set) => ({
           classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
           unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
           killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+          equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
+          inventory: char.inventory || defaults.inventory,
+          inventorySlots: char.inventorySlots || defaults.inventorySlots,
           lastSaved: new Date().toISOString()
         };
 
@@ -889,5 +912,84 @@ export const useGameStore = create<GameState>((set) => ({
       console.error('Falha ao exportar save:', e);
     }
     return null;
+  },
+
+  equipItem: (itemId) => set((state) => {
+    const item = state.character.inventory.find(i => i.id === itemId);
+    if (!item) return state;
+
+    const slot = item.slot;
+    const currentEquipped = state.character.equipment[slot];
+    
+    const newInventory = state.character.inventory.filter(i => i.id !== itemId);
+    if (currentEquipped) {
+      newInventory.push(currentEquipped);
+    }
+
+    const newEquipment = {
+      ...state.character.equipment,
+      [slot]: item
+    };
+
+    const updated = {
+      ...state.character,
+      equipment: newEquipment,
+      inventory: newInventory
+    };
+
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  unequipItem: (slot) => set((state) => {
+    const item = state.character.equipment[slot];
+    if (!item) return state;
+
+    if (state.character.inventory.length >= state.character.inventorySlots) {
+      return state;
+    }
+
+    const newEquipment = {
+      ...state.character.equipment,
+      [slot]: null
+    };
+
+    const newInventory = [...state.character.inventory, item];
+
+    const updated = {
+      ...state.character,
+      equipment: newEquipment,
+      inventory: newInventory
+    };
+
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  discardItem: (itemId) => set((state) => {
+    const newInventory = state.character.inventory.filter(i => i.id !== itemId);
+    const updated = {
+      ...state.character,
+      inventory: newInventory
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  addItemToInventory: (item) => {
+    let success = false;
+    set((state) => {
+      if (state.character.inventory.length < state.character.inventorySlots) {
+        success = true;
+        const updated = {
+          ...state.character,
+          inventory: [...state.character.inventory, item]
+        };
+        saveToLocalStorage(updated);
+        return { character: updated };
+      }
+      return state;
+    });
+    return success;
   }
 }));

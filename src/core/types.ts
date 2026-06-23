@@ -5,6 +5,18 @@ export interface BaseStats {
   magic: number;
   dexterity: number;
   constitution: number;
+  luck: number;
+}
+
+export interface EquipmentItem {
+  id: string;
+  name: string;
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon';
+  classId: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  stats: Partial<BaseStats>;
+  setName?: string;
+  spriteName: string;
 }
 
 export interface EnemyType {
@@ -63,6 +75,9 @@ export interface Character {
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
+  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon', EquipmentItem | null>;
+  inventory: EquipmentItem[];
+  inventorySlots: number;
 }
 
 export enum GameEvent {
