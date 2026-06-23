@@ -1,4 +1,4 @@
-import { GameEvent, EnemyType } from './types';
+import { GameEvent, EnemyType, ENEMIES_PER_STAGE } from './types';
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG } from '../store/useGameStore';
 
@@ -313,10 +313,13 @@ export class CombatFSM {
 
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
     this.enemyLevel = stage;
-    const isBoss = defeatedInStage === 10;
+    const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
     const isNightmare = stage >= 6;
     const hpBoost = isNightmare ? 2.5 : 1.0;
     const theme = ((stage - 1) % 5) + 1;
+
+    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis
+    const difficultyScale = Math.pow(1.45, stage - 1);
 
     if (isBoss) {
       let bossId = 'boss_forest_golem';
@@ -326,7 +329,7 @@ export class CombatFSM {
       else if (theme === 5) bossId = 'boss_archdemon';
 
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
-      this.enemyMaxHP = Math.floor((100 + (stage * 35)) * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+      this.enemyMaxHP = Math.floor((120 + (stage * 40)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
       console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Pesadelo: ${isNightmare})`);
     } else {
@@ -342,7 +345,7 @@ export class CombatFSM {
       
       const randIndex = defeatedInStage % activeList.length;
       this.currentEnemy = activeList[randIndex];
-      this.enemyMaxHP = Math.floor((100 + (stage * 20)) * this.currentEnemy.hpMultiplier * hpBoost);
+      this.enemyMaxHP = Math.floor((100 + (stage * 25)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     }
   }
@@ -535,7 +538,10 @@ export class CombatFSM {
 
     const isNightmare = this.enemyLevel >= 6;
     const dmgBoost = isNightmare ? 2.5 : 1.0;
-    const damage = Math.floor((5 + this.enemyLevel * 1.5 + Math.random() * 2) * this.currentEnemy.damageMultiplier * dmgBoost);
+    
+    // Escala exponencial de dano baseado no estágio
+    const dmgScale = Math.pow(1.3, this.enemyLevel - 1);
+    const damage = Math.floor((5 + this.enemyLevel * 2.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost);
 
     this.scene.animateEnemyAttack();
     this.playerHP = Math.max(0, this.playerHP - damage);
@@ -550,12 +556,14 @@ export class CombatFSM {
 
   private handleEnemyDefeat() {
     const char = useGameStore.getState().character;
-    const isBoss = char.enemiesDefeatedInStage === 10;
+    const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
 
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
 
-    const baseGainedXp = this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0);
+    // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
+    const xpScale = Math.pow(1.35, char.currentStage - 1);
+    const baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
     const gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
 
     if (isBoss) {
@@ -586,7 +594,7 @@ export class CombatFSM {
       this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
       this.scene.respawnEnemyAt(900, this.currentEnemy);
 
-      const enemyName = nextChar.enemiesDefeatedInStage === 10 ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+      const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
     }, 1500);
   }

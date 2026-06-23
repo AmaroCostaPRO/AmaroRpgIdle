@@ -450,7 +450,7 @@ export const useGameStore = create<GameState>((set) => ({
     const level = state.character.level;
     const xp = state.character.xp;
     const totalXp = 50 * level * (level - 1) + xp;
-    const pointsEarned = Math.floor(Math.pow(totalXp / 1000, 0.7));
+    const pointsEarned = Math.floor(Math.pow(totalXp / 1000, 0.85));
 
     if (pointsEarned <= 0) return state;
     const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;

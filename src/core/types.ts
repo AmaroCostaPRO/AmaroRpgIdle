@@ -1,3 +1,5 @@
+export const ENEMIES_PER_STAGE = 15;
+
 export interface BaseStats {
   strength: number;
   magic: number;
@@ -56,7 +58,7 @@ export interface Character {
   skillPoints: number; // pontos para a árvore de habilidades
   highestStageReached: number;
   currentStage: number; // Fase ativa do combate (ex: Fase 1)
-  enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 10)
+  enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 15)
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
   killCount?: Record<string, number>; // Abates por monstro

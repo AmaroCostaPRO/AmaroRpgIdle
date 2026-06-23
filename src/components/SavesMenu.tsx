@@ -182,7 +182,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   };
 
   return (
-    <div className="panel animate-slideUp" style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', overflowY: 'visible', position: 'relative' }}>
+    <div className={`panel ${isInGame ? '' : 'animate-slideUp'}`} style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', overflowY: 'visible', position: 'relative' }}>
       {/* Glow de fundo */}
       {!isInGame && (
         <>
@@ -246,7 +246,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
       {/* Mensagem de Feedback */}
       {message.text && (
         <div 
-          className="animate-fadeIn"
+          className="animate-tabFade"
           style={{ 
             width: '100%', 
             maxWidth: '32rem', 
@@ -385,7 +385,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
                 {/* Caixa de Entrada de Importação */}
                 {activeImportSlot === slot.slotIndex && (
                   <div 
-                    className="animate-fadeIn" 
+                    className="animate-tabFade" 
                     style={{ 
                       marginTop: '0.5rem', 
                       display: 'flex', 

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
-import { GameEvent } from '../../core/types';
+import { GameEvent, ENEMIES_PER_STAGE } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 
@@ -252,7 +252,7 @@ export class CombatScene extends Phaser.Scene {
       if (this.stageText) {
         const char = this.fsm.characterData;
         if (char) {
-          const isBoss = char.enemiesDefeatedInStage === 10;
+          const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
           const isNightmare = char.currentStage >= 6;
           const modeLabel = isNightmare ? 'PESADELO' : 'FASE';
           const modeColor = isNightmare ? '#f43f5e' : '#f59e0b';
@@ -260,7 +260,7 @@ export class CombatScene extends Phaser.Scene {
             this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
             this.stageText.setColor('#c084fc');
           } else {
-            this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/10`);
+            this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/${ENEMIES_PER_STAGE}`);
             this.stageText.setColor(modeColor);
           }
         }
@@ -436,7 +436,7 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setFlipX(!!enemyType.flipX);
     }
     if (this.enemyLevelText && this.enemyBody) {
-      const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === 10 || enemyType.id.startsWith('boss_');
+      const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === ENEMIES_PER_STAGE || enemyType.id.startsWith('boss_');
       const enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
       const isNightmare = this.fsm.enemyLevel >= 6;
       const prefix = isNightmare ? '[Pesadelo] ' : '';

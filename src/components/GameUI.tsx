@@ -649,7 +649,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const level = character.level;
   const xp = character.xp;
   const totalXp = 50 * level * (level - 1) + xp;
-  const prestigeEarnedOnReset = Math.floor(Math.pow(totalXp / 1000, 0.7));
+  const prestigeEarnedOnReset = Math.floor(Math.pow(totalXp / 1000, 0.85));
   const canPrestige = prestigeEarnedOnReset > 0;
 
   // Coord do Layout Diamante / Estrela
@@ -666,6 +666,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
   const [selectedUpgradeId, setSelectedUpgradeId] = useState<string>('perm_str');
   const [showPrestigeModal, setShowPrestigeModal] = useState<boolean>(false);
+  const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const selectedUpgrade = PRESTIGE_UPGRADES_CATALOG[selectedUpgradeId];
 
   return (
@@ -685,17 +686,44 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
           <h4 className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a78bfa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, margin: 0 }}>Ascender Alma</h4>
           <span style={{ fontSize: '0.58rem', color: 'rgba(196,181,253,0.6)' }}>Reseta Nível e Combate por PP permanentes</span>
         </div>
-        <button
-          onClick={() => {
-            if (!canPrestige) return;
-            if (confirm('Deseja realmente Ascender sua Alma?')) onPrestige();
-          }}
-          className={`btn ${canPrestige ? 'btn-purple' : 'btn-secondary'} btn-sm`}
-          style={{ width: '100%', cursor: canPrestige ? 'pointer' : 'not-allowed', opacity: canPrestige ? 1 : 0.5 }}
-          disabled={!canPrestige}
-        >
-          {canPrestige ? `Ascender (+${prestigeEarnedOnReset} PP)` : 'Requer Nível 5+ para obter PP'}
-        </button>
+        {!showConfirm ? (
+          <button
+            onClick={() => {
+              if (!canPrestige) return;
+              AudioManager.getInstance().playClick();
+              setShowConfirm(true);
+            }}
+            className={`btn ${canPrestige ? 'btn-purple' : 'btn-secondary'} btn-sm`}
+            style={{ width: '100%', cursor: canPrestige ? 'pointer' : 'not-allowed', opacity: canPrestige ? 1 : 0.5 }}
+            disabled={!canPrestige}
+          >
+            {canPrestige ? `Ascender (+${prestigeEarnedOnReset} PP)` : 'Requer Nível 5+ para obter PP'}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.2rem' }}>
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setShowConfirm(false);
+              }}
+              className="btn btn-ghost btn-sm"
+              style={{ flex: 1, padding: '0.4rem', fontSize: '0.65rem' }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setShowConfirm(false);
+                onPrestige();
+              }}
+              className="btn btn-purple btn-sm"
+              style={{ flex: 1, padding: '0.4rem', fontSize: '0.65rem', fontWeight: 'bold' }}
+            >
+              Confirmar
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Árvore Diamante 2D (Desktop) */}
@@ -1006,7 +1034,7 @@ const GuidePanel: React.FC = () => {
         };
 
         return (
-          <div className="flex flex-col gap-4 animate-fadeIn">
+          <div className="flex flex-col gap-4 animate-tabFade">
             {/* Visão Geral */}
             <div className="bg-black/35 p-3 rounded-lg border border-gray-800/80">
               <span className="text-[9px] font-semibold text-amber-500 uppercase tracking-widest block">Visão Geral</span>
@@ -1744,7 +1772,7 @@ export default function GameUI() {
       </div>
   
       {/* Conteúdo Dinâmico */}
-      <div className="animate-fadeIn ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <GameHUD />
