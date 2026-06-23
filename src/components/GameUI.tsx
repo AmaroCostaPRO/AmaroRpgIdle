@@ -319,17 +319,27 @@ const EquipmentPanel: React.FC = () => {
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-      case 'raro': return '#3b82f6';
-      case 'lendário': return '#f59e0b';
-      default: return '#94a3b8';
+      case 'rare':
+      case 'raro': 
+        return '#3b82f6';
+      case 'legendary':
+      case 'lendário': 
+        return '#f59e0b';
+      default: 
+        return '#94a3b8';
     }
   };
 
   const getRarityBg = (rarity: string) => {
     switch (rarity) {
-      case 'raro': return 'rgba(59, 130, 246, 0.15)';
-      case 'lendário': return 'rgba(245, 158, 11, 0.15)';
-      default: return 'rgba(148, 163, 184, 0.1)';
+      case 'rare':
+      case 'raro': 
+        return 'rgba(59, 130, 246, 0.15)';
+      case 'legendary':
+      case 'lendário': 
+        return 'rgba(245, 158, 11, 0.15)';
+      default: 
+        return 'rgba(148, 163, 184, 0.1)';
     }
   };
 
