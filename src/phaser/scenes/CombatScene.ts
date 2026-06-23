@@ -18,9 +18,9 @@ export class CombatScene extends Phaser.Scene {
   private unsubscribeSkill?: () => void;
 
   public readonly PLAYER_START_X = 200;
-  public readonly PLAYER_START_Y = Math.round(600 - 115 * ZOOM_FACTOR);
+  public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
   public readonly ENEMY_START_X = 900;
-  public readonly ENEMY_START_Y = Math.round(600 - 115 * ZOOM_FACTOR);
+  public readonly ENEMY_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
 
   constructor() {
     super('CombatScene');
@@ -178,7 +178,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
-    this.playerBody.setDisplaySize(95 * ZOOM_FACTOR, 95 * ZOOM_FACTOR);
+    this.playerBody.setDisplaySize(125 * ZOOM_FACTOR, 125 * ZOOM_FACTOR);
     this.playerBody.setFlipX(false);
 
     // Inicializar FSM de combate antes de criar os inimigos para pegar informações corretas
@@ -186,7 +186,6 @@ export class CombatScene extends Phaser.Scene {
 
     // Inimigo usando a textura do tipo de inimigo ativo
     this.enemyBody = this.add.image(this.ENEMY_START_X, this.ENEMY_START_Y, this.fsm.currentEnemy.texture + '_transparent');
-    this.respawnEnemyAt(this.ENEMY_START_X, this.fsm.currentEnemy);
     
     // Atualiza o target do FSM
     this.fsm['target'] = this.enemyBody;
@@ -196,22 +195,26 @@ export class CombatScene extends Phaser.Scene {
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
     this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65 * ZOOM_FACTOR, friendlyName, { 
-      fontSize: '15px', 
+      fontSize: '19px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 5
     }).setOrigin(0.5);
 
-    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65 * ZOOM_FACTOR, `${this.fsm.currentEnemy.name} (Lv. ${this.fsm.enemyLevel})`, { 
-      fontSize: '15px', 
-      color: this.fsm.currentEnemy.color, 
+    // Inicializa o texto vazio; a posição correta, cor e conteúdo serão atribuídos imediatamente pela chamada do respawnEnemyAt abaixo
+    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65 * ZOOM_FACTOR, '', { 
+      fontSize: '19px', 
+      color: '#ffffff', 
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 5
     }).setOrigin(0.5);
+
+    // Faz o spawn inicial do primeiro inimigo, o que configurará o enemyLevelText perfeitamente
+    this.respawnEnemyAt(this.ENEMY_START_X, this.fsm.currentEnemy);
 
     // Painel de Progresso do Estágio
     this.stageText = this.add.text(400, 35, 'Fase 1 - Progresso: 0/10', {
@@ -423,10 +426,10 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
       
       const isBoss = enemyType.id.startsWith('boss_');
-      const size = (isBoss ? 135 : 95) * ZOOM_FACTOR;
-      const sizeDiffOffset = (isBoss ? 20 : 0) * ZOOM_FACTOR;
+      const size = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+      const targetY = Math.round((600 - 50 * ZOOM_FACTOR) - size / 2 + (enemyType.yOffset || 0) * ZOOM_FACTOR);
       
-      this.enemyBody.setPosition(startX, this.ENEMY_START_Y + (enemyType.yOffset || 0) * ZOOM_FACTOR - sizeDiffOffset);
+      this.enemyBody.setPosition(startX, targetY);
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
       this.enemyBody.angle = 0;
