@@ -42,9 +42,9 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('rogue_sprite', 'assets/rogue_sprite.png');
 
     // Inimigos - Fase 1 (Floresta)
-    this.load.image('enemy_goblin', 'assets/goblin_sprite.png');
+    this.load.image('enemy_goblin', 'assets/enemy_goblin.png');
     this.load.image('enemy_wolf', 'assets/enemy_wolf.png');
-    this.load.image('enemy_orc', 'assets/enemy_sprite.png');
+    this.load.image('enemy_orc', 'assets/enemy_orc.png');
     this.load.image('boss_forest_golem', 'assets/boss_forest_golem.png');
 
     // Inimigos - Fase 2 (Deserto)
@@ -58,10 +58,10 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('boss_frost_dragon', 'assets/boss_frost_dragon.png');
 
     // Inimigos - Fase 4 (Cemitério)
-    this.load.image('enemy_skeleton', 'assets/skeleton_sprite.png');
+    this.load.image('enemy_skeleton', 'assets/enemy_skeleton.png');
     this.load.image('enemy_zombie', 'assets/enemy_zombie.png');
     this.load.image('enemy_ghost', 'assets/enemy_ghost.png');
-    this.load.image('enemy_necromancer', 'assets/necromancer_sprite.png');
+    this.load.image('enemy_necromancer', 'assets/enemy_necromancer.png');
 
     // Inimigos - Fase 5 (Ruínas)
     this.load.image('enemy_gargoyle', 'assets/enemy_gargoyle.png');

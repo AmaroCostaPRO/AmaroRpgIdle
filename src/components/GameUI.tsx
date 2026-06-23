@@ -1883,6 +1883,83 @@ const LORE_DATABASE: Record<string, string> = {
   boss_archdemon: "O soberano supremo das Ruínas Sombrias. Um ser titânico que empunha o fogo do inferno e busca consumir a alma de qualquer invasor."
 };
 
+
+interface TransparentImageProps {
+  src: string;
+  alt: string;
+  style?: React.CSSProperties;
+  className?: string;
+}
+
+const TransparentImage: React.FC<TransparentImageProps> = ({ src, alt, style, className }) => {
+  const [processedSrc, setProcessedSrc] = useState<string>(src);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setProcessedSrc(src);
+        return;
+      }
+      
+      ctx.drawImage(img, 0, 0);
+      
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const backgroundColors: { r: number; g: number; b: number }[] = [];
+        
+        for (let x = 0; x < canvas.width; x++) {
+          const idx = x * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          
+          const exists = backgroundColors.some(c => Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < 10);
+          if (!exists) {
+            backgroundColors.push({ r, g, b });
+          }
+        }
+        
+        const tolerance = 30;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          
+          const isBackground = backgroundColors.some(c => {
+            return Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < tolerance;
+          });
+          
+          if (isBackground) {
+            data[i + 3] = 0;
+          }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        setProcessedSrc(canvas.toDataURL());
+      } catch (err) {
+        console.error('Error making image transparent:', err);
+        setProcessedSrc(src);
+      }
+    };
+    img.onerror = () => {
+      setProcessedSrc(src);
+    };
+  }, [src]);
+
+  return <img src={processedSrc} alt={alt} style={style} className={className} />;
+};
+
 const BIOME_NAMES = [
   "Floresta Antiga",
   "Deserto de Ouro",
@@ -1991,7 +2068,7 @@ const BestiaryPanel: React.FC = () => {
 
                     {/* Sprite do Monstro */}
                     <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0', position: 'relative', width: '100%' }}>
-                      <img 
+                      <TransparentImage 
                         src={`/assets/${enemy.texture}.png`} 
                         alt={enemy.name}
                         style={{
@@ -2131,7 +2208,7 @@ const BestiaryPanel: React.FC = () => {
                     border: '1px solid rgba(255,255,255,0.06)'
                   }}
                 >
-                  <img 
+                  <TransparentImage 
                     src={`/assets/${selectedEnemy.texture}.png`} 
                     alt={selectedEnemy.name}
                     style={{

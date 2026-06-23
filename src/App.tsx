@@ -245,7 +245,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#60a5fa', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              ✨ Atualização v1.1.0 — Equipamentos!
+              ✨ Atualização v1.1.2 — Equipamentos!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -265,6 +265,9 @@ const App: React.FC = () => {
                 </span>
                 <span style={{ display: 'flex', gap: '0.3rem' }}>
                   ⚔️ <strong>Balanceamento:</strong> Cooldowns das habilidades de ataque aumentados para se ajustarem à velocidade de combate mais tática.
+                </span>
+                <span style={{ display: 'flex', gap: '0.3rem' }}>
+                  🎨 <strong>Visual do Bestiário:</strong> Correção no carregamento e aplicação de fundo transparente automático nas imagens de monstros (Goblin Ladino, Guerreiro Orc, Esqueleto Guerreiro e Necromante Sombrio).
                 </span>
               </div>
             </div>
