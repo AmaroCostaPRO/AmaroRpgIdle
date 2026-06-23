@@ -802,25 +802,39 @@ body {
 
 @media (max-width: 840px) {
   .game-root {
-    /* Mantém o menu centralizado e com padding no mobile */
+    /* Alinha no topo se o conteúdo for maior que a tela para permitir scroll natural */
     min-height: 100vh;
+    min-height: 100dvh;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    overflow-y: auto !important;
+    padding: 2rem 1rem !important;
   }
 
   .game-root.is-playing {
     padding: 0 !important;
     justify-content: flex-start !important;
     align-items: stretch !important;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden !important;
   }
 
   .game-wrapper {
     zoom: 1 !important;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start !important;
   }
 
   .game-wrapper.is-playing {
     justify-content: flex-start !important;
     align-items: stretch !important;
     min-height: 100vh;
+    min-height: 100dvh;
+    height: 100%;
   }
 
   .game-layout-container {
@@ -850,8 +864,9 @@ body {
   .ui-container {
     width: 100vw;
     max-width: 100%;
-    height: calc(100vh - 75vw); /* Ocupa a altura restante da tela vertical inteira */
-    min-height: 380px;
+    height: calc(100vh - 75vw);
+    height: calc(100dvh - 75vw); /* Ocupa a altura restante da tela vertical inteira dinamicamente */
+    min-height: 320px;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
