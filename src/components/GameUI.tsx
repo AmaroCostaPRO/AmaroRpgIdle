@@ -1033,6 +1033,30 @@ const GuidePanel: React.FC = () => {
               </div>
             </div>
 
+            {/* Listagem de Habilidades Temáticas (Reposicionada logo abaixo de Visão Geral) */}
+            <div>
+              <span className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">Habilidades Exclusivas de {config.name}</span>
+              <div className="space-y-2.5 max-h-[170px] overflow-y-auto pr-1">
+                {classSkills.map(([id, skill]) => (
+                  <div key={id} className="bg-black/20 p-2 rounded border border-gray-800/50 text-[10px]">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <strong className="text-white">{skill.name}</strong>
+                      <span className={`text-[7px] px-1 rounded font-bold uppercase ${skill.type === 'active' ? 'bg-rose-950/40 text-rose-400 border border-rose-500/20' : 'bg-blue-950/40 text-blue-400 border border-blue-500/20'}`}>
+                        {skill.type === 'active' ? 'Ativa' : 'Passiva'}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 leading-relaxed">{skill.description}</p>
+                    <div className="text-[8px] text-gray-500 mt-1 flex justify-between">
+                      <span>Requer Level {skill.requiredLevel}</span>
+                      {skill.type === 'active' && (
+                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : (skill.requiredLevel <= 1 ? '3s' : (skill.requiredLevel <= 3 ? '5s' : (skill.requiredLevel <= 7 ? '8s' : '12s')))}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Fórmulas de Atributos */}
             <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
               <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">Fórmulas e Matemática dos Atributos</span>
@@ -1136,30 +1160,6 @@ const GuidePanel: React.FC = () => {
                     Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+ Força, + Magia, + Destreza, + Constituição), acelerando drasticamente o progresso nas próximas rodadas.
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Listagem de Habilidades Temáticas */}
-            <div>
-              <span className="text-[9px] font-semibold text-gray-500 uppercase tracking-widest block mb-2">Habilidades Exclusivas de {config.name}</span>
-              <div className="space-y-2.5 max-h-[170px] overflow-y-auto pr-1">
-                {classSkills.map(([id, skill]) => (
-                  <div key={id} className="bg-black/20 p-2 rounded border border-gray-800/50 text-[10px]">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <strong className="text-white">{skill.name}</strong>
-                      <span className={`text-[7px] px-1 rounded font-bold uppercase ${skill.type === 'active' ? 'bg-rose-950/40 text-rose-400 border border-rose-500/20' : 'bg-blue-950/40 text-blue-400 border border-blue-500/20'}`}>
-                        {skill.type === 'active' ? 'Ativa' : 'Passiva'}
-                      </span>
-                    </div>
-                    <p className="text-gray-400 leading-relaxed">{skill.description}</p>
-                    <div className="text-[8px] text-gray-500 mt-1 flex justify-between">
-                      <span>Requer Level {skill.requiredLevel}</span>
-                      {skill.type === 'active' && (
-                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : (skill.requiredLevel <= 1 ? '3s' : (skill.requiredLevel <= 3 ? '5s' : (skill.requiredLevel <= 7 ? '8s' : '12s')))}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

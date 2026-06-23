@@ -19,6 +19,22 @@ const App: React.FC = () => {
     AudioManager.getInstance();
   }, []);
 
+  // Controla o overflow e a altura do body para permitir scroll nativo nas telas de menu
+  // e bloquear scroll na gameplay (playing) no mobile
+  useEffect(() => {
+    if (screen === 'playing') {
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100dvh';
+    } else {
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+      document.body.style.height = 'auto';
+    };
+  }, [screen]);
+
   useEffect(() => {
     if (screen === 'playing' && gameContainerRef.current && !phaserGameRef.current) {
       console.log("Initializing Phaser Game...");
@@ -58,7 +74,7 @@ const App: React.FC = () => {
   }, [screen]);
 
   return (
-    <div className={`game-root ${screen === 'playing' ? 'is-playing' : ''}`}>
+    <div className={`game-root screen-${screen} ${screen === 'playing' ? 'is-playing' : ''}`}>
 
 
       {/* Conteúdo escalado dinamicamente com base no zoom */}

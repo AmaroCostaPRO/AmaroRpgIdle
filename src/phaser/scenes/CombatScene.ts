@@ -196,21 +196,21 @@ export class CombatScene extends Phaser.Scene {
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
     this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65 * ZOOM_FACTOR, friendlyName, { 
-      fontSize: '11px', 
+      fontSize: '15px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 4
     }).setOrigin(0.5);
 
     this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65 * ZOOM_FACTOR, `${this.fsm.currentEnemy.name} (Lv. ${this.fsm.enemyLevel})`, { 
-      fontSize: '11px', 
+      fontSize: '15px', 
       color: this.fsm.currentEnemy.color, 
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 4
     }).setOrigin(0.5);
 
     // Painel de Progresso do Estágio
