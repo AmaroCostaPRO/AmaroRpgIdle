@@ -646,12 +646,10 @@ export class CombatFSM {
       let name = '';
       let setName: string | undefined = undefined;
       
-      if (rarity === 'legendary') {
-        name = `${baseName} do Soberano`;
+      if (rarity === 'legendary' || rarity === 'rare') {
         setName = setNames[classId];
-      } else if (rarity === 'rare') {
-        name = `${baseName} do Destino`;
-        setName = setNames[classId];
+        const cleanSetName = setName.replace('Set do ', '');
+        name = `${baseName} do ${cleanSetName}`;
       } else {
         name = `${baseName} Rústico`;
       }
@@ -764,7 +762,7 @@ export class CombatFSM {
     this.playerMana -= manaCost;
 
     // Registra o tempo de recarga
-    const cooldownTime = skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 3000 : (skill.requiredLevel <= 3 ? 5000 : (skill.requiredLevel <= 7 ? 8000 : 12000)));
+    const cooldownTime = skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 6000 : (skill.requiredLevel <= 3 ? 10000 : (skill.requiredLevel <= 7 ? 16000 : 24000)));
     this.skillCooldowns[skillId] = cooldownTime;
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 

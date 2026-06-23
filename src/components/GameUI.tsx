@@ -418,7 +418,7 @@ const EquipmentPanel: React.FC = () => {
             </div>
 
             {/* Luvas */}
-            <div style={{ gridRow: '2', gridColumn: '1' }}>
+            <div style={{ gridRow: '2', gridColumn: '3' }}>
               <EquipmentSlot 
                 slot="gloves" 
                 item={character.equipment.gloves} 
@@ -444,7 +444,7 @@ const EquipmentPanel: React.FC = () => {
             </div>
 
             {/* Arma */}
-            <div style={{ gridRow: '2', gridColumn: '3' }}>
+            <div style={{ gridRow: '2', gridColumn: '1' }}>
               <EquipmentSlot 
                 slot="weapon" 
                 item={character.equipment.weapon} 
@@ -521,7 +521,7 @@ const EquipmentPanel: React.FC = () => {
             {Object.keys(SET_BONUSES).map((setName) => {
               const count = setCounts[setName] || 0;
               const config = SET_BONUSES[setName];
-              if (!config) return null;
+              if (!config || config.classId !== character.classId) return null;
               
               const isAnyBonusActive = count >= 2;
 
@@ -2226,6 +2226,7 @@ const BestiaryPanel: React.FC = () => {
 
 export default function GameUI() {
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
+  const [desktopStartIndex, setDesktopStartIndex] = useState(0);
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -2266,6 +2267,17 @@ export default function GameUI() {
       return () => clearTimeout(timer);
     }
   }, [showExitConfirm]);
+
+  useEffect(() => {
+    const activeIdx = tabs.findIndex(t => t.id === activeTab);
+    if (activeIdx !== -1) {
+      if (activeIdx < desktopStartIndex) {
+        setDesktopStartIndex(activeIdx);
+      } else if (activeIdx >= desktopStartIndex + 5) {
+        setDesktopStartIndex(activeIdx - 4);
+      }
+    }
+  }, [activeTab]);
 
   const tabs = [
     { id: 'combat' as const, label: 'Combate', icon: '⚔' },
@@ -2373,21 +2385,79 @@ export default function GameUI() {
       </div>
   
       {/* Abas Superiores — Premium Tab Bar (Desktop) */}
-      <div className="tabs-container tabs-container-desktop">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              AudioManager.getInstance().playClick();
-              setActiveTab(tab.id);
-            }}
-            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap' }}
-          >
-            <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+      <div className="tabs-container-desktop-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', pointerEvents: 'auto' }}>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setDesktopStartIndex(prev => Math.max(0, prev - 1));
+          }}
+          disabled={desktopStartIndex === 0}
+          className="tab-carousel-arrow-btn"
+          style={{
+            background: 'var(--surface-glass)',
+            border: '1px solid var(--border-subtle)',
+            color: desktopStartIndex === 0 ? '#475569' : 'var(--gold-400)',
+            borderRadius: 'var(--radius-md)',
+            width: '2.2rem',
+            height: '2.2rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: desktopStartIndex === 0 ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: 'var(--shadow-button)',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            flexShrink: 0
+          }}
+        >
+          ◀
+        </button>
+
+        <div className="tabs-container tabs-container-desktop" style={{ flex: 1, display: 'flex', gap: '2px', overflow: 'hidden' }}>
+          {tabs.slice(desktopStartIndex, desktopStartIndex + 5).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setActiveTab(tab.id);
+              }}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1 }}
+            >
+              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setDesktopStartIndex(prev => Math.min(tabs.length - 5, prev + 1));
+          }}
+          disabled={desktopStartIndex >= tabs.length - 5}
+          className="tab-carousel-arrow-btn"
+          style={{
+            background: 'var(--surface-glass)',
+            border: '1px solid var(--border-subtle)',
+            color: desktopStartIndex >= tabs.length - 5 ? '#475569' : 'var(--gold-400)',
+            borderRadius: 'var(--radius-md)',
+            width: '2.2rem',
+            height: '2.2rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: desktopStartIndex >= tabs.length - 5 ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: 'var(--shadow-button)',
+            fontSize: '0.75rem',
+            fontWeight: 'bold',
+            flexShrink: 0
+          }}
+        >
+          ▶
+        </button>
       </div>
 
       {/* Abas Superiores — Carrossel Circular de Roleta (Mobile) */}
