@@ -2569,6 +2569,7 @@ export default function GameUI() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
