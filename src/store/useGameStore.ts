@@ -281,6 +281,9 @@ interface GameState {
   discardItem(itemId: string): void;
   addItemToInventory(item: EquipmentItem): boolean;
   
+  // Reforja de itens (v2.0.0)
+  reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
+  
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
   gameSpeed: number;
   setGameSpeed(speed: number): void;
@@ -293,6 +296,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     classId: classId,
     level: 1,
     xp: 0,
+    gold: 0,
     baseStats: { ...config.baseStats },
     growthRates: { ...config.growthRates },
     unlockedSkills: [...config.initialSkills],
@@ -420,7 +424,7 @@ export const useGameStore = create<GameState>((set) => ({
   addGold: (amount) => set((state) => {
     const updated = {
       ...state.character,
-      xp: state.character.xp + amount
+      gold: (state.character.gold || 0) + amount
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -966,5 +970,111 @@ export const useGameStore = create<GameState>((set) => ({
       return state;
     });
     return success;
+  },
+
+  reforgeItems: (item1Id, item2Id) => {
+    let result: { success: boolean; message: string; newItem?: EquipmentItem } = { success: false, message: '' };
+
+    set((state) => {
+      const inv = state.character.inventory;
+      const item1 = inv.find(i => i.id === item1Id);
+      const item2 = inv.find(i => i.id === item2Id);
+
+      if (!item1 || !item2) {
+        result = { success: false, message: 'Itens não encontrados no inventário.' };
+        return state;
+      }
+      if (item1.slot !== item2.slot) {
+        result = { success: false, message: 'Os itens devem ser do mesmo tipo/slot.' };
+        return state;
+      }
+
+      const isBothMystic = item1.rarity === 'mystic' && item2.rarity === 'mystic';
+      const isBothNormal = item1.rarity !== 'mystic' && item2.rarity !== 'mystic';
+
+      if (!isBothMystic && !isBothNormal) {
+        result = { success: false, message: 'Você só pode fundir dois itens Místicos ou dois itens normais.' };
+        return state;
+      }
+
+      let cost = 100;
+      let targetMysticLevel = 1;
+
+      if (isBothMystic) {
+        const lvl1 = item1.mysticLevel || 1;
+        const lvl2 = item2.mysticLevel || 1;
+
+        if (lvl1 !== lvl2) {
+          result = { success: false, message: 'Itens Místicos devem ter o mesmo nível para fusão.' };
+          return state;
+        }
+        if (lvl1 >= 5) {
+          result = { success: false, message: 'O nível máximo de item Místico é +5.' };
+          return state;
+        }
+
+        targetMysticLevel = lvl1 + 1;
+        const costs = [0, 500, 2500, 12500, 62500];
+        cost = costs[lvl1] || 100;
+      }
+
+      if ((state.character.gold || 0) < cost) {
+        result = { success: false, message: `Ouro insuficiente. Requer ${cost} Ouro.` };
+        return state;
+      }
+
+      // Calcula os novos stats somando tudo
+      const mergedStats: Partial<BaseStats> = {};
+      const allStatKeys = new Set([
+        ...Object.keys(item1.stats),
+        ...Object.keys(item2.stats)
+      ]) as Set<keyof BaseStats>;
+
+      allStatKeys.forEach((key) => {
+        const val1 = item1.stats[key] || 0;
+        const val2 = item2.stats[key] || 0;
+        mergedStats[key] = val1 + val2;
+      });
+
+      // Mapeamento dos nomes de slots traduzidos
+      const slotNamesMap: Record<string, string> = {
+        weapon: 'Arma Mística',
+        head: 'Elmo Místico',
+        chest: 'Armadura Mística',
+        legs: 'Calça Mística',
+        gloves: 'Luva Mística'
+      };
+
+      const baseName = slotNamesMap[item1.slot] || 'Item Místico';
+      const newName = `${baseName} +${targetMysticLevel}`;
+
+      const newId = `mystic-${item1.slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      const newItem: EquipmentItem = {
+        id: newId,
+        name: newName,
+        slot: item1.slot,
+        rarity: 'mystic',
+        stats: mergedStats,
+        classId: item1.classId,
+        spriteName: item1.spriteName,
+        mysticLevel: targetMysticLevel
+      };
+
+      // Remove os dois itens fundidos do inventário
+      const filteredInventory = inv.filter(i => i.id !== item1Id && i.id !== item2Id);
+
+      const updated = {
+        ...state.character,
+        gold: (state.character.gold || 0) - cost,
+        inventory: [...filteredInventory, newItem]
+      };
+
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Fusão bem-sucedida! Gerou: ${newName}`, newItem };
+      return { character: updated };
+    });
+
+    return result;
   }
 }));

@@ -13,10 +13,11 @@ export interface EquipmentItem {
   name: string;
   slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon';
   classId: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic';
   stats: Partial<BaseStats>;
   setName?: string;
   spriteName: string;
+  mysticLevel?: number;
 }
 
 export interface EnemyType {
@@ -60,6 +61,7 @@ export interface Character {
   classId: string;
   level: number;
   xp: number;
+  gold: number;
   baseStats: BaseStats;
   growthRates: BaseStats;
   unlockedSkills: string[];
