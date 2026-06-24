@@ -7,6 +7,7 @@ import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { ENEMY_TYPES } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
+import { ForgeView } from './ForgeView';
 
 // Funções utilitárias para obter informações sobre Efeitos de Status aplicados por Habilidades
 export const getSimpleStatusEffectInfo = (id: string): string => {
@@ -2106,7 +2107,7 @@ export default function GameUI() {
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -2170,6 +2171,7 @@ export default function GameUI() {
     { id: 'attributes' as const, label: 'Atributos', icon: '◆' },
     { id: 'skills' as const, label: 'Habilidades', icon: '★' },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
+    { id: 'forge' as const, label: 'Forja', icon: '⚒️' },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
@@ -2187,9 +2189,15 @@ export default function GameUI() {
     <div className="game-ui-root" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}>
       {/* Cabeçalho do Painel com Botão Sair */}
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px rgba(16,185,129,0.5)', animation: 'glow-pulse 2s infinite' }} />
-          <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>Painel do Herói</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px rgba(16,185,129,0.5)', animation: 'glow-pulse 2s infinite' }} />
+            <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>Painel do Herói</span>
+          </div>
+          <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
+            <span>🪙</span>
+            <span>{(character.gold || 0).toLocaleString()} Ouro</span>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {/* Controles rápidos de Áudio */}
@@ -2407,6 +2415,7 @@ export default function GameUI() {
             />
           )}
           {activeTab === 'guide' && <GuidePanel />}
+          {activeTab === 'forge' && <ForgeView />}
           {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
         </div>
 
