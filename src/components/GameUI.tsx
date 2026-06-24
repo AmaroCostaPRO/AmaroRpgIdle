@@ -394,9 +394,16 @@ const getRarityColor = (rarity: string) => {
     case 'rare':
     case 'raro': 
       return '#3b82f6';
+    case 'epic':
+    case 'épico':
+      return '#a855f7';
     case 'legendary':
     case 'lendário': 
       return '#f59e0b';
+    case 'mystic':
+    case 'místico':
+    case 'mística':
+      return '#d946ef';
     default: 
       return '#94a3b8';
   }
@@ -407,9 +414,16 @@ const getRarityBg = (rarity: string) => {
     case 'rare':
     case 'raro': 
       return 'rgba(59, 130, 246, 0.15)';
+    case 'epic':
+    case 'épico':
+      return 'rgba(168, 85, 247, 0.15)';
     case 'legendary':
     case 'lendário': 
       return 'rgba(245, 158, 11, 0.15)';
+    case 'mystic':
+    case 'místico':
+    case 'mística':
+      return 'rgba(217, 70, 239, 0.2)';
     default: 
       return 'rgba(148, 163, 184, 0.1)';
   }
@@ -770,6 +784,19 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     borderRadius: '50%', 
                     background: '#f59e0b',
                     boxShadow: '0 0 4px #f59e0b'
+                  }} />
+                )}
+                {item.rarity === 'mystic' && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    right: '2px', 
+                    width: '5px', 
+                    height: '5px', 
+                    borderRadius: '50%', 
+                    background: '#d946ef',
+                    boxShadow: '0 0 6px #d946ef',
+                    animation: 'glow-pulse 1.5s infinite'
                   }} />
                 )}
               </button>

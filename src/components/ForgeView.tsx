@@ -162,7 +162,7 @@ export const ForgeView: React.FC = () => {
   const previewStats = getMergedStatsPreview();
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row gap-6 p-4 overflow-y-auto">
+    <div className="w-full h-full flex flex-col gap-6 p-4 overflow-y-auto">
       
       {/* PAINEL PRINCIPAL DA FORJA */}
       <div className="flex-1 flex flex-col bg-[#1D1F1F]/90 border border-[#252727] rounded-xl overflow-hidden shadow-2xl relative min-h-[480px]">
@@ -347,10 +347,10 @@ export const ForgeView: React.FC = () => {
       </div>
 
       {/* PAINEL LATERAL DE ESTATÍSTICAS E PRÉVIA */}
-      <div className="w-full md:w-[360px] flex flex-col gap-6">
+      <div className="w-full flex flex-col md:flex-row gap-6">
         
         {/* COMPARAÇÃO DE ATRIBUTOS */}
-        <div className="bg-[#1D1F1F]/90 border border-[#252727] rounded-xl p-4 flex flex-col h-[280px] shadow-lg backdrop-blur-md">
+        <div className="flex-1 bg-[#1D1F1F]/90 border border-[#252727] rounded-xl p-4 flex flex-col h-[280px] shadow-lg backdrop-blur-md">
           <h3 className="text-sm font-bold text-gray-300 border-b border-[#252727] pb-2 mb-3">Soma de Atributos da Fusão</h3>
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {slot1 && slot2 ? (
@@ -382,7 +382,7 @@ export const ForgeView: React.FC = () => {
 
         {/* FEEDBACK DO ÚLTIMO ITEM CRIADO */}
         {successItem && (
-          <div className="bg-gradient-to-b from-[#1D1F1F] to-[#2e1065]/20 border border-purple-500/30 rounded-xl p-4 shadow-lg animate-tabFade relative overflow-hidden">
+          <div className="flex-1 bg-gradient-to-b from-[#1D1F1F] to-[#2e1065]/20 border border-purple-500/30 rounded-xl p-4 shadow-lg animate-tabFade relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Sucesso</span>
