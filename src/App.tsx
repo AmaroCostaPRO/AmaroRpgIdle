@@ -7,6 +7,8 @@ import { CharacterSelect } from './components/CharacterSelect';
 import { SavesMenu } from './components/SavesMenu';
 import { useGameStore } from './store/useGameStore';
 import { AudioManager } from './core/AudioManager';
+import { bridge } from './bridge/GameBridge';
+import { GameEvent } from './core/types';
 
 const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -17,6 +19,25 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [welcomeCheckbox, setWelcomeCheckbox] = useState(false);
+  const [isGameReady, setIsGameReady] = useState(false);
+
+  // Reseta o estado do carregador quando o jogador sai da tela de batalha
+  useEffect(() => {
+    if (screen !== 'playing') {
+      setIsGameReady(false);
+    }
+  }, [screen]);
+
+  // Escuta o evento que sinaliza que o Phaser renderizou a cena
+  useEffect(() => {
+    const unsubscribeReady = bridge.subscribe(GameEvent.ARENA_READY, () => {
+      console.log("[App] Combat Arena is ready! Hiding loading screen.");
+      setIsGameReady(true);
+    });
+    return () => {
+      unsubscribeReady();
+    };
+  }, []);
 
   useEffect(() => {
     const hideWelcome = localStorage.getItem('medieval_idle_hide_welcome') === 'true';
@@ -135,8 +156,31 @@ const App: React.FC = () => {
             <div
               id="game-container"
               ref={gameContainerRef}
-              className="phaser-container"
-            />
+              className={`phaser-container relative overflow-hidden bg-[#161717] ${isGameReady ? 'ready' : 'not-ready'}`}
+            >
+              {/* Tela de Carregamento da Batalha (Visível até o Canvas do Phaser renderizar) */}
+              <div className={`absolute inset-0 flex flex-col items-center justify-center bg-[#161717] z-20 text-center p-6 phaser-loader ${isGameReady ? 'fade-out' : ''}`}>
+                {/* Imagem de Fundo de Carregamento */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay"
+                  style={{ backgroundImage: 'url("/assets/battle_loading_bg.png")' }}
+                />
+                
+                {/* Conteúdo do Carregador */}
+                <div className="relative z-30 flex flex-col items-center gap-4">
+                  {/* Spinner de Carregamento Estilizado */}
+                  <div className="w-12 h-12 border-4 border-t-purple-500 border-r-purple-500/20 border-b-purple-500/20 border-l-purple-500/20 rounded-full animate-spin shadow-[0_0_15px_rgba(168,85,247,0.4)]" />
+                  
+                  {/* Textos Informativos */}
+                  <div className="space-y-1">
+                    <h3 className="font-heading text-xs font-bold text-purple-400 tracking-widest uppercase animate-pulse">Carregando Arena de Batalha...</h3>
+                    <p className="text-[10px] text-gray-400 max-w-[240px] leading-relaxed">
+                      Sincronizando sprites e heróis. Prepare suas espadas e feitiços!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* UI Component Container */}
             <div className="ui-container">
@@ -232,7 +276,7 @@ const App: React.FC = () => {
         }}>
           <div style={{
             background: 'linear-gradient(135deg, #1d1f1f 0%, #161717 100%)',
-            border: '2px solid #3b82f6',
+            border: '2px solid #a855f7',
             borderRadius: 'var(--radius-lg)',
             padding: '1.5rem',
             width: '100%',
@@ -244,18 +288,59 @@ const App: React.FC = () => {
             gap: '1rem',
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
-            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#60a5fa', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              ✨ Atualização v1.1.5 — Escala, Velocidade e Correções!
+            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              ✨ Expansão v2.0.0 — A Forja Mística!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A nova versão traz otimizações gráficas, aceleração da simulação de combate e correções estruturais críticas na persistência de dados:
+                A nova expansão introduz um sistema de economia completo, com ouro derrubado por monstros e a poderosa mecânica de Forja Mística:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a78bfa', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🌟 Novidades da Versão 1.1.5:</span>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🔥 Novidades da Versão 2.0.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>
+                        🪙 Economia de Ouro (Gold)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Moedas de ouro agora são derrubadas ao derrotar inimigos e chefes. O ouro acumulado é exibido no topo da tela do seu herói.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#d8b4fe', fontSize: '0.72rem' }}>
+                        🌋 Altar da Forja Mística
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Funda dois equipamentos do mesmo tipo em um item de raridade Mística (Lilás). Atributos repetidos são somados e novos atributos são combinados.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        ✨ Itens Místicos com Níveis (+1, +2, ...)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A cada nova fusão, o item ganha um nível místico incremental, permitindo criar equipamentos lendários com status infinitos.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a78bfa', fontSize: '0.72rem' }}>
+                        ⏳ Carregamento de Arena
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova tela de carregamento animada com plano de fundo em pixel art e indicador de progresso para a arena de batalha Phaser.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a78bfa', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🌟 Versão 1.1.5:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
@@ -356,7 +441,7 @@ const App: React.FC = () => {
               <button 
                 onClick={handleCloseChangelog}
                 className="btn btn-sm btn-gold" 
-                style={{ width: '100%', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', border: '1px solid #60a5fa' }}
+                style={{ width: '100%', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', border: '1px solid #c084fc' }}
               >
                 Entendido!
               </button>

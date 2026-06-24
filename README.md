@@ -17,6 +17,7 @@ Um jogo de RPG Idle (incremental) com estética AAA Dark Fantasy Medieval. Apres
 * **Árvore de Habilidades:** Árvore gráfica interativa em React para desbloquear e aprimorar até 6 habilidades ativas e passivas específicas por classe (com caminhos de pré-requisitos e ramificações).
 * **Ascensão Roguelite (Prestígio):** Reinicie seu nível e fase atual em troca de Pontos de Prestígio (Almas) para adquirir melhorias permanentes em atributos na árvore com layout de diamante.
 * **Bestiário (Álbum de Monstros):** Sistema de álbum de figurinhas onde monstros e chefes de cada fase são catalogados. Ao derrotar um monstro 10 vezes (ou um chefe 3 vezes), a silhueta esmaecida revela a arte em cores e desbloqueia dados ricos sobre seus atributos, multiplicadores e descrição narrativa.
+* **Altar da Forja Mística & Economia de Ouro (v2.0.0):** Mecânica de fusão de equipamentos do mesmo tipo para gerar itens de raridade **Mística** (Lilás) com atributos cumulativos e níveis incrementais (*Místico +1*, *+2*), abastecida por moedas de ouro derrubadas de monstros.
 * **Layout Mobile Responsivo:** Redimensionamento inteligente do Canvas Phaser na proporção nativa de `4:3` (`100vw` de largura por `75vw` de altura) e reposicionamento vertical automático da interface de menus abaixo do jogo em telas móveis com suporte a toque (touch) ergonômico e deslizamento (scroll) horizontal fluido.
 
 ---

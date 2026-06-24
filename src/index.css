@@ -1391,3 +1391,40 @@ body {
     zoom: 1 !important;
   }
 }
+
+/* ── Canvas do Phaser & Tela de Carregamento ── */
+#game-container {
+  position: relative;
+}
+
+#game-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10;
+}
+
+/* Transições suaves controladas pelo estado do React (isGameReady) */
+#game-container.not-ready canvas {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#game-container.ready canvas {
+  opacity: 1;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phaser-loader {
+  animation: fadeIn 0.3s ease-out;
+  background-color: #161717;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phaser-loader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}

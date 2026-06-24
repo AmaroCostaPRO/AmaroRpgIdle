@@ -260,6 +260,9 @@ export class CombatScene extends Phaser.Scene {
       this.cleanup();
     });
 
+    // Notifica o React que a arena de combate foi carregada e inicializada com sucesso
+    bridge.emit(GameEvent.ARENA_READY, {});
+
     console.log(`[Phaser] CombatScene configurada para classe ${classId}!`);
   }
 
