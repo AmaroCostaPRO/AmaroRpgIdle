@@ -187,10 +187,10 @@ export const ForgeView: React.FC = () => {
         </div>
 
         {/* ÁREA TRIANGULAR DO ALTAR DE FUSÃO */}
-        <div className="flex-1 flex flex-col justify-center items-center p-6 relative z-10">
+        <div className="flex-1 flex flex-col justify-center items-center p-4 relative z-10">
           
           {/* Triângulo / Pirâmide de Slots */}
-          <div className="relative w-full max-w-[400px] aspect-[4/3] flex flex-col justify-between items-center py-4">
+          <div className="relative w-full max-w-[340px] aspect-[4/3] flex flex-col justify-between items-center py-3">
             
             {/* Linhas de conexão (Efeito visual) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -310,7 +310,7 @@ export const ForgeView: React.FC = () => {
           </div>
 
           {/* PAINEL DE AÇÃO E FEEDBACK DA FUSÃO */}
-          <div className="mt-8 w-full max-w-[400px] flex flex-col items-center">
+          <div className="mt-4 w-full max-w-[340px] flex flex-col items-center">
             {slot1 && slot2 ? (
               <div className="w-full bg-[#161717]/70 backdrop-blur-sm border border-[#252727] rounded-lg p-4 flex flex-col items-center">
                 <div className="flex justify-between w-full text-sm mb-3">
