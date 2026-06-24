@@ -602,17 +602,40 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
             border: '1px solid var(--border-dim)' 
           }}>
             {Object.keys(baseStats).map((statKey) => {
-              const base = baseStats[statKey as keyof BaseStats] || 0;
-              const final = finalStats[statKey as keyof BaseStats] || 0;
-              const bonus = final - base;
+              const baseVal = baseStats[statKey as keyof BaseStats] || 0;
+              const finalVal = finalStats[statKey as keyof BaseStats] || 0;
+
+              // Calcular bônus de ascensão (prestígio)
+              let ascensionBonus = 0;
+              if (character.prestigeUpgrades) {
+                Object.entries(character.prestigeUpgrades).forEach(([upgradeId, lvl]) => {
+                  const upgrade = PRESTIGE_UPGRADES_CATALOG[upgradeId];
+                  if (upgrade && upgrade.stat === statKey) {
+                    ascensionBonus += upgrade.bonusPerLevel * lvl;
+                  }
+                });
+              }
+
+              const pureBase = Math.max(0, baseVal - ascensionBonus);
+              const equipBonus = Math.max(0, finalVal - baseVal);
+              const hasAnyBonus = equipBonus > 0 || ascensionBonus > 0;
 
               return (
                 <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <span className="font-heading" style={{ fontWeight: 600, color: '#cbd5e1' }}>{statLabels[statKey] || statKey}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span className="font-mono" style={{ fontWeight: 700 }}>{final}</span>
-                    {bonus > 0 && (
-                      <span className="font-mono" style={{ color: '#10b981', fontSize: '0.62rem' }}>+{bonus}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span className="font-mono" style={{ fontWeight: 700, color: '#fff' }}>{pureBase}</span>
+                    {hasAnyBonus && (
+                      <span className="font-mono" style={{ color: '#64748b', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>(</span>
+                        {equipBonus > 0 && (
+                          <span style={{ color: '#10b981' }}>+{equipBonus}</span>
+                        )}
+                        {ascensionBonus > 0 && (
+                          <span style={{ color: '#c084fc' }}>+{ascensionBonus}</span>
+                        )}
+                        <span>)</span>
+                      </span>
                     )}
                   </div>
                 </div>
