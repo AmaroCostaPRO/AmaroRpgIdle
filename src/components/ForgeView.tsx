@@ -166,7 +166,7 @@ export const ForgeView: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
       
       {/* PAINEL PRINCIPAL DA FORJA */}
-      <div className="flex-1 flex flex-col bg-[#1D1F1F]/90 border border-[#252727] rounded-xl overflow-hidden shadow-2xl relative min-h-[480px]">
+      <div className="panel flex-1 flex flex-col min-h-[480px]">
         
         {/* Background da Forja */}
         <div 
@@ -175,7 +175,7 @@ export const ForgeView: React.FC = () => {
         />
         
         {/* HUD de Recursos */}
-        <div className="p-4 border-b border-[#252727] flex justify-between items-center bg-[#161717]/60 backdrop-blur-md z-10">
+        <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/60 backdrop-blur-md z-10">
           <div className="flex items-center gap-2">
             <span className="text-xl">⚒️</span>
             <h2 className="text-lg font-bold text-gray-100">Grande Forja Arcana</h2>
@@ -205,10 +205,10 @@ export const ForgeView: React.FC = () => {
             {/* SLOT RESULTADO (CENTRO SUPERIOR) */}
             <div className="relative z-10 flex flex-col items-center">
               <div 
-                className={`w-20 h-20 rounded-xl flex items-center justify-center border-2 transition-all duration-300 shadow-[0_0_20px_rgba(217,70,239,0.15)] bg-[#161717]/90 ${
+                className={`w-20 h-20 rounded-xl flex items-center justify-center border-2 transition-all duration-300 shadow-[0_0_20px_rgba(217,70,239,0.15)] ${
                   slot1 && slot2 && reforgeState.nextLevel
-                    ? 'border-[#d946ef] animate-pulse shadow-[0_0_25px_rgba(217,70,239,0.4)]'
-                    : 'border-[#252727] border-dashed text-gray-500'
+                    ? 'border-[#d946ef] animate-pulse shadow-[0_0_25px_rgba(217,70,239,0.4)] bg-[var(--surface-2)]/90'
+                    : 'border-[var(--border-subtle)] border-dashed text-gray-500 bg-[var(--surface-1)]/90'
                 }`}
               >
                 {slot1 && slot2 ? (
@@ -237,8 +237,8 @@ export const ForgeView: React.FC = () => {
                     onClick={() => setActiveSelectionSlot(1)}
                     className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
                       slot1 
-                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
-                        : 'bg-[#161717]/70 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
+                        ? 'bg-[var(--surface-1)] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
+                        : 'bg-[var(--surface-2)]/75 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
                     }`}
                   >
                     {slot1 ? (
@@ -275,8 +275,8 @@ export const ForgeView: React.FC = () => {
                     onClick={() => setActiveSelectionSlot(2)}
                     className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
                       slot2 
-                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
-                        : 'bg-[#161717]/70 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
+                        ? 'bg-[var(--surface-1)] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
+                        : 'bg-[var(--surface-2)]/75 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
                     }`}
                   >
                     {slot2 ? (
@@ -312,7 +312,7 @@ export const ForgeView: React.FC = () => {
           {/* PAINEL DE AÇÃO E FEEDBACK DA FUSÃO */}
           <div className="mt-4 w-full max-w-[340px] flex flex-col items-center">
             {slot1 && slot2 ? (
-              <div className="w-full bg-[#161717]/70 backdrop-blur-sm border border-[#252727] rounded-lg p-4 flex flex-col items-center">
+              <div className="w-full bg-[var(--surface-1)]/80 backdrop-blur-sm border border-[var(--border-subtle)] rounded-lg p-4 flex flex-col items-center">
                 <div className="flex justify-between w-full text-sm mb-3">
                   <span className="text-gray-400">Custo da Forja:</span>
                   <span className={`font-bold ${character.gold >= reforgeState.cost ? 'text-yellow-400' : 'text-red-500'}`}>
@@ -351,8 +351,8 @@ export const ForgeView: React.FC = () => {
       <div className="w-full flex flex-col md:flex-row gap-6">
         
         {/* COMPARAÇÃO DE ATRIBUTOS */}
-        <div className="flex-1 bg-[#1D1F1F]/90 border border-[#252727] rounded-xl p-4 flex flex-col h-[280px] shadow-lg backdrop-blur-md">
-          <h3 className="text-sm font-bold text-gray-300 border-b border-[#252727] pb-2 mb-3">Soma de Atributos da Fusão</h3>
+        <div className="panel flex-1 p-4 flex flex-col h-[280px]">
+          <h3 className="text-sm font-bold text-gray-300 border-b border-[var(--border-subtle)] pb-2 mb-3">Soma de Atributos da Fusão</h3>
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {slot1 && slot2 ? (
               Object.keys(previewStats).map((statKey) => {
@@ -362,7 +362,7 @@ export const ForgeView: React.FC = () => {
                 const total = previewStats[key] || 0;
                 if (total === 0) return null;
                 return (
-                  <div key={key} className="flex flex-col text-xs bg-[#161717]/40 border border-[#252727]/40 rounded p-2">
+                  <div key={key} className="flex flex-col text-xs bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] rounded p-2">
                     <span className="font-semibold text-gray-300">{statLabels[key]}</span>
                     <div className="flex justify-between items-center mt-1 text-gray-400">
                       <span>Item A: <strong className="text-gray-200">+{val1}</strong></span>
@@ -383,7 +383,7 @@ export const ForgeView: React.FC = () => {
 
         {/* FEEDBACK DO ÚLTIMO ITEM CRIADO */}
         {successItem && (
-          <div className="flex-1 bg-gradient-to-b from-[#1D1F1F] to-[#2e1065]/20 border border-purple-500/30 rounded-xl p-4 shadow-lg animate-tabFade relative overflow-hidden">
+          <div className="panel flex-1 bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-4 shadow-lg animate-tabFade relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Sucesso</span>
@@ -395,7 +395,7 @@ export const ForgeView: React.FC = () => {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-[#161717] border border-[#d946ef] flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(217,70,239,0.3)]">
+              <div className="w-12 h-12 rounded-lg bg-[var(--surface-1)] border border-[#d946ef] flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(217,70,239,0.3)]">
                 {successItem.slot === 'weapon' ? '⚔️' : successItem.slot === 'head' ? '🪖' : successItem.slot === 'chest' ? '🛡️' : successItem.slot === 'legs' ? '👖' : '🧤'}
               </div>
               <div>
@@ -403,7 +403,7 @@ export const ForgeView: React.FC = () => {
                 <p className="text-[10px] text-gray-400">Equipamento Místico nível +{successItem.mysticLevel}</p>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-[#252727]/60 space-y-1">
+            <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] space-y-1">
               {Object.keys(successItem.stats).map((k) => {
                 const key = k as keyof BaseStats;
                 const value = successItem.stats[key];
@@ -423,10 +423,10 @@ export const ForgeView: React.FC = () => {
 
       {/* MODAL DE SELEÇÃO DE ITENS DO INVENTÁRIO */}
       {activeSelectionSlot !== null && (
-        <div className="absolute inset-0 bg-[#0c0d0d]/85 backdrop-blur-md flex items-center justify-center z-20 p-4">
-          <div className="bg-[#1D1F1F] border border-[#252727] rounded-xl w-full max-w-[460px] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-[var(--surface-0)]/90 backdrop-blur-md flex items-center justify-center z-20 p-4">
+          <div className="panel w-full max-w-[460px] max-h-[85vh] flex flex-col">
             
-            <div className="p-4 border-b border-[#252727] flex justify-between items-center bg-[#161717]/60">
+            <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/80">
               <h3 className="text-md font-bold text-gray-200">
                 Selecionar para Slot {activeSelectionSlot === 1 ? 'Item A' : 'Item B'}
               </h3>
@@ -451,10 +451,10 @@ export const ForgeView: React.FC = () => {
                       }
                       setActiveSelectionSlot(null);
                     }}
-                    className="flex items-center justify-between p-3 bg-[#161717]/50 hover:bg-[#161717]/95 border border-[#252727] rounded-lg cursor-pointer transition-all hover:border-purple-500/40 group"
+                    className="flex items-center justify-between p-3 bg-[var(--surface-1)]/55 hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-lg cursor-pointer transition-all hover:border-purple-500/40 group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-md bg-[#161717] border border-[#252727] flex items-center justify-center text-xl group-hover:border-purple-500/20">
+                      <div className="w-10 h-10 rounded-md bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-xl group-hover:border-purple-500/20">
                         {item.slot === 'weapon' ? '⚔️' : item.slot === 'head' ? '🪖' : item.slot === 'chest' ? '🛡️' : item.slot === 'legs' ? '👖' : '🧤'}
                       </div>
                       <div>
@@ -492,7 +492,7 @@ export const ForgeView: React.FC = () => {
               )}
             </div>
 
-            <div className="p-3 border-t border-[#252727] bg-[#161717]/40 flex justify-end">
+            <div className="p-3 border-t border-[var(--border-subtle)] bg-[var(--surface-1)]/60 flex justify-end">
               <button
                 onClick={() => setActiveSelectionSlot(null)}
                 className="px-4 py-1.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs rounded font-medium"
