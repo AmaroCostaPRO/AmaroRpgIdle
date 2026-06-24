@@ -162,7 +162,8 @@ export const ForgeView: React.FC = () => {
   const previewStats = getMergedStatsPreview();
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 p-4 overflow-y-auto">
+    <div className="w-full h-full flex flex-col relative overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
       
       {/* PAINEL PRINCIPAL DA FORJA */}
       <div className="flex-1 flex flex-col bg-[#1D1F1F]/90 border border-[#252727] rounded-xl overflow-hidden shadow-2xl relative min-h-[480px]">
@@ -234,10 +235,10 @@ export const ForgeView: React.FC = () => {
                 <div className="relative group">
                   <button
                     onClick={() => setActiveSelectionSlot(1)}
-                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border transition-all duration-200 ${
+                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
                       slot1 
-                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400' 
-                        : 'bg-[#161717]/40 border-dashed border-[#252727] hover:border-gray-500 hover:bg-[#161717]/60'
+                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
+                        : 'bg-[#161717]/70 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
                     }`}
                   >
                     {slot1 ? (
@@ -251,8 +252,8 @@ export const ForgeView: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span className="text-xl text-gray-500 group-hover:text-gray-300 transition-colors">+</span>
-                        <span className="text-[9px] text-gray-500 mt-1">Item A</span>
+                        <span className="text-xl text-purple-400 font-bold group-hover:text-purple-300 transition-colors">+</span>
+                        <span className="text-[9px] font-bold text-purple-400/80 group-hover:text-purple-300 mt-1">Item A</span>
                       </>
                     )}
                   </button>
@@ -272,10 +273,10 @@ export const ForgeView: React.FC = () => {
                 <div className="relative group">
                   <button
                     onClick={() => setActiveSelectionSlot(2)}
-                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border transition-all duration-200 ${
+                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
                       slot2 
-                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400' 
-                        : 'bg-[#161717]/40 border-dashed border-[#252727] hover:border-gray-500 hover:bg-[#161717]/60'
+                        ? 'bg-[#161717] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
+                        : 'bg-[#161717]/70 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
                     }`}
                   >
                     {slot2 ? (
@@ -289,8 +290,8 @@ export const ForgeView: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span className="text-xl text-gray-500 group-hover:text-gray-300 transition-colors">+</span>
-                        <span className="text-[9px] text-gray-500 mt-1">Item B</span>
+                        <span className="text-xl text-purple-400 font-bold group-hover:text-purple-300 transition-colors">+</span>
+                        <span className="text-[9px] font-bold text-purple-400/80 group-hover:text-purple-300 mt-1">Item B</span>
                       </>
                     )}
                   </button>
@@ -418,10 +419,11 @@ export const ForgeView: React.FC = () => {
           </div>
         )}
       </div>
+    </div>
 
       {/* MODAL DE SELEÇÃO DE ITENS DO INVENTÁRIO */}
       {activeSelectionSlot !== null && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="absolute inset-0 bg-[#0c0d0d]/85 backdrop-blur-md flex items-center justify-center z-20 p-4">
           <div className="bg-[#1D1F1F] border border-[#252727] rounded-xl w-full max-w-[460px] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             
             <div className="p-4 border-b border-[#252727] flex justify-between items-center bg-[#161717]/60">
