@@ -665,13 +665,21 @@ export class CombatFSM {
     const baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
     const gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
 
+    // Escala de Gold por fase e sorte
+    const goldScale = Math.pow(1.25, char.currentStage - 1);
+    const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale);
+    let gainedGold = isBoss ? baseGainedGold * 3.5 : baseGainedGold;
+    const luckBonus = 1 + ((this.playerFinalStats.luck || 0) * 0.01);
+    gainedGold = Math.floor(gainedGold * luckBonus);
+
     if (isBoss) {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Chefe ${this.currentEnemy.name} derrotado! Você avançou para a Fase ${char.currentStage + 1} e ganhou +${gainedXp} XP!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Chefe ${this.currentEnemy.name} derrotado! Você avançou para a Fase ${char.currentStage + 1}, ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
     } else {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
     }
 
     useGameStore.getState().addXp(gainedXp);
+    useGameStore.getState().addGold(gainedGold);
 
     // === SISTEMA DE DROP DE EQUIPAMENTOS ===
     const luck = this.playerFinalStats.luck || 0;
