@@ -642,52 +642,8 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
-  startNewGame: (classId) => set((state) => {
-    const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
-    
-    // Mantém as informações persistentes do roguelite: pontos de prestígio, upgrades e níveis de classe
-    const currentPrestigePoints = state.character.prestigePoints || 0;
-    const currentPrestigeUpgrades = state.character.prestigeUpgrades || {};
-    const currentClassLevels = {
-      ...(state.character.classLevels || {}),
-      [state.character.classId]: Math.max((state.character.classLevels || {})[state.character.classId] || 1, state.character.level || 1)
-    };
-
-    // Aplica bônus de prestígio nos atributos base da nova classe
-    const newBaseStats = { ...config.baseStats };
-    Object.entries(currentPrestigeUpgrades).forEach(([upgradeId, lvl]) => {
-      const upgrade = PRESTIGE_UPGRADES_CATALOG[upgradeId];
-      if (upgrade) {
-        newBaseStats[upgrade.stat] += upgrade.bonusPerLevel * lvl;
-      }
-    });
-
-    const defaults = DEFAULT_CHARACTER(classId);
-
-    const newChar: Character = {
-      id: 'default-char',
-      classId: classId,
-      level: 1,
-      xp: 0,
-      baseStats: newBaseStats,
-      growthRates: { ...config.growthRates },
-      unlockedSkills: [...config.initialSkills],
-      skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
-      prestigePoints: currentPrestigePoints,
-      prestigeUpgrades: currentPrestigeUpgrades,
-      ascensionCount: state.character.ascensionCount || 0,
-      attributePoints: 5,
-      skillPoints: 1,
-      highestStageReached: Math.max(state.character.highestStageReached || 1, state.character.currentStage || 1),
-      currentStage: 1,
-      enemiesDefeatedInStage: 0,
-      classLevels: currentClassLevels,
-      autoCastEnabled: state.character.autoCastEnabled ?? false,
-      killCount: state.character.killCount || {},
-      equipment: defaults.equipment,
-      inventory: defaults.inventory,
-      inventorySlots: defaults.inventorySlots,
-    };
+  startNewGame: (classId) => set(() => {
+    const newChar = DEFAULT_CHARACTER(classId);
 
     saveToLocalStorage(newChar);
     return { character: newChar, screen: 'playing' };

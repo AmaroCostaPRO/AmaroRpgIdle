@@ -479,6 +479,8 @@ Para permitir o compartilhamento de arquivos de salvamento entre dispositivos, o
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
 ### Versão 1.1.5 (Atual)
+*   **Correção do Vazamento de Estado na Criação de Personagens**:
+    *   Sanado o bug crítico em que a criação de um novo personagem em um save slot vazio/limpo herdava incorretamente pontos de prestígio, upgrades permanentes, contagem de abates e nível de ascensão do personagem jogado anteriormente que permanecia na memória do Zustand. Agora, a inicialização cria um estado de personagem 100% limpo baseado no `DEFAULT_CHARACTER`.
 *   **Otimização do Escala de Combate (Zoom do Phaser)**:
     *   Aplicação de uma escala multiplicadora de $1.5\times$ nos personagens, monstros e partículas de efeito visual para torná-los nítidos e visualmente proeminentes.
     *   Ajuste da posição base dos sprites na tela de combate para que permaneçam grounded no cenário.
