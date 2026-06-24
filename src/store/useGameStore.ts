@@ -62,10 +62,11 @@ export const CLASS_CONFIGS: Record<string, {
 
 // Catálogo estático de melhorias de Prestígio (Roguelite)
 export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; description: string; stat: keyof BaseStats; bonusPerLevel: number; costPerLevel: number; maxLevel: number }> = {
-  perm_str: { name: 'Força Divina', description: 'Aumento definitivo de +2 em Strength por nível', stat: 'strength', bonusPerLevel: 2, costPerLevel: 3, maxLevel: 10 },
-  perm_mag: { name: 'Mente Arcana', description: 'Aumento definitivo de +2 em Magic por nível', stat: 'magic', bonusPerLevel: 2, costPerLevel: 3, maxLevel: 10 },
-  perm_dex: { name: 'Foco Ágil', description: 'Aumento definitivo de +1 em Dexterity por nível', stat: 'dexterity', bonusPerLevel: 1, costPerLevel: 3, maxLevel: 10 },
-  perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +3 em Constitution por nível', stat: 'constitution', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_str: { name: 'Força Divina', description: 'Aumento definitivo de +6 em Strength por nível', stat: 'strength', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
+  perm_mag: { name: 'Mente Arcana', description: 'Aumento definitivo de +6 em Magic por nível', stat: 'magic', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
+  perm_dex: { name: 'Foco Ágil', description: 'Aumento definitivo de +3 em Dexterity por nível', stat: 'dexterity', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +9 em Constitution por nível', stat: 'constitution', bonusPerLevel: 9, costPerLevel: 3, maxLevel: 10 },
+  perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +3 em Luck por nível', stat: 'luck', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
 };
 
 // Multiplicadores base para as habilidades ativas (conforme a descrição)
@@ -279,6 +280,10 @@ interface GameState {
   unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon'): void;
   discardItem(itemId: string): void;
   addItemToInventory(item: EquipmentItem): boolean;
+  
+  // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
+  gameSpeed: number;
+  setGameSpeed(speed: number): void;
 }
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -294,6 +299,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
     prestigePoints: 0,
     prestigeUpgrades: {},
+    ascensionCount: 0,
     attributePoints: 5,
     skillPoints: 1,
     highestStageReached: 1,
@@ -408,6 +414,9 @@ export const useGameStore = create<GameState>((set) => ({
     return { zoomLevel };
   }),
 
+  gameSpeed: 1,
+  setGameSpeed: (speed) => set({ gameSpeed: speed }),
+
   addGold: (amount) => set((state) => {
     const updated = {
       ...state.character,
@@ -500,6 +509,12 @@ export const useGameStore = create<GameState>((set) => ({
     const pointsEarned = Math.floor(Math.pow(totalXp / 1000, 0.85));
 
     if (pointsEarned <= 0) return state;
+    
+    // Validar requisito de PP com base na quantidade de ascensões já realizadas
+    const ascensionCount = state.character.ascensionCount || 0;
+    const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
+    if (pointsEarned < requiredPP) return state;
+
     const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;
     
     // Recalcular os novos stats iniciais com base nos upgrades de prestígio permanentes já adquiridos
@@ -524,9 +539,12 @@ export const useGameStore = create<GameState>((set) => ({
       skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
       prestigePoints: (state.character.prestigePoints || 0) + pointsEarned,
       prestigeUpgrades: upgrades,
+      ascensionCount: ascensionCount + 1,
       baseStats: newBaseStats,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+      inventory: [],
     };
 
     saveToLocalStorage(updated);
@@ -657,6 +675,7 @@ export const useGameStore = create<GameState>((set) => ({
       skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
       prestigePoints: currentPrestigePoints,
       prestigeUpgrades: currentPrestigeUpgrades,
+      ascensionCount: state.character.ascensionCount || 0,
       attributePoints: 5,
       skillPoints: 1,
       highestStageReached: Math.max(state.character.highestStageReached || 1, state.character.currentStage || 1),

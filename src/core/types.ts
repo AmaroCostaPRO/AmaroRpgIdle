@@ -66,6 +66,7 @@ export interface Character {
   skillLevels: Record<string, number>;
   prestigePoints: number;
   prestigeUpgrades: Record<string, number>; // upgradeId -> level
+  ascensionCount: number;
   attributePoints: number;
   skillPoints: number; // pontos para a árvore de habilidades
   highestStageReached: number;

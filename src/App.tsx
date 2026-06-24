@@ -245,30 +245,105 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#60a5fa', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              ✨ Atualização v1.1.2 — Equipamentos!
+              ✨ Atualização v1.1.4 — Habilidades e Ascensão!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Uma nova expansão de conteúdo chegou! Preparamos grandes novidades e balanceamentos para a sua aventura:
+                Grandes novidades e expansões de conteúdo chegaram ao seu RPG Idle! Preparamos uma nova rodada de balanceamentos, mecânicas de efeitos de combate e uma árvore de ascensão divina:
               </p>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>
-                  🛡️ <strong>Novo Sistema de Itens:</strong> Drops de equipamentos nos slots de Cabeça, Peito, Pernas, Luvas e Armas.
-                </span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>
-                  ⚡ <strong>Bônus de Conjunto:</strong> Equipe peças do mesmo conjunto para desbloquear bônus especiais de classe (2, 3 e 5 peças).
-                </span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>
-                  🍀 <strong>Atributo Sorte (LUCK):</strong> Um novo atributo que aumenta a chance e qualidade dos drops de itens.
-                </span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>
-                  ⚔️ <strong>Balanceamento:</strong> Cooldowns das habilidades de ataque aumentados para se ajustarem à velocidade de combate mais tática.
-                </span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>
-                  🎨 <strong>Visual do Bestiário:</strong> Correção no carregamento e aplicação de fundo transparente automático nas imagens de monstros (Goblin Ladino, Guerreiro Orc, Esqueleto Guerreiro e Necromante Sombrio).
-                </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a78bfa', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🌟 Novidades da Versão 1.1.4:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        🔥 Efeitos de Status Ativos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Flecha venenosa causa dano ao longo do tempo (DoT), impacto de escudo aplica atordoamento inteligente e magias congelam inimigos.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        🌀 Atordoamento Inteligente
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ao término de um atordoamento, o tempo que o inimigo ficou atordoado é somado corretamente ao cooldown do ataque dele.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        ✨ Bônus de Alma Passivos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada ascensão concede +10% Dano, +2% Vel. Ataque, +5% HP e +5% Mana de forma cumulativa e permanente.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        💎 Melhorias Divinas Triplicadas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Todos os bônus planos comprados na árvore de prestígio foram triplicados (ex.: +6 Força, +9 Constituição por nível).
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        📈 Progressão e Desafio
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Requisitos de PP para ascender agora sobem a cada ciclo (1, 5, 7, 9 PP). O inventário e equipamentos são redefinidos na ascensão para um recomeço balanceado.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <span style={{ fontWeight: 700, color: '#60a5fa', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🛡️ Conteúdo da Versão 1.1.2:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#dbeafe', fontSize: '0.72rem' }}>
+                        🎒 Sistema de Equipamentos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#94a3b8', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Drops de itens nos slots de Cabeça, Peito, Pernas, Luvas e Armas.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#dbeafe', fontSize: '0.72rem' }}>
+                        ⚡ Bônus de Conjunto
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#94a3b8', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Equipe conjuntos da mesma classe para desbloquear poderosas sinergias (2, 3 e 5 peças).
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#dbeafe', fontSize: '0.72rem' }}>
+                        🍀 Atributo Sorte
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#94a3b8', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova estatística que aumenta a chance e qualidade de drop dos itens.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#dbeafe', fontSize: '0.72rem' }}>
+                        🎨 Bestiário Otimizado
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#94a3b8', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Melhorias de performance e remoção de transparências pesadas no painel de monstros.
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

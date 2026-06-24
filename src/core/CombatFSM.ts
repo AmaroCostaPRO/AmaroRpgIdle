@@ -264,6 +264,14 @@ export enum CombatState {
   DEAD = 'DEAD'
 }
 
+export interface StatusEffect {
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed';
+  name: string;
+  duration: number; // em ms
+  tickTimer: number; // em ms
+  value: number; // valor associado ao efeito (dano, cura ou percentual)
+}
+
 export class CombatFSM {
   private currentState: CombatState = CombatState.IDLE;
   public characterData: any;
@@ -282,6 +290,8 @@ export class CombatFSM {
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
+  public enemyEffects: StatusEffect[] = [];
+  public playerEffects: StatusEffect[] = [];
   private scene: any;
   private skillCooldowns: Record<string, number> = {};
   private cooldownEmitTimer: number = 0;
@@ -315,6 +325,8 @@ export class CombatFSM {
   }
 
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
+    this.enemyEffects = [];
+    this.playerEffects = [];
     this.enemyLevel = stage;
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
     const isNightmare = stage >= 6;
@@ -358,8 +370,12 @@ export class CombatFSM {
     this.characterData = char;
     this.playerFinalStats = StatEngine.calculateFinalStats(char);
 
+    const ascensionCount = char.ascensionCount || 0;
+    const hpBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
+    const manaBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
+
     const prevMaxHP = this.playerMaxHP;
-    this.playerMaxHP = this.playerFinalStats.constitution * 12;
+    this.playerMaxHP = Math.floor(this.playerFinalStats.constitution * 12 * hpBoost);
 
     if (this.playerMaxHP > prevMaxHP) {
       this.playerHP += (this.playerMaxHP - prevMaxHP);
@@ -367,7 +383,7 @@ export class CombatFSM {
     this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
 
     const prevMaxMana = this.playerMaxMana;
-    this.playerMaxMana = this.playerFinalStats.magic * 10;
+    this.playerMaxMana = Math.floor(this.playerFinalStats.magic * 10 * manaBoost);
     if (this.playerMaxMana > prevMaxMana) {
       this.playerMana += (this.playerMaxMana - prevMaxMana);
     }
@@ -394,11 +410,76 @@ export class CombatFSM {
     if (this.currentState === CombatState.DEAD) return;
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
-    if (this.enemyAttackCooldown > 0) this.enemyAttackCooldown -= delta;
+    
+    // Lentidão e atordoamento afetam a recarga do ataque do inimigo
+    const isEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
+    if (this.enemyAttackCooldown > 0 && !isEnemyStunned) {
+      const slowEffect = this.enemyEffects.find(e => e.id === 'slow');
+      const slowMultiplier = slowEffect ? (1 - slowEffect.value) : 1.0;
+      this.enemyAttackCooldown -= delta * slowMultiplier;
+    }
 
     // Recuperação de HP/Mana baseada em atributos
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.playerFinalStats.constitution * 0.05 * (delta / 1000)));
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.playerFinalStats.magic * 0.05 * (delta / 1000)));
+
+    // Processar e atualizar durações de efeitos de status no inimigo
+    const wasEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
+
+    this.enemyEffects = this.enemyEffects.filter(effect => {
+      effect.duration -= delta;
+      if (effect.duration <= 0) return false;
+
+      effect.tickTimer -= delta;
+      if (effect.tickTimer <= 0) {
+        effect.tickTimer = 1000;
+        if (effect.id === 'poison' || effect.id === 'burn') {
+          const tickDmg = Math.floor(effect.value);
+          this.enemyHP = Math.max(0, this.enemyHP - tickDmg);
+          const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
+          const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
+          
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
+
+          if (this.enemyHP <= 0) {
+            this.handleEnemyDefeat();
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+
+    const isEnemyStunnedNow = this.enemyEffects.some(e => e.id === 'stun');
+    if (wasEnemyStunned && !isEnemyStunnedNow && this.enemyHP > 0) {
+      const baseCooldown = 3600 - (this.enemyLevel * 30);
+      this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo se recuperou do atordoamento e recomeça a preparar seu ataque!` });
+    }
+
+    // Processar e atualizar durações de efeitos de status no jogador
+    this.playerEffects = this.playerEffects.filter(effect => {
+      effect.duration -= delta;
+      if (effect.duration <= 0) return false;
+
+      effect.tickTimer -= delta;
+      if (effect.tickTimer <= 0) {
+        effect.tickTimer = 1000;
+        if (effect.id === 'consecration') {
+          const healVal = Math.floor(effect.value);
+          this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healVal);
+          
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healVal}`, '#10b981');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Consagração curou você em +${healVal} HP.` });
+        }
+      }
+      return true;
+    });
 
     // Atualizar cooldowns
     Object.keys(this.skillCooldowns).forEach((skillId) => {
@@ -494,17 +575,21 @@ export class CombatFSM {
       return;
     }
 
+    const isEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
+
     if (this.attackCooldown <= 0 && this.enemyHP > 0) {
       this.performPlayerAttack();
     }
 
-    if (this.enemyAttackCooldown <= 0 && this.playerHP > 0 && this.enemyHP > 0) {
+    if (this.enemyAttackCooldown <= 0 && this.playerHP > 0 && this.enemyHP > 0 && !isEnemyStunned) {
       this.performEnemyAttack();
     }
   }
 
   private performPlayerAttack() {
-    const speedMultiplier = 1 + (this.playerFinalStats.dexterity * 0.02);
+    const ascensionCount = this.characterData.ascensionCount || 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.02); // +2% por ascensão
+    const speedMultiplier = (1 + (this.playerFinalStats.dexterity * 0.02)) * attackSpeedBoost;
     this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
@@ -523,7 +608,12 @@ export class CombatFSM {
       damageType = 'sagrado';
     }
 
-    const damage = Math.floor(primaryStatVal * 1.0 + Math.random() * 3);
+    // Inimigo sob status EXPOSTO sofre 20% a mais de dano
+    const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
+    const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
+    const damageBoost = 1 + (ascensionCount * 0.10); // +10% por ascensão
+
+    const damage = Math.floor((primaryStatVal * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
@@ -545,7 +635,12 @@ export class CombatFSM {
     
     // Escala exponencial de dano baseado no estágio
     const dmgScale = Math.pow(1.3, this.enemyLevel - 1);
-    const damage = Math.floor((5 + this.enemyLevel * 2.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost);
+
+    // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
+    const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
+    const weaknessMultiplier = weaknessEffect ? (1 - weaknessEffect.value) : 1.0;
+
+    const damage = Math.floor((5 + this.enemyLevel * 2.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier);
 
     this.scene.animateEnemyAttack();
     this.playerHP = Math.max(0, this.playerHP - damage);
@@ -795,6 +890,9 @@ export class CombatFSM {
       damageType = 'físico';
     }
 
+    const ascensionCount = this.characterData.ascensionCount || 0;
+    const damageBoost = 1 + (ascensionCount * 0.10); // +10% por ascensão
+
     // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
     let dmg = 0;
     if (skillId === 'smite_paladin') {
@@ -808,15 +906,165 @@ export class CombatFSM {
       dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
     }
 
+    dmg = Math.floor(dmg * damageBoost);
+
+    // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
+    if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
+      dmg = Math.floor(dmg * 1.5);
+    }
+
+    // Efeito do status EXPOSTO no dano final das habilidades
+    const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
+    const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
+    dmg = Math.floor(dmg * exposedMultiplier);
+
     this.enemyHP = Math.max(0, this.enemyHP - dmg);
 
-    // Determina a animação apropriada e cor de texto
-    if (skillClass === 'mage' || skillClass === 'cleric') {
-      this.scene.animateFireballEffect();
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f97316');
+    // Determina os efeitos visuais e sonoros na cena dependendo da habilidade específica
+    if (skillId === 'frostbolt') {
+      if (typeof this.scene.animateFrostboltEffect === 'function') {
+        this.scene.animateFrostboltEffect();
+      } else {
+        this.scene.animateFireballEffect();
+      }
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `GELO: ${dmg}!`, '#38bdf8');
+    } else if (skillId === 'lightning' || skillId === 'wrath_heaven' || skillId === 'divine_judgement') {
+      if (typeof this.scene.animateLightningEffect === 'function') {
+        this.scene.animateLightningEffect();
+      } else {
+        this.scene.animateFireballEffect();
+      }
+      const lightningColor = skillId === 'lightning' ? '#a855f7' : '#fbbf24';
+      const lightningLabel = skillId === 'lightning' ? 'RAIO' : 'DIVINO';
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${lightningLabel}: ${dmg}!`, lightningColor);
+    } else if (skillId === 'meteor') {
+      if (typeof this.scene.animateMeteorEffect === 'function') {
+        this.scene.animateMeteorEffect();
+      } else {
+        this.scene.animateFireballEffect();
+      }
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `METEORO: ${dmg}!`, '#ef4444');
+    } else if (skillId === 'poison_arrow' || skillId === 'poison_dagger') {
+      if (typeof this.scene.animatePoisonArrowEffect === 'function') {
+        this.scene.animatePoisonArrowEffect();
+      } else {
+        this.scene.animateSlashEffect();
+      }
+      const toxColor = skillId === 'poison_arrow' ? '#22c55e' : '#c084fc';
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `TOXINA: ${dmg}!`, toxColor);
+    } else if (skillId === 'consecration') {
+      if (typeof this.scene.animateConsecrationEffect === 'function') {
+        this.scene.animateConsecrationEffect();
+      } else {
+        this.scene.animateSlashEffect();
+      }
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `SANTIFICADO: ${dmg}!`, '#fef08a');
     } else {
-      this.scene.animateSlashEffect();
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f43f5e');
+      if (skillClass === 'mage' || skillClass === 'cleric') {
+        this.scene.animateFireballEffect();
+        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f97316');
+      } else {
+        this.scene.animateSlashEffect();
+        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f43f5e');
+      }
+    }
+
+    // Aplicação dos efeitos de status após causar o dano
+    if (skillId === 'shield_bash') {
+      this.enemyEffects.push({
+        id: 'stun',
+        name: 'Atordoado',
+        duration: 2000,
+        tickTimer: 0,
+        value: 0
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ATORDADO]', '#facc15');
+    } else if (skillId === 'frostbolt') {
+      this.enemyEffects.push({
+        id: 'slow',
+        name: 'Lentidão',
+        duration: 4000,
+        tickTimer: 0,
+        value: 0.40
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[LENTO]', '#93c5fd');
+    } else if (skillId === 'fireball') {
+      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15));
+      this.enemyEffects.push({
+        id: 'burn',
+        name: 'Queimadura',
+        duration: 3000,
+        tickTimer: 1000,
+        value: burnDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[QUEIMA]', '#f97316');
+    } else if (skillId === 'meteor') {
+      this.enemyEffects.push({
+        id: 'stun',
+        name: 'Atordoado',
+        duration: 1500,
+        tickTimer: 0,
+        value: 0
+      });
+      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15));
+      this.enemyEffects.push({
+        id: 'burn',
+        name: 'Queimadura',
+        duration: 5000,
+        tickTimer: 1000,
+        value: burnDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ATORDADO & QUEIMADO]', '#ef4444');
+    } else if (skillId === 'poison_arrow') {
+      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.20));
+      this.enemyEffects.push({
+        id: 'poison',
+        name: 'Envenenado',
+        duration: 5000,
+        tickTimer: 1000,
+        value: poisonDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ENVENENADO]', '#22c55e');
+    } else if (skillId === 'shield_righteousness') {
+      this.enemyEffects.push({
+        id: 'weakness',
+        name: 'Enfraquecido',
+        duration: 5000,
+        tickTimer: 0,
+        value: 0.30
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ENFRAQUECIDO]', '#f87171');
+    } else if (skillId === 'consecration') {
+      const regenVal = Math.max(1, Math.floor(this.playerFinalStats.constitution * 0.15));
+      this.playerEffects.push({
+        id: 'consecration',
+        name: 'Consagração',
+        duration: 6000,
+        tickTimer: 1000,
+        value: regenVal
+      });
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, '[SANTIFICADO]', '#fef08a');
+    } else if (skillId === 'wrath_heaven') {
+      this.enemyEffects.push({
+        id: 'exposed',
+        name: 'Exposto',
+        duration: 5000,
+        tickTimer: 0,
+        value: 0.20
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[EXPOSTO]', '#60a5fa');
+    } else if (skillId === 'poison_dagger') {
+      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.25));
+      this.enemyEffects.push({
+        id: 'poison',
+        name: 'Envenenado',
+        duration: 4000,
+        tickTimer: 1000,
+        value: poisonDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[TOXINA]', '#c084fc');
+    } else if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '¡MISERICÓRDIA!', '#ef4444');
     }
 
     bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}.` });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
@@ -7,6 +8,46 @@ import { ENEMY_TYPES } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 
+// Funções utilitárias para obter informações sobre Efeitos de Status aplicados por Habilidades
+export const getSimpleStatusEffectInfo = (id: string): string => {
+  switch (id) {
+    case 'shield_bash': return 'Atordoa por 2.0s';
+    case 'frostbolt': return 'Lento 40% por 4.0s';
+    case 'fireball': return 'Queima por 3.0s (15% Magia/s)';
+    case 'meteor': return 'Atordoa por 1.5s e Queima por 5.0s';
+    case 'poison_arrow': return 'Veneno por 5.0s (20% Destreza/s)';
+    case 'shield_righteousness': return 'Fraqueza (Inimigo causa -30% dano) por 5.0s';
+    case 'consecration': return 'Regenera 15% Const/s por 6.0s';
+    case 'wrath_heaven': return 'Exposto (Inimigo sofre +20% dano) por 5.0s';
+    case 'poison_dagger': return 'Veneno por 4.0s (25% Destreza/s)';
+    default: return '';
+  }
+};
+
+export const getDetailedStatusEffectInfo = (id: string): string => {
+  switch (id) {
+    case 'shield_bash':
+      return 'Efeito: Atordoa o inimigo por 2.0s (impede ações). Ao se recuperar, o monstro é forçado a recarregar o tempo total de seu ataque do zero.';
+    case 'frostbolt':
+      return 'Efeito: Reduz a velocidade de ataque do inimigo em 40% (Lentidão) por 4.0s.';
+    case 'fireball':
+      return 'Efeito: Aplica Queimadura por 3.0s, causando dano contínuo (DOT) de 15% do Poder Mágico por segundo.';
+    case 'meteor':
+      return 'Efeito: Atordoa o inimigo por 1.5s (recarrega ataque dele após expirar) e aplica Queimadura por 5.0s, causando 15% do Poder Mágico por segundo como dano.';
+    case 'poison_arrow':
+      return 'Efeito: Aplica Veneno por 5.0s, causando dano contínuo (DOT) de 20% da Destreza por segundo.';
+    case 'shield_righteousness':
+      return 'Efeito: Aplica Fraqueza por 5.0s, reduzindo todo o dano causado pelo inimigo em 30%.';
+    case 'consecration':
+      return 'Efeito: Cria área sagrada que cura o jogador em 15% da sua Constituição por segundo durante 6.0s.';
+    case 'wrath_heaven':
+      return 'Efeito: Aplica Exposto por 5.0s, aumentando todo o dano sofrido pelo inimigo em 20%.';
+    case 'poison_dagger':
+      return 'Efeito: Aplica Veneno por 4.0s, causando dano contínuo (DOT) de 25% da Destreza por segundo.';
+    default:
+      return '';
+  }
+};
 
 /**
  * HUD Component - High Frequency Feedback via Direct DOM Manipulation.
@@ -127,6 +168,8 @@ const GameHUD: React.FC = () => {
 
 const ActiveSkillsPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
+  const gameSpeed = useGameStore((state) => state.gameSpeed);
+  const setGameSpeed = useGameStore((state) => state.setGameSpeed);
   const classId = character.classId || 'warrior';
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
 
@@ -223,6 +266,56 @@ const ActiveSkillsPanel: React.FC = () => {
           <span className="badge badge-locked">Bloqueado</span>
         </div>
       )}
+
+      {/* Seção de Velocidade do Jogo (Aceleração 1x/2x/3x) */}
+      <div style={{ 
+        marginTop: '0.6rem', 
+        paddingTop: '0.6rem', 
+        borderTop: '1px solid var(--border-dim)', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        background: 'rgba(0,0,0,0.15)', 
+        padding: '0.5rem 0.6rem', 
+        borderRadius: 'var(--radius-md)', 
+        border: '1px solid var(--border-dim)' 
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            ⚡ Velocidade do Jogo
+          </span>
+          <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Acelera o tempo e combates.</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
+          {[1, 2, 3].map((speed) => {
+            const isActive = gameSpeed === speed;
+            return (
+              <button
+                key={speed}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setGameSpeed(speed);
+                }}
+                className={`btn btn-sm ${isActive ? 'btn-gold' : 'btn-ghost'}`}
+                style={{ 
+                  minWidth: '1.8rem', 
+                  height: '1.3rem', 
+                  padding: 0, 
+                  fontSize: '0.55rem', 
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive ? undefined : 'rgba(255,255,255,0.03)',
+                  border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                {speed}x
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
@@ -295,15 +388,77 @@ const AttributePanel: React.FC = () => {
   );
 };
 
-const EquipmentPanel: React.FC = () => {
+const getRarityColor = (rarity: string) => {
+  switch (rarity) {
+    case 'rare':
+    case 'raro': 
+      return '#3b82f6';
+    case 'legendary':
+    case 'lendário': 
+      return '#f59e0b';
+    default: 
+      return '#94a3b8';
+  }
+};
+
+const getRarityBg = (rarity: string) => {
+  switch (rarity) {
+    case 'rare':
+    case 'raro': 
+      return 'rgba(59, 130, 246, 0.15)';
+    case 'legendary':
+    case 'lendário': 
+      return 'rgba(245, 158, 11, 0.15)';
+    default: 
+      return 'rgba(148, 163, 184, 0.1)';
+  }
+};
+
+const slotLabels: Record<string, string> = {
+  head: 'Cabeça',
+  chest: 'Peito',
+  legs: 'Pernas',
+  gloves: 'Luvas',
+  weapon: 'Arma'
+};
+
+const slotIcons: Record<string, string> = {
+  head: '🪖',
+  chest: '👕',
+  legs: '👖',
+  gloves: '🧤',
+  weapon: '⚔️'
+};
+
+const statLabels: Record<string, string> = {
+  strength: 'Força',
+  magic: 'Magia',
+  dexterity: 'Destreza',
+  constitution: 'Constituição',
+  luck: 'Sorte'
+};
+
+interface EquipmentPanelProps {
+  selectedItem: EquipmentItem | null;
+  setSelectedItem: (item: EquipmentItem | null) => void;
+  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null;
+  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null) => void;
+  showDiscardConfirm: boolean;
+  setShowDiscardConfirm: (show: boolean) => void;
+}
+
+const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
+  selectedItem,
+  setSelectedItem,
+  selectedSlot,
+  setSelectedSlot,
+  showDiscardConfirm,
+  setShowDiscardConfirm
+}) => {
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
-
-  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null>(null);
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const finalStats = StatEngine.calculateFinalStats(character);
   const baseStats = character.baseStats;
@@ -316,56 +471,6 @@ const EquipmentPanel: React.FC = () => {
       setCounts[item.setName] = (setCounts[item.setName] || 0) + 1;
     }
   });
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case 'rare':
-      case 'raro': 
-        return '#3b82f6';
-      case 'legendary':
-      case 'lendário': 
-        return '#f59e0b';
-      default: 
-        return '#94a3b8';
-    }
-  };
-
-  const getRarityBg = (rarity: string) => {
-    switch (rarity) {
-      case 'rare':
-      case 'raro': 
-        return 'rgba(59, 130, 246, 0.15)';
-      case 'legendary':
-      case 'lendário': 
-        return 'rgba(245, 158, 11, 0.15)';
-      default: 
-        return 'rgba(148, 163, 184, 0.1)';
-    }
-  };
-
-  const slotLabels: Record<string, string> = {
-    head: 'Cabeça',
-    chest: 'Peito',
-    legs: 'Pernas',
-    gloves: 'Luvas',
-    weapon: 'Arma'
-  };
-
-  const slotIcons: Record<string, string> = {
-    head: '🪖',
-    chest: '👕',
-    legs: '👖',
-    gloves: '🧤',
-    weapon: '⚔️'
-  };
-
-  const statLabels: Record<string, string> = {
-    strength: 'Força',
-    magic: 'Magia',
-    dexterity: 'Destreza',
-    constitution: 'Constituição',
-    luck: 'Sorte'
-  };
 
   const maxSlots = character.inventorySlots || 30;
   const inventoryGrid = Array.from({ length: maxSlots }, (_, i) => character.inventory[i] || null);
@@ -649,160 +754,6 @@ const EquipmentPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal / Detalhes de Item do Inventário */}
-      {selectedItem && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999,
-          padding: '1rem'
-        }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-            border: `2px solid ${getRarityColor(selectedItem.rarity)}`,
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.25rem',
-            width: '100%',
-            maxWidth: '320px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            position: 'relative'
-          }} onClick={(e) => e.stopPropagation()}>
-            <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
-
-            <div>
-              <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(selectedItem.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
-              </span>
-              <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(selectedItem.rarity) }}>
-                {selectedItem.name}
-              </h4>
-            </div>
-
-            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                {Object.entries(selectedItem.stats).map(([stat, val]) => (
-                  <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                    +{val} {statLabels[stat] || stat}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {selectedItem.setName && (
-              <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
-                Conjunto: {selectedItem.setName}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-              <button 
-                onClick={() => handleEquip(selectedItem)}
-                className="btn btn-sm btn-gold" 
-                style={{ width: '100%' }}
-              >
-                Equipar Item
-              </button>
-
-              {showDiscardConfirm ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    <button onClick={() => handleDiscard(selectedItem.id)} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
-                    <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
-                  </div>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setShowDiscardConfirm(true)}
-                  className="btn btn-sm btn-danger" 
-                  style={{ width: '100%', opacity: 0.8 }}
-                >
-                  Descartar / Destruir
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal / Detalhes de Item Equipado */}
-      {selectedSlot && character.equipment[selectedSlot] && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999,
-          padding: '1rem'
-        }} onClick={() => setSelectedSlot(null)}>
-          {(() => {
-            const item = character.equipment[selectedSlot]!;
-            return (
-              <div style={{
-                background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-                border: `2px solid ${getRarityColor(item.rarity)}`,
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.25rem',
-                width: '100%',
-                maxWidth: '320px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem',
-                position: 'relative'
-              }} onClick={(e) => e.stopPropagation()}>
-                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedSlot(null)}>✕</button>
-
-                <div>
-                  <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(item.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    EQUIPADO • {slotLabels[selectedSlot]}
-                  </span>
-                  <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(item.rarity) }}>
-                    {item.name}
-                  </h4>
-                </div>
-
-                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                    {Object.entries(item.stats).map(([stat, val]) => (
-                      <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                        +{val} {statLabels[stat] || stat}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {item.setName && (
-                  <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
-                    Conjunto: {item.setName}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                  <button 
-                    onClick={() => handleUnequip(selectedSlot)}
-                    className="btn btn-sm btn-gold" 
-                    style={{ width: '100%' }}
-                  >
-                    Desequipar Item
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
     </div>
   );
 };
@@ -1056,6 +1007,12 @@ const SkillsTreePanel: React.FC = () => {
 
                     return (
                       <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.68rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        {getSimpleStatusEffectInfo(selectedSkillId) && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.25rem', marginBottom: '0.25rem' }}>
+                            <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
+                            <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(selectedSkillId)}</span>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: '#94a3b8' }}>Efeito Atual:</span>
                           <span style={{ color: skillLvl > 0 ? 'var(--gold-400)' : '#64748b', fontWeight: 700 }}>{currentText}</span>
@@ -1229,6 +1186,12 @@ const SkillsTreePanel: React.FC = () => {
 
                       return (
                         <div style={{ padding: '0.4rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.62rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          {getSimpleStatusEffectInfo(id) && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.2rem', marginBottom: '0.2rem' }}>
+                              <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
+                              <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(id)}</span>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: '#94a3b8' }}>Efeito Atual:</span>
                             <span style={{ color: currentLevel > 0 ? 'var(--gold-400)' : '#64748b', fontWeight: 700 }}>{currentText}</span>
@@ -1294,16 +1257,19 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const xp = character.xp;
   const totalXp = 50 * level * (level - 1) + xp;
   const prestigeEarnedOnReset = Math.floor(Math.pow(totalXp / 1000, 0.85));
-  const canPrestige = prestigeEarnedOnReset > 0;
+  const ascensionCount = character.ascensionCount || 0;
+  const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
+  const canPrestige = level >= 5 && prestigeEarnedOnReset >= requiredPP;
 
   // Coord do Layout Diamante / Estrela
   const hubPos = { x: 50, y: 220 };
   const getUpgradePos = (id: string) => {
     switch (id) {
       case 'perm_mag': return { x: 50, y: 70 };  // Top
-      case 'perm_str': return { x: 18, y: 220 }; // Left
-      case 'perm_dex': return { x: 82, y: 220 }; // Right
-      case 'perm_con': return { x: 50, y: 370 }; // Bottom
+      case 'perm_dex': return { x: 80, y: 174 }; // Top Right
+      case 'perm_con': return { x: 69, y: 341 }; // Bottom Right
+      case 'perm_str': return { x: 31, y: 341 }; // Bottom Left
+      case 'perm_luk': return { x: 20, y: 174 }; // Top Left
       default: return hubPos;
     }
   };
@@ -1324,6 +1290,31 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
         </div>
       </div>
 
+      {/* Resumo de Bônus Ativos das Ascensões */}
+      <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(76,29,149,0.05) 100%)', padding: '0.8rem 1rem', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h4 className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Bônus de Alma ({ascensionCount} {ascensionCount === 1 ? 'Ascensão' : 'Ascensões'})</h4>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 0.8rem', fontSize: '0.62rem', color: '#94a3b8' }}>
+          <div className="flex justify-between">
+            <span>Dano Geral:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 10}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Velocidade de Ataque:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 2}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Vida Máxima:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Mana Máxima:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}%</span>
+          </div>
+        </div>
+      </div>
+
       {/* Botão de Reset de Prestígio (no topo) */}
       <div style={{ background: 'rgba(139,92,246,0.06)', padding: '0.8rem 1rem', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(139,92,246,0.15)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1341,7 +1332,12 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
             style={{ width: '100%', cursor: canPrestige ? 'pointer' : 'not-allowed', opacity: canPrestige ? 1 : 0.5 }}
             disabled={!canPrestige}
           >
-            {canPrestige ? `Ascender (+${prestigeEarnedOnReset} PP)` : 'Requer Nível 5+ para obter PP'}
+            {level < 5 
+              ? 'Requer Nível 5+ para obter PP' 
+              : prestigeEarnedOnReset < requiredPP 
+                ? `Requer +${requiredPP} PP nesta rodada (Ganho: ${prestigeEarnedOnReset})` 
+                : `Ascender (+${prestigeEarnedOnReset} PP)`
+            }
           </button>
         ) : (
           <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.2rem' }}>
@@ -1718,6 +1714,11 @@ const GuidePanel: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-gray-400 leading-relaxed">{skill.description}</p>
+                    {getDetailedStatusEffectInfo(id) && (
+                      <div style={{ fontSize: '0.52rem', color: '#60a5fa', marginTop: '0.25rem', padding: '0.25rem', background: 'rgba(59, 130, 246, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                        {getDetailedStatusEffectInfo(id)}
+                      </div>
+                    )}
                     <div className="text-[8px] text-gray-500 mt-1 flex justify-between">
                       <span>Requer Level {skill.requiredLevel}</span>
                       {skill.type === 'active' && (
@@ -1829,22 +1830,28 @@ const GuidePanel: React.FC = () => {
                   <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
                   <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
                     <li>
-                      <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos normais distribuídos pelo jogador, progresso atual do combate (fase de combate volta para a Fase 1) e mana/HP.
+                      <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
                     </li>
                     <li>
-                      <span className="text-gray-400">O que é mantido (Permanente):</span> Classe escolhida e seu progresso de maestria, Habilidades desbloqueadas (com seus respectivos níveis) e todas as melhorias compradas com Pontos de Prestígio (PP).
+                      <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
+                    </li>
+                    <li>
+                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+10% de Dano Geral</strong>, <strong>+2% de Velocidade de Ataque</strong>, <strong>+5% de HP Máximo</strong> e <strong>+5% de Mana Máxima</strong>.
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>
                       <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor((XP Acumulada / 1000) ^ 0.85)</code>
                       <span className="text-gray-500 text-[8px] block mt-0.5">(Requer pelo menos Nível 5 para obter o primeiro Ponto de Prestígio. A XP acumulada conta toda a XP gasta em níveis anteriores mais a atual)</span>
                     </li>
+                    <li>
+                      <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
+                    </li>
                   </ul>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
                   <p className="text-gray-400 mt-0.5">
-                    Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+ Força, + Magia, + Destreza, + Constituição), acelerando drasticamente o progresso nas próximas rodadas.
+                    Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+6 Força, +6 Magia, +3 Destreza, +9 Constituição, +3 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas.
                   </p>
                 </div>
               </div>
@@ -1884,81 +1891,8 @@ const LORE_DATABASE: Record<string, string> = {
 };
 
 
-interface TransparentImageProps {
-  src: string;
-  alt: string;
-  style?: React.CSSProperties;
-  className?: string;
-}
 
-const TransparentImage: React.FC<TransparentImageProps> = ({ src, alt, style, className }) => {
-  const [processedSrc, setProcessedSrc] = useState<string>(src);
-  
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = src;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        setProcessedSrc(src);
-        return;
-      }
-      
-      ctx.drawImage(img, 0, 0);
-      
-      try {
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        const backgroundColors: { r: number; g: number; b: number }[] = [];
-        
-        for (let x = 0; x < canvas.width; x++) {
-          const idx = x * 4;
-          const r = data[idx];
-          const g = data[idx + 1];
-          const b = data[idx + 2];
-          
-          const exists = backgroundColors.some(c => Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < 10);
-          if (!exists) {
-            backgroundColors.push({ r, g, b });
-          }
-        }
-        
-        const tolerance = 30;
-        
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          
-          const isBackground = backgroundColors.some(c => {
-            return Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < tolerance;
-          });
-          
-          if (isBackground) {
-            data[i + 3] = 0;
-          }
-        }
-        
-        ctx.putImageData(imageData, 0, 0);
-        setProcessedSrc(canvas.toDataURL());
-      } catch (err) {
-        console.error('Error making image transparent:', err);
-        setProcessedSrc(src);
-      }
-    };
-    img.onerror = () => {
-      setProcessedSrc(src);
-    };
-  }, [src]);
 
-  return <img src={processedSrc} alt={alt} style={style} className={className} />;
-};
 
 const BIOME_NAMES = [
   "Floresta Antiga",
@@ -1968,10 +1902,17 @@ const BIOME_NAMES = [
   "Ruínas Sombrias"
 ];
 
-const BestiaryPanel: React.FC = () => {
+interface BestiaryPanelProps {
+  selectedEnemy: any;
+  setSelectedEnemy: (enemy: any) => void;
+}
+
+const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
+  selectedEnemy,
+  setSelectedEnemy
+}) => {
   const character = useGameStore((state) => state.character);
   const killCount = character.killCount || {};
-  const [selectedEnemy, setSelectedEnemy] = useState<any>(null);
   const [hoveredEnemyId, setHoveredEnemyId] = useState<string | null>(null);
 
   // Agrupar inimigos por Fase (4 por fase)
@@ -2068,7 +2009,7 @@ const BestiaryPanel: React.FC = () => {
 
                     {/* Sprite do Monstro */}
                     <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.5rem 0', position: 'relative', width: '100%' }}>
-                      <TransparentImage 
+                      <img 
                         src={`/assets/${enemy.texture}.png`} 
                         alt={enemy.name}
                         style={{
@@ -2132,190 +2073,25 @@ const BestiaryPanel: React.FC = () => {
         ))}
       </div>
 
-      {/* Modal de Detalhes do Monstro Desbloqueado */}
-      {selectedEnemy && (() => {
-        const kills = killCount[selectedEnemy.id] || 0;
-        const isBoss = selectedEnemy.id.startsWith('boss_');
-
-        return (
-          <div 
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(5, 3, 10, 0.85)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '1.5rem',
-              zIndex: 999999,
-              animation: 'fadeIn 0.2s ease-out'
-            }}
-            onClick={() => {
-              AudioManager.getInstance().playClick();
-              setSelectedEnemy(null);
-            }}
-          >
-            <div 
-              style={{
-                background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-                border: `2px solid ${isBoss ? '#ef4444' : 'var(--gold-400)'}`,
-                boxShadow: `0 0 35px rgba(0, 0, 0, 0.9), 0 0 20px ${isBoss ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.15)'}`,
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.75rem',
-                width: '100%',
-                maxWidth: '430px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1.25rem',
-                position: 'relative'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Fechar modal */}
-              <button 
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setSelectedEnemy(null);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '0.75rem',
-                  right: '0.75rem',
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer'
-                }}
-                className="hover:text-white"
-              >
-                ✕
-              </button>
-
-              {/* Cabeçalho */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div 
-                  style={{ 
-                    width: '90px', 
-                    height: '90px', 
-                    background: 'rgba(0,0,0,0.4)', 
-                    borderRadius: 'var(--radius-md)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    border: '1px solid rgba(255,255,255,0.06)'
-                  }}
-                >
-                  <TransparentImage 
-                    src={`/assets/${selectedEnemy.texture}.png`} 
-                    alt={selectedEnemy.name}
-                    style={{
-                      maxHeight: '90%',
-                      maxWidth: '90%',
-                      objectFit: 'contain',
-                      transform: selectedEnemy.flipX ? 'scaleX(-1)' : 'none'
-                    }}
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <span 
-                    style={{
-                      fontSize: '0.5rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      color: isBoss ? '#ef4444' : '#cbd5e1'
-                    }}
-                  >
-                    {isBoss ? 'Chefe Celestial' : 'Monstro Comum'}
-                  </span>
-                  <h3 className="font-heading" style={{ fontSize: '1rem', fontWeight: 800, color: isBoss ? '#f87171' : 'var(--gold-400)', margin: 0 }}>
-                    {selectedEnemy.name}
-                  </h3>
-                  <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
-                    Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills}</strong>
-                  </span>
-                </div>
-              </div>
-
-              {/* Lore/Descrição */}
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                <p style={{ fontSize: '0.65rem', color: '#e2e8f0', fontStyle: 'italic', lineHeight: 1.6, margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                  "{LORE_DATABASE[selectedEnemy.id] || 'Nenhum registro antigo recuperado para esta besta.'}"
-                </p>
-              </div>
-
-              {/* Estatísticas e Escalonamento */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--gold-400)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Atributos e Poder Relativo
-                </span>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.4rem' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Multiplicador HP</span>
-                    <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f87171' }}>
-                      {selectedEnemy.hpMultiplier.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Multiplicador Dano</span>
-                    <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fb7185' }}>
-                      {selectedEnemy.damageMultiplier.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Mult. Vel. Ataque</span>
-                    <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa' }}>
-                      {selectedEnemy.attackSpeedMultiplier.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Experiência Cedida</span>
-                    <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34d399' }}>
-                      +{selectedEnemy.xpValue} XP
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Fechar Button */}
-              <button 
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setSelectedEnemy(null);
-                }} 
-                className="btn btn-sm"
-                style={{
-                  width: '100%',
-                  background: isBoss 
-                    ? 'linear-gradient(135deg, #b91c1c 0%, #450a0a 100%)' 
-                    : 'linear-gradient(135deg, var(--gold-600) 0%, var(--surface-3) 100%)',
-                  border: isBoss ? '1px solid #ef4444' : '1px solid var(--gold-400)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  marginTop: '0.25rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Fechar Registro
-              </button>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 };
 
 export default function GameUI() {
+  const character = useGameStore((state) => state.character);
+  const equipItem = useGameStore((state) => state.equipItem);
+  const unequipItem = useGameStore((state) => state.unequipItem);
+  const discardItem = useGameStore((state) => state.discardItem);
+
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [selectedEnemy, setSelectedEnemy] = useState<any | null>(null);
 
   const sfxEnabled = useGameStore((state) => state.sfxEnabled);
   const bgmEnabled = useGameStore((state) => state.bgmEnabled);
@@ -2578,21 +2354,378 @@ export default function GameUI() {
         </div>
       </div>
   
-      {/* Conteúdo Dinâmico */}
-      <div className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        {activeTab === 'combat' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <GameHUD />
-            <ActiveSkillsPanel />
+      {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        {/* Conteúdo Dinâmico com rolagem */}
+        <div className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          {activeTab === 'combat' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <GameHUD />
+              <ActiveSkillsPanel />
+            </div>
+          )}
+          {activeTab === 'attributes' && <AttributePanel />}
+          {activeTab === 'skills' && <SkillsTreePanel />}
+          {activeTab === 'equipment' && (
+            <EquipmentPanel 
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+              selectedSlot={selectedSlot}
+              setSelectedSlot={setSelectedSlot}
+              showDiscardConfirm={showDiscardConfirm}
+              setShowDiscardConfirm={setShowDiscardConfirm}
+            />
+          )}
+          {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
+          {activeTab === 'bestiary' && (
+            <BestiaryPanel 
+              selectedEnemy={selectedEnemy}
+              setSelectedEnemy={setSelectedEnemy}
+            />
+          )}
+          {activeTab === 'guide' && <GuidePanel />}
+          {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
+        </div>
+
+        {/* Modais de Equipamento e Bestiário agora posicionados de forma absoluta no wrapper relativo */}
+        {activeTab === 'equipment' && selectedItem && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99,
+            padding: '1rem'
+          }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+              border: `2px solid ${getRarityColor(selectedItem.rarity)}`,
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              width: '100%',
+              maxWidth: '320px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+              position: 'relative'
+            }} onClick={(e) => e.stopPropagation()}>
+              <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
+
+              <div>
+                <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(selectedItem.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
+                </span>
+                <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(selectedItem.rarity) }}>
+                  {selectedItem.name}
+                </h4>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  {Object.entries(selectedItem.stats).map(([stat, val]) => (
+                    <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                      +{val} {statLabels[stat] || stat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {selectedItem.setName && (
+                <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
+                  Conjunto: {selectedItem.setName}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                <button 
+                  onClick={() => {
+                    AudioManager.getInstance().playClick();
+                    equipItem(selectedItem.id);
+                    setSelectedItem(null);
+                  }}
+                  className="btn btn-sm btn-gold" 
+                  style={{ width: '100%' }}
+                >
+                  Equipar Item
+                </button>
+
+                {showDiscardConfirm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                    <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        discardItem(selectedItem.id);
+                        setSelectedItem(null);
+                        setShowDiscardConfirm(false);
+                      }} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
+                      <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setShowDiscardConfirm(true)}
+                    className="btn btn-sm btn-danger" 
+                    style={{ width: '100%', opacity: 0.8 }}
+                  >
+                    Descartar / Destruir
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
-        {activeTab === 'attributes' && <AttributePanel />}
-        {activeTab === 'skills' && <SkillsTreePanel />}
-        {activeTab === 'equipment' && <EquipmentPanel />}
-        {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
-        {activeTab === 'bestiary' && <BestiaryPanel />}
-        {activeTab === 'guide' && <GuidePanel />}
-        {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
+
+        {activeTab === 'equipment' && selectedSlot && character.equipment[selectedSlot] && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99,
+            padding: '1rem'
+          }} onClick={() => setSelectedSlot(null)}>
+            {(() => {
+              const item = character.equipment[selectedSlot]!;
+              return (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+                  border: `2px solid ${getRarityColor(item.rarity)}`,
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '1.25rem',
+                  width: '100%',
+                  maxWidth: '320px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                  position: 'relative'
+                }} onClick={(e) => e.stopPropagation()}>
+                  <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedSlot(null)}>✕</button>
+
+                  <div>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(item.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      EQUIPADO • {slotLabels[selectedSlot]}
+                    </span>
+                    <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(item.rarity) }}>
+                      {item.name}
+                    </h4>
+                  </div>
+
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                      {Object.entries(item.stats).map(([stat, val]) => (
+                        <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                          +{val} {statLabels[stat] || stat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {item.setName && (
+                    <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
+                      Conjunto: {item.setName}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                    <button 
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        unequipItem(selectedSlot);
+                        setSelectedSlot(null);
+                      }}
+                      className="btn btn-sm btn-gold" 
+                      style={{ width: '100%' }}
+                    >
+                      Desequipar Item
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {activeTab === 'bestiary' && selectedEnemy && (
+          (() => {
+            const kills = (character.killCount || {})[selectedEnemy.id] || 0;
+            const isBoss = selectedEnemy.id.startsWith('boss_');
+
+            return (
+              <div 
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(5, 3, 10, 0.85)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '1.5rem',
+                  zIndex: 99,
+                  animation: 'fadeIn 0.2s ease-out'
+                }}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSelectedEnemy(null);
+                }}
+              >
+                <div 
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+                    border: `2px solid ${isBoss ? '#ef4444' : 'var(--gold-400)'}`,
+                    boxShadow: `0 0 35px rgba(0, 0, 0, 0.9), 0 0 20px ${isBoss ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.15)'}`,
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '1.75rem',
+                    width: '100%',
+                    maxWidth: '430px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1.25rem',
+                    position: 'relative'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Fechar modal */}
+                  <button 
+                    onClick={() => {
+                      AudioManager.getInstance().playClick();
+                      setSelectedEnemy(null);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '0.75rem',
+                      right: '0.75rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '1.2rem',
+                      cursor: 'pointer'
+                    }}
+                    className="hover:text-white"
+                  >
+                    ✕
+                  </button>
+
+                  {/* Cabeçalho */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div 
+                      style={{ 
+                        width: '90px', 
+                        height: '90px', 
+                        background: 'rgba(0,0,0,0.4)', 
+                        borderRadius: 'var(--radius-md)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        border: '1px solid rgba(255,255,255,0.06)'
+                      }}
+                    >
+                      <img 
+                        src={`/assets/${selectedEnemy.texture}.png`} 
+                        alt={selectedEnemy.name}
+                        style={{
+                          maxHeight: '90%',
+                          maxWidth: '90%',
+                          objectFit: 'contain',
+                          transform: selectedEnemy.flipX ? 'scaleX(-1)' : 'none'
+                        }}
+                      />
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span 
+                        style={{
+                          fontSize: '0.5rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          color: isBoss ? '#ef4444' : '#cbd5e1'
+                        }}
+                      >
+                        {isBoss ? 'Chefe Celestial' : 'Monstro Comum'}
+                      </span>
+                      <h3 className="font-heading" style={{ fontSize: '1rem', fontWeight: 800, color: isBoss ? '#f87171' : 'var(--gold-400)', margin: 0 }}>
+                        {selectedEnemy.name}
+                      </h3>
+                      <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
+                        Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Lore/Descrição */}
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                    <p style={{ fontSize: '0.65rem', color: '#e2e8f0', fontStyle: 'italic', lineHeight: 1.6, margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                      "{LORE_DATABASE[selectedEnemy.id] || 'Nenhum registro antigo recuperado para esta besta.'}"
+                    </p>
+                  </div>
+
+                  {/* Estatísticas e Escalonamento */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--gold-400)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      Atributos e Poder Relativo
+                    </span>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.4rem' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Multiplicador HP</span>
+                        <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f87171' }}>
+                          {selectedEnemy.hpMultiplier.toFixed(2)}x
+                        </span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Multiplicador Dano</span>
+                        <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fb7185' }}>
+                          {selectedEnemy.damageMultiplier.toFixed(2)}x
+                        </span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Mult. Vel. Ataque</span>
+                        <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa' }}>
+                          {selectedEnemy.attackSpeedMultiplier.toFixed(2)}x
+                        </span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.01)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.48rem', color: '#64748b', textTransform: 'uppercase' }}>Experiência Cedida</span>
+                        <span className="font-mono" style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34d399' }}>
+                          +{selectedEnemy.xpValue} XP
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fechar Button */}
+                  <button 
+                    onClick={() => {
+                      AudioManager.getInstance().playClick();
+                      setSelectedEnemy(null);
+                    }} 
+                    className="btn btn-sm"
+                    style={{
+                      width: '100%',
+                      background: isBoss 
+                        ? 'linear-gradient(135deg, #b91c1c 0%, #450a0a 100%)' 
+                        : 'linear-gradient(135deg, var(--gold-600) 0%, var(--surface-3) 100%)',
+                      border: isBoss ? '1px solid #ef4444' : '1px solid var(--gold-400)',
+                      color: '#fff',
+                      fontWeight: 700,
+                      marginTop: '0.25rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Fechar Registro
+                  </button>
+                </div>
+              </div>
+            );
+          })()
+        )}
       </div>
 
       {/* Overlay de Transição de Ascensão */}

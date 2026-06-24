@@ -13,10 +13,13 @@ export class CombatScene extends Phaser.Scene {
   private playerBody!: Phaser.GameObjects.Image;
   private enemyBody!: Phaser.GameObjects.Image;
   private enemyLevelText!: Phaser.GameObjects.Text;
+  private enemyStatusText!: Phaser.GameObjects.Text;
+  private playerStatusText!: Phaser.GameObjects.Text;
   private stageText!: Phaser.GameObjects.Text;
   private enemyHPBar!: Phaser.GameObjects.Graphics;
   private unsubscribeSkill?: () => void;
   private currentBgTexture: string = 'background';
+  private accumulatedTime: number = 0;
 
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
@@ -214,6 +217,24 @@ export class CombatScene extends Phaser.Scene {
       strokeThickness: 5
     }).setOrigin(0.5);
 
+    this.enemyStatusText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 83 * ZOOM_FACTOR, '', {
+      fontSize: '14px',
+      color: '#facc15',
+      fontStyle: 'bold',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    this.playerStatusText = this.add.text(this.playerBody.x, this.PLAYER_START_Y - 83 * ZOOM_FACTOR, '', {
+      fontSize: '14px',
+      color: '#fef08a',
+      fontStyle: 'bold',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
     // Faz o spawn inicial do primeiro inimigo, o que configurará o enemyLevelText perfeitamente
     this.respawnEnemyAt(this.ENEMY_START_X, this.fsm.currentEnemy);
 
@@ -244,10 +265,62 @@ export class CombatScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.fsm) {
-      this.fsm.update(delta);
+      const speedMultiplier = useGameStore.getState().gameSpeed || 1;
+      this.accumulatedTime += delta * speedMultiplier;
+
+      // Ajusta o timeScale dos tweens para acelerar animações visuais e danos flutuantes
+      if (this.tweens.timeScale !== speedMultiplier) {
+        this.tweens.timeScale = speedMultiplier;
+      }
+
+      this.fsm.update(delta * speedMultiplier);
 
       if (this.enemyLevelText && this.enemyBody) {
         this.enemyLevelText.x = this.enemyBody.x;
+      }
+
+      // Atualiza posição do texto de status do inimigo
+      if (this.enemyStatusText && this.enemyBody && this.enemyLevelText) {
+        this.enemyStatusText.x = this.enemyBody.x;
+        this.enemyStatusText.y = this.enemyLevelText.y - 18 * ZOOM_FACTOR;
+
+        // Determina qual texto de status exibir baseado nos efeitos ativos
+        const effects = this.fsm.enemyEffects;
+        if (effects.some(e => e.id === 'stun')) {
+          this.enemyStatusText.setText('[ATORDADO]');
+          this.enemyStatusText.setColor('#facc15');
+        } else if (effects.some(e => e.id === 'poison')) {
+          this.enemyStatusText.setText('[ENVENENADO]');
+          this.enemyStatusText.setColor('#22c55e');
+        } else if (effects.some(e => e.id === 'slow')) {
+          this.enemyStatusText.setText('[LENTO]');
+          this.enemyStatusText.setColor('#60a5fa');
+        } else if (effects.some(e => e.id === 'burn')) {
+          this.enemyStatusText.setText('[QUEIMANDO]');
+          this.enemyStatusText.setColor('#f97316');
+        } else if (effects.some(e => e.id === 'weakness')) {
+          this.enemyStatusText.setText('[ENFRAQUECIDO]');
+          this.enemyStatusText.setColor('#f87171');
+        } else if (effects.some(e => e.id === 'exposed')) {
+          this.enemyStatusText.setText('[EXPOSTO]');
+          this.enemyStatusText.setColor('#c084fc');
+        } else {
+          this.enemyStatusText.setText('');
+        }
+      }
+
+      // Atualiza posição do texto de status do jogador
+      if (this.playerStatusText && this.playerBody) {
+        this.playerStatusText.x = this.playerBody.x;
+        this.playerStatusText.y = this.playerBody.y - (this.playerBody.displayHeight / 2) - 38 * ZOOM_FACTOR;
+
+        const pEffects = this.fsm.playerEffects;
+        if (pEffects.some(e => e.id === 'consecration')) {
+          this.playerStatusText.setText('[SANTIFICADO]');
+          this.playerStatusText.setColor('#fef08a');
+        } else {
+          this.playerStatusText.setText('');
+        }
       }
 
       if (this.stageText) {
@@ -274,9 +347,44 @@ export class CombatScene extends Phaser.Scene {
       this.drawEnemyHPBar();
 
       if (this.fsm.getCurrentState() === CombatState.MOVING) {
-        this.playerBody.y = this.PLAYER_START_Y + Math.sin(time * 0.015) * 4;
+        this.playerBody.y = this.PLAYER_START_Y + Math.sin(this.accumulatedTime * 0.015) * 4;
       } else {
         this.playerBody.y = this.PLAYER_START_Y;
+      }
+
+      // Aplicar colorização (tint) nos sprites dependendo de status efeitos ativos
+      if (this.fsm.enemyHP > 0 && this.enemyBody) {
+        const effects = this.fsm.enemyEffects;
+        if (effects.some(e => e.id === 'stun')) {
+          this.enemyBody.setTint(0xfacc15); // Amarelo/Dourado se atordoado
+        } else if (effects.some(e => e.id === 'poison')) {
+          this.enemyBody.setTint(0x22c55e); // Verde se envenenado
+        } else if (effects.some(e => e.id === 'slow')) {
+          this.enemyBody.setTint(0x60a5fa); // Azul claro se lento
+        } else if (effects.some(e => e.id === 'burn')) {
+          this.enemyBody.setTint(0xf97316); // Laranja se queimando
+        } else if (effects.some(e => e.id === 'weakness')) {
+          this.enemyBody.setTint(0xf87171); // Vermelho fraco se enfraquecido
+        } else if (effects.some(e => e.id === 'exposed')) {
+          this.enemyBody.setTint(0xc084fc); // Roxo se exposto
+        } else {
+          // Se o estágio for >= 6, o background atualiza o inimigo com tint maligno. Caso contrário, limpa.
+          const char = useGameStore.getState().character;
+          if (char && char.currentStage >= 6) {
+            this.enemyBody.setTint(0xff9999);
+          } else {
+            this.enemyBody.clearTint();
+          }
+        }
+      }
+
+      if (this.fsm.playerHP > 0 && this.playerBody) {
+        const pEffects = this.fsm.playerEffects;
+        if (pEffects.some(e => e.id === 'consecration')) {
+          this.playerBody.setTint(0xfef08a); // Tint dourado brilhante se consagrado
+        } else {
+          this.playerBody.clearTint();
+        }
       }
     }
   }
@@ -538,6 +646,137 @@ export class CombatScene extends Phaser.Scene {
       y: this.playerBody.y - 25 * ZOOM_FACTOR,
       duration: 500,
       onComplete: () => healRing.destroy()
+    });
+  }
+
+  public animateFrostboltEffect(): void {
+    AudioManager.getInstance().playFireball();
+    const bolt = this.add.circle(this.playerBody.x, this.playerBody.y, 8 * ZOOM_FACTOR, 0x38bdf8);
+    bolt.setStrokeStyle(2 * ZOOM_FACTOR, 0x93c5fd);
+
+    this.tweens.add({
+      targets: bolt,
+      x: this.enemyBody.x,
+      y: this.enemyBody.y,
+      duration: 250,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        bolt.destroy();
+        const splash = this.add.circle(this.enemyBody.x, this.enemyBody.y, 25 * ZOOM_FACTOR, 0x93c5fd, 0.6);
+        this.tweens.add({
+          targets: splash,
+          scaleX: 1.4,
+          scaleY: 1.4,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => splash.destroy()
+        });
+      }
+    });
+  }
+
+  public animateLightningEffect(): void {
+    AudioManager.getInstance().playFireball();
+    const startX = this.enemyBody.x;
+    const startY = this.enemyBody.y - 150 * ZOOM_FACTOR;
+    const endX = this.enemyBody.x;
+    const endY = this.enemyBody.y;
+
+    const points = [
+      new Phaser.Math.Vector2(startX, startY),
+      new Phaser.Math.Vector2(startX + 15, startY + 40),
+      new Phaser.Math.Vector2(startX - 10, startY + 80),
+      new Phaser.Math.Vector2(startX + 10, startY + 120),
+      new Phaser.Math.Vector2(endX, endY)
+    ];
+
+    const rt = this.add.graphics();
+    rt.lineStyle(4 * ZOOM_FACTOR, 0xfacc15, 1.0);
+    rt.beginPath();
+    rt.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      rt.lineTo(points[i].x, points[i].y);
+    }
+    rt.strokePath();
+
+    this.cameras.main.shake(120, 0.012);
+
+    this.tweens.add({
+      targets: rt,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => rt.destroy()
+    });
+  }
+
+  public animateMeteorEffect(): void {
+    AudioManager.getInstance().playFireball();
+    const meteor = this.add.circle(this.enemyBody.x - 120 * ZOOM_FACTOR, this.enemyBody.y - 200 * ZOOM_FACTOR, 20 * ZOOM_FACTOR, 0xe11d48);
+    meteor.setStrokeStyle(4 * ZOOM_FACTOR, 0xf97316);
+
+    this.tweens.add({
+      targets: meteor,
+      x: this.enemyBody.x,
+      y: this.enemyBody.y,
+      duration: 350,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        meteor.destroy();
+        const blast = this.add.circle(this.enemyBody.x, this.enemyBody.y, 60 * ZOOM_FACTOR, 0xf97316, 0.8);
+        this.tweens.add({
+          targets: blast,
+          scaleX: 1.8,
+          scaleY: 1.8,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => blast.destroy()
+        });
+        this.cameras.main.shake(180, 0.015);
+      }
+    });
+  }
+
+  public animatePoisonArrowEffect(): void {
+    AudioManager.getInstance().playSlash();
+    const arrow = this.add.line(
+      this.playerBody.x, this.playerBody.y,
+      0, 0, 25 * ZOOM_FACTOR, 0,
+      0x22c55e, 1.0
+    );
+    arrow.setLineWidth(3 * ZOOM_FACTOR);
+
+    this.tweens.add({
+      targets: arrow,
+      x: this.enemyBody.x,
+      y: this.enemyBody.y,
+      duration: 200,
+      onComplete: () => {
+        arrow.destroy();
+        const cloud = this.add.circle(this.enemyBody.x, this.enemyBody.y, 25 * ZOOM_FACTOR, 0x22c55e, 0.5);
+        this.tweens.add({
+          targets: cloud,
+          scaleX: 1.3,
+          scaleY: 1.3,
+          alpha: 0,
+          duration: 250,
+          onComplete: () => cloud.destroy()
+        });
+      }
+    });
+  }
+
+  public animateConsecrationEffect(): void {
+    AudioManager.getInstance().playHeal();
+    const circle = this.add.circle(this.playerBody.x, this.playerBody.y + 40 * ZOOM_FACTOR, 55 * ZOOM_FACTOR, 0xfef08a, 0.15);
+    circle.setStrokeStyle(3 * ZOOM_FACTOR, 0xfacc15, 0.8);
+
+    this.tweens.add({
+      targets: circle,
+      alpha: 0,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 1200,
+      onComplete: () => circle.destroy()
     });
   }
 
