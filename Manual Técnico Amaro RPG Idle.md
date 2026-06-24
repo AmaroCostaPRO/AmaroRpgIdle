@@ -474,7 +474,67 @@ Para permitir o compartilhamento de arquivos de salvamento entre dispositivos, o
 
 ---
 
-## 11. Histórico de Updates e Otimizações de Engenharia
+## 11. Economia e Sistema de Ouro (Gold)
+
+O ouro é a principal moeda de troca e progresso econômico no jogo, obtido através de vitórias contra monstros no ciclo de combate e utilizado nas fusões de equipamentos.
+
+### A. Fórmulas de Drop e Recompensa por Combate
+Cada inimigo derrotado concede uma quantidade de ouro calculada dinamicamente, escalando exponencialmente a cada estágio para acompanhar a curva de progressão.
+*   **Fator de Escala de Estágio**:
+    $$\text{Escala de Ouro} = 1.25^{\text{Stage} - 1}$$
+*   **Recompensa Base da Fase**:
+    $$\text{Ouro Base} = \lfloor (10 + \lfloor \text{Stage} \times 1.5 \rfloor) \times \text{Escala de Ouro} \rfloor$$
+*   **Monstros Comuns vs. Chefes (Bosses)**:
+    Se o monstro for o Chefe do Estágio (10º monstro derrotado na fase), ele concede um bônus multiplicador de $3.5\times$ sobre o valor base:
+    $$\text{Ouro Inicial} = \begin{cases} \text{Ouro Base} \times 3.5 & \text{se for Chefe} \\ \text{Ouro Base} & \text{se for Monstro Comum} \end{cases}$$
+
+### B. Influência do Atributo Sorte (Luck)
+O atributo de Sorte (`Luck`) do herói aplica um multiplicador direto de ganho de ouro, calculando um bônus percentual:
+$$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
+$$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
+
+### C. Comportamento no Prestígio (Ascensão)
+Durante o ritual de Ascensão (Prestígio), o saldo de ouro acumulado pelo herói **é preservado** (não sofre reset). Isso permite que o jogador mantenha seu poder de compra para forjar novos equipamentos nas fases iniciais da nova jornada.
+
+---
+
+## 12. Altar de Forja Mística
+
+O sistema de Forja permite combinar dois equipamentos compatíveis do inventário para criar itens de raridade **Mística** (Roxa/Lilás) mais poderosos.
+
+### A. Condições de Fusão e Restrições
+Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatoriamente cumprir os seguintes critérios de compatibilidade:
+*   **Mesmo Slot (Tipo)**: Os dois itens devem pertencer ao mesmo slot de equipamento (ex.: Arma com Arma, Luva com Luva).
+*   **Mesma Categoria de Raridade**:
+    *   **Fusão Não-Mística**: Dois itens normais/convencionais (Comum, Incomum, Raro, Épico ou Lendário). Eles não precisam ser da mesma raridade entre si (ex.: um Épico e um Lendário do mesmo tipo podem ser fundidos).
+    *   **Fusão Mística**: Dois itens Místicos. Contudo, eles **devem ter exatamente o mesmo nível místico** (ex.: Místico +1 com Místico +1). Não é permitido fundir um item convencional com um místico, ou dois místicos de níveis diferentes.
+*   **Nível Místico Máximo**: O nível místico máximo de destino permitido para qualquer item é **+5**.
+
+### B. Custo de Fusão
+A fusão exige o pagamento de uma taxa em Ouro que aumenta exponencialmente dependendo do nível místico resultante:
+*   **Fusão Inicial** (Gera Místico +1): $100$ Ouro.
+*   **Fusão de Itens Místicos** (Gera Místico $+2$ até $+5$):
+    $$\text{Custo de Fusão Mística}(L) = 100 \times 5^L$$
+    Onde $L$ representa o nível místico atual dos dois itens sendo fundidos.
+
+| Nível de Origem | Nível Resultante | Custo em Ouro |
+| :--- | :--- | :--- |
+| Convencional + Convencional | Místico +1 | $100$ Ouro |
+| Místico +1 + Místico +1 | Místico +2 | $500$ Ouro |
+| Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro |
+| Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro |
+| Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro |
+
+### C. Regras de Fusão e Atributos Combinados
+Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são unificados no novo item místico resultante:
+1.  **Soma de Atributos**: Cada atributo presente em pelo menos um dos itens de origem tem seus valores somados de maneira aritmética direta:
+    $$\text{Atributo Resultante}(K) = \text{Atributo Item A}(K) + \text{Atributo Item B}(K)$$
+    Isso possibilita a fusão de peças focadas em atributos distintos (ex: luva de Força + luva de Sorte resulta em uma luva Mística com ambos os bônus somados).
+2.  **Identidade do Item**: O item resultante assume o nome `[Slot] Místico +[Nível]` (ex: *Arma Mística +1*, *Elmo Místico +2*), adotando a raridade Mística (identificada pela cor lilás vibrante e gema pulsante no inventário). Ele herda a restrição de classe (`classId`) e o visual (`spriteName`) do primeiro item colocado no slot de origem (Item A).
+
+---
+
+## 13. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
