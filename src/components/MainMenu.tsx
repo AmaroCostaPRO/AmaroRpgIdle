@@ -17,6 +17,8 @@ export const MainMenu: React.FC = () => {
   const toggleBgm = useGameStore((state) => state.toggleBgm);
   const setSfxVolume = useGameStore((state) => state.setSfxVolume);
   const setBgmVolume = useGameStore((state) => state.setBgmVolume);
+  const consoleEnabled = useGameStore((state) => state.consoleEnabled);
+  const toggleConsole = useGameStore((state) => state.toggleConsole);
 
   const [showOptions, setShowOptions] = useState(false);
 
@@ -175,6 +177,35 @@ export const MainMenu: React.FC = () => {
                 ))}
               </div>
             </div>
+          </div>
+ 
+          {/* Toggle: Console de Combate (interface mobile) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', fontSize: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+              <span style={{ color: '#94a3b8' }}>Console de Combate</span>
+              <span style={{ fontSize: '0.58rem', color: '#64748b', lineHeight: 1.4 }}>Exibe log de eventos no painel de combate.</span>
+            </div>
+            <button
+              id="toggle-console-btn"
+              onClick={() => {
+                playClick();
+                toggleConsole();
+              }}
+              className={`badge ${consoleEnabled ? 'badge-unlocked' : 'badge-locked'}`}
+              style={{
+                background: consoleEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: consoleEnabled ? '#34d399' : '#f87171',
+                border: consoleEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '0.65rem',
+                whiteSpace: 'nowrap' as const
+              }}
+            >
+              {consoleEnabled ? 'Ligado' : 'Desligado'}
+            </button>
           </div>
  
           <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-dim)' }}>

@@ -241,11 +241,13 @@ interface GameState {
   bgmEnabled: boolean;
   sfxVolume: number;
   bgmVolume: number;
+  consoleEnabled: boolean;
   currentSlot: number | null;
   toggleSfx(): void;
   toggleBgm(): void;
   setSfxVolume(vol: number): void;
   setBgmVolume(vol: number): void;
+  toggleConsole(): void;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
@@ -373,6 +375,23 @@ export const useGameStore = create<GameState>((set) => ({
       return 0.5;
     }
   })(),
+
+  consoleEnabled: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_console_enabled');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
+  toggleConsole: () => set((state) => {
+    const val = !state.consoleEnabled;
+    try {
+      localStorage.setItem('rpg_console_enabled', String(val));
+    } catch (e) {}
+    return { consoleEnabled: val };
+  }),
 
   toggleSfx: () => set((state) => {
     const val = !state.sfxEnabled;

@@ -61,6 +61,22 @@ const GameHUD: React.FC = () => {
   const manaTextRef = useRef<HTMLSpanElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const [isConsoleExpanded, setIsConsoleExpanded] = useState(false);
+  const consoleEnabled = useGameStore((state) => state.consoleEnabled);
+
+  // Detecta se está em viewport mobile (≤840px) para aplicar o toggle do console
+  const [isMobile, setIsMobile] = useState(() => 
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 840px)').matches : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 840px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // No desktop o console aparece sempre; no mobile respeita o toggle
+  const showConsole = !isMobile || consoleEnabled;
 
   useEffect(() => {
     bridge.registerDomUpdate('player_hp', (pct, current, max) => {
@@ -99,70 +115,76 @@ const GameHUD: React.FC = () => {
   return (
     <div className="panel" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', pointerEvents: 'auto' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Cabeçalho: oculto no mobile via CSS */}
+        <div className="hud-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Status do Personagem</span>
           <span className="combat-indicator">● Em Combate</span>
         </div>
-        
-        {/* Barra de HP */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
-            <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Vida (HP)</span>
-            <span ref={hpTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>- / -</span>
-          </div>
-          <div className="progress-track progress-hp" style={{ height: '1rem' }}>
-            <div ref={hpBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--hp-from), var(--hp-to))', boxShadow: '0 0 10px var(--hp-glow)' }} />
-          </div>
-        </div>
 
-        {/* Barra de Mana */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
-            <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Mana</span>
-            <span ref={manaTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>- / -</span>
+        {/* Barras de HP e Mana lado a lado no mobile, empilhadas no desktop */}
+        <div className="hud-bars-container">
+          {/* Barra de HP */}
+          <div className="hud-bar-item">
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
+              <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Vida (HP)</span>
+              <span ref={hpTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>- / -</span>
+            </div>
+            <div className="progress-track progress-hp" style={{ height: '1rem' }}>
+              <div ref={hpBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--hp-from), var(--hp-to))', boxShadow: '0 0 10px var(--hp-glow)' }} />
+            </div>
           </div>
-          <div className="progress-track progress-mana" style={{ height: '0.75rem' }}>
-            <div ref={manaBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--mana-from), var(--mana-to))', boxShadow: '0 0 10px var(--mana-glow)' }} />
+
+          {/* Barra de Mana */}
+          <div className="hud-bar-item">
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
+              <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Mana</span>
+              <span ref={manaTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>- / -</span>
+            </div>
+            <div className="progress-track progress-mana" style={{ height: '0.75rem' }}>
+              <div ref={manaBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--mana-from), var(--mana-to))', boxShadow: '0 0 10px var(--mana-glow)' }} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Console de Combate */}
-      <div className={`combat-console combat-console-wrapper ${isConsoleExpanded ? 'expanded' : 'collapsed'}`}>
-        <button
-          onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
-          className="console-toggle-btn"
-          style={{
-            width: '100%',
-            background: 'none',
-            border: 'none',
-            outline: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            textAlign: 'left',
-            color: 'inherit',
-            display: 'block'
-          }}
-        >
-          <div className="console-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, border: 'none', paddingBottom: 0 }}>
-            <span>Console de Combate</span>
-            <span className={`console-arrow ${isConsoleExpanded ? 'expanded' : 'collapsed'}`} style={{ fontSize: '0.65rem' }}>
-              ▼
-            </span>
+      {/* Console de Combate — sempre visível no desktop; no mobile respeita o toggle */}
+      {showConsole && (
+        <div className={`combat-console combat-console-wrapper ${isConsoleExpanded ? 'expanded' : 'collapsed'}`}>
+          <button
+            onClick={() => setIsConsoleExpanded(!isConsoleExpanded)}
+            className="console-toggle-btn"
+            style={{
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: 'inherit',
+              display: 'block'
+            }}
+          >
+            <div className="console-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0, border: 'none', paddingBottom: 0 }}>
+              <span>Console de Combate</span>
+              <span className={`console-arrow ${isConsoleExpanded ? 'expanded' : 'collapsed'}`} style={{ fontSize: '0.65rem' }}>
+                ▼
+              </span>
+            </div>
+          </button>
+          <div 
+            ref={logRef} 
+            className="console-log-content"
+            style={{ 
+              color: '#4ade80',
+              fontSize: '0.65rem',
+              lineHeight: 1.4
+            }}
+          >
+            Aguardando início do combate sidescrolling...
           </div>
-        </button>
-        <div 
-          ref={logRef} 
-          className="console-log-content"
-          style={{ 
-            color: '#4ade80',
-            fontSize: '0.65rem',
-            lineHeight: 1.4
-          }}
-        >
-          Aguardando início do combate sidescrolling...
         </div>
-      </div>
+      )}
     </div>
   );
 };
