@@ -1042,7 +1042,14 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
-      // Calcula os novos stats somando tudo
+      // Sorteio de Forja Lendária: 5% de chance de ganhar +50% em vez de perder 25%
+      const isLegendaryForge = Math.random() < 0.05;
+      const forgeMult = isLegendaryForge ? 1.5 : 0.75;
+
+      // Calcula os novos stats: soma as duas peças e aplica o multiplicador de forja.
+      // O resultado é arredondado para CIMA (Math.ceil) para evitar números quebrados.
+      // Normal  (95%): (val1 + val2) × 0.75  → redução de 25%
+      // Lendário (5%): (val1 + val2) × 1.50  → bônus de +50%
       const mergedStats: Partial<BaseStats> = {};
       const allStatKeys = new Set([
         ...Object.keys(item1.stats),
@@ -1052,7 +1059,7 @@ export const useGameStore = create<GameState>((set) => ({
       allStatKeys.forEach((key) => {
         const val1 = item1.stats[key] || 0;
         const val2 = item2.stats[key] || 0;
-        mergedStats[key] = val1 + val2;
+        mergedStats[key] = Math.ceil((val1 + val2) * forgeMult);
       });
 
       // Mapeamento dos nomes de slots traduzidos
@@ -1090,7 +1097,11 @@ export const useGameStore = create<GameState>((set) => ({
       };
 
       saveToLocalStorage(updated);
-      result = { success: true, message: `Fusão bem-sucedida! Gerou: ${newName}`, newItem };
+
+      const successMsg = isLegendaryForge
+        ? `⚡ FORJA LENDÁRIA! Os astros sorriram! ${newName} foi forjado com +50% de poder!`
+        : `Fusão bem-sucedida! Gerou: ${newName}`;
+      result = { success: true, message: successMsg, newItem };
       return { character: updated };
     });
 

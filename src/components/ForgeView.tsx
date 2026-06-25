@@ -7,8 +7,9 @@ export const ForgeView: React.FC = () => {
   const [slot1, setSlot1] = useState<EquipmentItem | null>(null);
   const [slot2, setSlot2] = useState<EquipmentItem | null>(null);
   const [activeSelectionSlot, setActiveSelectionSlot] = useState<1 | 2 | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'legendary' } | null>(null);
   const [successItem, setSuccessItem] = useState<EquipmentItem | null>(null);
+  const [isLegendarySuccess, setIsLegendarySuccess] = useState(false);
 
   // Tradução das chaves de status primários
   const statLabels: Record<keyof BaseStats, string> = {
@@ -44,10 +45,11 @@ export const ForgeView: React.FC = () => {
   };
 
   const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
+    const isLegendary = message.startsWith('⚡');
+    setToast({ message, type: isLegendary ? 'legendary' : type });
     setTimeout(() => {
       setToast(null);
-    }, 4000);
+    }, isLegendary ? 6000 : 4000);
   };
 
   // Filtra itens do inventário elegíveis para o slot ativo
@@ -139,6 +141,8 @@ export const ForgeView: React.FC = () => {
     const result = reforgeItems(slot1.id, slot2.id);
 
     if (result.success && result.newItem) {
+      const legendary = result.message.startsWith('⚡');
+      setIsLegendarySuccess(legendary);
       setSuccessItem(result.newItem);
       showToast(result.message, 'success');
       setSlot1(null);
@@ -386,9 +390,11 @@ export const ForgeView: React.FC = () => {
           <div className="panel flex-1 bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-4 shadow-lg animate-tabFade relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Sucesso</span>
+              <span className={`text-xs font-bold uppercase tracking-widest ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
+                {isLegendarySuccess ? '⚡ Forja Lendária!' : 'Sucesso'}
+              </span>
               <button 
-                onClick={() => setSuccessItem(null)}
+                onClick={() => { setSuccessItem(null); setIsLegendarySuccess(false); }}
                 className="text-gray-500 hover:text-gray-300 text-xs"
               >
                 Dispensar
@@ -505,17 +511,18 @@ export const ForgeView: React.FC = () => {
         </div>
       )}
 
-      {/* TOAST DE AVISO / FEEDBACK */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
           <div 
             className={`px-4 py-3 rounded-lg border shadow-xl flex items-center gap-2 animate-slideUp text-xs font-semibold ${
-              toast.type === 'success' 
+              toast.type === 'legendary'
+                ? 'bg-yellow-950/80 border-yellow-400 text-yellow-200 shadow-yellow-900/40'
+                : toast.type === 'success' 
                 ? 'bg-purple-950/70 border-purple-500 text-purple-200' 
                 : 'bg-red-950/70 border-red-500 text-red-200'
             }`}
           >
-            <span>{toast.type === 'success' ? '✨' : '⚠️'}</span>
+            <span>{toast.type === 'legendary' ? '⚡' : toast.type === 'success' ? '✨' : '⚠️'}</span>
             <span>{toast.message}</span>
           </div>
         </div>
