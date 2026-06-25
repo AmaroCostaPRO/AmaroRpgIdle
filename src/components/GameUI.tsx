@@ -1883,10 +1883,28 @@ const GuidePanel: React.FC = () => {
                 <div>
                   <strong className="text-white block font-semibold">Fases Pesadelo (6 a 10)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
-                    As mesmas fases com tint maligno avermelhado, maior agressividade e status maciçamente aumentados.
+                    As mesmas fases com tint avermelhado, maior agressividade e status maciçamente aumentados.
                   </p>
                   <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
                     Status Pesadelo = Status Base × 2.5 (+150% de HP e Dano)
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold" style={{ color: '#fb923c' }}>Fases Inferno (11 a 15)</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    As mesmas 5 fases cicladas com tint laranja flamejante. Inimigos com poder avassalador.
+                  </p>
+                  <code className="text-orange-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Status Inferno = Status Base × 5.0 (+400% de HP e Dano)
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold" style={{ color: '#c084fc' }}>Fases Apocalipse (16 a 20)</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    O tier máximo. Tint roxo sinistro e criaturas de poder quase divino. Apenas para os mais ascendidos.
+                  </p>
+                  <code className="text-purple-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Status Apocalipse = Status Base × 10.0 (+900% de HP e Dano)
                   </code>
                 </div>
               </div>

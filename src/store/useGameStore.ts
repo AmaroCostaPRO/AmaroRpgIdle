@@ -718,8 +718,8 @@ export const useGameStore = create<GameState>((set) => ({
   },
 
   advanceStage: () => set((state) => {
-    // Limita as fases normais/pesadelos a 10 no total
-    const nextStage = Math.min(10, state.character.currentStage + 1);
+    // Limita as fases a 20 no total (Normal: 1-5, Pesadelo: 6-10, Inferno: 11-15, Apocalipse: 16-20)
+    const nextStage = Math.min(20, state.character.currentStage + 1);
     const updated = {
       ...state.character,
       currentStage: nextStage,

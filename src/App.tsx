@@ -289,7 +289,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              ✨ Expansão v2.0.0 — A Forja Mística!
+              🔥 Atualização v2.1.0 — Novos Tiers de Dificuldade!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -298,8 +298,43 @@ const App: React.FC = () => {
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+
+                {/* v2.1.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🔥 Novidades da Versão 2.0.0:</span>
+                  <span style={{ fontWeight: 700, color: '#fb923c', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>🔥 Novidades da Versão 2.1.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb923c', fontSize: '0.72rem' }}>
+                        🌋 Dificuldade Inferno (Fases 11–15)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Novo tier com tint laranja flamejante. Inimigos com <strong>5× o HP e Dano</strong> das fases normais (+400%). Usando os mesmos 5 mapas e criaturas em ciclo.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        💀 Dificuldade Apocalipse (Fases 16–20)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O tier supremo com tint roxo sinistro. Criaturas com <strong>10× o HP e Dano</strong> das fases normais (+900%). Apenas para os heróis mais Ascendidos.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🎨 Identidade Visual por Tier
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada dificuldade possui cor exclusiva no HUD: <span style={{ color: '#f59e0b' }}>Fase</span> → <span style={{ color: '#f43f5e' }}>Pesadelo</span> → <span style={{ color: '#fb923c' }}>Inferno</span> → <span style={{ color: '#c084fc' }}>Apocalipse</span>. Inimigos e cenários ganham tints únicos por tier.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* v2.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Versão 2.0.0 — A Forja Mística:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>

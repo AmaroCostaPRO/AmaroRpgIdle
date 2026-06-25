@@ -330,9 +330,13 @@ export class CombatScene extends Phaser.Scene {
         const char = this.fsm.characterData;
         if (char) {
           const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
-          const isNightmare = char.currentStage >= 6;
-          const modeLabel = isNightmare ? 'PESADELO' : 'FASE';
-          const modeColor = isNightmare ? '#f43f5e' : '#f59e0b';
+          // Labels e cores por dificuldade
+          const modeLabel = char.currentStage >= 16 ? 'APOCALIPSE'
+            : char.currentStage >= 11 ? 'INFERNO'
+            : char.currentStage >= 6 ? 'PESADELO' : 'FASE';
+          const modeColor = char.currentStage >= 16 ? '#c084fc'
+            : char.currentStage >= 11 ? '#fb923c'
+            : char.currentStage >= 6 ? '#f43f5e' : '#f59e0b';
           if (isBoss) {
             this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
             this.stageText.setColor('#c084fc');
@@ -371,10 +375,14 @@ export class CombatScene extends Phaser.Scene {
         } else if (effects.some(e => e.id === 'exposed')) {
           this.enemyBody.setTint(0xc084fc); // Roxo se exposto
         } else {
-          // Se o estágio for >= 6, o background atualiza o inimigo com tint maligno. Caso contrário, limpa.
+          // Aplicar tint de dificuldade ao inimigo se não houver efeito ativo
           const char = useGameStore.getState().character;
-          if (char && char.currentStage >= 6) {
-            this.enemyBody.setTint(0xff9999);
+          if (char && char.currentStage >= 16) {
+            this.enemyBody.setTint(0xdd88ff); // Apocalipse: roxo
+          } else if (char && char.currentStage >= 11) {
+            this.enemyBody.setTint(0xff8844); // Inferno: laranja
+          } else if (char && char.currentStage >= 6) {
+            this.enemyBody.setTint(0xff9999); // Pesadelo: vermelho
           } else {
             this.enemyBody.clearTint();
           }
@@ -416,17 +424,22 @@ export class CombatScene extends Phaser.Scene {
       this.background.tilePositionY = 1024 - (600 / currentBgScale);
     }
 
-    // Se estágio >= 6, aplicar tint maligno/sombrio
-    if (stage >= 6) {
-      this.background.setTint(0x773333); // Vermelho escuro
-      if (this.enemyBody) {
-        this.enemyBody.setTint(0xff9999); // Inimigo com tom corrompido
-      }
+    // Aplicar tint de acordo com a dificuldade
+    if (stage >= 16) {
+      // Apocalipse: roxo sinistro
+      this.background.setTint(0x440066);
+      if (this.enemyBody) this.enemyBody.setTint(0xdd88ff);
+    } else if (stage >= 11) {
+      // Inferno: laranja queimado
+      this.background.setTint(0x661100);
+      if (this.enemyBody) this.enemyBody.setTint(0xff8844);
+    } else if (stage >= 6) {
+      // Pesadelo: vermelho escuro
+      this.background.setTint(0x773333);
+      if (this.enemyBody) this.enemyBody.setTint(0xff9999);
     } else {
       this.background.clearTint();
-      if (this.enemyBody) {
-        this.enemyBody.clearTint();
-      }
+      if (this.enemyBody) this.enemyBody.clearTint();
     }
   }
 
@@ -551,9 +564,9 @@ export class CombatScene extends Phaser.Scene {
     if (this.enemyLevelText && this.enemyBody) {
       const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === ENEMIES_PER_STAGE || enemyType.id.startsWith('boss_');
       const enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
-      const isNightmare = this.fsm.enemyLevel >= 6;
-      const prefix = isNightmare ? '[Pesadelo] ' : '';
-      this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${this.fsm.enemyLevel})`);
+      const level = this.fsm.enemyLevel;
+      const prefix = level >= 16 ? '[Apocalipse] ' : level >= 11 ? '[Inferno] ' : level >= 6 ? '[Pesadelo] ' : '';
+      this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${level})`);
       this.enemyLevelText.setColor(enemyType.color);
       this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 25 * ZOOM_FACTOR;
     }

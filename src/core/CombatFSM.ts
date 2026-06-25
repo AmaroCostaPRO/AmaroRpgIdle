@@ -329,9 +329,11 @@ export class CombatFSM {
     this.playerEffects = [];
     this.enemyLevel = stage;
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
-    const isNightmare = stage >= 6;
-    const hpBoost = isNightmare ? 2.5 : 1.0;
     const theme = ((stage - 1) % 5) + 1;
+
+    // Multiplicador de HP/Dano por dificuldade:
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.5× | Inferno (11-15): 5.0× | Apocalipse (16-20): 10.0×
+    const hpBoost = stage >= 16 ? 10.0 : stage >= 11 ? 5.0 : stage >= 6 ? 2.5 : 1.0;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis
     const difficultyScale = Math.pow(1.65, stage - 1);
@@ -346,7 +348,8 @@ export class CombatFSM {
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
       this.enemyMaxHP = Math.floor((120 + (stage * 35)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
-      console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Pesadelo: ${isNightmare})`);
+      const diffLabel = stage >= 16 ? 'Apocalipse' : stage >= 11 ? 'Inferno' : stage >= 6 ? 'Pesadelo' : 'Normal';
+      console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Dificuldade: ${diffLabel})`);
     } else {
       let commonIds: string[] = [];
       if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
@@ -630,8 +633,9 @@ export class CombatFSM {
     const baseCooldown = 3600 - (this.enemyLevel * 30);
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
 
-    const isNightmare = this.enemyLevel >= 6;
-    const dmgBoost = isNightmare ? 2.5 : 1.0;
+    // Multiplicador de dano por dificuldade:
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.5× | Inferno (11-15): 5.0× | Apocalipse (16-20): 10.0×
+    const dmgBoost = this.enemyLevel >= 16 ? 10.0 : this.enemyLevel >= 11 ? 5.0 : this.enemyLevel >= 6 ? 2.5 : 1.0;
     
     // Escala exponencial de dano baseado no estágio
     const dmgScale = Math.pow(1.3, this.enemyLevel - 1);
