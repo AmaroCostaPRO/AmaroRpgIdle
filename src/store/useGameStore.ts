@@ -556,6 +556,7 @@ export const useGameStore = create<GameState>((set) => ({
       ...state.character,
       level: 1,
       xp: 0,
+      gold: 0,
       attributePoints: 5,
       skillPoints: 1,
       unlockedSkills: [...config.initialSkills],
