@@ -152,13 +152,23 @@ export const ForgeView: React.FC = () => {
     }
   };
 
-  // Retorna os stats somados de prévia
+  // Prévia com a fórmula real da forja (normal/95%):
+  // • Ambos têm o stat → maior preservado + ceil(menor × 0.5)
+  // • Só um tem       → copiado integralmente
   const getMergedStatsPreview = (): Partial<BaseStats> => {
     if (!slot1 || !slot2) return {};
     const merged: Partial<BaseStats> = {};
     const keys = new Set([...Object.keys(slot1.stats), ...Object.keys(slot2.stats)]) as Set<keyof BaseStats>;
     keys.forEach(k => {
-      merged[k] = (slot1.stats[k] || 0) + (slot2.stats[k] || 0);
+      const v1 = slot1.stats[k] || 0;
+      const v2 = slot2.stats[k] || 0;
+      if (v1 === 0 || v2 === 0) {
+        merged[k] = v1 + v2; // único portador: 100%
+      } else {
+        const maior = Math.max(v1, v2);
+        const menor = Math.min(v1, v2);
+        merged[k] = maior + Math.ceil(menor * 0.5);
+      }
     });
     return merged;
   };
@@ -355,31 +365,55 @@ export const ForgeView: React.FC = () => {
       <div className="w-full flex flex-col md:flex-row gap-6">
         
         {/* COMPARAÇÃO DE ATRIBUTOS */}
-        <div className="panel flex-1 p-4 flex flex-col h-[280px]">
-          <h3 className="text-sm font-bold text-gray-300 border-b border-[var(--border-subtle)] pb-2 mb-3">Soma de Atributos da Fusão</h3>
+        <div className="panel w-full md:flex-1 p-4 flex flex-col min-h-[120px] md:h-[280px]">
+          <h3 className="text-sm font-bold text-gray-300 border-b border-[var(--border-subtle)] pb-2 mb-3">Resultado Estimado da Fusão</h3>
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {slot1 && slot2 ? (
               Object.keys(previewStats).map((statKey) => {
                 const key = statKey as keyof BaseStats;
-                const val1 = slot1.stats[key] || 0;
-                const val2 = slot2.stats[key] || 0;
+                const v1 = slot1.stats[key] || 0;
+                const v2 = slot2.stats[key] || 0;
                 const total = previewStats[key] || 0;
                 if (total === 0) return null;
+
+                const exclusivo = v1 === 0 || v2 === 0;
+                const maior = exclusivo ? total : Math.max(v1, v2);
+                const menor = exclusivo ? 0   : Math.min(v1, v2);
+                const menorReduzido = exclusivo ? 0 : Math.ceil(menor * 0.5);
+
                 return (
-                  <div key={key} className="flex flex-col text-xs bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] rounded p-2">
+                  <div key={key} className="flex flex-col text-xs bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] rounded p-2 gap-1">
                     <span className="font-semibold text-gray-300">{statLabels[key]}</span>
-                    <div className="flex justify-between items-center mt-1 text-gray-400">
-                      <span>Item A: <strong className="text-gray-200">+{val1}</strong></span>
-                      <span>+</span>
-                      <span>Item B: <strong className="text-gray-200">+{val2}</strong></span>
-                      <span className="text-purple-400 font-bold">➔ +{total}</span>
+
+                    {/* Linha de valores de entrada */}
+                    <div className="flex justify-between items-center text-gray-400">
+                      <span>Item A: <strong className="text-gray-200">+{v1}</strong></span>
+                      <span className="text-gray-600">+</span>
+                      <span>Item B: <strong className="text-gray-200">+{v2}</strong></span>
                     </div>
+
+                    {/* Breakdown da fórmula */}
+                    {exclusivo ? (
+                      <div className="flex items-center justify-between bg-black/20 rounded px-1.5 py-0.5">
+                        <span className="text-gray-500 text-[10px]">Stat único — preservado integralmente</span>
+                        <span className="text-purple-400 font-bold">➔ +{total}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-black/20 rounded px-1.5 py-0.5 gap-1">
+                        <span className="text-[10px] text-gray-400">
+                          <span className="text-gray-200 font-bold">+{maior}</span>
+                          <span className="text-gray-500"> + </span>
+                          <span className="text-yellow-400/80">ceil({menor}×50%) = +{menorReduzido}</span>
+                        </span>
+                        <span className="text-purple-400 font-bold shrink-0">➔ +{total}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })
             ) : (
               <div className="h-full flex items-center justify-center text-center text-xs text-gray-500 px-4">
-                Selecione dois itens compatíveis para ver a soma de atributos resultante aqui.
+                Selecione dois itens compatíveis para ver o resultado estimado da fusão.
               </div>
             )}
           </div>
@@ -387,7 +421,7 @@ export const ForgeView: React.FC = () => {
 
         {/* FEEDBACK DO ÚLTIMO ITEM CRIADO */}
         {successItem && (
-          <div className="panel flex-1 bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-4 shadow-lg animate-tabFade relative overflow-hidden">
+          <div className="panel w-full md:flex-1 bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-4 shadow-lg animate-tabFade relative">
             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-center mb-2">
               <span className={`text-xs font-bold uppercase tracking-widest ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
@@ -407,6 +441,9 @@ export const ForgeView: React.FC = () => {
               <div>
                 <h4 className="text-sm font-extrabold text-[#d946ef]">{successItem.name}</h4>
                 <p className="text-[10px] text-gray-400">Equipamento Místico nível +{successItem.mysticLevel}</p>
+                {successItem.setName && (
+                  <p className="text-[10px] text-yellow-400/80 mt-0.5">🏅 Conjunto: {successItem.setName}</p>
+                )}
               </div>
             </div>
             <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] space-y-1">

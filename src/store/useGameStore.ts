@@ -1044,12 +1044,17 @@ export const useGameStore = create<GameState>((set) => ({
 
       // Sorteio de Forja Lendária: 5% de chance de ganhar +50% em vez de perder 25%
       const isLegendaryForge = Math.random() < 0.05;
-      const forgeMult = isLegendaryForge ? 1.5 : 0.75;
 
-      // Calcula os novos stats: soma as duas peças e aplica o multiplicador de forja.
-      // O resultado é arredondado para CIMA (Math.ceil) para evitar números quebrados.
-      // Normal  (95%): (val1 + val2) × 0.75  → redução de 25%
-      // Lendário (5%): (val1 + val2) × 1.50  → bônus de +50%
+      // Calcula os novos stats com a fórmula assimétrica por stat:
+      //
+      // Lendário (5%) : Math.ceil((val1 + val2) * 1.50) — bônus de +50% sobre a soma total
+      //
+      // Normal  (95%) : Preserva 100% do stat MAIOR e aplica 50% apenas ao MENOR.
+      //   • Ambos os itens têm o stat → maior + Math.ceil(menor * 0.50)
+      //   • Só um item tem o stat     → valor copiado integralmente (sem redução)
+      //
+      // Exemplo: Força 50 + Força 5  →  50 + ceil(5 × 0.50) = 50 + 3 = 53
+      // Exemplo: Sorte  0 + Sorte 12 →  12 (único portador, preservado inteiro)
       const mergedStats: Partial<BaseStats> = {};
       const allStatKeys = new Set([
         ...Object.keys(item1.stats),
@@ -1059,7 +1064,19 @@ export const useGameStore = create<GameState>((set) => ({
       allStatKeys.forEach((key) => {
         const val1 = item1.stats[key] || 0;
         const val2 = item2.stats[key] || 0;
-        mergedStats[key] = Math.ceil((val1 + val2) * forgeMult);
+
+        if (isLegendaryForge) {
+          // Forja Lendária: soma total com bônus de +50%
+          mergedStats[key] = Math.ceil((val1 + val2) * 1.5);
+        } else if (val1 === 0 || val2 === 0) {
+          // Stat exclusivo de um item: preservado integralmente
+          mergedStats[key] = val1 + val2;
+        } else {
+          // Ambos têm o stat: maior preservado 100%, menor com redução de 50%
+          const maior = Math.max(val1, val2);
+          const menor = Math.min(val1, val2);
+          mergedStats[key] = maior + Math.ceil(menor * 0.5);
+        }
       });
 
       // Mapeamento dos nomes de slots traduzidos
@@ -1084,7 +1101,10 @@ export const useGameStore = create<GameState>((set) => ({
         stats: mergedStats,
         classId: item1.classId,
         spriteName: item1.spriteName,
-        mysticLevel: targetMysticLevel
+        mysticLevel: targetMysticLevel,
+        // Preserva o set do Item A: o item Místico continua contando
+        // para os bônus de conjunto como se fosse um item Lendário do mesmo set.
+        setName: item1.setName
       };
 
       // Remove os dois itens fundidos do inventário

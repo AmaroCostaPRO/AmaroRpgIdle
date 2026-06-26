@@ -345,18 +345,28 @@ stateDiagram-v2
     $$\text{Recarga do Inimigo} = \max\left( 1000\text{ ms}, \frac{\text{Recarga Base}}{\text{Multiplicador de Velocidade do Monstro}} \right)$$
 
 ### C. Escalonamento Exponencial de Dificuldade dos Inimigos
-O jogo possui 10 fases divididas em 5 temas cíclicos. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço.
-A partir da **Fase 6**, o jogo ativa o **Modo Pesadelo** em que os inimigos ganham o multiplicador $\text{Fator Pesadelo} = 2.5\times$ adicionado aos seus atributos base.
+O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas cíclicos de inimigos**. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço. Os temas e inimigos são os mesmos nas 5 primeiras fases e são reutilizados ciclicamente nos tiers seguintes, mas com multiplicadores de status progressivamente maiores.
+
+#### Tiers de Dificuldade e Multiplicadores
+| Tier | Fases | Fator de Dificuldade | Aumento vs. Normal |
+| :--- | :---: | :---: | :--- |
+| **Normal** | 1 – 5 | × 1.0 | — |
+| **Pesadelo** 🔴 | 6 – 10 | × 2.5 | +150% de HP e Dano |
+| **Inferno** 🟠 | 11 – 15 | × 5.0 | +400% de HP e Dano |
+| **Apocalipse** 🟣 | 16 – 20 | × 10.0 | +900% de HP e Dano |
+
+*Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
     $$\text{Fator HP} = 1.65^{\text{Fase} - 1}$$
     $$\text{Fator Dano} = 1.30^{\text{Fase} - 1}$$
+    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.5 & \text{se } 6 \le \text{Fase} \le 10 \\ 5.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 10.0 & \text{se } 16 \le \text{Fase} \le 20 \end{cases}$$
 *   **Vida Máxima de Inimigo Comum**:
-    $$\text{HP Máximo Normal} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Pesadelo} \rfloor$$
+    $$\text{HP Máximo Normal} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
 *   **Vida Máxima de Chefe**:
-    $$\text{HP Máximo Chefe} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Chefe} \times 3.0 \times \text{Fator Pesadelo} \rfloor$$
+    $$\text{HP Máximo Chefe} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Chefe} \times 3.0 \times \text{Fator Tier} \rfloor$$
 *   **Dano dos Ataques do Inimigo**:
-    $$\text{Dano do Inimigo} = \lfloor (5 + \text{Fase} \times 2.0 + \text{Random}(0, 1)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Pesadelo} \rfloor$$
+    $$\text{Dano do Inimigo} = \lfloor (5 + \text{Fase} \times 2.0 + \text{Random}(0, 1)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Tier} \rfloor$$
 
 ---
 
@@ -525,12 +535,37 @@ A fusão exige o pagamento de uma taxa em Ouro que aumenta exponencialmente depe
 | Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro |
 | Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro |
 
-### C. Regras de Fusão e Atributos Combinados
-Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são unificados no novo item místico resultante:
-1.  **Soma de Atributos**: Cada atributo presente em pelo menos um dos itens de origem tem seus valores somados de maneira aritmética direta:
-    $$\text{Atributo Resultante}(K) = \text{Atributo Item A}(K) + \text{Atributo Item B}(K)$$
-    Isso possibilita a fusão de peças focadas em atributos distintos (ex: luva de Força + luva de Sorte resulta em uma luva Mística com ambos os bônus somados).
-2.  **Identidade do Item**: O item resultante assume o nome `[Slot] Místico +[Nível]` (ex: *Arma Mística +1*, *Elmo Místico +2*), adotando a raridade Mística (identificada pela cor lilás vibrante e gema pulsante no inventário). Ele herda a restrição de classe (`classId`) e o visual (`spriteName`) do primeiro item colocado no slot de origem (Item A).
+### C. Regras de Fusão — Fórmula Assimétrica de Atributos
+Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são combinados no novo item místico seguindo uma **fórmula assimétrica** que recompensa o uso de itens complementares em vez de penalizar o item mais valioso:
+
+#### Fórmula Normal (probabilidade 95%)
+Para cada atributo $K$ presente em pelo menos um dos dois itens de origem:
+
+1.  **Atributo exclusivo** (presente em apenas um dos itens — o outro vale 0):
+    $$\text{Atributo Resultante}(K) = \text{valor do portador}$$
+    *O atributo é copiado integralmente, sem nenhuma penalidade.*
+
+2.  **Atributo compartilhado** (ambos os itens possuem o atributo $K$):
+    $$\text{Atributo Resultante}(K) = \text{Maior}(K) + \lceil \text{Menor}(K) \times 0.5 \rceil$$
+    *O valor do item com maior atributo é preservado integralmente. O valor do item com menor atributo contribui com 50% do seu valor, arredondado para cima.*
+
+**Exemplo de aplicação:**
+| Slot | Item A (Força) | Item B (Força) | Cálculo | Resultado |
+| :--- | :---: | :---: | :--- | :---: |
+| Forja Normal | 50 | 5 | $50 + \lceil 5 \times 0.5 \rceil$ | **53** |
+| Forja Normal | 20 | 20 | $20 + \lceil 20 \times 0.5 \rceil$ | **30** |
+| Forja Normal (Exclusivo) | 0 | 12 | $12$ (portador único) | **12** |
+
+#### Forja Lendária (probabilidade 5% — evento aleatório)
+Há uma chance de **5%** de a fusão resultar em uma **Forja Lendária**. Neste caso, a fórmula assimétrica é completamente substituída por:
+$$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \times 1.5 \rceil$$
+*A soma total dos dois atributos é amplificada em +50%. O evento é sinalizado visualmente por um toast dourado com o texto "⚡ FORJA LENDÁRIA!" na tela.*
+
+**Notas gerais:**
+- Todos os resultados utilizam arredondamento para cima ($\lceil \rceil$) para evitar valores com casas decimais.
+- A identidade do item (nome `[Slot] Místico +[Nível]`, raridade Mística lilás, `classId` e `spriteName`) é sempre herdada do Item A (primeiro slot).
+- **Pertinência ao Conjunto (Set):** O campo `setName` do Item A é copiado integralmente para o item Místico resultante. Isso garante que a nova peça continue contando nos bônus de conjunto do `StatEngine` — um item *Luva Mística +1* do Set do Senhor da Guerra, por exemplo, ainda ativa os bônus de 2, 3 e 5 peças normalmente.
+- **Indicação Visual de Nível:** Um número em fuchsia (`+1` a `+5`) é renderizado no canto superior esquerdo do ícone do item tanto na grade do inventário quanto nos slots de equipamento ativo, permitindo identificar o nível místico sem precisar abrir o painel de detalhes.
 
 ---
 
@@ -538,7 +573,26 @@ Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 2.0.0 (Atual)
+### Versão 2.1.0 (Atual)
+*   **🔥 Novos Tiers de Dificuldade (Inferno e Apocalipse)**:
+    *   Expansão do sistema de fases de 10 para **20 fases totais**, divididas em 4 tiers de dificuldade.
+    *   **Inferno** (Fases 11–15): Multiplicador de HP e Dano × 5.0 (+400%) com tint laranja flamejante nos backgrounds e inimigos.
+    *   **Apocalipse** (Fases 16–20): Multiplicador de HP e Dano × 10.0 (+900%) com tint roxo sinistro.
+    *   HUD do combate atualizado para exibir `FASE` / `PESADELO` / `INFERNO` / `APOCALIPSE` com paletas de cores exclusivas por tier.
+    *   Prefixo no nome do inimigo (`[Pesadelo]` / `[Inferno]` / `[Apocalipse]`) exibido na tela de combate.
+*   **⚖️ Rebalanceamento da Fórmula da Forja Mística**:
+    *   A fórmula de fusão foi alterada de soma aritmética direta para **fórmula assimétrica**: o stat maior é 100% preservado; apenas o stat menor sofre redução de 50% ($\lceil \text{menor} \times 0.5 \rceil$).
+    *   Stats exclusivos de um item são copiados integralmente sem penalidade.
+    *   Adição da mecânica de **Forja Lendária** com 5% de probabilidade: em vez de reduzir, a fusão amplifica a soma total em +50% ($\lceil (A + B) \times 1.5 \rceil$), com feedback visual dourado exclusivo.
+    *   O painel de **Resultado Estimado** na aba Forja agora espelha a fórmula real, mostrando qual stat é o maior (preservado), qual é o menor (com desconto de 50%) e o total final antes da fusão ser confirmada.
+*   **🏷️ Preservação de Bônus de Conjunto nos Itens Místicos**:
+    *   Correção de bug: o item Místico resultante da fusão agora herda o campo `setName` do Item A, garantindo que ele continue sendo contabilizado nos cálculos de bônus de conjunto do `StatEngine`.
+    *   Exemplo: duas *Luvas Místicas +1* do "Set do Senhor da Guerra" ativam normalmente o bônus de 2 peças (+15 Força), igual a qualquer peça Lendária do mesmo conjunto.
+*   **🔢 Badge Visual de Nível Místico**:
+    *   Adicionado indicador numérico fuchsia (`+1` a `+5`) no canto superior esquerdo do ícone de cada item Místico, visível tanto na **grade do inventário** quanto nos **slots de equipamento ativo**.
+    *   O badge complementa a bolinha pulsante roxo-lilás (canto superior direito) já existente, permitindo identificar o nível sem abrir o painel de detalhes.
+
+### Versão 2.0.0
 *   **🌋 Altar da Forja Mística**:
     *   Implementação do sistema de fusão de itens no painel "Forja". O jogador pode fundir duas peças de equipamento do mesmo slot (ex: luva com luva).
     *   **Mecânica de Atributos**: Os atributos repetidos entre as duas peças são somados, e atributos únicos são combinados no item resultante.

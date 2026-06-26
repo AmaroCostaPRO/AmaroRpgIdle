@@ -821,6 +821,22 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     animation: 'glow-pulse 1.5s infinite'
                   }} />
                 )}
+                {item.rarity === 'mystic' && item.mysticLevel && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '1px',
+                    left: '1px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    color: '#e879f9',
+                    textShadow: '0 0 4px #a21caf',
+                    pointerEvents: 'none',
+                    userSelect: 'none'
+                  }}>
+                    +{item.mysticLevel}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -863,6 +879,22 @@ const EquipmentSlot: React.FC<{
       <span style={{ fontSize: '1.2rem', opacity: item ? 1 : 0.25 }}>
         {icons[slot]}
       </span>
+      {item?.rarity === 'mystic' && item.mysticLevel && (
+        <div style={{
+          position: 'absolute',
+          top: '1px',
+          left: '2px',
+          fontSize: '10px',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#e879f9',
+          textShadow: '0 0 4px #a21caf',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          +{item.mysticLevel}
+        </div>
+      )}
       <span style={{ 
         position: 'absolute', 
         bottom: '2px', 
@@ -1944,6 +1976,63 @@ const GuidePanel: React.FC = () => {
                   <p className="text-gray-400 mt-0.5">
                     Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+6 Força, +6 Magia, +3 Destreza, +9 Constituição, +3 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Forja Mística */}
+            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+              <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
+              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                <p>
+                  A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong>. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+5</strong>.
+                </p>
+                <div>
+                  <strong className="text-white block font-semibold">Regras de Fusão:</strong>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-gray-400">Mesmo slot obrigatório</span> — apenas dois equipamentos do mesmo tipo (arma + arma, luva + luva, etc.)</li>
+                    <li><span className="text-gray-400">Mesma categoria</span> — dois normais <em>ou</em> dois Místicos. Não é possível misturar.</li>
+                    <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
+                    <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+5</strong>.</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Fórmula Normal (95% das fusões):</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    Para cada atributo presente nos dois itens, o <strong>maior valor é preservado 100%</strong> e o <strong>menor valor contribui com 50%</strong> (arredondado para cima). Atributos exclusivos de um item são copiados integralmente.
+                  </p>
+                  <code className="text-fuchsia-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Resultado = Maior + ⌈Menor × 0.5⌉
+                  </code>
+                  <code className="text-gray-500 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Ex: Força 50 + Força 5  →  50 + ⌈2.5⌉ = 53
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold" style={{ color: '#facc15' }}>⚡ Forja Lendária (5% de chance):</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    Há 5% de chance de a fusão ser uma Forja Lendária. Nesse caso, a fórmula é substituída por um bônus de +50% sobre a soma total de cada atributo.
+                  </p>
+                  <code className="text-yellow-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Resultado Lendário = ⌈(A + B) × 1.5⌉
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Custo de Fusão (em Ouro 🪙):</strong>
+                  <div className="mt-1 space-y-0.5">
+                    {[
+                      { origem: 'Comum/Raro/Épico/Lendário + Lendário', resultado: 'Místico +1', custo: '100' },
+                      { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', custo: '500' },
+                      { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', custo: '2.500' },
+                      { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', custo: '12.500' },
+                      { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', custo: '62.500' },
+                    ].map((row) => (
+                      <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
+                        <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
+                        <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.custo} Ouro</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
