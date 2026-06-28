@@ -75,8 +75,8 @@ const GameHUD: React.FC = () => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // No desktop o console aparece sempre; no mobile respeita o toggle
-  const showConsole = !isMobile || consoleEnabled;
+  // O console agora respeita o toggle em ambas as resoluções (desktop e mobile)
+  const showConsole = consoleEnabled;
 
   useEffect(() => {
     bridge.registerDomUpdate('player_hp', (pct, current, max) => {
@@ -196,7 +196,7 @@ const GameHUD: React.FC = () => {
         </div>
       </div>
 
-      {/* Console de Combate — sempre visível no desktop; no mobile respeita o toggle */}
+      {/* Console de Combate — respeita a opção de toggle em ambas as resoluções (desktop e mobile) */}
       {showConsole && (
         <div className={`combat-console combat-console-wrapper ${isConsoleExpanded ? 'expanded' : 'collapsed'}`}>
           <button
@@ -548,6 +548,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   showDiscardConfirm,
   setShowDiscardConfirm
 }) => {
+  const [showStats, setShowStats] = useState(() => {
+    const saved = localStorage.getItem('amaro_rpg_show_equip_stats');
+    return saved !== 'false';
+  });
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
   const unequipItem = useGameStore((state) => state.unequipItem);
@@ -681,107 +685,135 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
         {/* Atributos Consolidados & Sets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
-            Atributos Totais & Conjuntos
+          <h3 
+            className="font-heading" 
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              const nextState = !showStats;
+              setShowStats(nextState);
+              localStorage.setItem('amaro_rpg_show_equip_stats', String(nextState));
+            }}
+            style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: 700, 
+              color: 'var(--gold-400)', 
+              borderBottom: '1px solid var(--border-dim)', 
+              paddingBottom: '0.25rem', 
+              margin: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              userSelect: 'none'
+            }}
+          >
+            <span>Atributos Totais & Conjuntos</span>
+            <span style={{ fontSize: '0.62rem', color: '#cbd5e1', transition: 'transform 0.15s', transform: showStats ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+              ▼
+            </span>
           </h3>
 
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '0.5rem', 
-            background: 'rgba(0,0,0,0.2)', 
-            padding: '0.75rem', 
-            borderRadius: 'var(--radius-md)', 
-            border: '1px solid var(--border-dim)' 
-          }}>
-            {Object.keys(baseStats).map((statKey) => {
-              const baseVal = baseStats[statKey as keyof BaseStats] || 0;
-              const finalVal = finalStats[statKey as keyof BaseStats] || 0;
+          {showStats && (
+            <>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '0.5rem', 
+                background: 'rgba(0,0,0,0.2)', 
+                padding: '0.75rem', 
+                borderRadius: 'var(--radius-md)', 
+                border: '1px solid var(--border-dim)' 
+              }}>
+                {Object.keys(baseStats).map((statKey) => {
+                  const baseVal = baseStats[statKey as keyof BaseStats] || 0;
+                  const finalVal = finalStats[statKey as keyof BaseStats] || 0;
 
-              // Calcular bônus de ascensão (prestígio)
-              let ascensionBonus = 0;
-              if (character.prestigeUpgrades) {
-                Object.entries(character.prestigeUpgrades).forEach(([upgradeId, lvl]) => {
-                  const upgrade = PRESTIGE_UPGRADES_CATALOG[upgradeId];
-                  if (upgrade && upgrade.stat === statKey) {
-                    ascensionBonus += upgrade.bonusPerLevel * lvl;
+                  // Calcular bônus de ascensão (prestígio)
+                  let ascensionBonus = 0;
+                  if (character.prestigeUpgrades) {
+                    Object.entries(character.prestigeUpgrades).forEach(([upgradeId, lvl]) => {
+                      const upgrade = PRESTIGE_UPGRADES_CATALOG[upgradeId];
+                      if (upgrade && upgrade.stat === statKey) {
+                        ascensionBonus += upgrade.bonusPerLevel * lvl;
+                      }
+                    });
                   }
-                });
-              }
 
-              const pureBase = Math.max(0, baseVal - ascensionBonus);
-              const equipBonus = Math.max(0, finalVal - baseVal);
-              const hasAnyBonus = equipBonus > 0 || ascensionBonus > 0;
+                  const pureBase = Math.max(0, baseVal - ascensionBonus);
+                  const equipBonus = Math.max(0, finalVal - baseVal);
+                  const hasAnyBonus = equipBonus > 0 || ascensionBonus > 0;
 
-              return (
-                <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                  <span className="font-heading" style={{ fontWeight: 600, color: '#cbd5e1' }}>{statLabels[statKey] || statKey}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <span className="font-mono" style={{ fontWeight: 700, color: '#fff' }}>{pureBase}</span>
-                    {hasAnyBonus && (
-                      <span className="font-mono" style={{ color: '#64748b', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span>(</span>
-                        {equipBonus > 0 && (
-                          <span style={{ color: '#10b981' }}>+{equipBonus}</span>
+                  return (
+                    <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <span className="font-heading" style={{ fontWeight: 600, color: '#cbd5e1' }}>{statLabels[statKey] || statKey}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <span className="font-mono" style={{ fontWeight: 700, color: '#fff' }}>{pureBase}</span>
+                        {hasAnyBonus && (
+                          <span className="font-mono" style={{ color: '#64748b', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span>(</span>
+                            {equipBonus > 0 && (
+                              <span style={{ color: '#10b981' }}>+{equipBonus}</span>
+                            )}
+                            {ascensionBonus > 0 && (
+                              <span style={{ color: '#c084fc' }}>+{ascensionBonus}</span>
+                            )}
+                            <span>)</span>
+                          </span>
                         )}
-                        {ascensionBonus > 0 && (
-                          <span style={{ color: '#c084fc' }}>+{ascensionBonus}</span>
-                        )}
-                        <span>)</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Listagem de Bônus de Conjunto Ativos */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '0.4rem',
-            background: 'rgba(0,0,0,0.15)',
-            padding: '0.6rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(255, 255, 255, 0.04)'
-          }}>
-            <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              Conjuntos Ativos
-            </span>
-            {Object.keys(SET_BONUSES).map((setName) => {
-              const count = setCounts[setName] || 0;
-              const config = SET_BONUSES[setName];
-              if (!config || config.classId !== character.classId) return null;
-              
-              const isAnyBonusActive = count >= 2;
-
-              return (
-                <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
-                    <span style={{ fontWeight: 700, color: isAnyBonusActive ? 'var(--gold-400)' : '#cbd5e1' }}>{setName}</span>
-                    <span className="font-mono" style={{ fontSize: '0.6rem' }}>{count}/5 Peças</span>
-                  </div>
-                  {isAnyBonusActive && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.1rem' }}>
-                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 2 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 2 ? '#34d399' : '#64748b', border: count >= 2 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                        (2) +15 Atributo
-                      </span>
-                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 3 ? '#34d399' : '#64748b', border: count >= 3 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                        (3) +20 Con/For
-                      </span>
-                      <span className="badge" style={{ fontSize: '0.5rem', background: count >= 5 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 5 ? '#34d399' : '#64748b', border: count >= 5 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                        (5) +35 Atributo
-                      </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-            {Object.values(setCounts).length === 0 && (
-              <span style={{ fontSize: '0.6rem', color: '#64748b', fontStyle: 'italic' }}>Nenhum conjunto ativo equipado.</span>
-            )}
-          </div>
+                  );
+                })}
+              </div>
+
+              {/* Listagem de Bônus de Conjunto Ativos */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '0.4rem',
+                background: 'rgba(0,0,0,0.15)',
+                padding: '0.6rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(255, 255, 255, 0.04)'
+              }}>
+                <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Conjuntos Ativos
+                </span>
+                {Object.keys(SET_BONUSES).map((setName) => {
+                  const count = setCounts[setName] || 0;
+                  const config = SET_BONUSES[setName];
+                  if (!config || config.classId !== character.classId) return null;
+                  
+                  const isAnyBonusActive = count >= 2;
+
+                  return (
+                    <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+                        <span style={{ fontWeight: 700, color: isAnyBonusActive ? 'var(--gold-400)' : '#cbd5e1' }}>{setName}</span>
+                        <span className="font-mono" style={{ fontSize: '0.6rem' }}>{count}/5 Peças</span>
+                      </div>
+                      {isAnyBonusActive && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.1rem' }}>
+                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 2 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 2 ? '#34d399' : '#64748b', border: count >= 2 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                            (2) +15 Atributo
+                          </span>
+                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 3 ? '#34d399' : '#64748b', border: count >= 3 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                            (3) +20 Con/For
+                          </span>
+                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 5 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 5 ? '#34d399' : '#64748b', border: count >= 5 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
+                            (5) +35 Atributo
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {Object.values(setCounts).length === 0 && (
+                  <span style={{ fontSize: '0.6rem', color: '#64748b', fontStyle: 'italic' }}>Nenhum conjunto ativo equipado.</span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1236,7 +1268,7 @@ const SkillsTreePanel: React.FC = () => {
 
       {/* Lista Simplificada Vertical (Mobile) - Com Cards Expansíveis */}
       <div className="tree-view-mobile">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
           {classSkills.map(([id, skill]) => {
             const currentLevel = character.skillLevels[id] || 0;
             const isUnlocked = currentLevel > 0;
@@ -1728,7 +1760,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
       {/* Lista Simplificada Vertical (Mobile) - Com Cards Expansíveis */}
       <div className="tree-view-mobile">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
           {Object.entries(PRESTIGE_UPGRADES_CATALOG).map(([id, upgrade]) => {
             const currentLevel = character.prestigeUpgrades[id] || 0;
             const isSelected = selectedUpgradeId === id;

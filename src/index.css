@@ -644,6 +644,52 @@ body {
   margin-bottom: 0.4rem;
 }
 
+/* ── Console Colapsável (Desktop & Mobile) ── */
+.console-toggle-btn {
+  pointer-events: auto !important;
+}
+.console-arrow {
+  display: inline-block !important;
+  font-weight: bold;
+  color: var(--gold-400);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+.console-arrow.expanded {
+  transform: rotate(180deg);
+}
+.console-arrow.collapsed {
+  transform: rotate(0deg);
+}
+.combat-console-wrapper {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem !important;
+  transition: all 0.25s ease-in-out;
+}
+.combat-console-wrapper.collapsed {
+  height: 2.2rem !important;
+  overflow: hidden;
+}
+.combat-console-wrapper.collapsed .console-log-content {
+  height: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none;
+}
+.combat-console-wrapper.expanded {
+  height: 7.5rem !important;
+}
+.combat-console-wrapper.expanded .console-log-content {
+  height: 4.8rem !important;
+  opacity: 1 !important;
+  overflow-y: auto;
+  margin-top: 0.4rem;
+}
+
 /* ── Ornamentos decorativos ── */
 .ornament {
   display: block;
@@ -1070,51 +1116,7 @@ body {
     gap: 0.2rem !important;
   }
 
-  /* Console Colapsável Mobile */
-  .console-toggle-btn {
-    pointer-events: auto !important;
-  }
-  .console-arrow {
-    display: inline-block !important;
-    font-weight: bold;
-    color: var(--gold-400);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: center;
-  }
-  .console-arrow.expanded {
-    transform: rotate(180deg);
-  }
-  .console-arrow.collapsed {
-    transform: rotate(0deg);
-  }
-  .combat-console-wrapper {
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-dim);
-    border-radius: var(--radius-md);
-    padding: 0.5rem 0.75rem !important;
-    transition: all 0.25s ease-in-out;
-  }
-  .combat-console-wrapper.collapsed {
-    height: 2.2rem !important;
-    overflow: hidden;
-  }
-  .combat-console-wrapper.collapsed .console-log-content {
-    height: 0 !important;
-    opacity: 0 !important;
-    overflow: hidden;
-    padding: 0 !important;
-    margin: 0 !important;
-    pointer-events: none;
-  }
-  .combat-console-wrapper.expanded {
-    height: 7.5rem !important;
-  }
-  .combat-console-wrapper.expanded .console-log-content {
-    height: 4.8rem !important;
-    opacity: 1 !important;
-    overflow-y: auto;
-    margin-top: 0.4rem;
-  }
+  /* Console Colapsável unificado globalmente */
 }
 
 /* ── HUD de Status do Personagem (barras de HP e Mana) ── */
@@ -1146,20 +1148,7 @@ body {
   display: none; /* Oculto no desktop — o console sempre aparece */
 }
 
-/* Console Geral (Desktop apenas para evitar conflito com Mobile) */
-@media (min-width: 841px) {
-  .console-toggle-btn {
-    pointer-events: none;
-  }
-  .console-arrow {
-    display: none !important;
-  }
-  .console-log-content {
-    display: block !important;
-    opacity: 1 !important;
-    height: auto !important;
-  }
-}
+/* Console Geral unificado globalmente */
 
 .skill-list-card, .prestige-list-card {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

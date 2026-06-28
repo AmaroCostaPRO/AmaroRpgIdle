@@ -209,7 +209,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 5
+      strokeThickness: 5,
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
     // Inicializa o texto vazio; a posição correta, cor e conteúdo serão atribuídos imediatamente pela chamada do respawnEnemyAt abaixo
@@ -219,7 +220,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold', 
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 5
+      strokeThickness: 5,
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
     this.enemyStatusText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 95 * ZOOM_FACTOR, '', {
@@ -228,7 +230,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 4,
+      padding: { left: 8, right: 8, top: 4, bottom: 4 }
     }).setOrigin(0.5);
 
     this.playerStatusText = this.add.text(this.playerBody.x, this.PLAYER_START_Y - 95 * ZOOM_FACTOR, '', {
@@ -237,7 +240,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 4,
+      padding: { left: 8, right: 8, top: 4, bottom: 4 }
     }).setOrigin(0.5);
 
     this.xpText = this.add.text(400, 552, '', {
@@ -246,7 +250,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 4,
+      padding: { left: 10, right: 10, top: 4, bottom: 4 }
     }).setOrigin(0.5);
 
     // Faz o spawn inicial do primeiro inimigo, o que configurará o enemyLevelText perfeitamente
@@ -259,7 +264,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'serif',
       stroke: '#000000',
-      strokeThickness: 4
+      strokeThickness: 4,
+      padding: { left: 10, right: 10, top: 4, bottom: 4 }
     }).setOrigin(0.5);
 
     // Ouvir comandos de skill
@@ -612,18 +618,21 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public spawnDamageText(x: number, y: number, text: string, color: string): void {
-    const dmgText = this.add.text(x, y, text, {
+    const roundedX = Math.round(x);
+    const roundedY = Math.round(y);
+    const dmgText = this.add.text(roundedX, roundedY, text, {
       fontSize: '18px',
       color: color,
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: 3
+      strokeThickness: 3,
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
     this.tweens.add({
       targets: dmgText,
-      y: y - 50,
+      y: roundedY - 50,
       alpha: 0,
       duration: 800,
       onComplete: () => {
@@ -633,12 +642,12 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public spawnTouchEffect(isCrit: boolean, damage: number, clickX?: number, clickY?: number): void {
-    const targetX = clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40));
-    const targetY = clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40));
+    const targetX = Math.round(clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40)));
+    const targetY = Math.round(clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40)));
 
     const color = isCrit ? '#facc15' : '#38bdf8';
     const text = isCrit ? `💥 ${damage}!` : `${damage}`;
-    const fontSize = isCrit ? '22px' : '16px';
+    const fontSize = isCrit ? '52px' : '36px';
 
     const dmgText = this.add.text(targetX, targetY, text, {
       fontSize: fontSize,
@@ -646,15 +655,16 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: isCrit ? 4 : 3
+      strokeThickness: isCrit ? 8 : 5,
+      padding: { left: 25, right: 25, top: 15, bottom: 15 }
     }).setOrigin(0.5);
 
     this.tweens.add({
       targets: dmgText,
-      y: targetY - 60,
-      scale: isCrit ? 1.3 : 1.0,
+      y: targetY - 90,
+      scale: isCrit ? 1.5 : 1.2,
       alpha: 0,
-      duration: 600,
+      duration: 750,
       onComplete: () => {
         dmgText.destroy();
       }
@@ -663,7 +673,7 @@ export class CombatScene extends Phaser.Scene {
     const clickCircle = this.add.circle(targetX, targetY, 5, isCrit ? 0xfacc15 : 0x38bdf8, 0.8);
     this.tweens.add({
       targets: clickCircle,
-      radius: isCrit ? 35 : 20,
+      radius: isCrit ? 50 : 32,
       alpha: 0,
       duration: 250,
       onComplete: () => {

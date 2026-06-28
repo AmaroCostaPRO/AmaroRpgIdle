@@ -179,7 +179,7 @@ export const MainMenu: React.FC = () => {
             </div>
           </div>
  
-          {/* Toggle: Console de Combate (interface mobile) */}
+          {/* Toggle: Console de Combate */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', fontSize: '0.75rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               <span style={{ color: '#94a3b8' }}>Console de Combate</span>

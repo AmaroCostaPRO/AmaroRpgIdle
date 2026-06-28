@@ -88,7 +88,7 @@ const App: React.FC = () => {
       console.log("Initializing Phaser Game...");
 
       const config: Phaser.Types.Core.GameConfig = {
-        type: Phaser.CANVAS,
+        type: Phaser.AUTO,
         parent: 'game-container',
         width: 800,
         height: 600,
@@ -98,6 +98,7 @@ const App: React.FC = () => {
         },
         scene: [CombatScene],
         backgroundColor: '#2c3e50',
+        roundPixels: true,
       };
 
       try {
