@@ -290,15 +290,39 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🔥 Atualização v2.3.0 — Sets Ancestrais & Forja!
+              🔥 Atualização v2.4.0 — Balanceamento e Escalonamento de Classes!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz os poderosos Sets Ancestrais para personagens pós-ascensão, balanceamento de custos da Grande Forja Arcana e correções visuais e de scroll na interface:
+                Esta atualização introduz o balanceamento geral e escalonamento de atributos por classe, tooltips dinâmicos e transparência de fórmulas no guia:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+
+                {/* v2.4.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.4.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        ⚖️ Escalonamento de Atributos por Classe
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A progressão de atributos agora é dinâmica e dependente da classe do personagem. Atributos não-primários oferecem bônus de utilidade amplificados (como mana extra para guerreiros via Magia), resolvendo a escassez de recursos sem comprometer a identidade das classes de nicho.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
+                        📊 Transparência Visual e Tooltips Dinâmicos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionados tooltips explicativos na tela de Atributos e fórmulas detalhadas no painel de Guia, garantindo que você compreenda exatamente o impacto de cada ponto investido no seu herói.
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* v2.3.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>

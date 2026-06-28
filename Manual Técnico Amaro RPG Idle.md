@@ -108,6 +108,34 @@ Cada classe possui uma distribuição distinta de atributos base e ganha bônus 
 | **Clérigo** | Mestre sagrado especializado em curas massivas e expor inimigos. | Magia | 7 / +1.0 | 13 / +2.5 | 5 / +0.5 | 11 / +2.0 | 6 / +0.6 |
 | **Ladrão** | Assassino ágil de acertos críticos com foco em venenos e força. | Destreza | 8 / +1.5 | 3 / +0.5 | 16 / +3.0 | 8 / +1.0 | 10 / +1.0 |
 
+### C. Fórmulas de Atributos Derivados (Balanceamento de Utilidade)
+Para garantir um combate equilibrado e incentivar a distribuição diversificada de pontos, o jogo aplica um sistema de **escalonamento dinâmico**. Atributos que servem como fonte primária de dano para uma classe concedem bônus reduzidos aos status secundários (como HP Máximo ou regenerações), enquanto as demais classes se beneficiam de uma escala amplificada nesses mesmos atributos.
+
+#### 1. Vida Máxima (HP) e Regeneração
+A Vida Máxima e a Regeneração de HP escalam a partir do atributo **Constituição**:
+*   **Classes Primárias de Constituição (Paladino)**:
+    *   HP Máximo ganho por ponto de Constituição: $8\text{ HP}$
+    *   Regeneração de HP ganha por ponto de Constituição: $0.03\text{ HP/s}$
+*   **Outras Classes (Guerreiro, Mago, Arqueiro, Clérigo, Ladrão)**:
+    *   HP Máximo ganho por ponto de Constituição: $18\text{ HP}$ (incentiva classes frágeis a investirem em sobrevivência)
+    *   Regeneração de HP ganha por ponto de Constituição: $0.08\text{ HP/s}$
+
+#### 2. Mana Máxima e Regeneração
+A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
+*   **Classes Primárias de Magia (Mago, Clérigo)**:
+    *   Mana Máxima ganha por ponto de Magia: $6\text{ Mana}$ (previne mana infinita e uso descontrolado de auto-cast)
+    *   Regeneração de Mana ganha por ponto de Magia: $0.02\text{ Mana/s}$
+*   **Outras Classes (Guerreiro, Arqueiro, Paladino, Ladrão)**:
+    *   Mana Máxima ganha por ponto de Magia: $18\text{ Mana}$ (torna viável conjurar habilidades táticas com poucos pontos investidos)
+    *   Regeneração de Mana ganha por ponto de Magia: $0.09\text{ Mana/s}$
+
+#### 3. Velocidade de Ataque (Attack Speed)
+A velocidade com que o herói realiza ataques básicos de combate escala a partir do atributo **Destreza**:
+*   **Classes Primárias de Destreza (Arqueiro, Ladrão)**:
+    *   Aumento de Velocidade de Ataque por ponto de Destreza: $+1.0\%$
+*   **Outras Classes (Guerreiro, Mago, Paladino, Clérigo)**:
+    *   Aumento de Velocidade de Ataque por ponto de Destreza: $+3.5\%$
+
 ---
 
 ## 5. Sistema de Equipamentos e Inventário
@@ -374,7 +402,10 @@ stateDiagram-v2
 
 ### B. Ciclos de Ataque e Velocidades
 *   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $1.0\times$ do Atributo Principal da classe ativa mais uma variação aleatória de $+0$ a $+3$. A recarga do ataque básico é calculada dinamicamente:
-    $$\text{Velocidade de Ataque} = \left( 1 + \text{Destreza} \times 0.02 \right) \times \left(1 + \text{Ascensões} \times 0.02\right)$$
+    $$\text{Velocidade de Ataque} = \left( 1 + \text{Destreza} \times \text{Fator de Destreza} \right) \times \left(1 + \text{Ascensões} \times 0.02\right)$$
+    *Onde o $\text{Fator de Destreza}$ depende do balanceamento de utilidade da classe:*
+    *   *Se a classe for focada em Destreza (Arqueiro, Ladrão): $\text{Fator de Destreza} = 0.01$ ($1\%$ por ponto).*
+    *   *Se a classe NÃO for focada em Destreza (Guerreiro, Mago, Paladino, Clérigo): $\text{Fator de Destreza} = 0.035$ ($3.5\%$ por ponto).*
     $$\text{Recarga do Ataque} = \max\left( 800\text{ ms}, \frac{3000\text{ ms}}{\text{Velocidade de Ataque}} \right)$$
 *   **Ataque do Inimigo**: O tempo de recarga base do ataque do monstro diminui com o nível da fase para torná-lo mais rápido, modificado por seu multiplicador intrínseco de velocidade:
     $$\text{Recarga Base} = 3600 - \left( \text{Fase} \times 30 \right)$$

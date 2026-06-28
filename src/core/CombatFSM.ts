@@ -314,6 +314,42 @@ export class CombatFSM {
   private lastTapTimestamp: number = 0;
   private robotTapTimer: number = 0;
 
+  // Métodos auxiliares de balanceamento de atributos por classe
+  private calculatePlayerMaxHP(constitution: number, hpBoost: number, classId: string): number {
+    // Se constituição é o atributo primário (Paladino), escala menos: 8 HP por ponto
+    // Se NÃO é o atributo primário (outras classes), escala mais: 18 HP por ponto
+    const hpPerCon = (classId === 'paladin') ? 8 : 18;
+    return Math.floor(constitution * hpPerCon * hpBoost);
+  }
+
+  private calculatePlayerMaxMana(magic: number, manaBoost: number, classId: string): number {
+    // Se magia é o atributo primário (Mago, Clérigo), escala menos: 6 Mana por ponto
+    // Se NÃO é o atributo primário (outras classes), escala mais: 18 Mana por ponto
+    const manaPerMagic = (classId === 'mage' || classId === 'cleric') ? 6 : 18;
+    return Math.floor(magic * manaPerMagic * manaBoost);
+  }
+
+  private getHpRegen(constitution: number, classId: string): number {
+    // Se constituição é o atributo primário (Paladino), escala menos: 0.03 por ponto
+    // Se NÃO é o atributo primário (outras classes), escala mais: 0.08 por ponto
+    const regenPerCon = (classId === 'paladin') ? 0.03 : 0.08;
+    return constitution * regenPerCon;
+  }
+
+  private getManaRegen(magic: number, classId: string): number {
+    // Se magia é o atributo primário (Mago, Clérigo), escala menos: 0.02 por ponto
+    // Se NÃO é o atributo primário (outras classes), escala mais: 0.09 por ponto
+    const regenPerMagic = (classId === 'mage' || classId === 'cleric') ? 0.02 : 0.09;
+    return magic * regenPerMagic;
+  }
+
+  private getSpeedMultiplier(dexterity: number, classId: string, attackSpeedBoost: number): number {
+    // Se destreza é o atributo primário (Arqueiro, Ladrão), escala menos: 1% por ponto (0.01)
+    // Se NÃO é o atributo primário (outras classes), escala mais: 3.5% por ponto (0.035)
+    const factor = (classId === 'ranger' || classId === 'rogue') ? 0.01 : 0.035;
+    return (1 + (dexterity * factor)) * attackSpeedBoost;
+  }
+
   constructor(scene: any, initialTarget?: any) {
     this.scene = scene;
     this.target = initialTarget;
@@ -388,7 +424,7 @@ export class CombatFSM {
     const manaBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
 
     const prevMaxHP = this.playerMaxHP;
-    this.playerMaxHP = Math.floor(this.playerFinalStats.constitution * 12 * hpBoost);
+    this.playerMaxHP = this.calculatePlayerMaxHP(this.playerFinalStats.constitution, hpBoost, char.classId || 'warrior');
 
     if (this.playerMaxHP > prevMaxHP) {
       this.playerHP += (this.playerMaxHP - prevMaxHP);
@@ -396,7 +432,7 @@ export class CombatFSM {
     this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
 
     const prevMaxMana = this.playerMaxMana;
-    this.playerMaxMana = Math.floor(this.playerFinalStats.magic * 10 * manaBoost);
+    this.playerMaxMana = this.calculatePlayerMaxMana(this.playerFinalStats.magic, manaBoost, char.classId || 'warrior');
     if (this.playerMaxMana > prevMaxMana) {
       this.playerMana += (this.playerMaxMana - prevMaxMana);
     }
@@ -470,9 +506,10 @@ export class CombatFSM {
       this.enemyAttackCooldown -= delta * slowMultiplier;
     }
 
-    // Recuperação de HP/Mana baseada em atributos
-    this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.playerFinalStats.constitution * 0.05 * (delta / 1000)));
-    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.playerFinalStats.magic * 0.05 * (delta / 1000)));
+    // Recuperação de HP/Mana baseada em atributos e balanceada por classe
+    const classId = this.characterData?.classId || 'warrior';
+    this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
+    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * (delta / 1000)));
 
     // Processar e atualizar durações de efeitos de status no inimigo
     const wasEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
@@ -603,7 +640,7 @@ export class CombatFSM {
     const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
     const ascensionCount = char.ascensionCount || 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.02);
-    const speedMultiplier = (1 + (finalStats.dexterity * 0.02)) * attackSpeedBoost;
+    const speedMultiplier = this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost);
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
 
     const classId = char.classId || 'warrior';
@@ -733,11 +770,11 @@ export class CombatFSM {
   private performPlayerAttack() {
     const ascensionCount = this.characterData.ascensionCount || 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.02); // +2% por ascensão
-    const speedMultiplier = (1 + (this.playerFinalStats.dexterity * 0.02)) * attackSpeedBoost;
+    const classId = this.characterData.classId || 'warrior';
+    const speedMultiplier = this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost);
     this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
-    const classId = this.characterData.classId || 'warrior';
     let primaryStatVal = this.playerFinalStats.strength;
     let damageType = 'físico';
 

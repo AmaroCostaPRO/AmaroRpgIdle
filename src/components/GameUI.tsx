@@ -414,6 +414,37 @@ const AttributePanel: React.FC = () => {
     }
   };
 
+  const getAttrDetails = (attr: string, classId: string): string => {
+    switch (attr) {
+      case 'strength': 
+        return classId === 'warrior' ? 'Aumenta consideravelmente o Dano Físico.' : 'Aumenta levemente o Dano Físico.';
+      case 'magic': {
+        const isPrimary = classId === 'mage' || classId === 'cleric';
+        return isPrimary 
+          ? 'Mana Máxima +6 / Regen +0.02/s (Escala reduzida por ser primário)' 
+          : 'Mana Máxima +18 / Regen +0.09/s (Bônus secundário aumentado!)';
+      }
+      case 'dexterity': {
+        const isPrimary = classId === 'ranger' || classId === 'rogue';
+        return isPrimary 
+          ? 'Velocidade de Ataque +1.0% (Escala reduzida por ser primário)' 
+          : 'Velocidade de Ataque +3.5% (Bônus secundário aumentado!)';
+      }
+      case 'constitution': {
+        const isPrimary = classId === 'paladin';
+        return isPrimary 
+          ? 'Vida Máxima +8 / Regen +0.03/s (Escala reduzida por ser primário)' 
+          : 'Vida Máxima +18 / Regen +0.08/s (Bônus secundário aumentado!)';
+      }
+      case 'luck': 
+        return 'Aumenta a chance e raridade dos drops de itens e o ouro obtido.';
+      case 'touch': 
+        return 'Aumenta o dano causado ao clicar/tocar nos monstros.';
+      default: 
+        return '';
+    }
+  };
+
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto' }}>
       {/* Barra de Experiência e Nível */}
@@ -434,10 +465,11 @@ const AttributePanel: React.FC = () => {
         {Object.keys(character.baseStats)
           .filter((attr) => ['strength', 'magic', 'dexterity', 'constitution', 'luck', 'touch'].includes(attr))
           .map((attr) => (
-            <div key={attr} className="stat-row">
-              <span style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column' }}>
+            <div key={attr} className="stat-row" style={{ padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.02)', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', flex: 1, paddingRight: '0.5rem' }}>
                 <span className="font-heading" style={{ fontWeight: 700, color: '#fff', fontSize: '0.7rem' }}>{getAttrName(attr)}</span>
                 <span className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.15rem' }}>Valor base: {character.baseStats[attr as keyof BaseStats]}</span>
+                <span style={{ fontSize: '0.58rem', color: '#94a3b8', marginTop: '0.15rem', opacity: 0.95, lineHeight: 1.2 }}>{getAttrDetails(attr, character.classId)}</span>
               </span>
               <button
                 onClick={() => handleUpgradeAttribute(attr)}
@@ -2046,22 +2078,53 @@ const GuidePanel: React.FC = () => {
             {/* Fórmulas de Atributos */}
             <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
               <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">Fórmulas e Matemática dos Atributos</span>
-              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <div className="text-[10px] space-y-3 leading-relaxed text-gray-300">
                 <div>
                   <strong className="text-white block font-semibold">HP Máximo e Regeneração (Constituição)</strong>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">HP Máximo = Constituição × 12</code>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Regeneração de HP = Constituição × 0.05 / segundo</code>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala dinamicamente com base na classe:</span>
+                  <div className="pl-2 mt-0.5 space-y-1">
+                    <div>
+                      <span className="text-amber-300 font-bold">Paladino (Classe Primária):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">HP Máx = Const × 8 | Regen = Const × 0.03 / s</code>
+                    </div>
+                    <div>
+                      <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">HP Máx = Const × 18 | Regen = Const × 0.08 / s</code>
+                    </div>
+                  </div>
                 </div>
+                
                 <div>
                   <strong className="text-white block font-semibold">Mana Máxima e Regeneração (Magia)</strong>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mana Máxima = Magia × 10</code>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Regeneração de Mana = Magia × 0.05 / segundo</code>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala dinamicamente com base na classe:</span>
+                  <div className="pl-2 mt-0.5 space-y-1">
+                    <div>
+                      <span className="text-amber-300 font-bold">Mago / Clérigo (Classes Primárias):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mana Máx = Magia × 6 | Regen = Magia × 0.02 / s</code>
+                    </div>
+                    <div>
+                      <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mana Máx = Magia × 18 | Regen = Magia × 0.09 / s</code>
+                    </div>
+                  </div>
                 </div>
+
                 <div>
                   <strong className="text-white block font-semibold">Velocidade de Ataque Básico (Destreza)</strong>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.02)</code>
-                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(400ms, 1500ms / Mult. Velocidade)</code>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala dinamicamente com base na classe:</span>
+                  <div className="pl-2 mt-0.5 space-y-1">
+                    <div>
+                      <span className="text-amber-300 font-bold">Arqueiro / Ladrão (Classes Primárias):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.01)</code>
+                    </div>
+                    <div>
+                      <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.035)</code>
+                    </div>
+                    <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(800ms, 3000ms / Mult. Velocidade)</code>
+                  </div>
                 </div>
+
                 <div>
                   <strong className="text-white block font-semibold">Ataque Básico da Classe ({config.name})</strong>
                   <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
