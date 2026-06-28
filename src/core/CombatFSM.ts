@@ -842,7 +842,7 @@ export class CombatFSM {
       const totalWeight = commonWeight + rareWeight + legendaryWeight;
       const roll = Math.random() * totalWeight;
       
-      let rarity: 'common' | 'rare' | 'epic' | 'legendary' = 'common';
+      let rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' = 'common';
       if (roll < legendaryWeight) {
         rarity = 'legendary';
       } else if (roll < legendaryWeight + rareWeight) {
@@ -850,8 +850,14 @@ export class CombatFSM {
       }
       
       const stage = char.currentStage;
-      const mult = rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0);
       const classId = char.classId;
+      const ascensionCount = char.ascensionCount || 0;
+      
+      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop
+      const isAncestralDrop = ascensionCount >= 1 && Math.random() < 0.10;
+      
+      // Se for drop ancestral, o multiplicador de atributos é maior (4.5 em vez do lendário 2.5)
+      const mult = isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0));
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],
@@ -864,7 +870,7 @@ export class CombatFSM {
       
       const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
       const itemStats: Partial<BaseStats> = {};
-      const numAttributes = rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+      const numAttributes = isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
       
       const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
       pickedStats.forEach((statKey) => {
@@ -881,6 +887,15 @@ export class CombatFSM {
         rogue: 'Set do Assassino Fantasma'
       };
       
+      const ancestralSetNames: Record<string, string> = {
+        warrior: 'Set Ancestral do Conquistador',
+        mage: 'Set Ancestral do Arquimago',
+        ranger: 'Set Ancestral do Caçador Estelar',
+        paladin: 'Set Ancestral do Sentinela Eterno',
+        cleric: 'Set Ancestral do Sábio Divino',
+        rogue: 'Set Ancestral do Ceifador de Almas'
+      };
+      
       const slotNames: Record<string, Record<string, string>> = {
         warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
         mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
@@ -894,7 +909,12 @@ export class CombatFSM {
       let name = '';
       let setName: string | undefined = undefined;
       
-      if (rarity === 'legendary' || rarity === 'rare') {
+      if (isAncestralDrop) {
+        setName = ancestralSetNames[classId] || `Set Ancestral de ${classId}`;
+        const cleanSetName = setName.replace('Set Ancestral do ', '');
+        name = `${baseName} Ancestral do ${cleanSetName}`;
+        rarity = 'legendary'; // Os itens do set ancestral herdam visual lendário base
+      } else if (rarity === 'legendary' || rarity === 'rare') {
         setName = setNames[classId];
         const cleanSetName = setName.replace('Set do ', '');
         name = `${baseName} do ${cleanSetName}`;

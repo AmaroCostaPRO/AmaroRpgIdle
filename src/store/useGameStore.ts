@@ -1034,7 +1034,7 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
-      let cost = 100;
+      let cost = 500;
       let targetMysticLevel = 1;
 
       if (isBothMystic) {
@@ -1051,8 +1051,8 @@ export const useGameStore = create<GameState>((set) => ({
         }
 
         targetMysticLevel = lvl1 + 1;
-        const costs = [0, 500, 2500, 12500, 62500];
-        cost = costs[lvl1] || 100;
+        const costs = [0, 1000, 2500, 12500, 62500];
+        cost = costs[lvl1] || 500;
       }
 
       if ((state.character.gold || 0) < cost) {

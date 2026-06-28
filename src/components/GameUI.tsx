@@ -785,23 +785,44 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   if (!config || config.classId !== character.classId) return null;
                   
                   const isAnyBonusActive = count >= 2;
+                  const isAncestral = setName.startsWith('Set Ancestral');
+                  const bonusText2 = isAncestral ? '(2) +80 Atrib.' : '(2) +15 Atrib.';
+                  const bonusText3 = isAncestral ? '(3) +100 Con/For +50 Sorte' : '(3) +20 Con/For';
+                  const bonusText5 = isAncestral ? '(5) +200 Atrib.' : '(5) +35 Atrib.';
 
                   return (
                     <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
-                        <span style={{ fontWeight: 700, color: isAnyBonusActive ? 'var(--gold-400)' : '#cbd5e1' }}>{setName}</span>
-                        <span className="font-mono" style={{ fontSize: '0.6rem' }}>{count}/5 Peças</span>
+                        <span style={{ fontWeight: 700, color: isAnyBonusActive ? (isAncestral ? '#c084fc' : 'var(--gold-400)') : '#cbd5e1' }}>
+                          {isAncestral ? `✨ ${setName}` : setName}
+                        </span>
+                        <span className="font-mono" style={{ fontSize: '0.6rem', color: isAncestral ? '#c084fc' : 'inherit' }}>{count}/5 Peças</span>
                       </div>
                       {isAnyBonusActive && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.1rem' }}>
-                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 2 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 2 ? '#34d399' : '#64748b', border: count >= 2 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                            (2) +15 Atributo
+                          <span className="badge" style={{ 
+                            fontSize: '0.5rem', 
+                            background: count >= 2 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
+                            color: count >= 2 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
+                            border: count >= 2 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                          }}>
+                            {bonusText2}
                           </span>
-                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 3 ? '#34d399' : '#64748b', border: count >= 3 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                            (3) +20 Con/For
+                          <span className="badge" style={{ 
+                            fontSize: '0.5rem', 
+                            background: count >= 3 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
+                            color: count >= 3 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
+                            border: count >= 3 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                          }}>
+                            {bonusText3}
                           </span>
-                          <span className="badge" style={{ fontSize: '0.5rem', background: count >= 5 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)', color: count >= 5 ? '#34d399' : '#64748b', border: count >= 5 ? '1px solid rgba(16,185,129,0.3)' : '1px solid transparent' }}>
-                            (5) +35 Atributo
+                          <span className="badge" style={{ 
+                            fontSize: '0.5rem', 
+                            background: count >= 5 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
+                            color: count >= 5 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
+                            border: count >= 5 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                          }}>
+                            {bonusText5}
                           </span>
                         </div>
                       )}
@@ -860,6 +881,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               );
             }
 
+            const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
             return (
               <button
                 key={item.id}
@@ -871,7 +893,8 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 style={{
                   aspectRatio: '1',
                   background: getRarityBg(item.rarity),
-                  border: `2px solid ${getRarityColor(item.rarity)}`,
+                  border: isAncestral ? '2px dashed #a78bfa' : `2px solid ${getRarityColor(item.rarity)}`,
+                  boxShadow: isAncestral ? '0 0 10px rgba(167, 139, 250, 0.8)' : 'none',
                   borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -884,7 +907,20 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 }}
               >
                 <span style={{ fontSize: '1.2rem' }}>{slotIcons[item.slot]}</span>
-                {item.rarity === 'legendary' && (
+                {isAncestral && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    right: '2px', 
+                    width: '5px', 
+                    height: '5px', 
+                    borderRadius: '50%', 
+                    background: '#c084fc',
+                    boxShadow: '0 0 6px #c084fc',
+                    animation: 'glow-pulse 1.5s infinite'
+                  }} />
+                )}
+                {!isAncestral && item.rarity === 'legendary' && (
                   <div style={{ 
                     position: 'absolute', 
                     top: '2px', 
@@ -945,6 +981,7 @@ const EquipmentSlot: React.FC<{
   getRarityColor: (rarity: string) => string;
   getRarityBg: (rarity: string) => string;
 }> = ({ slot, item, onClick, icons, labels, getRarityColor, getRarityBg }) => {
+  const isAncestral = !!(item && item.setName && item.setName.startsWith('Set Ancestral'));
   return (
     <button
       onClick={() => item && onClick()}
@@ -952,7 +989,8 @@ const EquipmentSlot: React.FC<{
         width: '52px',
         height: '52px',
         background: item ? getRarityBg(item.rarity) : 'rgba(0,0,0,0.4)',
-        border: item ? `2px solid ${getRarityColor(item.rarity)}` : '1px dashed rgba(255,255,255,0.08)',
+        border: item ? (isAncestral ? '2px dashed #a78bfa' : `2px solid ${getRarityColor(item.rarity)}`) : '1px dashed rgba(255,255,255,0.08)',
+        boxShadow: isAncestral ? '0 0 10px rgba(167, 139, 250, 0.8)' : 'none',
         borderRadius: 'var(--radius-md)',
         display: 'flex',
         flexDirection: 'column',
@@ -967,6 +1005,44 @@ const EquipmentSlot: React.FC<{
       <span style={{ fontSize: '1.2rem', opacity: item ? 1 : 0.25 }}>
         {icons[slot]}
       </span>
+      {isAncestral && (
+        <div style={{ 
+          position: 'absolute', 
+          top: '2px', 
+          right: '2px', 
+          width: '5px', 
+          height: '5px', 
+          borderRadius: '50%', 
+          background: '#c084fc',
+          boxShadow: '0 0 6px #c084fc',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
+      {!isAncestral && item?.rarity === 'legendary' && (
+        <div style={{ 
+          position: 'absolute', 
+          top: '2px', 
+          right: '2px', 
+          width: '4px', 
+          height: '4px', 
+          borderRadius: '50%', 
+          background: '#f59e0b',
+          boxShadow: '0 0 4px #f59e0b'
+        }} />
+      )}
+      {item?.rarity === 'mystic' && (
+        <div style={{ 
+          position: 'absolute', 
+          top: '2px', 
+          right: '2px', 
+          width: '5px', 
+          height: '5px', 
+          borderRadius: '50%', 
+          background: '#d946ef',
+          boxShadow: '0 0 6px #d946ef',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
       {item?.rarity === 'mystic' && item.mysticLevel && (
         <div style={{
           position: 'absolute',
@@ -987,7 +1063,7 @@ const EquipmentSlot: React.FC<{
         position: 'absolute', 
         bottom: '2px', 
         fontSize: '0.45rem', 
-        color: item ? getRarityColor(item.rarity) : '#475569',
+        color: item ? (isAncestral ? '#c084fc' : getRarityColor(item.rarity)) : '#475569',
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '0.05em'
@@ -2751,8 +2827,13 @@ export default function GameUI() {
               </div>
 
               {selectedItem.setName && (
-                <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
-                  Conjunto: {selectedItem.setName}
+                <div style={{ 
+                  fontSize: '0.6rem', 
+                  color: selectedItem.setName.startsWith('Set Ancestral') ? '#c084fc' : 'var(--gold-400)', 
+                  fontWeight: 600,
+                  textShadow: selectedItem.setName.startsWith('Set Ancestral') ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none'
+                }}>
+                  {selectedItem.setName.startsWith('Set Ancestral') ? '✨ Conjunto Ancestral: ' : 'Conjunto: '} {selectedItem.setName}
                 </div>
               )}
 
@@ -2845,8 +2926,13 @@ export default function GameUI() {
                   </div>
 
                   {item.setName && (
-                    <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
-                      Conjunto: {item.setName}
+                    <div style={{ 
+                      fontSize: '0.6rem', 
+                      color: item.setName.startsWith('Set Ancestral') ? '#c084fc' : 'var(--gold-400)', 
+                      fontWeight: 600,
+                      textShadow: item.setName.startsWith('Set Ancestral') ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none'
+                    }}>
+                      {item.setName.startsWith('Set Ancestral') ? '✨ Conjunto Ancestral: ' : 'Conjunto: '} {item.setName}
                     </div>
                   )}
 

@@ -106,8 +106,7 @@ export const ForgeView: React.FC = () => {
     if (!isBothMystic && !isBothNormal) {
       return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0 };
     }
-
-    let cost = 100;
+    let cost = 500;
     let nextLevel = 1;
 
     if (isBothMystic) {
@@ -122,8 +121,8 @@ export const ForgeView: React.FC = () => {
       }
 
       nextLevel = lvl1 + 1;
-      const costs = [0, 500, 2500, 12500, 62500];
-      cost = costs[lvl1] || 100;
+      const costs = [0, 1000, 2500, 12500, 62500];
+      cost = costs[lvl1] || 500;
     }
 
     const hasGold = (character.gold || 0) >= cost;

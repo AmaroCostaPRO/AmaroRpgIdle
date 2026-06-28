@@ -581,7 +581,7 @@ export class CombatScene extends Phaser.Scene {
   public getEnemyY(): number { return this.enemyBody.y; }
 
   public scrollWorld(delta: number): void {
-    const scrollSpeed = 0.22; 
+   const scrollSpeed = 0.22; 
     this.background.tilePositionX += scrollSpeed * delta;
     
     // O inimigo se aproxima

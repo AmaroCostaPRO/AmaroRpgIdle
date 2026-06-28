@@ -118,13 +118,14 @@ O herói pode encontrar e equipar peças de equipamentos derrubados por monstros
 *   **Comum (`common`)**: Concede bônus em apenas **1 atributo** aleatório da lista de atributos viáveis para a classe do jogador. O nome recebe o sufixo "Rústico".
 *   **Raro (`rare`)**: Concede bônus em **2 atributos** distintos. O nome é associado ao conjunto temático da classe ativa (ex: "Peitoral do Senhor da Guerra").
 *   **Lendário (`legendary`)**: Concede bônus em **3 atributos** distintos. Possui multiplicador de escala alto e nome associado ao conjunto temático da classe.
+*   **Ancestral (`ancestral`)**: Concede bônus em **3 atributos** de altíssima escala. Disponível apenas para jogadores que realizaram a primeira Ascensão (`ascensionCount >= 1`), com taxa de drop de 10% sob itens normais, gerando apenas o set temático da classe ativa no momento do combate. Atributos base gerados com multiplicador de escala místico de $4.5\times$ (superior ao $2.5\times$ lendário). Identificado visualmente por uma borda tracejada em tom violeta, brilho místico pulsante e indicador estelar no slot.
 
 O valor final de cada atributo concedido pelo item é calculado com base na Fase atual do combate onde o item caiu:
 $$\text{Atributo do Item} = \max\left(1, \text{round}\left( \text{Fase} \times \text{Multiplicador Raridade} \times \text{Random}(0.8, 1.2) \right)\right)$$
-*Onde o $\text{Multiplicador Raridade}$ é $1.0$ para Comum, $1.5$ para Raro e $2.5$ para Lendário.*
+*Onde o $\text{Multiplicador Raridade}$ é $1.0$ para Comum, $1.5$ para Raro, $2.5$ para Lendário e $4.5$ para Ancestral.*
 
 ### B. Bônus de Conjunto (Sets)
-Equipar múltiplos itens raros ou lendários pertencentes ao mesmo conjunto de classe ativa libera bônus adicionais de atributos acumulativos a partir de 2, 3 e 5 peças:
+Equipar múltiplos itens raros, lendários ou ancestrais pertencentes ao mesmo conjunto de classe ativa libera bônus adicionais de atributos acumulativos a partir de 2, 3 e 5 peças:
 
 ```mermaid
 graph LR
@@ -157,6 +158,33 @@ graph LR
     *   2 peças: $+15$ Destreza
     *   3 peças: $+20$ Força
     *   5 peças: $+35$ Destreza *(Total acumulado: +50 Dex, +20 Str)*
+
+*   **Sets Ancestrais (Pós-Ascensão)**:
+    Estes conjuntos são liberados apenas após a primeira ascensão do personagem e garantem bônus de atributos extremamente superiores:
+    *   **Set Ancestral do Conquistador (`warrior`)**:
+        *   2 peças: $+80$ Força
+        *   3 peças: $+100$ Constituição, $+50$ Sorte
+        *   5 peças: $+200$ Força *(Total acumulado: +280 Força, +100 Con, +50 Sorte)*
+    *   **Set Ancestral do Arquimago (`mage`)**:
+        *   2 peças: $+80$ Magia
+        *   3 peças: $+100$ Constituição, $+50$ Sorte
+        *   5 peças: $+200$ Magia *(Total acumulado: +280 Magia, +100 Con, +50 Sorte)*
+    *   **Set Ancestral do Caçador Estelar (`ranger`)**:
+        *   2 peças: $+80$ Destreza
+        *   3 peças: $+100$ Constituição, $+50$ Sorte
+        *   5 peças: $+200$ Destreza *(Total acumulado: +280 Destreza, +100 Con, +50 Sorte)*
+    *   **Set Ancestral do Sentinela Eterno (`paladin`)**:
+        *   2 peças: $+80$ Constituição
+        *   3 peças: $+100$ Força, $+50$ Sorte
+        *   5 peças: $+200$ Constituição *(Total acumulado: +280 Constituição, +100 For, +50 Sorte)*
+    *   **Set Ancestral do Sábio Divino (`cleric`)**:
+        *   2 peças: $+80$ Magia
+        *   3 peças: $+100$ Constituição, $+50$ Sorte
+        *   5 peças: $+200$ Magia *(Total acumulado: +280 Magia, +100 Con, +50 Sorte)*
+    *   **Set Ancestral do Ceifador de Almas (`rogue`)**:
+        *   2 peças: $+80$ Destreza
+        *   3 peças: $+100$ Força, $+50$ Sorte
+        *   5 peças: $+200$ Destreza *(Total acumulado: +280 Destreza, +100 For, +50 Sorte)*
 
 ---
 
@@ -383,7 +411,7 @@ O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas c
 O jogo possui 20 monstros catalogados de acordo com sua fase e tipo:
 
 | Fase | Tipo | ID do Monstro | Nome do Monstro | Textura | Mult. HP | Mult. Dano | Mult. Vel. | XP Concedido |
-| :---: | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| :---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
 | **1 / 6** | Normal | `goblin` | Goblin Ladino | `enemy_goblin` | 0.75 | 0.85 | 1.35 | 25 |
 | **1 / 6** | Normal | `shadow_wolf` | Lobo das Sombras | `enemy_wolf` | 0.90 | 1.00 | 1.20 | 30 |
 | **1 / 6** | Normal | `orc_warrior` | Guerreiro Orc | `enemy_orc` | 1.20 | 1.10 | 0.90 | 40 |
@@ -456,7 +484,7 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
 ### A. Condições e Perda de Dados
 *   **Requisito Mínimo**: Acumular XP suficiente para obter pelo menos o número de Pontos de Prestígio (PP) exigido pelo número de ascensões já efetuadas:
     $$\text{Requisito de PP} = \begin{cases} 1 & \text{se Ascensões} = 0 \\ 3 + 2 \times \text{Ascensões} & \text{se Ascensões} \ge 1 \end{cases}$$
-*   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos e todos os equipamentos equipados ou guardados no inventário.
+*   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos, saldo de ouro acumulado (retorna a 0) e todos os equipamentos equipados ou guardados no inventário.
 *   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, e melhorias permanentes de prestígio.
 
 ### B. Fórmulas de Recompensa de Prestígio
@@ -517,7 +545,7 @@ $$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
 $$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
 
 ### C. Comportamento no Prestígio (Ascensão)
-Durante o ritual de Ascensão (Prestígio), o saldo de ouro acumulado pelo herói **é preservado** (não sofre reset). Isso permite que o jogador mantenha seu poder de compra para forjar novos equipamentos nas fases iniciais da nova jornada.
+Durante o ritual de Ascensão (Prestígio), o saldo de ouro acumulado pelo herói **é redefinido para zero** (sofre reset total junto com os demais recursos). Isso exige que o jogador recomece a acumular moedas em sua nova jornada de evolução para poder usufruir da forja.
 
 ---
 
@@ -535,15 +563,15 @@ Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatori
 
 ### B. Custo de Fusão
 A fusão exige o pagamento de uma taxa em Ouro que aumenta exponencialmente dependendo do nível místico resultante:
-*   **Fusão Inicial** (Gera Místico +1): $100$ Ouro.
+*   **Fusão Inicial** (Gera Místico +1): $500$ Ouro.
 *   **Fusão de Itens Místicos** (Gera Místico $+2$ até $+5$):
-    $$\text{Custo de Fusão Mística}(L) = 100 \times 5^L$$
-    Onde $L$ representa o nível místico atual dos dois itens sendo fundidos.
+    *   Místico +1 para Místico +2: $1.000$ Ouro.
+    *   Demais fusões: $100 \times 5^L$ Ouro (onde $L$ é o nível de origem).
 
 | Nível de Origem | Nível Resultante | Custo em Ouro |
 | :--- | :--- | :--- |
-| Convencional + Convencional | Místico +1 | $100$ Ouro |
-| Místico +1 + Místico +1 | Místico +2 | $500$ Ouro |
+| Convencional + Convencional | Místico +1 | $500$ Ouro |
+| Místico +1 + Místico +1 | Místico +2 | $1.000$ Ouro |
 | Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro |
 | Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro |
 | Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro |
@@ -564,7 +592,7 @@ Para cada atributo $K$ presente em pelo menos um dos dois itens de origem:
 
 **Exemplo de aplicação:**
 | Slot | Item A (Força) | Item B (Força) | Cálculo | Resultado |
-| :--- | :---: | :---: | :--- | :---: |
+| :--- | :---: | :---: | :--- | :--- |
 | Forja Normal | 50 | 5 | $50 + \lceil 5 \times 0.5 \rceil$ | **53** |
 | Forja Normal | 20 | 20 | $20 + \lceil 20 \times 0.5 \rceil$ | **30** |
 | Forja Normal (Exclusivo) | 0 | 12 | $12$ (portador único) | **12** |
@@ -586,7 +614,22 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 2.2.0 (Atual)
+### Versão 2.3.0 (Atual)
+*   **👑 Sets Ancestrais (Pós-Ascensão)**:
+    *   Introdução de 6 novos conjuntos de equipamentos exclusivos de endgame, liberados após o jogador efetuar a primeira Ascensão (`ascensionCount >= 1`).
+    *   **Chance de Drop e Restrição de Classe**: Possui 10% de chance de conversão de qualquer drop de item. Garante apenas o drop do set correspondente à classe ativa do herói.
+    *   **Atributos de Alta Performance**: Multiplicador de escala inicial elevado para $4.5\times$ (superior a $2.5\times$ dos Lendários), priorizando 3 atributos principais do conjunto.
+    *   **Identidade Visual Exclusiva**: Equipamentos ancestrais recebem uma borda tracejada em tom roxo (`#a78bfa`), brilho pulsante violeta e indicador místico no canto superior direito do slot.
+    *   **Bônus de Conjunto Massivos**: Acumular 2, 3 ou 5 peças confere bônus de atributos extremamente superiores (ex: +80 atributo primário, +100 Const/For + 50 Sorte, +200 atributo primário).
+*   **⚒️ Ajuste de Custos da Grande Forja**:
+    *   A primeira fusão (fusão inicial de itens normais que resulta em Místico +1) teve seu custo ajustado de 100 para **500 Ouro**.
+    *   A segunda fusão (de dois itens Místicos +1 para gerar um Místico +2) teve seu custo ajustado de 500 para **1.000 Ouro**.
+*   **📱 Melhorias de Navegação & Ocultação de Interface**:
+    *   **Ocultar Atributos Totais**: Adicionada uma seta expansível de controle na aba de Equipamento que permite recolher ou expandir a listagem de Atributos Totais e Conjuntos, salvando a preferência do jogador de forma persistente (`medieval_idle_hide_total_stats`).
+    *   **Console de Combate Recolhível no Desktop**: O botão de fechar (seta) o console de logs de combate foi adicionado à versão desktop e a visibilidade agora respeita a configuração das Opções em ambas as plataformas.
+    *   **Remoção de Scrolls Duplos**: Eliminados scrolls redundantes nas abas Habilidades e Ascensão no layout mobile para otimizar a experiência tátil e a rolagem fluida.
+
+### Versão 2.2.0
 *   **touch Combate Híbrido (Tap Combat)**:
     *   Implementação de um novo sistema de cliques e toques ativos sobre a tela de combate que ajuda diretamente no dano contra monstros e chefes.
     *   **Fórmula Híbrida de Dano**: Para garantir relevância do clique em fases avançadas do jogo, o dano do toque escala como: $\text{Dano do Toque} = \text{Poder do Toque} + (\text{DPS Passivo} \times \text{Percentual do Toque})$.

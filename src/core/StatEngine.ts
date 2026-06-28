@@ -62,6 +62,60 @@ export const SET_BONUSES: Record<string, {
       3: { strength: 20 },
       5: { dexterity: 35 }
     }
+  },
+  'Set Ancestral do Conquistador': {
+    name: 'Set Ancestral do Conquistador',
+    classId: 'warrior',
+    bonuses: {
+      2: { strength: 80 },
+      3: { constitution: 100, luck: 50 },
+      5: { strength: 200 }
+    }
+  },
+  'Set Ancestral do Arquimago': {
+    name: 'Set Ancestral do Arquimago',
+    classId: 'mage',
+    bonuses: {
+      2: { magic: 80 },
+      3: { constitution: 100, luck: 50 },
+      5: { magic: 200 }
+    }
+  },
+  'Set Ancestral do Caçador Estelar': {
+    name: 'Set Ancestral do Caçador Estelar',
+    classId: 'ranger',
+    bonuses: {
+      2: { dexterity: 80 },
+      3: { constitution: 100, luck: 50 },
+      5: { dexterity: 200 }
+    }
+  },
+  'Set Ancestral do Sentinela Eterno': {
+    name: 'Set Ancestral do Sentinela Eterno',
+    classId: 'paladin',
+    bonuses: {
+      2: { constitution: 80 },
+      3: { strength: 100, luck: 50 },
+      5: { constitution: 200 }
+    }
+  },
+  'Set Ancestral do Sábio Divino': {
+    name: 'Set Ancestral do Sábio Divino',
+    classId: 'cleric',
+    bonuses: {
+      2: { magic: 80 },
+      3: { constitution: 100, luck: 50 },
+      5: { magic: 200 }
+    }
+  },
+  'Set Ancestral do Ceifador de Almas': {
+    name: 'Set Ancestral do Ceifador de Almas',
+    classId: 'rogue',
+    bonuses: {
+      2: { dexterity: 80 },
+      3: { strength: 100, luck: 50 },
+      5: { dexterity: 200 }
+    }
   }
 };
 

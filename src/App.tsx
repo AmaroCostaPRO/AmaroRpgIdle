@@ -290,15 +290,48 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🔥 Atualização v2.2.0 — Combate Híbrido & Toque!
+              🔥 Atualização v2.3.0 — Sets Ancestrais & Forja!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz o combate híbrido ativo (Tap Combat), modo Frenesi com combos rápidos, novos upgrades na Ascensão e visualizações otimizadas:
+                Esta atualização introduz os poderosos Sets Ancestrais para personagens pós-ascensão, balanceamento de custos da Grande Forja Arcana e correções visuais e de scroll na interface:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+
+                {/* v2.3.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.3.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        👑 Sets Ancestrais (Pós-Ascensão)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Desbloqueie equipamentos ancestrais com multiplicador de 4.5x nos atributos iniciais. Exclusivo para personagens com pelo menos 1 Ascensão. Cada classe possui seu próprio conjunto de prestígio com bônus acumulativos massivos.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
+                        ⚒️ Ajuste de Custos da Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A primeira fusão (de itens normais para criar um Místico +1) agora custa 500 Ouro. A segunda fusão (de dois Místicos +1 para um Místico +2) agora custa 1.000 Ouro.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📱 Melhorias de Navegação & Ocultação
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionada a funcionalidade de fechar o Console de Combate tanto no celular quanto no computador. Removidos scrolls duplos indesejados nas abas Habilidades e Ascensão no modo mobile. Agora o painel de Atributos Totais pode ser recolhido de forma persistente!
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* v2.2.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
