@@ -6,6 +6,10 @@ export interface BaseStats {
   dexterity: number;
   constitution: number;
   luck: number;
+  touch: number;
+  touchCritChance: number;
+  touchCritDamage: number;
+  robotClicks: number;
 }
 
 export interface EquipmentItem {
@@ -98,7 +102,9 @@ export enum GameEvent {
   ENEMY_DEFEATED = 'ENEMY_DEFEATED',
   STAGE_COMPLETED = 'STAGE_COMPLETED',
   COOLDOWNS_CHANGED = 'COOLDOWNS_CHANGED',
-  ARENA_READY = 'ARENA_READY'
+  ARENA_READY = 'ARENA_READY',
+  COMBO_STATE_CHANGED = 'COMBO_STATE_CHANGED',
+  FRENZY_STATE_CHANGED = 'FRENZY_STATE_CHANGED'
 }
 
 export interface GameEventPayload {

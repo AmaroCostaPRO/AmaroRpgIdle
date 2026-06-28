@@ -78,7 +78,11 @@ export class StatEngine {
       magic: character.baseStats.magic || 0,
       dexterity: character.baseStats.dexterity || 0,
       constitution: character.baseStats.constitution || 0,
-      luck: character.baseStats.luck || 0
+      luck: character.baseStats.luck || 0,
+      touch: character.baseStats.touch || 0,
+      touchCritChance: character.baseStats.touchCritChance || 0,
+      touchCritDamage: character.baseStats.touchCritDamage || 0,
+      robotClicks: character.baseStats.robotClicks || 0
     };
 
     // 1. Somar atributos diretos dos equipamentos equipados

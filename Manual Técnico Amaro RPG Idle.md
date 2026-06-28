@@ -67,13 +67,13 @@ A interface é construída sobre uma paleta de tons escuros curados, proporciona
 ### B. Elementos do HUD e Viewport
 1.  **Combate Viewport (Phaser Canvas)**: Exibe em tempo real o herói do jogador e o monstro atual no cenário. Possui um `ZOOM_FACTOR` integrado de $1.5\times$ para dar maior clareza visual aos sprites de arte digital escura e efeitos visuais. A base do cenário (*ground*) é travada verticalmente para manter o alinhamento visual durante a movimentação.
 2.  **HUD de Status**: Exibe duas barras horizontais (HP e Mana) com preenchimento colorido e contadores absolutos (`Valor Atual / Valor Máximo`), acompanhados da Fase Atual do jogo, progresso do Estágio (monstros eliminados de 15), velocidade da simulação e atalhos de controle de som.
-3.  **Aceleração de Jogo**: Permite alterar o ritmo da simulação do Phaser entre as velocidades `1x`, `2x` e `3x` usando multiplicadores temporais no relógio interno da cena.
+3.  **Controle de Velocidade e Pausa**: Permite alterar o ritmo da simulação do Phaser ou pausar o jogo completamente (velocidades `⏸`, `1x`, `2x` e `3x`) usando multiplicadores temporais no relógio interno da cena.
 
 ### C. Estrutura do Menu de Abas
 O painel inferior/lateral de gerenciamento é dividido em abas com transições suaves (`animate-tabFade` para evitar saltos bruscos de tela):
 *   **Combate**: Console de logs de batalha detalhados e botões de atalho rápido das habilidades desbloqueadas, com overlay cinza semitransparente indicando o tempo de cooldown restante e botão de alternância do Auto-Cast (IA).
 *   **Atributos**: Painel com os pontos de atributos livres para distribuição (+5 a cada nível), listagem dos atributos finais do personagem calculados em tempo real (Força, Magia, Destreza, Constituição e Sorte) e bônus passivos de classe.
-*   **Habilidades**: Árvore visualizada de forma hierárquica por conexões de dependência. Permite comprar ou aprimorar (até nível 5) habilidades ativas e passivas da classe atual utilizando Pontos de Habilidade adquiridos por nível.
+*   **Habilidades**: Árvore visualizada de forma hierárquica por conexões de dependência. Permite comprar ou aprimorar (até nível 5 por padrão, estendendo-se até o nível 10 nas dificuldades Inferno e Apocalipse) habilidades ativas e passivas da classe atual utilizando Pontos de Habilidade adquiridos por nível.
 *   **Equipamento**: Grade de inventário com 30 slots exibindo itens recolhidos por drop. Possui um conjunto de slots de equipagem ativa (`Cabeça`, `Torso`, `Pernas`, `Mãos` e `Arma`). Ao clicar em um item, abre-se um painel de detalhes local absoluto contendo atributos, raridade e bônus de conjunto.
 *   **Ascensão**: Exibe estatísticas acumuladas, a quantidade de Pontos de Prestígio (PP) que o jogador ganhará se resetar agora, os requisitos mínimos de PP e o painel de Upgrades Permanentes de Ascensão.
 *   **Bestiário**: Enciclopédia de monstros catalogados no jogo. Mostra a ilustração transparente de cada monstro e uma contagem de abates acumulados.
@@ -163,6 +163,14 @@ graph LR
 ## 6. Árvores de Habilidades
 
 Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adicionalmente, a habilidade ativa de **Cura** está disponível para todas as classes.
+
+### Regras de Progressão e Nível Máximo
+*   **Limite de Nível Padrão**: Por padrão (Fases 1 a 10, dificuldades Normal e Pesadelo), cada habilidade pode ser aprimorada até o **Nível 5**.
+*   **Expansão no End-Game**: Ao alcançar a Fase 11 (dificuldades Inferno e Apocalipse), o limite máximo de nível de todas as habilidades é expandido para o **Nível 10**.
+*   **Escalonamento**:
+    *   *Habilidades Ativas*: O dano aumenta em $+15\%$ multiplicativo por nível da habilidade baseado no multiplicador original (ex: dano de $150\%$ vai para $240\%$ no nível 5 e até $315\%$ no nível 10).
+    *   *Cura*: A porcentagem curada aumenta em $+5\%$ por nível (de $30\%$ no nível 1 para $50\%$ no nível 5 e até $75\%$ no nível 10).
+    *   *Habilidades Passivas*: Os bônus de atributos se acumulam linearmente por nível (ex: $+5$ de Força por nível resulta em $+25$ no nível 5 e até $+50$ no nível 10).
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
 Os custos de mana e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
@@ -351,16 +359,16 @@ O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas c
 | Tier | Fases | Fator de Dificuldade | Aumento vs. Normal |
 | :--- | :---: | :---: | :--- |
 | **Normal** | 1 – 5 | × 1.0 | — |
-| **Pesadelo** 🔴 | 6 – 10 | × 2.5 | +150% de HP e Dano |
-| **Inferno** 🟠 | 11 – 15 | × 5.0 | +400% de HP e Dano |
-| **Apocalipse** 🟣 | 16 – 20 | × 10.0 | +900% de HP e Dano |
+| **Pesadelo** 🔴 | 6 – 10 | × 2.0 | +100% de HP e Dano |
+| **Inferno** 🟠 | 11 – 15 | × 3.0 | +200% de HP e Dano |
+| **Apocalipse** 🟣 | 16 – 20 | × 4.0 | +300% de HP e Dano |
 
 *Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
     $$\text{Fator HP} = 1.65^{\text{Fase} - 1}$$
     $$\text{Fator Dano} = 1.30^{\text{Fase} - 1}$$
-    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.5 & \text{se } 6 \le \text{Fase} \le 10 \\ 5.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 10.0 & \text{se } 16 \le \text{Fase} \le 20 \end{cases}$$
+    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \end{cases}$$
 *   **Vida Máxima de Inimigo Comum**:
     $$\text{HP Máximo Normal} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
 *   **Vida Máxima de Chefe**:
@@ -458,12 +466,17 @@ O ganho de Pontos de Prestígio (PP) na ascensão é determinado por:
 $$\text{PP Obtidos} = \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.85} \rfloor$$
 
 ### C. Catálogo de Upgrades de Prestígio Permanente
-Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus permanentes para os atributos iniciais da classe selecionada, aplicando-se de imediato nos resets seguintes:
+
+Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus permanentes para os atributos iniciais ou mecânicas de toque, aplicando-se de imediato nos resets seguintes:
 *   **Força Divina (`perm_str`)**: $+6$ Strength permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Mente Arcana (`perm_mag`)**: $+6$ Magic permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Foco Ágil (`perm_dex`)**: $+3$ Dexterity permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Vigor Eterno (`perm_con`)**: $+9$ Constitution permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Bênção da Sorte (`perm_luk`)**: $+3$ Luck permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Toque Divino (`perm_touch`)**: $+5$ Poder do Toque permanente por nível. Custo inicial: $2\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Toque Crítico (`perm_touch_crit`)**: $+2\%$ Chance de Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
+*   **Toque Devastador (`perm_touch_crit_dmg`)**: $+20\%$ Dano Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+2$ cliques por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 
 ---
 
@@ -573,13 +586,34 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 2.1.0 (Atual)
+### Versão 2.2.0 (Atual)
+*   **touch Combate Híbrido (Tap Combat)**:
+    *   Implementação de um novo sistema de cliques e toques ativos sobre a tela de combate que ajuda diretamente no dano contra monstros e chefes.
+    *   **Fórmula Híbrida de Dano**: Para garantir relevância do clique em fases avançadas do jogo, o dano do toque escala como: $\text{Dano do Toque} = \text{Poder do Toque} + (\text{DPS Passivo} \times \text{Percentual do Toque})$.
+    *   **Limitador Inteligente de Performance**: Inclusão de um throttle de entrada de até 20 cliques por segundo para evitar hacks ou sobrecarga do loop de renderização do Phaser.
+*   **⚡ Modo Frenesi (Frenzy Mode) e Sistema de Combo**:
+    *   Adicionados novos componentes de HUD de alta performance em `GameUI.tsx` (Frenzy Bar e Combo Badge) atualizados via barramento direto de eventos (`COMBO_STATE_CHANGED` e `FRENZY_STATE_CHANGED`) contornando re-renderizações de React para manter a simulação a 60 FPS estáveis.
+    *   Cliques contínuos preenchem a barra de Frenesi; ao atingir 100%, o jogo entra no modo Frenesi acelerando o dano de clique e aumentando a velocidade do combate temporariamente.
+*   **✨ Upgrades Permanentes de Toque na Ascensão**:
+    *   Inclusão de 4 novos upgrades permanentes no painel de Ascensão (Prestígio):
+        *   **Toque Divino (`perm_touch`)**: Aumenta o Poder do Toque base permanentemente.
+        *   **Toque Crítico (`perm_touch_crit`)**: Melhora a probabilidade de cliques críticos.
+        *   **Toque Devastador (`perm_touch_crit_dmg`)**: Multiplicador de dano crítico do toque amplificado.
+        *   **Robô Assistente (`perm_robot`)**: Desbloqueia uma IA de clique automático permanente na arena que desfere cliques a cada segundo.
+*   **🎨 Refinamento de UI/UX da Árvore de Prestígio (Desktop)**:
+    *   Reformulação completa do painel de Ascensão no desktop para abrigar os novos upgrades de toque em uma linha horizontal centralizada e espaçada no rodapé, sem conexões SVG poluindo a estrela clássica de atributos.
+
+### Versão 2.1.5
 *   **🔥 Novos Tiers de Dificuldade (Inferno e Apocalipse)**:
     *   Expansão do sistema de fases de 10 para **20 fases totais**, divididas em 4 tiers de dificuldade.
-    *   **Inferno** (Fases 11–15): Multiplicador de HP e Dano × 5.0 (+400%) com tint laranja flamejante nos backgrounds e inimigos.
-    *   **Apocalipse** (Fases 16–20): Multiplicador de HP e Dano × 10.0 (+900%) com tint roxo sinistro.
+    *   **Pesadelo** (Fases 6–10): Multiplicador de HP e Dano × 2.0 (+100%).
+    *   **Inferno** (Fases 11–15): Multiplicador de HP e Dano × 3.0 (+200%) com tint laranja flamejante nos backgrounds e inimigos.
+    *   **Apocalipse** (Fases 16–20): Multiplicador de HP e Dano × 4.0 (+300%) com tint roxo sinistro.
     *   HUD do combate atualizado para exibir `FASE` / `PESADELO` / `INFERNO` / `APOCALIPSE` com paletas de cores exclusivas por tier.
     *   Prefixo no nome do inimigo (`[Pesadelo]` / `[Inferno]` / `[Apocalipse]`) exibido na tela de combate.
+*   **🛡️ Extensão de Nível de Habilidade**:
+    *   Habilidades ativas e passivas agora podem ser aprimoradas até o **Nível 10** a partir da dificuldade Inferno (Fase 11+).
+    *   Os multiplicadores de dano e os bônus de cura escalam linearmente até o nível 10 (+15% de dano por nível e +5% de cura por nível).
 *   **⚖️ Rebalanceamento da Fórmula da Forja Mística**:
     *   A fórmula de fusão foi alterada de soma aritmética direta para **fórmula assimétrica**: o stat maior é 100% preservado; apenas o stat menor sofre redução de 50% ($\lceil \text{menor} \times 0.5 \rceil$).
     *   Stats exclusivos de um item são copiados integralmente sem penalidade.
@@ -591,6 +625,18 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 *   **🔢 Badge Visual de Nível Místico**:
     *   Adicionado indicador numérico fuchsia (`+1` a `+5`) no canto superior esquerdo do ícone de cada item Místico, visível tanto na **grade do inventário** quanto nos **slots de equipamento ativo**.
     *   O badge complementa a bolinha pulsante roxo-lilás (canto superior direito) já existente, permitindo identificar o nível sem abrir o painel de detalhes.
+
+### Versão 2.1.0
+*   **⏸️ Sistema de Pausa da Simulação de Batalha**:
+    *   Implementado controle de pausa no combate. O multiplicador de velocidade `0` (representado pelo símbolo `⏸`) congela o tempo, física, tweens e cronômetro interno de batalha em `CombatScene.ts`.
+    *   Interface de usuário redesenhada para acomodar o botão `⏸` de forma simétrica a `1x`, `2x` e `3x` no seletor de velocidades em `GameUI.tsx`.
+*   **📊 Feedback Visual Aprimorado no Combate (Barras de HP Flutuantes e Estáticas)**:
+    *   Adicionadas barras de vida (HP) estáticas desenhadas diretamente abaixo dos nomes do jogador e do inimigo (e acima dos respectivos sprites de combate) no canvas do Phaser.
+    *   A barra do jogador utiliza cor verde esmeralda (`#22c55e`), enquanto a do inimigo utiliza vermelho brilhante (`#ef4444`). A coordenada horizontal de combate do inimigo foi fixada estaticamente em `600` para garantir alinhamento perfeito com seu sprite parado.
+*   **⭐ Barra de XP no Rodapé da Arena (Canvas Phaser)**:
+    *   Migrada a barra de progresso de experiência do HUD React para o canvas do Phaser. Agora ela é desenhada como uma barra amarela/dourada brilhante (`#fbbf24`) de largura fixa (680px) posicionada de forma estática no rodapé do combate (abaixo dos sprites de jogador e inimigo).
+    *   Inclui um texto informativo centralizado que exibe o nível atual do herói, os pontos de experiência acumulados, os necessários para subir de nível e o percentual exato de evolução com uma casa decimal (ex: `Alma Nvl. 1 • Experiência: 10 / 100 (10.0%)`).
+    *   O painel HUD externo (React) foi simplificado para exibir apenas as barras de HP e Mana, mantendo a interface leve e focada.
 
 ### Versão 2.0.0
 *   **🌋 Altar da Forja Mística**:

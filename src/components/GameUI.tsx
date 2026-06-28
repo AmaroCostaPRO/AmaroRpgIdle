@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
@@ -109,7 +109,40 @@ const GameHUD: React.FC = () => {
       }
     });
 
-    return () => unsubscribeLogs();
+    const unsubscribeCombo = bridge.subscribe(GameEvent.COMBO_STATE_CHANGED, (payload) => {
+      const badge = document.getElementById('combo-badge');
+      if (badge) {
+        if (payload.combo > 0) {
+          badge.style.display = 'inline-block';
+          badge.innerText = `${payload.combo}x COMBO`;
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    });
+
+    const unsubscribeFrenzy = bridge.subscribe(GameEvent.FRENZY_STATE_CHANGED, (payload) => {
+      const fill = document.getElementById('frenzy-fill');
+      const text = document.getElementById('frenzy-text');
+      
+      if (fill && text) {
+        fill.style.width = `${payload.energy}%`;
+        text.innerText = payload.active ? '🔥 FRENESI ATIVO!' : `${payload.energy}%`;
+        if (payload.active) {
+          fill.classList.add('frenzy-active-glow');
+          text.style.color = '#ef4444';
+        } else {
+          fill.classList.remove('frenzy-active-glow');
+          text.style.color = '#f59e0b';
+        }
+      }
+    });
+
+    return () => {
+      unsubscribeLogs();
+      unsubscribeCombo();
+      unsubscribeFrenzy();
+    };
   }, []);
 
   return (
@@ -118,30 +151,46 @@ const GameHUD: React.FC = () => {
         {/* Cabeçalho: oculto no mobile via CSS */}
         <div className="hud-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Status do Personagem</span>
-          <span className="combat-indicator">● Em Combate</span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span id="combo-badge" style={{ display: 'none', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>0x COMBO</span>
+            <span className="combat-indicator">● Em Combate</span>
+          </div>
         </div>
 
-        {/* Barras de HP e Mana lado a lado no mobile, empilhadas no desktop */}
-        <div className="hud-bars-container">
-          {/* Barra de HP */}
-          <div className="hud-bar-item">
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
-              <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Vida (HP)</span>
-              <span ref={hpTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>- / -</span>
+        {/* Barras de HP, Mana e Frenesi */}
+        <div className="hud-bars-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }} className="hud-bars-inner-container">
+            {/* Barra de HP */}
+            <div className="hud-bar-item" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
+                <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Vida (HP)</span>
+                <span ref={hpTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#f87171' }}>- / -</span>
+              </div>
+              <div className="progress-track progress-hp" style={{ height: '0.85rem' }}>
+                <div ref={hpBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--hp-from), var(--hp-to))', boxShadow: '0 0 10px var(--hp-glow)' }} />
+              </div>
             </div>
-            <div className="progress-track progress-hp" style={{ height: '1rem' }}>
-              <div ref={hpBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--hp-from), var(--hp-to))', boxShadow: '0 0 10px var(--hp-glow)' }} />
+
+            {/* Barra de Mana */}
+            <div className="hud-bar-item" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
+                <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Mana</span>
+                <span ref={manaTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>- / -</span>
+              </div>
+              <div className="progress-track progress-mana" style={{ height: '0.85rem' }}>
+                <div ref={manaBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--mana-from), var(--mana-to))', boxShadow: '0 0 10px var(--mana-glow)' }} />
+              </div>
             </div>
           </div>
 
-          {/* Barra de Mana */}
-          <div className="hud-bar-item">
+          {/* Barra de Frenesi */}
+          <div className="hud-bar-item" style={{ width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
-              <span className="font-heading" style={{ letterSpacing: '0.05em' }}>Mana</span>
-              <span ref={manaTextRef} className="font-mono" style={{ fontSize: '0.6rem', color: '#60a5fa' }}>- / -</span>
+              <span className="font-heading" style={{ letterSpacing: '0.05em', color: '#f59e0b' }}>Frenesi (Toques)</span>
+              <span id="frenzy-text" className="font-mono" style={{ fontSize: '0.6rem', color: '#f59e0b' }}>0%</span>
             </div>
-            <div className="progress-track progress-mana" style={{ height: '0.75rem' }}>
-              <div ref={manaBarRef} className="progress-fill" style={{ width: '100%', background: 'linear-gradient(90deg, var(--mana-from), var(--mana-to))', boxShadow: '0 0 10px var(--mana-glow)' }} />
+            <div className="progress-track" style={{ height: '0.6rem', background: 'var(--surface-1)' }}>
+              <div id="frenzy-fill" className="progress-fill" style={{ width: '0%', background: 'linear-gradient(90deg, #f59e0b, #ef4444)' }} />
             </div>
           </div>
         </div>
@@ -310,7 +359,7 @@ const ActiveSkillsPanel: React.FC = () => {
           <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Acelera o tempo e combates.</span>
         </div>
         <div style={{ display: 'flex', gap: '0.3rem' }}>
-          {[1, 2, 3].map((speed) => {
+          {[0, 1, 2, 3].map((speed) => {
             const isActive = gameSpeed === speed;
             return (
               <button
@@ -333,7 +382,7 @@ const ActiveSkillsPanel: React.FC = () => {
                   border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)'
                 }}
               >
-                {speed}x
+                {speed === 0 ? '⏸' : `${speed}x`}
               </button>
             );
           })}
@@ -360,6 +409,7 @@ const AttributePanel: React.FC = () => {
       case 'dexterity': return 'Destreza (Dano Arqueiro/Ladrão)';
       case 'constitution': return 'Constituição (Dano Paladino)';
       case 'luck': return 'Sorte (Drop & Raridade de Itens)';
+      case 'touch': return 'Toque (Dano de Clique/Tap)';
       default: return attr;
     }
   };
@@ -381,22 +431,24 @@ const AttributePanel: React.FC = () => {
 
       <h2 className="section-title" style={{ marginBottom: '0.75rem' }}>Atributos Primários</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {Object.keys(character.baseStats).map((attr) => (
-          <div key={attr} className="stat-row">
-            <span style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column' }}>
-              <span className="font-heading" style={{ fontWeight: 700, color: '#fff', fontSize: '0.7rem' }}>{getAttrName(attr)}</span>
-              <span className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.15rem' }}>Valor base: {character.baseStats[attr as keyof BaseStats]}</span>
-            </span>
-            <button
-              onClick={() => handleUpgradeAttribute(attr)}
-              disabled={availablePoints <= 0}
-              className={`btn btn-sm ${availablePoints > 0 ? 'btn-gold' : 'btn-ghost'}`}
-              style={{ minWidth: '3rem' }}
-            >
-              +1
-            </button>
-          </div>
-        ))}
+        {Object.keys(character.baseStats)
+          .filter((attr) => ['strength', 'magic', 'dexterity', 'constitution', 'luck', 'touch'].includes(attr))
+          .map((attr) => (
+            <div key={attr} className="stat-row">
+              <span style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column' }}>
+                <span className="font-heading" style={{ fontWeight: 700, color: '#fff', fontSize: '0.7rem' }}>{getAttrName(attr)}</span>
+                <span className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.15rem' }}>Valor base: {character.baseStats[attr as keyof BaseStats]}</span>
+              </span>
+              <button
+                onClick={() => handleUpgradeAttribute(attr)}
+                disabled={availablePoints <= 0}
+                className={`btn btn-sm ${availablePoints > 0 ? 'btn-gold' : 'btn-ghost'}`}
+                style={{ minWidth: '3rem' }}
+              >
+                +1
+              </button>
+            </div>
+          ))}
       </div>
       
       <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -472,7 +524,11 @@ const statLabels: Record<string, string> = {
   magic: 'Magia',
   dexterity: 'Destreza',
   constitution: 'Constituição',
-  luck: 'Sorte'
+  luck: 'Sorte',
+  touch: 'Poder do Toque',
+  touchCritChance: 'Crítico de Toque',
+  touchCritDamage: 'Dano Crítico de Toque',
+  robotClicks: 'Cliques do Robô'
 };
 
 interface EquipmentPanelProps {
@@ -1029,7 +1085,7 @@ const SkillsTreePanel: React.FC = () => {
                     <span className={`badge ${skill.type === 'active' ? 'badge-active' : 'badge-passive'}`}>
                       {skill.type === 'active' ? 'Ativ' : 'Pass'}
                     </span>
-                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lv {currentLevel}/{skill.maxLevel}</span>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lv {currentLevel}/{getSkillMaxLevel(id, character.currentStage)}</span>
                   </div>
                 </button>
               );
@@ -1096,7 +1152,7 @@ const SkillsTreePanel: React.FC = () => {
                       if (skillLvl > 0) {
                         currentText = `Restaura ${(30 + (skillLvl - 1) * 5)}% do HP Máx`;
                       }
-                      if (skillLvl < selectedSkill.maxLevel) {
+                      if (skillLvl < getSkillMaxLevel(selectedSkillId, character.currentStage)) {
                         nextText = `Restaura ${(30 + skillLvl * 5)}% do HP Máx`;
                       }
                     } else if (baseMult) {
@@ -1104,7 +1160,7 @@ const SkillsTreePanel: React.FC = () => {
                         const currentPct = (baseMult * (1 + (skillLvl - 1) * 0.15) * 100).toFixed(1);
                         currentText = `Causa ${currentPct}% de Dano`;
                       }
-                      if (skillLvl < selectedSkill.maxLevel) {
+                      if (skillLvl < getSkillMaxLevel(selectedSkillId, character.currentStage)) {
                         const nextPct = (baseMult * (1 + skillLvl * 0.15) * 100).toFixed(1);
                         nextText = `Causa ${nextPct}% de Dano`;
                       }
@@ -1134,7 +1190,7 @@ const SkillsTreePanel: React.FC = () => {
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                  <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Nível: {character.skillLevels[selectedSkillId] || 0} / {selectedSkill.maxLevel}</span>
+                  <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Nível: {character.skillLevels[selectedSkillId] || 0} / {getSkillMaxLevel(selectedSkillId, character.currentStage)}</span>
                   <span className="font-heading" style={{ fontSize: '0.65rem', color: 'var(--gold-400)', fontWeight: 600 }}>Requer Level {selectedSkill.requiredLevel}</span>
                 </div>
 
@@ -1155,20 +1211,20 @@ const SkillsTreePanel: React.FC = () => {
                     <button
                       onClick={() => unlockOrUpgradeSkill(selectedSkillId)}
                       disabled={
-                        (character.skillLevels[selectedSkillId] || 0) >= selectedSkill.maxLevel ||
+                        (character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) ||
                         availableSkillPoints < selectedSkill.cost ||
                         character.level < selectedSkill.requiredLevel ||
                         !selectedSkill.dependencies.every(dep => (character.skillLevels[dep] || 0) > 0)
                       }
                       className={`btn btn-sm ${
-                        (character.skillLevels[selectedSkillId] || 0) < selectedSkill.maxLevel &&
+                        (character.skillLevels[selectedSkillId] || 0) < getSkillMaxLevel(selectedSkillId, character.currentStage) &&
                         availableSkillPoints >= selectedSkill.cost &&
                         character.level >= selectedSkill.requiredLevel &&
                         selectedSkill.dependencies.every(dep => (character.skillLevels[dep] || 0) > 0)
                           ? 'btn-gold' : 'btn-ghost'
                       }`}
                     >
-                      {(character.skillLevels[selectedSkillId] || 0) >= selectedSkill.maxLevel ? 'Nível Máximo' : `Aprimorar (${selectedSkill.cost} SP)`}
+                      {(character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) ? 'Nível Máximo' : `Aprimorar (${selectedSkill.cost} SP)`}
                     </button>
                   </div>
                 </div>
@@ -1234,7 +1290,7 @@ const SkillsTreePanel: React.FC = () => {
                     <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
                       {isLocked 
                         ? `Requer Lvl ${skill.requiredLevel}${skill.dependencies.length > 0 ? ` + ${SKILLS_CATALOG[skill.dependencies[0]]?.name}` : ''}`
-                        : `Nível ${currentLevel} / ${skill.maxLevel}`
+                        : `Nível ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
                       }
                     </span>
                   </div>
@@ -1275,7 +1331,7 @@ const SkillsTreePanel: React.FC = () => {
                         if (currentLevel > 0) {
                           currentText = `Restaura ${(30 + (currentLevel - 1) * 5)}% do HP Máx`;
                         }
-                        if (currentLevel < skill.maxLevel) {
+                        if (currentLevel < getSkillMaxLevel(id, character.currentStage)) {
                           nextText = `Restaura ${(30 + currentLevel * 5)}% do HP Máx`;
                         }
                       } else if (baseMult) {
@@ -1283,7 +1339,7 @@ const SkillsTreePanel: React.FC = () => {
                           const currentPct = (baseMult * (1 + (currentLevel - 1) * 0.15) * 100).toFixed(1);
                           currentText = `Causa ${currentPct}% de Dano`;
                         }
-                        if (currentLevel < skill.maxLevel) {
+                        if (currentLevel < getSkillMaxLevel(id, character.currentStage)) {
                           const nextPct = (baseMult * (1 + currentLevel * 0.15) * 100).toFixed(1);
                           nextText = `Causa ${nextPct}% de Dano`;
                         }
@@ -1321,13 +1377,13 @@ const SkillsTreePanel: React.FC = () => {
                           unlockOrUpgradeSkill(id);
                         }}
                         disabled={
-                          (character.skillLevels[id] || 0) >= skill.maxLevel ||
+                          (character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) ||
                           availableSkillPoints < skill.cost ||
                           character.level < skill.requiredLevel ||
                           !skill.dependencies.every(dep => (character.skillLevels[dep] || 0) > 0)
                         }
                         className={`btn btn-sm ${
-                          (character.skillLevels[id] || 0) < skill.maxLevel &&
+                          (character.skillLevels[id] || 0) < getSkillMaxLevel(id, character.currentStage) &&
                           availableSkillPoints >= skill.cost &&
                           character.level >= skill.requiredLevel &&
                           skill.dependencies.every(dep => (character.skillLevels[dep] || 0) > 0)
@@ -1335,7 +1391,7 @@ const SkillsTreePanel: React.FC = () => {
                         }`}
                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.6rem' }}
                       >
-                        {(character.skillLevels[id] || 0) >= skill.maxLevel ? 'Nível Máximo' : `Aprimorar (${skill.cost} SP)`}
+                        {(character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) ? 'Nível Máximo' : `Aprimorar (${skill.cost} SP)`}
                       </button>
                     </div>
                   </div>
@@ -1375,6 +1431,10 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
       case 'perm_con': return { x: 69, y: 341 }; // Bottom Right
       case 'perm_str': return { x: 31, y: 341 }; // Bottom Left
       case 'perm_luk': return { x: 20, y: 174 }; // Top Left
+      case 'perm_touch': return { x: 20, y: 400 };
+      case 'perm_touch_crit': return { x: 40, y: 400 };
+      case 'perm_touch_crit_dmg': return { x: 60, y: 400 };
+      case 'perm_robot': return { x: 80, y: 400 };
       default: return hubPos;
     }
   };
@@ -1473,30 +1533,32 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
       {/* Árvore Diamante 2D (Desktop) */}
       <div className="tree-view-desktop">
-        <div className="tree-container" style={{ height: '430px' }}>
+        <div className="tree-container" style={{ height: '470px' }}>
           <div className="tree-content-area">
-            {/* Linhas SVG conectadas ao Hub central */}
+            {/* Linhas SVG conectadas ao Hub central (Apenas atributos clássicos) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {Object.keys(PRESTIGE_UPGRADES_CATALOG).map((id) => {
-                const pos = getUpgradePos(id);
-                const level = character.prestigeUpgrades[id] || 0;
-                const isActive = level > 0;
-                return (
-                  <line
-                    key={id}
-                    x1={`${hubPos.x}%`}
-                    y1={`${hubPos.y}px`}
-                    x2={`${pos.x}%`}
-                    y2={`${pos.y}px`}
-                    stroke={isActive ? '#a78bfa' : '#374151'}
-                    strokeWidth={isActive ? '3' : '2'}
-                    style={{
-                      filter: isActive ? 'drop-shadow(0px 0px 4px rgba(139,92,246,0.6))' : 'none',
-                      transition: 'all 0.3s'
-                    }}
-                  />
-                );
-              })}
+              {Object.keys(PRESTIGE_UPGRADES_CATALOG)
+                .filter((id) => !['perm_touch', 'perm_touch_crit', 'perm_touch_crit_dmg', 'perm_robot'].includes(id))
+                .map((id) => {
+                  const pos = getUpgradePos(id);
+                  const level = character.prestigeUpgrades[id] || 0;
+                  const isActive = level > 0;
+                  return (
+                    <line
+                      key={id}
+                      x1={`${hubPos.x}%`}
+                      y1={`${hubPos.y}px`}
+                      x2={`${pos.x}%`}
+                      y2={`${pos.y}px`}
+                      stroke={isActive ? '#a78bfa' : '#374151'}
+                      strokeWidth={isActive ? '3' : '2'}
+                      style={{
+                        filter: isActive ? 'drop-shadow(0px 0px 4px rgba(139,92,246,0.6))' : 'none',
+                        transition: 'all 0.3s'
+                      }}
+                    />
+                  );
+                })}
             </svg>
 
             {/* Hub Central (Cristal de Almas) */}
@@ -1509,32 +1571,70 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
               </div>
             </div>
 
-            {/* Nós de Upgrade ao Redor */}
-            {Object.entries(PRESTIGE_UPGRADES_CATALOG).map(([id, upgrade]) => {
-              const pos = getUpgradePos(id);
-              const currentLevel = character.prestigeUpgrades[id] || 0;
-              const isSelected = selectedUpgradeId === id;
-              const isUpgraded = currentLevel > 0;
+            {/* Nós de Upgrade ao Redor (Estrela de Atributos) */}
+            {Object.entries(PRESTIGE_UPGRADES_CATALOG)
+              .filter(([id]) => !['perm_touch', 'perm_touch_crit', 'perm_touch_crit_dmg', 'perm_robot'].includes(id))
+              .map(([id, upgrade]) => {
+                const pos = getUpgradePos(id);
+                const currentLevel = character.prestigeUpgrades[id] || 0;
+                const isSelected = selectedUpgradeId === id;
+                const isUpgraded = currentLevel > 0;
 
-              const left = `calc(${pos.x}% - 55px)`;
-              const top = `calc(${pos.y}px - 22px)`;
+                const left = `calc(${pos.x}% - 60px)`;
+                const top = `calc(${pos.y}px - 25px)`;
 
-              return (
-                <button
-                  key={id}
-                  onClick={() => {
-                    AudioManager.getInstance().playClick();
-                    setSelectedUpgradeId(id);
-                    setShowPrestigeModal(true);
-                  }}
-                  style={{ left, top }}
-                  className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
-                >
-                  <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
-                  <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      AudioManager.getInstance().playClick();
+                      setSelectedUpgradeId(id);
+                      setShowPrestigeModal(true);
+                    }}
+                    style={{ left, top }}
+                    className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
+                  >
+                    <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
+                  </button>
+                );
+              })}
+
+            {/* Upgrades de Toque (Linha inferior centralizada e espaçada) */}
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: 0,
+              right: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              pointerEvents: 'none'
+            }}>
+              {Object.entries(PRESTIGE_UPGRADES_CATALOG)
+                .filter(([id]) => ['perm_touch', 'perm_touch_crit', 'perm_touch_crit_dmg', 'perm_robot'].includes(id))
+                .map(([id, upgrade]) => {
+                  const currentLevel = character.prestigeUpgrades[id] || 0;
+                  const isSelected = selectedUpgradeId === id;
+                  const isUpgraded = currentLevel > 0;
+
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        setSelectedUpgradeId(id);
+                        setShowPrestigeModal(true);
+                      }}
+                      style={{ position: 'relative', pointerEvents: 'auto' }}
+                      className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
+                    >
+                      <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
+                      <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
 
           {/* Modal de Detalhes da Ascensão (Desktop) */}
@@ -1918,7 +2018,7 @@ const GuidePanel: React.FC = () => {
                     As mesmas fases com tint avermelhado, maior agressividade e status maciçamente aumentados.
                   </p>
                   <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Pesadelo = Status Base × 2.5 (+150% de HP e Dano)
+                    Status Pesadelo = Status Base × 2.0 (+100% de HP e Dano)
                   </code>
                 </div>
                 <div>
@@ -1927,7 +2027,7 @@ const GuidePanel: React.FC = () => {
                     As mesmas 5 fases cicladas com tint laranja flamejante. Inimigos com poder avassalador.
                   </p>
                   <code className="text-orange-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Inferno = Status Base × 5.0 (+400% de HP e Dano)
+                    Status Inferno = Status Base × 3.0 (+200% de HP e Dano)
                   </code>
                 </div>
                 <div>
@@ -1936,7 +2036,7 @@ const GuidePanel: React.FC = () => {
                     O tier máximo. Tint roxo sinistro e criaturas de poder quase divino. Apenas para os mais ascendidos.
                   </p>
                   <code className="text-purple-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Apocalipse = Status Base × 10.0 (+900% de HP e Dano)
+                    Status Apocalipse = Status Base × 4.0 (+300% de HP e Dano)
                   </code>
                 </div>
               </div>

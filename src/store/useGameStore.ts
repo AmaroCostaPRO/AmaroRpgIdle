@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { Character, BaseStats, EquipmentItem } from '../core/types';
 
 // Configurações de Atributos e Crescimento para cada Classe
+export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
+  const skill = SKILLS_CATALOG[skillId];
+  if (!skill) return 0;
+  if (currentStage >= 11) {
+    return Math.max(skill.maxLevel, 10);
+  }
+  return skill.maxLevel;
+};
+
 export const CLASS_CONFIGS: Record<string, {
   name: string;
   description: string;
@@ -13,48 +22,48 @@ export const CLASS_CONFIGS: Record<string, {
   warrior: {
     name: 'Guerreiro',
     description: 'Um combatente robusto especializado em combate corporal, cujo dano escala com Força.',
-    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5 },
-    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5 },
+    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
     initialSkills: ['slash'],
     primaryStat: 'strength'
   },
   mage: {
     name: 'Mago',
     description: 'Mestre das artes arcanas que conjura magias destrutivas de fogo, gelo e eletricidade.',
-    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5 },
-    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5 },
+    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
     initialSkills: ['fireball'],
     primaryStat: 'magic'
   },
   ranger: {
     name: 'Arqueiro',
     description: 'Atirador ágil que abate inimigos à distância com arco e flechas envenenadas.',
-    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8 },
-    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8 },
+    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8, touch: 10, touchCritChance: 8, touchCritDamage: 160, robotClicks: 0 },
+    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8, touch: 1.5, touchCritChance: 0.2, touchCritDamage: 1.5, robotClicks: 0 },
     initialSkills: ['arrow_shot'],
     primaryStat: 'dexterity'
   },
   paladin: {
     name: 'Paladino',
     description: 'Guerreiro sagrado que defende a justiça divina. Seu dano escala com Constituição.',
-    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5 },
-    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5 },
+    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
     initialSkills: ['holy_strike'],
     primaryStat: 'constitution'
   },
   cleric: {
     name: 'Clérigo',
     description: 'Servo dos deuses encarregado de curar aliados e punir infiéis com a ira divina.',
-    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11, luck: 6 },
-    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2, luck: 0.6 },
+    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11, luck: 6, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2, luck: 0.6, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
     initialSkills: ['holy_smite', 'heal'],
     primaryStat: 'magic'
   },
   rogue: {
     name: 'Ladrão',
     description: 'Assassino sorrateiro que ataca pelas sombras com adagas letais. Especialista em crítico.',
-    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10 },
-    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0 },
+    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10, touch: 10, touchCritChance: 12, touchCritDamage: 180, robotClicks: 0 },
+    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0, touch: 1.5, touchCritChance: 0.3, touchCritDamage: 2.0, robotClicks: 0 },
     initialSkills: ['stab'],
     primaryStat: 'dexterity'
   }
@@ -67,6 +76,10 @@ export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; descripti
   perm_dex: { name: 'Foco Ágil', description: 'Aumento definitivo de +3 em Dexterity por nível', stat: 'dexterity', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
   perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +9 em Constitution por nível', stat: 'constitution', bonusPerLevel: 9, costPerLevel: 3, maxLevel: 10 },
   perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +3 em Luck por nível', stat: 'luck', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_touch: { name: 'Toque Divino', description: 'Aumento definitivo de +8 em Poder do Toque por nível', stat: 'touch', bonusPerLevel: 8, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit: { name: 'Toque Crítico', description: 'Aumento de +3% na Chance de Crítico do Toque por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit_dmg: { name: 'Toque Devastador', description: 'Aumento de +15% no Dano Crítico do Toque por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
+  perm_robot: { name: 'Robô Assistente', description: 'Invoca um assistente automático que desfere +1 Toque por segundo por nível', stat: 'robotClicks', bonusPerLevel: 1, costPerLevel: 5, maxLevel: 5 }
 };
 
 // Multiplicadores base para as habilidades ativas (conforme a descrição)
@@ -609,7 +622,11 @@ export const useGameStore = create<GameState>((set) => ({
     if (!skill) return state;
 
     const currentLvl = state.character.skillLevels[skillId] || 0;
-    if (currentLvl >= skill.maxLevel) return state;
+    const maxLevel = getSkillMaxLevel(skillId, state.character.currentStage);
+
+    console.log(`[Store] Skill: ${skillId}, Current Level: ${currentLvl}, Max Level allowed for Stage ${state.character.currentStage}: ${maxLevel}`);
+
+    if (currentLvl >= maxLevel) return state;
 
     // Validar nível requerido
     if (state.character.level < skill.requiredLevel) {

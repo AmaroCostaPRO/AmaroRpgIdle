@@ -17,6 +17,9 @@ export class CombatScene extends Phaser.Scene {
   private playerStatusText!: Phaser.GameObjects.Text;
   private stageText!: Phaser.GameObjects.Text;
   private enemyHPBar!: Phaser.GameObjects.Graphics;
+  private playerHPBar!: Phaser.GameObjects.Graphics;
+  private xpBar!: Phaser.GameObjects.Graphics;
+  private xpText!: Phaser.GameObjects.Text;
   private unsubscribeSkill?: () => void;
   private currentBgTexture: string = 'background';
   private accumulatedTime: number = 0;
@@ -168,8 +171,10 @@ export class CombatScene extends Phaser.Scene {
     this.background.setTileScale(currentBgScale, currentBgScale);
     this.background.tilePositionY = 1024 - (600 / currentBgScale);
 
-    // Barra de vida flutuante do inimigo
+    // Barra de vida flutuante do inimigo e do jogador, e a barra de XP do canvas
     this.enemyHPBar = this.add.graphics();
+    this.playerHPBar = this.add.graphics();
+    this.xpBar = this.add.graphics();
 
     // Mapeamento da classe ativa para textura
     const classId = useGameStore.getState().character.classId || 'warrior';
@@ -198,7 +203,7 @@ export class CombatScene extends Phaser.Scene {
     const classConfig = useGameStore.getState().character;
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
-    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 65 * ZOOM_FACTOR, friendlyName, { 
+    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 80 * ZOOM_FACTOR, friendlyName, { 
       fontSize: '19px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
@@ -208,7 +213,7 @@ export class CombatScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Inicializa o texto vazio; a posição correta, cor e conteúdo serão atribuídos imediatamente pela chamada do respawnEnemyAt abaixo
-    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 65 * ZOOM_FACTOR, '', { 
+    this.enemyLevelText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 80 * ZOOM_FACTOR, '', { 
       fontSize: '19px', 
       color: '#ffffff', 
       fontStyle: 'bold', 
@@ -217,7 +222,7 @@ export class CombatScene extends Phaser.Scene {
       strokeThickness: 5
     }).setOrigin(0.5);
 
-    this.enemyStatusText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 83 * ZOOM_FACTOR, '', {
+    this.enemyStatusText = this.add.text(this.enemyBody.x, this.ENEMY_START_Y - 95 * ZOOM_FACTOR, '', {
       fontSize: '14px',
       color: '#facc15',
       fontStyle: 'bold',
@@ -226,9 +231,18 @@ export class CombatScene extends Phaser.Scene {
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    this.playerStatusText = this.add.text(this.playerBody.x, this.PLAYER_START_Y - 83 * ZOOM_FACTOR, '', {
+    this.playerStatusText = this.add.text(this.playerBody.x, this.PLAYER_START_Y - 95 * ZOOM_FACTOR, '', {
       fontSize: '14px',
       color: '#fef08a',
+      fontStyle: 'bold',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5);
+
+    this.xpText = this.add.text(400, 552, '', {
+      fontSize: '16px',
+      color: '#fbbf24',
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
@@ -260,6 +274,13 @@ export class CombatScene extends Phaser.Scene {
       this.cleanup();
     });
 
+    // Captura cliques/toques no canvas para desferir dano de toque
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.fsm) {
+        this.fsm.handlePlayerTap(pointer.x, pointer.y);
+      }
+    });
+
     // Notifica o React que a arena de combate foi carregada e inicializada com sucesso
     bridge.emit(GameEvent.ARENA_READY, {});
 
@@ -268,7 +289,8 @@ export class CombatScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.fsm) {
-      const speedMultiplier = useGameStore.getState().gameSpeed || 1;
+      const gameSpeed = useGameStore.getState().gameSpeed;
+      const speedMultiplier = gameSpeed === 0 ? 0 : (gameSpeed || 1);
       this.accumulatedTime += delta * speedMultiplier;
 
       // Ajusta o timeScale dos tweens para acelerar animações visuais e danos flutuantes
@@ -279,12 +301,14 @@ export class CombatScene extends Phaser.Scene {
       this.fsm.update(delta * speedMultiplier);
 
       if (this.enemyLevelText && this.enemyBody) {
-        this.enemyLevelText.x = this.enemyBody.x;
+        const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
+        this.enemyLevelText.x = isMoving ? this.enemyBody.x : 600;
       }
 
       // Atualiza posição do texto de status do inimigo
       if (this.enemyStatusText && this.enemyBody && this.enemyLevelText) {
-        this.enemyStatusText.x = this.enemyBody.x;
+        const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
+        this.enemyStatusText.x = isMoving ? this.enemyBody.x : 600;
         this.enemyStatusText.y = this.enemyLevelText.y - 18 * ZOOM_FACTOR;
 
         // Determina qual texto de status exibir baseado nos efeitos ativos
@@ -314,8 +338,8 @@ export class CombatScene extends Phaser.Scene {
 
       // Atualiza posição do texto de status do jogador
       if (this.playerStatusText && this.playerBody) {
-        this.playerStatusText.x = this.playerBody.x;
-        this.playerStatusText.y = this.playerBody.y - (this.playerBody.displayHeight / 2) - 38 * ZOOM_FACTOR;
+        this.playerStatusText.x = this.PLAYER_START_X;
+        this.playerStatusText.y = this.PLAYER_START_Y - (125 * ZOOM_FACTOR / 2) - 38 * ZOOM_FACTOR;
 
         const pEffects = this.fsm.playerEffects;
         if (pEffects.some(e => e.id === 'consecration')) {
@@ -350,8 +374,10 @@ export class CombatScene extends Phaser.Scene {
       // Atualiza o background e o tint maligno dependendo do estágio
       this.updateBackgroundForStage();
 
-      // Desenhar barra de vida acima do inimigo
+      // Desenhar barra de vida acima do inimigo e do jogador, e barra de XP
       this.drawEnemyHPBar();
+      this.drawPlayerHPBar();
+      this.drawXPBar();
 
       if (this.fsm.getCurrentState() === CombatState.MOVING) {
         this.playerBody.y = this.PLAYER_START_Y + Math.sin(this.accumulatedTime * 0.015) * 4;
@@ -443,6 +469,34 @@ export class CombatScene extends Phaser.Scene {
     }
   }
 
+  private drawPlayerHPBar(): void {
+    if (!this.playerHPBar || !this.playerBody || !this.fsm) return;
+    
+    this.playerHPBar.clear();
+    
+    // Só desenha se o jogador estiver vivo e visível
+    if (this.fsm.playerHP > 0 && this.playerBody.alpha > 0.1) {
+      const barWidth = 70 * ZOOM_FACTOR;
+      const barHeight = 7 * ZOOM_FACTOR;
+      // Posiciona de forma estática baseada no PLAYER_START_X / Y para não oscilar/tremer no ataque/caminhada
+      const x = this.PLAYER_START_X - barWidth / 2;
+      const y = this.PLAYER_START_Y - (125 * ZOOM_FACTOR) / 2 - 5 * ZOOM_FACTOR; // Posição estática segura abaixo do nome
+
+      // Fundo preto translúcido da barra
+      this.playerHPBar.fillStyle(0x000000, 0.7);
+      this.playerHPBar.fillRect(x, y, barWidth, barHeight);
+
+      // Progresso da vida em verde brilhante
+      const hpRatio = Math.max(0, Math.min(1, this.fsm.playerHP / this.fsm.playerMaxHP));
+      this.playerHPBar.fillStyle(0x22c55e, 1.0);
+      this.playerHPBar.fillRect(x, y, barWidth * hpRatio, barHeight);
+
+      // Borda da barra de vida
+      this.playerHPBar.lineStyle(1.5, 0x1f2937, 1);
+      this.playerHPBar.strokeRect(x, y, barWidth, barHeight);
+    }
+  }
+
   private drawEnemyHPBar(): void {
     if (!this.enemyHPBar || !this.enemyBody || !this.fsm) return;
     
@@ -452,8 +506,13 @@ export class CombatScene extends Phaser.Scene {
     if (this.fsm.enemyHP > 0 && this.fsm.getCurrentState() !== CombatState.DEAD && this.enemyBody.alpha > 0.1) {
       const barWidth = 70 * ZOOM_FACTOR;
       const barHeight = 7 * ZOOM_FACTOR;
-      const x = this.enemyBody.x - barWidth / 2;
-      const y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 10 * ZOOM_FACTOR; // Posição dinâmica acima da cabeça do sprite
+      
+      // Se estiver na transição de aproximação, acompanha o sprite. Se estiver fixo em combate, usa a posição estática (X = 600)
+      const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
+      const targetX = isMoving ? this.enemyBody.x : 600;
+      
+      const x = targetX - barWidth / 2;
+      const y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 15 * ZOOM_FACTOR; // Fica abaixo do nome do inimigo
 
       // Fundo preto translúcido da barra
       this.enemyHPBar.fillStyle(0x000000, 0.7);
@@ -468,6 +527,46 @@ export class CombatScene extends Phaser.Scene {
       this.enemyHPBar.lineStyle(1.5, 0x1f2937, 1);
       this.enemyHPBar.strokeRect(x, y, barWidth, barHeight);
     }
+  }
+
+  private drawXPBar(): void {
+    if (!this.xpBar || !this.xpText) return;
+
+    this.xpBar.clear();
+
+    const char = useGameStore.getState().character;
+    if (!char) return;
+
+    const level = char.level || 1;
+    const xp = char.xp || 0;
+    const xpNeeded = level * 100;
+    const xpPct = Math.max(0, Math.min(1, xp / xpNeeded));
+
+    // Dimensões da barra de XP (tamanho fixo harmonioso no canvas de 800x600)
+    const barWidth = 680;
+    const barHeight = 8;
+    const x = 400 - barWidth / 2; // 60
+    const y = 572; // Posição abaixo dos personagens (próxima à borda inferior)
+
+    // Fundo preto translúcido da barra
+    this.xpBar.fillStyle(0x000000, 0.65);
+    this.xpBar.fillRect(x, y, barWidth, barHeight);
+
+    // Progresso da XP em amarelo/dourado brilhante (#fbbf24 = 0xfbbf24)
+    if (xpPct > 0) {
+      this.xpBar.fillStyle(0xfbbf24, 1.0);
+      this.xpBar.fillRect(x, y, barWidth * xpPct, barHeight);
+    }
+
+    // Borda da barra de XP
+    this.xpBar.lineStyle(1.5, 0x1f2937, 0.95);
+    this.xpBar.strokeRect(x, y, barWidth, barHeight);
+
+    // Atualizar o texto informativo centralizado
+    const formattedXp = xp.toLocaleString();
+    const formattedNeeded = xpNeeded.toLocaleString();
+    const pctString = (xpPct * 100).toFixed(1);
+    this.xpText.setText(`Nv. ${level} • XP: ${formattedXp} / ${formattedNeeded} (${pctString}%)`);
   }
 
   public getPlayerX(): number { return this.playerBody.x; }
@@ -533,6 +632,46 @@ export class CombatScene extends Phaser.Scene {
     });
   }
 
+  public spawnTouchEffect(isCrit: boolean, damage: number, clickX?: number, clickY?: number): void {
+    const targetX = clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40));
+    const targetY = clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40));
+
+    const color = isCrit ? '#facc15' : '#38bdf8';
+    const text = isCrit ? `💥 ${damage}!` : `${damage}`;
+    const fontSize = isCrit ? '22px' : '16px';
+
+    const dmgText = this.add.text(targetX, targetY, text, {
+      fontSize: fontSize,
+      color: color,
+      fontStyle: 'bold',
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: isCrit ? 4 : 3
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: dmgText,
+      y: targetY - 60,
+      scale: isCrit ? 1.3 : 1.0,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => {
+        dmgText.destroy();
+      }
+    });
+
+    const clickCircle = this.add.circle(targetX, targetY, 5, isCrit ? 0xfacc15 : 0x38bdf8, 0.8);
+    this.tweens.add({
+      targets: clickCircle,
+      radius: isCrit ? 35 : 20,
+      alpha: 0,
+      duration: 250,
+      onComplete: () => {
+        clickCircle.destroy();
+      }
+    });
+  }
+
   public animateEnemyDeath(): void {
     const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_') || false;
     AudioManager.getInstance().playEnemyDefeat(isBoss);
@@ -568,7 +707,7 @@ export class CombatScene extends Phaser.Scene {
       const prefix = level >= 16 ? '[Apocalipse] ' : level >= 11 ? '[Inferno] ' : level >= 6 ? '[Pesadelo] ' : '';
       this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${level})`);
       this.enemyLevelText.setColor(enemyType.color);
-      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 25 * ZOOM_FACTOR;
+      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 30 * ZOOM_FACTOR;
     }
 
     this.tweens.add({

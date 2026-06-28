@@ -303,6 +303,16 @@ export class CombatFSM {
   private lastEmitMana: number = -1;
   private lastEmitMaxMana: number = -1;
   private hadActiveCooldowns: boolean = true;
+  
+  // Mecânicas de Toque (Tap Combat)
+  public frenzyEnergy: number = 0;
+  public isFrenzyActive: boolean = false;
+  private frenzyDuration: number = 0;
+  private frenzyAutoTapTimer: number = 0;
+  public comboCount: number = 0;
+  public comboTimer: number = 0;
+  private lastTapTimestamp: number = 0;
+  private robotTapTimer: number = 0;
 
   constructor(scene: any, initialTarget?: any) {
     this.scene = scene;
@@ -332,8 +342,8 @@ export class CombatFSM {
     const theme = ((stage - 1) % 5) + 1;
 
     // Multiplicador de HP/Dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.5× | Inferno (11-15): 5.0× | Apocalipse (16-20): 10.0×
-    const hpBoost = stage >= 16 ? 10.0 : stage >= 11 ? 5.0 : stage >= 6 ? 2.5 : 1.0;
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
+    const hpBoost = stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis
     const difficultyScale = Math.pow(1.65, stage - 1);
@@ -411,6 +421,44 @@ export class CombatFSM {
 
   public update(delta: number): void {
     if (this.currentState === CombatState.DEAD) return;
+
+    // Atualização de Frenesi
+    if (this.isFrenzyActive) {
+      this.frenzyDuration -= delta;
+      if (this.frenzyDuration <= 0) {
+        this.isFrenzyActive = false;
+        this.frenzyEnergy = 0;
+        bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: false, energy: 0 });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O modo Frenesi acabou.` });
+      } else {
+        this.frenzyAutoTapTimer += delta;
+        if (this.frenzyAutoTapTimer >= 200) { // 5 toques por segundo (a cada 200ms)
+          this.frenzyAutoTapTimer = 0;
+          this.performTap(true);
+        }
+      }
+    }
+
+    // Atualização de Combo
+    if (this.comboCount > 0) {
+      this.comboTimer += delta;
+      if (this.comboTimer >= 1500) {
+        this.comboCount = 0;
+        this.comboTimer = 0;
+        bridge.emit(GameEvent.COMBO_STATE_CHANGED, { combo: 0 });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Combo resetado!` });
+      }
+    }
+
+    // Atualização de Cliques do Robô Assistente
+    if (this.playerFinalStats.robotClicks > 0 && this.enemyHP > 0) {
+      this.robotTapTimer += delta;
+      const tapInterval = 1000 / this.playerFinalStats.robotClicks;
+      if (this.robotTapTimer >= tapInterval) {
+        this.robotTapTimer = 0;
+        this.performTap(true);
+      }
+    }
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
     
@@ -548,6 +596,99 @@ export class CombatFSM {
     return this.currentState;
   }
 
+  public getPassiveDPS(): number {
+    const char = this.characterData || useGameStore.getState().character;
+    if (!char) return 0;
+    
+    const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
+    const ascensionCount = char.ascensionCount || 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.02);
+    const speedMultiplier = (1 + (finalStats.dexterity * 0.02)) * attackSpeedBoost;
+    const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
+
+    const classId = char.classId || 'warrior';
+    let primaryStatVal = finalStats.strength;
+    if (classId === 'mage' || classId === 'cleric') {
+      primaryStatVal = finalStats.magic;
+    } else if (classId === 'ranger' || classId === 'rogue') {
+      primaryStatVal = finalStats.dexterity;
+    } else if (classId === 'paladin') {
+      primaryStatVal = finalStats.constitution;
+    }
+
+    const damageBoost = 1 + (ascensionCount * 0.10);
+    const basicDmg = primaryStatVal * damageBoost;
+    
+    let dps = basicDmg * attackSpeedHz;
+    return Math.max(1, dps);
+  }
+
+  public handlePlayerTap(clickX?: number, clickY?: number): void {
+    if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
+    
+    // Throttling: limite de 20 cliques por segundo (50ms por clique)
+    const now = Date.now();
+    if (now - this.lastTapTimestamp < 50) {
+      return;
+    }
+    this.lastTapTimestamp = now;
+
+    if (this.isFrenzyActive) return;
+
+    this.frenzyEnergy = Math.min(100, this.frenzyEnergy + 1);
+    this.comboCount++;
+    this.comboTimer = 0;
+
+    bridge.emit(GameEvent.COMBO_STATE_CHANGED, { combo: this.comboCount });
+    bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: this.isFrenzyActive, energy: this.frenzyEnergy });
+
+    if (this.frenzyEnergy >= 100) {
+      this.isFrenzyActive = true;
+      this.frenzyDuration = 10000;
+      this.frenzyAutoTapTimer = 0;
+      bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: true, energy: 100 });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 MODO FRENESI ATIVADO! Toques automáticos críticos por 10 segundos!` });
+    }
+
+    this.performTap(false, clickX, clickY);
+  }
+
+  private performTap(isAuto: boolean, clickX?: number, clickY?: number): void {
+    if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
+
+    const dpsPassivo = this.getPassiveDPS();
+    const baseTouchDmg = this.playerFinalStats.touch + (dpsPassivo * (this.playerFinalStats.touch * 0.0005));
+
+    // Multiplicador de combo só afeta cliques do jogador (não automáticos do robô assistente, mas do frenesi sim)
+    const comboMultiplier = 1.0 + Math.min(1.0, this.comboCount * 0.10);
+
+    let isCrit = false;
+    let critMultiplier = 1.0;
+    if (this.isFrenzyActive) {
+      isCrit = true;
+      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+    } else {
+      const roll = Math.random() * 100;
+      if (roll < this.playerFinalStats.touchCritChance) {
+        isCrit = true;
+        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      }
+    }
+
+    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier);
+    if (finalTouchDmg < 1) finalTouchDmg = 1;
+
+    this.enemyHP = Math.max(0, this.enemyHP - finalTouchDmg);
+
+    if (this.scene && typeof this.scene.spawnTouchEffect === 'function') {
+      this.scene.spawnTouchEffect(isCrit, finalTouchDmg, clickX, clickY);
+    }
+
+    if (this.enemyHP <= 0) {
+      this.handleEnemyDefeat();
+    }
+  }
+
   private handleIdle(): void {
     if (this.target) {
       const distance = this.getDistanceToTarget();
@@ -634,8 +775,8 @@ export class CombatFSM {
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
 
     // Multiplicador de dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.5× | Inferno (11-15): 5.0× | Apocalipse (16-20): 10.0×
-    const dmgBoost = this.enemyLevel >= 16 ? 10.0 : this.enemyLevel >= 11 ? 5.0 : this.enemyLevel >= 6 ? 2.5 : 1.0;
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
+    const dmgBoost = this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
     
     // Escala exponencial de dano baseado no estágio
     const dmgScale = Math.pow(1.3, this.enemyLevel - 1);

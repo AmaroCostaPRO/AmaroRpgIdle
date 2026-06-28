@@ -17,7 +17,11 @@ export const ForgeView: React.FC = () => {
     magic: 'Magia',
     dexterity: 'Destreza',
     constitution: 'Constituição',
-    luck: 'Sorte'
+    luck: 'Sorte',
+    touch: 'Poder do Toque',
+    touchCritChance: 'Crítico de Toque',
+    touchCritDamage: 'Dano Crítico de Toque',
+    robotClicks: 'Cliques do Robô'
   };
 
   const slotLabels: Record<string, string> = {
