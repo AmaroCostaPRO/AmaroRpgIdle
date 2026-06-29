@@ -1025,6 +1025,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Os itens devem ser do mesmo tipo/slot.' };
         return state;
       }
+      if (item1.setName !== item2.setName) {
+        result = { success: false, message: 'Os itens devem pertencer ao mesmo conjunto (Set).' };
+        return state;
+      }
 
       const isBothMystic = item1.rarity === 'mystic' && item2.rarity === 'mystic';
       const isBothNormal = item1.rarity !== 'mystic' && item2.rarity !== 'mystic';
@@ -1106,8 +1110,46 @@ export const useGameStore = create<GameState>((set) => ({
         gloves: 'Luva Mística'
       };
 
-      const baseName = slotNamesMap[item1.slot] || 'Item Místico';
-      const newName = `${baseName} +${targetMysticLevel}`;
+      let baseName = slotNamesMap[item1.slot] || 'Item Místico';
+      let newName = `${baseName} +${targetMysticLevel}`;
+
+      if (item1.setName) {
+        let cleanSetName = item1.setName;
+        const isAncestral = item1.setName.startsWith('Set Ancestral');
+        
+        if (isAncestral) {
+          if (cleanSetName.startsWith('Set Ancestral do ')) {
+            cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
+          } else if (cleanSetName.startsWith('Set Ancestral de ')) {
+            cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+          }
+          // Substitui Mística por Mística Ancestral
+          baseName = baseName.replace('Mística', 'Mística Ancestral');
+          baseName = baseName.replace('Místico', 'Místico Ancestral');
+          
+          if (item1.setName.includes(' do ')) {
+            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+          } else if (item1.setName.includes(' da ')) {
+            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+          } else {
+            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          }
+        } else {
+          if (cleanSetName.startsWith('Set do ')) {
+            cleanSetName = cleanSetName.replace('Set do ', '');
+          } else if (cleanSetName.startsWith('Set de ')) {
+            cleanSetName = cleanSetName.replace('Set de ', '');
+          }
+          
+          if (item1.setName.includes(' do ')) {
+            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+          } else if (item1.setName.includes(' da ')) {
+            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+          } else {
+            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          }
+        }
+      }
 
       const newId = `mystic-${item1.slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 

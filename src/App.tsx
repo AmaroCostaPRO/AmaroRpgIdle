@@ -290,15 +290,30 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🔥 Atualização v2.4.0 — Balanceamento e Escalonamento de Classes!
+              🔥 Atualização v2.4.1 — Melhorias na Forja Mística e Identidade de Sets!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz o balanceamento geral e escalonamento de atributos por classe, tooltips dinâmicos e transparência de fórmulas no guia:
+                Esta atualização introduz correções essenciais na Forja Mística, preservação de conjuntos, além de balanceamento de classes e transparência de fórmulas:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+
+                {/* v2.4.1 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.4.1:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        ⚒️ Preservação e Validação de Sets na Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A Forja agora valida estritamente a compatibilidade de conjuntos de itens (sets), impedindo a fusão de peças de conjuntos diferentes. Além disso, o nome dos itens místicos resultantes agora incorpora dinamicamente a identidade do set de origem (ex: <i>Luva Mística do Senhor da Guerra +1</i>).
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* v2.4.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>

@@ -68,10 +68,11 @@ export const ForgeView: React.FC = () => {
           if (item.id === slot2.id) return false;
           if (item.slot !== slot2.slot) return false;
           
-          // Regra de compatibilidade mística:
+          // Regra de compatibilidade mística e conjunto:
           const isBothMystic = item.rarity === 'mystic' && slot2.rarity === 'mystic';
           const isBothNormal = item.rarity !== 'mystic' && slot2.rarity !== 'mystic';
-          return isBothMystic || isBothNormal;
+          const isSameSet = item.setName === slot2.setName;
+          return (isBothMystic || isBothNormal) && isSameSet;
         });
       }
       return inv;
@@ -86,7 +87,8 @@ export const ForgeView: React.FC = () => {
           
           const isBothMystic = item.rarity === 'mystic' && slot1.rarity === 'mystic';
           const isBothNormal = item.rarity !== 'mystic' && slot1.rarity !== 'mystic';
-          return isBothMystic || isBothNormal;
+          const isSameSet = item.setName === slot1.setName;
+          return (isBothMystic || isBothNormal) && isSameSet;
         });
       }
       return inv;
@@ -99,6 +101,7 @@ export const ForgeView: React.FC = () => {
   const checkReforgeValidity = () => {
     if (!slot1 || !slot2) return { valid: false, reason: 'Selecione dois itens.', cost: 0 };
     if (slot1.slot !== slot2.slot) return { valid: false, reason: 'Os itens devem ser do mesmo slot.', cost: 0 };
+    if (slot1.setName !== slot2.setName) return { valid: false, reason: 'Os itens devem pertencer ao mesmo conjunto (Set).', cost: 0 };
 
     const isBothMystic = slot1.rarity === 'mystic' && slot2.rarity === 'mystic';
     const isBothNormal = slot1.rarity !== 'mystic' && slot2.rarity !== 'mystic';
