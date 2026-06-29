@@ -80,6 +80,8 @@ export interface Character {
   enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 15)
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
+  autoCastHealPercent?: number; // Porcentagem de HP para cura automática
+  autoCastDisabledSkills?: string[]; // Habilidades desativadas na conjuração automática
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
   equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon', EquipmentItem | null>;

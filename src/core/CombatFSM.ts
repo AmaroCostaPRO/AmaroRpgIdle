@@ -477,12 +477,17 @@ export class CombatFSM {
 
     // Atualização de Combo
     if (this.comboCount > 0) {
-      this.comboTimer += delta;
-      if (this.comboTimer >= 1500) {
-        this.comboCount = 0;
+      if (this.isFrenzyActive) {
+        // O combo não decai e o timer de expiração permanece zerado durante o Frenesi
         this.comboTimer = 0;
-        bridge.emit(GameEvent.COMBO_STATE_CHANGED, { combo: 0 });
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `Combo resetado!` });
+      } else {
+        this.comboTimer += delta;
+        if (this.comboTimer >= 1500) {
+          this.comboCount = 0;
+          this.comboTimer = 0;
+          bridge.emit(GameEvent.COMBO_STATE_CHANGED, { combo: 0 });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Combo resetado!` });
+        }
       }
     }
 
@@ -663,6 +668,9 @@ export class CombatFSM {
   }
 
   public handlePlayerTap(clickX?: number, clickY?: number): void {
+    // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
+    if (useGameStore.getState().gameSpeed === 0) return;
+
     if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
     
     // Throttling: limite de 20 cliques por segundo (50ms por clique)
@@ -693,10 +701,14 @@ export class CombatFSM {
   }
 
   private performTap(isAuto: boolean, clickX?: number, clickY?: number): void {
+    // Impede a execução de toques caso o jogo esteja pausado
+    if (useGameStore.getState().gameSpeed === 0) return;
+
     if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
 
     const dpsPassivo = this.getPassiveDPS();
-    const baseTouchDmg = this.playerFinalStats.touch + (dpsPassivo * (this.playerFinalStats.touch * 0.0005));
+    const effectiveTouch = this.playerFinalStats.touch * 0.5;
+    const baseTouchDmg = effectiveTouch + (dpsPassivo * (effectiveTouch * 0.0005));
 
     // Multiplicador de combo só afeta cliques do jogador (não automáticos do robô assistente, mas do frenesi sim)
     const comboMultiplier = 1.0 + Math.min(1.0, this.comboCount * 0.10);
@@ -780,16 +792,20 @@ export class CombatFSM {
     // Escala de Dano baseado no Atributo Principal da Classe ativa
     let primaryStatVal = this.playerFinalStats.strength;
     let damageType = 'físico';
+    let secondaryBoost = 0; // Bônus secundário de Força para outras classes
 
     if (classId === 'mage' || classId === 'cleric') {
       primaryStatVal = this.playerFinalStats.magic;
       damageType = 'mágico';
+      secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
     } else if (classId === 'ranger' || classId === 'rogue') {
       primaryStatVal = this.playerFinalStats.dexterity;
       damageType = 'de perfuração';
+      secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
     } else if (classId === 'paladin') {
       primaryStatVal = this.playerFinalStats.constitution;
       damageType = 'sagrado';
+      secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
     }
 
     // Inimigo sob status EXPOSTO sofre 20% a mais de dano
@@ -797,7 +813,7 @@ export class CombatFSM {
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
     const damageBoost = 1 + (ascensionCount * 0.10); // +10% por ascensão
 
-    const damage = Math.floor((primaryStatVal * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
+    const damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
@@ -828,6 +844,17 @@ export class CombatFSM {
     const damage = Math.floor((5 + this.enemyLevel * 2.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier);
 
     this.scene.animateEnemyAttack();
+
+    // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
+    const dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1);
+    const isDodge = Math.random() * 100 < dodgeChance;
+
+    if (isDodge) {
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'Desviou!', '#38bdf8');
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você se esquivou do ataque do ${this.currentEnemy.name} (Esquiva: ${dodgeChance.toFixed(1)}%).` });
+      return;
+    }
+
     this.playerHP = Math.max(0, this.playerHP - damage);
     this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damage}`, '#ef4444');
 
@@ -1044,6 +1071,9 @@ export class CombatFSM {
   }
 
   public triggerSkill(skillId: string): void {
+    // Impede o uso de habilidades caso o jogo esteja pausado (velocidade do jogo igual a 0)
+    if (useGameStore.getState().gameSpeed === 0) return;
+
     if (this.currentState === CombatState.DEAD) return;
 
     const skill = SKILLS_CATALOG[skillId];
@@ -1298,10 +1328,11 @@ export class CombatFSM {
     const char = this.characterData;
     if (!char || char.currentStage <= 5 || !char.autoCastEnabled) return;
 
-    // Colecionar habilidades desbloqueadas do tipo ativo
+    // Colecionar habilidades desbloqueadas do tipo ativo que não estão desativadas nas configurações
+    const disabledSkills = char.autoCastDisabledSkills || [];
     const activeSkills = char.unlockedSkills.filter((id: string) => {
       const sk = SKILLS_CATALOG[id];
-      return sk && sk.type === 'active';
+      return sk && sk.type === 'active' && !disabledSkills.includes(id);
     });
 
     if (activeSkills.length === 0) return;
@@ -1313,9 +1344,10 @@ export class CombatFSM {
       return (skB?.requiredLevel || 0) - (skA?.requiredLevel || 0);
     });
 
-    // Se 'heal' estiver liberado e a vida do jogador estiver abaixo de 50%, priorizar cura!
+    // Se 'heal' estiver liberado e a vida do jogador estiver abaixo do limite configurado, priorizar cura!
+    const healThreshold = char.autoCastHealPercent !== undefined ? char.autoCastHealPercent : 50;
     const hpPercentage = (this.playerHP / this.playerMaxHP) * 100;
-    if (hpPercentage < 50) {
+    if (hpPercentage < healThreshold) {
       const healSkillId = activeSkills.find((id: string) => id === 'heal');
       if (healSkillId) {
         const cooldown = this.skillCooldowns[healSkillId] || 0;

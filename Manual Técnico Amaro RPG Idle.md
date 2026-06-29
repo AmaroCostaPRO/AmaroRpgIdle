@@ -129,12 +129,14 @@ A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
     *   Mana Máxima ganha por ponto de Magia: $18\text{ Mana}$ (torna viável conjurar habilidades táticas com poucos pontos investidos)
     *   Regeneração de Mana ganha por ponto de Magia: $0.09\text{ Mana/s}$
 
-#### 3. Velocidade de Ataque (Attack Speed)
-A velocidade com que o herói realiza ataques básicos de combate escala a partir do atributo **Destreza**:
+#### 3. Velocidade de Ataque (Attack Speed) e Esquiva (Dodge)
+A velocidade com que o herói realiza ataques básicos e sua chance de se esquivar de ataques inimigos escalam a partir do atributo **Destreza**:
 *   **Classes Primárias de Destreza (Arqueiro, Ladrão)**:
     *   Aumento de Velocidade de Ataque por ponto de Destreza: $+1.0\%$
 *   **Outras Classes (Guerreiro, Mago, Paladino, Clérigo)**:
     *   Aumento de Velocidade de Ataque por ponto de Destreza: $+3.5\%$
+*   **Esquiva (Todas as Classes)**:
+    *   Cada ponto de Destreza concede $+0.1\%$ de Chance de Esquiva contra ataques recebidos de monstros, com limite de até $75\%$ de esquiva máxima para fins de balanceamento do jogo.
 
 ---
 
@@ -401,13 +403,19 @@ stateDiagram-v2
 5.  **`DEAD`**: O herói foi derrotado. O progresso de monstros derrotados no estágio atual é resetado para zero. Após um período de 3 segundos, o herói ressuscita com HP e mana cheios e o FSM retorna para `IDLE` no início da mesma fase.
 
 ### B. Ciclos de Ataque e Velocidades
-*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $1.0\times$ do Atributo Principal da classe ativa mais uma variação aleatória de $+0$ a $+3$. A recarga do ataque básico é calculada dinamicamente:
+*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $1.0\times$ do Atributo Principal da classe ativa e seu bônus de Força secundário, mais uma variação aleatória de $+0$ a $+3$:
+    $$\text{Dano Básico} = (\text{Atributo Principal} + \text{Bônus Secundário de Força}) \times 1.0 + \text{Random}(0, 2)$$
+    *   *Onde o bônus secundário de Força se aplica apenas a classes que não possuem a Força como atributo primário:*
+        $$\text{Bônus Secundário de Força} = \begin{cases} 0 & \text{se Guerreiro} \\ \text{Força} \times 0.25 & \text{se Mago, Arqueiro, Paladino, Clérigo, Ladrão} \end{cases}$$
+    A recarga do ataque básico é calculada dinamicamente:
     $$\text{Velocidade de Ataque} = \left( 1 + \text{Destreza} \times \text{Fator de Destreza} \right) \times \left(1 + \text{Ascensões} \times 0.02\right)$$
     *Onde o $\text{Fator de Destreza}$ depende do balanceamento de utilidade da classe:*
     *   *Se a classe for focada em Destreza (Arqueiro, Ladrão): $\text{Fator de Destreza} = 0.01$ ($1\%$ por ponto).*
     *   *Se a classe NÃO for focada em Destreza (Guerreiro, Mago, Paladino, Clérigo): $\text{Fator de Destreza} = 0.035$ ($3.5\%$ por ponto).*
     $$\text{Recarga do Ataque} = \max\left( 800\text{ ms}, \frac{3000\text{ ms}}{\text{Velocidade de Ataque}} \right)$$
-*   **Ataque do Inimigo**: O tempo de recarga base do ataque do monstro diminui com o nível da fase para torná-lo mais rápido, modificado por seu multiplicador intrínseco de velocidade:
+*   **Ataque do Inimigo**: Causa dano com base no escalonamento da fase. Contudo, antes de aplicar o dano à vida do herói, o jogo calcula a chance de esquiva do jogador baseada em sua Destreza:
+    $$\text{Chance de Esquiva} = \min\left(75\%, \text{Destreza} \times 0.1\%\right)$$
+    Se a esquiva for bem-sucedida, o ataque é anulado, a mensagem de log relata o desvio e o texto flutuante **"Desviou!"** é disparado. O tempo de recarga base do ataque do monstro diminui com o nível da fase para torná-lo mais rápido, modificado por seu multiplicador de velocidade:
     $$\text{Recarga Base} = 3600 - \left( \text{Fase} \times 30 \right)$$
     $$\text{Recarga do Inimigo} = \max\left( 1000\text{ ms}, \frac{\text{Recarga Base}}{\text{Multiplicador de Velocidade do Monstro}} \right)$$
 
@@ -646,7 +654,7 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 2.4.1 (Atual)
+### Versão 2.4.4 (Atual)
 *   **⚒️ Preservação e Validação de Sets na Forja**:
     *   **Restrição Estrita de Set**: A Forja agora valida se os dois itens pertencem ao mesmo conjunto (`setName`), impedindo a fusão de peças de conjuntos diferentes.
     *   **Nome Dinâmico de Item Místico**: O item místico resultante agora herda e exibe dinamicamente o nome do conjunto original no título do equipamento (ex: *Arma Mística do Senhor da Guerra +1* ou *Armadura Mística Ancestral do Conquistador +1*), eliminando o nome genérico que causava perda de identidade visual das peças.
@@ -654,6 +662,12 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   **Escalonamento por Classe**: A progressão de atributos foi reformulada para ser dinâmica e dependente da classe do personagem.
     *   **Amplificação de Atributos Secundários**: Atributos que normalmente seriam ignorados por uma classe (como Magia para um Guerreiro ou Constituição para um Mago) agora fornecem bonificações significativamente maiores (como mais mana máxima e regeneração de mana amplificada), resolvendo o problema de escassez de recursos em classes físicas sem quebrar o balanceamento das classes de nicho.
     *   **Ajustes nos Tooltips**: Adicionados tooltips e fórmulas detalhadas na tela de atributos e guia para maior clareza visual dos status derivados.
+    *   **Rebalanceamento do Dano de Toque**: Reduzido o escalonamento do dano de clique básico pela metade (`effectiveTouch = touch * 0.5`) para balanceamento da curva de dano no final do jogo.
+    *   **Esquiva defensiva baseada em Destreza**: Introduzido bônus defensivo de $+0.1\%$ de chance de esquiva por ponto de Destreza (limite de $75\%$ de esquiva total) contra ataques de monstros.
+    *   **Bônus secundário de Força**: A Força agora adiciona $+0.25$ de Dano Geral por ponto para todas as classes em que não seja o atributo primário de ataque.
+*   **🤖 IA de Conjuração Automática Customizável (Auto-Cast Settings)**:
+    *   **Configuração de Habilidades por Slot**: Adicionada interface modal acessada por botão de engrenagem (`⚙️`) que permite ao jogador escolher quais habilidades ativas serão conjuradas pela IA automática de combate.
+    *   **Slider Dinâmico de HP para Cura**: Introduzida barra deslizante que permite configurar a porcentagem de vida exata ($5\%$ a $95\%$) na qual a habilidade de cura (`heal`) deve ser disparada, superando o antigo limite estático de $50\%$.
 
 ### Versão 2.3.0
 *   **👑 Sets Ancestrais (Pós-Ascensão)**:
@@ -673,7 +687,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 ### Versão 2.2.0
 *   **touch Combate Híbrido (Tap Combat)**:
     *   Implementação de um novo sistema de cliques e toques ativos sobre a tela de combate que ajuda diretamente no dano contra monstros e chefes.
-    *   **Fórmula Híbrida de Dano**: Para garantir relevância do clique em fases avançadas do jogo, o dano do toque escala como: $\text{Dano do Toque} = \text{Poder do Toque} + (\text{DPS Passivo} \times \text{Percentual do Toque})$.
+    *   **Fórmula Híbrida de Dano**: Para garantir relevância do clique em fases avançadas do jogo, o dano do toque base foi balanceado para metade do seu valor: $\text{Dano do Toque} = (\text{Poder do Toque} \times 0.5) + (\text{DPS Passivo} \times (\text{Poder do Toque} \times 0.5) \times 0.0005)$.
     *   **Limitador Inteligente de Performance**: Inclusão de um throttle de entrada de até 20 cliques por segundo para evitar hacks ou sobrecarga do loop de renderização do Phaser.
 *   **⚡ Modo Frenesi (Frenzy Mode) e Sistema de Combo**:
     *   Adicionados novos componentes de HUD de alta performance em `GameUI.tsx` (Frenzy Bar e Combo Badge) atualizados via barramento direto de eventos (`COMBO_STATE_CHANGED` e `FRENZY_STATE_CHANGED`) contornando re-renderizações de React para manter a simulação a 60 FPS estáveis.

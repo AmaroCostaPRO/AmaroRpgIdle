@@ -111,13 +111,19 @@ const GameHUD: React.FC = () => {
 
     const unsubscribeCombo = bridge.subscribe(GameEvent.COMBO_STATE_CHANGED, (payload) => {
       const badge = document.getElementById('combo-badge');
-      if (badge) {
-        if (payload.combo > 0) {
+      const badgeFrenzy = document.getElementById('combo-badge-frenzy');
+      if (payload.combo > 0) {
+        if (badge) {
           badge.style.display = 'inline-block';
           badge.innerText = `${payload.combo}x COMBO`;
-        } else {
-          badge.style.display = 'none';
         }
+        if (badgeFrenzy) {
+          badgeFrenzy.style.display = 'inline-block';
+          badgeFrenzy.innerText = `${payload.combo}x COMBO`;
+        }
+      } else {
+        if (badge) badge.style.display = 'none';
+        if (badgeFrenzy) badgeFrenzy.style.display = 'none';
       }
     });
 
@@ -187,7 +193,10 @@ const GameHUD: React.FC = () => {
           <div className="hud-bar-item" style={{ width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#cbd5e1' }}>
               <span className="font-heading" style={{ letterSpacing: '0.05em', color: '#f59e0b' }}>Frenesi (Toques)</span>
-              <span id="frenzy-text" className="font-mono" style={{ fontSize: '0.6rem', color: '#f59e0b' }}>0%</span>
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <span id="combo-badge-frenzy" style={{ display: 'none', padding: '0.05rem 0.25rem', borderRadius: '3px', backgroundColor: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>0x COMBO</span>
+                <span id="frenzy-text" className="font-mono" style={{ fontSize: '0.6rem', color: '#f59e0b' }}>0%</span>
+              </div>
             </div>
             <div className="progress-track" style={{ height: '0.6rem', background: 'var(--surface-1)' }}>
               <div id="frenzy-fill" className="progress-fill" style={{ width: '0%', background: 'linear-gradient(90deg, #f59e0b, #ef4444)' }} />
@@ -244,6 +253,9 @@ const ActiveSkillsPanel: React.FC = () => {
   const setGameSpeed = useGameStore((state) => state.setGameSpeed);
   const classId = character.classId || 'warrior';
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
+  const [isAutoCastModalOpen, setIsAutoCastModalOpen] = useState(false);
+  const [tempHealPercent, setTempHealPercent] = useState<number>(50);
+  const [tempDisabledSkills, setTempDisabledSkills] = useState<string[]>([]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe(GameEvent.COOLDOWNS_CHANGED, (payload: any) => {
@@ -268,9 +280,38 @@ const ActiveSkillsPanel: React.FC = () => {
 
   const isAutoCastUnlocked = character.highestStageReached > 5 || character.currentStage > 5;
 
+  const handleOpenModal = () => {
+    setTempHealPercent(character.autoCastHealPercent !== undefined ? character.autoCastHealPercent : 50);
+    setTempDisabledSkills(character.autoCastDisabledSkills || []);
+    setIsAutoCastModalOpen(true);
+    AudioManager.getInstance().playClick();
+  };
+
+  const handleSaveSettings = () => {
+    useGameStore.getState().updateAutoCastSettings(tempHealPercent, tempDisabledSkills);
+    setIsAutoCastModalOpen(false);
+    AudioManager.getInstance().playClick();
+  };
+
+  const handleCancelSettings = () => {
+    setIsAutoCastModalOpen(false);
+    AudioManager.getInstance().playClick();
+  };
+
+  const toggleSkillInSettings = (skillId: string) => {
+    AudioManager.getInstance().playClick();
+    if (tempDisabledSkills.includes(skillId)) {
+      setTempDisabledSkills(tempDisabledSkills.filter(id => id !== skillId));
+    } else {
+      setTempDisabledSkills([...tempDisabledSkills, skillId]);
+    }
+  };
+
+  const hasHealSkill = activeSkills.some(([id]) => id === 'heal');
+
   return (
-    <div className="panel" style={{ padding: '1rem', color: '#fff', pointerEvents: 'auto' }}>
-      <h2 className="section-title" style={{ marginBottom: '0.75rem' }}>Habilidades Ativas Desbloqueadas</h2>
+    <div className="panel" style={{ padding: '1rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <h2 className="section-title" style={{ marginBottom: '0.2rem' }}>Habilidades Ativas Desbloqueadas</h2>
       {activeSkills.length === 0 ? (
         <p style={{ fontSize: '0.65rem', color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0' }}>
           Nenhuma habilidade ativa desbloqueada na árvore de habilidades.
@@ -295,6 +336,7 @@ const ActiveSkillsPanel: React.FC = () => {
                 }}
                 disabled={isOnCooldown}
                 className="btn-skill-combat"
+                style={{ position: 'relative', overflow: 'hidden' }}
               >
                 {isOnCooldown && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.65rem', color: '#f87171', zIndex: 10 }}>
@@ -314,23 +356,177 @@ const ActiveSkillsPanel: React.FC = () => {
 
       {/* Seção de Auto-Cast */}
       {isAutoCastUnlocked ? (
-        <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#cbd5e1' }}>Conjuração Automática</span>
-            <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Usa habilidades fora de recarga.</span>
+        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingRight: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#cbd5e1' }}>Conjuração Automática</span>
+                <span className="font-mono" style={{ fontSize: '0.5rem', color: 'var(--gold-400)', background: 'rgba(245, 158, 11, 0.08)', padding: '1px 4px', borderRadius: '3px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  {hasHealSkill ? `HP Cura <${character.autoCastHealPercent || 50}%` : 'Sem Cura'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4, marginTop: '2px' }}>Usa habilidades fora de recarga.</span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+              <button
+                onClick={handleOpenModal}
+                className="btn btn-sm btn-ghost"
+                style={{
+                  padding: '0.2rem 0.4rem',
+                  fontSize: '0.75rem',
+                  height: '100%',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)'
+                }}
+                title="Configurar Auto-Cast"
+              >
+                ⚙️
+              </button>
+              <button
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  useGameStore.getState().toggleAutoCast();
+                }}
+                className={`btn btn-sm ${character.autoCastEnabled ? 'btn-emerald' : 'btn-ghost'}`}
+              >
+                {character.autoCastEnabled ? 'ATIVADO' : 'DESATIVADO'}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              AudioManager.getInstance().playClick();
-              useGameStore.getState().toggleAutoCast();
-            }}
-            className={`btn btn-sm ${character.autoCastEnabled ? 'btn-emerald' : 'btn-ghost'}`}
-          >
-            {character.autoCastEnabled ? 'ATIVADO' : 'DESATIVADO'}
-          </button>
+
+          {/* Modal/Painel de Configurações inline no fluxo normal */}
+          {isAutoCastModalOpen && (
+            <div 
+              style={{
+                background: 'linear-gradient(135deg, rgba(25, 20, 15, 0.98), rgba(45, 33, 20, 0.99))',
+                border: '1px solid var(--gold-500)',
+                boxShadow: '0 0 12px rgba(217, 119, 6, 0.2)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                animation: 'fade-in 0.2s ease-out'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(217, 119, 6, 0.15)', paddingBottom: '0.4rem' }}>
+                <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--gold-400)', letterSpacing: '0.04em' }}>⚙️ CONFIGURAÇÃO DE CONJURAÇÃO</span>
+                <button 
+                  onClick={handleCancelSettings}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.7rem', cursor: 'pointer', padding: '0 2px' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Escolha de Habilidades */}
+              <div>
+                <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>Habilidades Permitidas</span>
+                {activeSkills.length === 0 ? (
+                  <span style={{ fontSize: '0.52rem', color: '#64748b', fontStyle: 'italic' }}>Nenhuma habilidade ativa.</span>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    {activeSkills.map(([id, skill]) => {
+                      const isDisabled = tempDisabledSkills.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => toggleSkillInSettings(id)}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            width: '100%',
+                            padding: '0.35rem 0.5rem',
+                            background: isDisabled ? 'rgba(0, 0, 0, 0.4)' : 'rgba(217, 119, 6, 0.08)',
+                            border: `1px solid ${isDisabled ? 'rgba(255, 255, 255, 0.05)' : 'rgba(217, 119, 6, 0.3)'}`,
+                            borderRadius: 'var(--radius-sm)',
+                            color: isDisabled ? '#64748b' : '#fff',
+                            fontSize: '0.62rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span style={{ fontWeight: 600 }}>{skill.name}</span>
+                          <span style={{ 
+                            fontSize: '0.52rem', 
+                            fontWeight: 700, 
+                            color: isDisabled ? '#ef4444' : '#10b981',
+                            fontFamily: 'var(--font-heading)',
+                            textTransform: 'uppercase'
+                          }}>
+                            {isDisabled ? 'Bloqueada' : 'Permitida'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Slider de Vida para Cura */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                  <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Limiar de Cura (HP)</span>
+                  <span className="font-mono" style={{ fontSize: '0.6rem', color: hasHealSkill ? 'var(--gold-400)' : '#64748b', fontWeight: 700 }}>
+                    {hasHealSkill ? `${tempHealPercent}% HP` : 'N/A'}
+                  </span>
+                </div>
+                {hasHealSkill ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="90" 
+                      step="5"
+                      value={tempHealPercent}
+                      onChange={(e) => {
+                        setTempHealPercent(Number(e.target.value));
+                      }}
+                      style={{
+                        width: '100%',
+                        accentColor: 'var(--gold-500)',
+                        background: 'rgba(0,0,0,0.5)',
+                        height: '4px',
+                        borderRadius: '2px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.48rem', color: '#64748b', lineHeight: 1.3 }}>
+                      A habilidade Cura será conjurada automaticamente se a vida cair abaixo de {tempHealPercent}%.
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '0.52rem', color: '#64748b', fontStyle: 'italic' }}>
+                    Você não possui a habilidade "Cura" desbloqueada na árvore de habilidades desta classe.
+                  </span>
+                )}
+              </div>
+
+              {/* Botões de Ação */}
+              <div style={{ display: 'flex', gap: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem', marginTop: '0.2rem' }}>
+                <button
+                  onClick={handleSaveSettings}
+                  className="btn btn-sm btn-gold font-heading"
+                  style={{ flex: 1, fontSize: '0.58rem', height: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  Salvar
+                </button>
+                <button
+                  onClick={handleCancelSettings}
+                  className="btn btn-sm btn-ghost font-heading"
+                  style={{ flex: 1, fontSize: '0.58rem', height: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-subtle)' }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5, background: 'rgba(0,0,0,0.1)', padding: '0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5, background: 'rgba(0,0,0,0.1)', padding: '0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#64748b' }}>Conjuração Automática</span>
             <span style={{ fontSize: '0.5rem', color: '#475569', lineHeight: 1.4 }}>Desbloqueia após vencer a Fase 5.</span>
@@ -417,7 +613,7 @@ const AttributePanel: React.FC = () => {
   const getAttrDetails = (attr: string, classId: string): string => {
     switch (attr) {
       case 'strength': 
-        return classId === 'warrior' ? 'Aumenta consideravelmente o Dano Físico.' : 'Aumenta levemente o Dano Físico.';
+        return classId === 'warrior' ? 'Aumenta consideravelmente o Dano Físico.' : 'Aumenta levemente o Dano Geral (+0.25 de Dano por ponto).';
       case 'magic': {
         const isPrimary = classId === 'mage' || classId === 'cleric';
         return isPrimary 
@@ -427,8 +623,8 @@ const AttributePanel: React.FC = () => {
       case 'dexterity': {
         const isPrimary = classId === 'ranger' || classId === 'rogue';
         return isPrimary 
-          ? 'Velocidade de Ataque +1.0% (Escala reduzida por ser primário)' 
-          : 'Velocidade de Ataque +3.5% (Bônus secundário aumentado!)';
+          ? 'Vel. de Ataque +1.0% | Esquiva +0.1% por ponto (Escala reduzida por ser primário)' 
+          : 'Vel. de Ataque +3.5% | Esquiva +0.1% por ponto (Bônus secundário aumentado!)';
       }
       case 'constitution': {
         const isPrimary = classId === 'paladin';
@@ -439,7 +635,7 @@ const AttributePanel: React.FC = () => {
       case 'luck': 
         return 'Aumenta a chance e raridade dos drops de itens e o ouro obtido.';
       case 'touch': 
-        return 'Aumenta o dano causado ao clicar/tocar nos monstros.';
+        return 'Aumenta o Dano de Clique (cada 2 pontos de Toque aumentam 1 de dano base).';
       default: 
         return '';
     }
@@ -465,7 +661,7 @@ const AttributePanel: React.FC = () => {
         {Object.keys(character.baseStats)
           .filter((attr) => ['strength', 'magic', 'dexterity', 'constitution', 'luck', 'touch'].includes(attr))
           .map((attr) => (
-            <div key={attr} className="stat-row" style={{ padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.02)', alignItems: 'center' }}>
+            <div key={attr} className="stat-row">
               <span style={{ fontSize: '0.72rem', display: 'flex', flexDirection: 'column', flex: 1, paddingRight: '0.5rem' }}>
                 <span className="font-heading" style={{ fontWeight: 700, color: '#fff', fontSize: '0.7rem' }}>{getAttrName(attr)}</span>
                 <span className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.15rem' }}>Valor base: {character.baseStats[attr as keyof BaseStats]}</span>
@@ -2110,8 +2306,8 @@ const GuidePanel: React.FC = () => {
                 </div>
 
                 <div>
-                  <strong className="text-white block font-semibold">Velocidade de Ataque Básico (Destreza)</strong>
-                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala dinamicamente com base na classe:</span>
+                  <strong className="text-white block font-semibold">Velocidade de Ataque e Esquiva (Destreza)</strong>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala a velocidade de ataque e adiciona chance de esquiva defensiva:</span>
                   <div className="pl-2 mt-0.5 space-y-1">
                     <div>
                       <span className="text-amber-300 font-bold">Arqueiro / Ladrão (Classes Primárias):</span>
@@ -2121,15 +2317,32 @@ const GuidePanel: React.FC = () => {
                       <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
                       <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.035)</code>
                     </div>
+                    <div>
+                      <span className="text-amber-300 font-bold">Chance de Esquiva (Todas as Classes):</span>
+                      <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Dodge Chance = Min(75%, Destreza × 0.1%)</code>
+                    </div>
                     <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(800ms, 3000ms / Mult. Velocidade)</code>
                   </div>
                 </div>
 
                 <div>
+                  <strong className="text-white block font-semibold">Dano de Clique (Toque)</strong>
+                  <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Dano Base = (Toque × 0.5) + (DPS Passivo × (Toque × 0.5) × 0.0005)
+                  </code>
+                  <span className="text-gray-400 block text-[9px] mt-0.5">
+                    * Multiplicador do Combo de Toque: <code className="text-amber-300 font-mono">1.0 + Min(1.0, Combo × 0.10)</code> (até +100% de dano com 10 combos).
+                  </span>
+                </div>
+
+                <div>
                   <strong className="text-white block font-semibold">Ataque Básico da Classe ({config.name})</strong>
                   <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Dano Básico = Atributo Principal ({getPrimaryStatName(config.primaryStat).split(' ')[0]}) × 1.0 + Random(0, 2)
+                    Dano Básico = (Atributo Principal + Bônus Secundário) × 1.0 + Random(0, 2)
                   </code>
+                  <span className="text-gray-400 block text-[9px] mt-0.5">
+                    * Bônus Secundário de Força para outras classes: <code className="text-amber-300 font-mono">Força × 0.25</code> (Guerreiro escala 100% com Força de forma direta).
+                  </span>
                 </div>
               </div>
             </div>

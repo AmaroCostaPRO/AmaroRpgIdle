@@ -290,15 +290,48 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🔥 Atualização v2.4.1 — Melhorias na Forja Mística e Identidade de Sets!
+              🔥 Atualização v2.4.4 — Configurações de Auto-Cast e Balanceamento de Atributos!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz correções essenciais na Forja Mística, preservação de conjuntos, além de balanceamento de classes e transparência de fórmulas:
+                Esta atualização introduz o controle de IA de Auto-Cast customizável por habilidade, slider dinâmico de HP de Cura, correção de layout nos Atributos, balanceamento refinado de atributos e preservação de sets na Forja:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+
+                {/* v2.4.4 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.4.4 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        ⚙️ IA de Auto-Cast Customizável e Slider de Cura
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionado modal integrado de configurações ao lado do botão de Auto-Cast (ícone de engrenagem). Agora você pode selecionar individualmente quais habilidades ativas serão conjuradas de forma automática e ajustar um slider para definir o limite de HP (entre 10% e 90%) para o uso da Cura.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#cbd5e1', fontSize: '0.72rem' }}>
+                        ⚖️ Balanceamento e Ajuste de Atributos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ajustado o balanceamento dos atributos: Toque agora requer 2 pontos para conceder 1 de Dano Base; Destreza passa a adicionar +0.1% de chance de esquiva defensiva por ponto (limite de 75%); e Força concede bônus secundário de +0.25 de Dano Geral por ponto para as classes não físicas.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#cbd5e1', fontSize: '0.72rem' }}>
+                        🎨 Melhorias Visuais nos Atributos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Removidos conflitos de estilos na aba de Atributos, restaurando as margens internas e bordas das linhas de estatísticas para evitar que botões fiquem colados nas laterais das caixas.
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* v2.4.1 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>

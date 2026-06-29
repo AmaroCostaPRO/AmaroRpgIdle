@@ -659,7 +659,11 @@ export class CombatScene extends Phaser.Scene {
       padding: { left: 25, right: 25, top: 15, bottom: 15 }
     }).setOrigin(0.5);
 
-    this.tweens.add({
+    const gameSpeed = useGameStore.getState().gameSpeed;
+    const speedMultiplier = gameSpeed === 0 ? 0 : (gameSpeed || 1);
+    const scaleFactor = speedMultiplier > 0 ? 1 / speedMultiplier : 1;
+
+    const textTween = this.tweens.add({
       targets: dmgText,
       y: targetY - 90,
       scale: isCrit ? 1.5 : 1.2,
@@ -669,9 +673,10 @@ export class CombatScene extends Phaser.Scene {
         dmgText.destroy();
       }
     });
+    textTween.setTimeScale(scaleFactor);
 
     const clickCircle = this.add.circle(targetX, targetY, 5, isCrit ? 0xfacc15 : 0x38bdf8, 0.8);
-    this.tweens.add({
+    const circleTween = this.tweens.add({
       targets: clickCircle,
       radius: isCrit ? 50 : 32,
       alpha: 0,
@@ -680,6 +685,7 @@ export class CombatScene extends Phaser.Scene {
         clickCircle.destroy();
       }
     });
+    circleTween.setTimeScale(scaleFactor);
   }
 
   public animateEnemyDeath(): void {

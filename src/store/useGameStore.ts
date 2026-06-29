@@ -280,6 +280,7 @@ interface GameState {
   resetStageProgress(): void;
   resetAllData(): void;
   toggleAutoCast(): void;
+  updateAutoCastSettings(healPercent: number, disabledSkills: string[]): void;
   registerEnemyKill(enemyId: string): void;
   
   // Novos métodos de gerenciamento de save slots
@@ -326,6 +327,8 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     enemiesDefeatedInStage: 0,
     classLevels: {},
     autoCastEnabled: false,
+    autoCastHealPercent: 50,
+    autoCastDisabledSkills: [],
     killCount: {},
     equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
     inventory: [],
@@ -774,6 +777,16 @@ export const useGameStore = create<GameState>((set) => ({
     const updated = {
       ...state.character,
       autoCastEnabled: !state.character.autoCastEnabled
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  updateAutoCastSettings: (healPercent, disabledSkills) => set((state) => {
+    const updated = {
+      ...state.character,
+      autoCastHealPercent: healPercent,
+      autoCastDisabledSkills: disabledSkills
     };
     saveToLocalStorage(updated);
     return { character: updated };
