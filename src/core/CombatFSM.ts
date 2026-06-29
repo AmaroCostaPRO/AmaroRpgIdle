@@ -522,19 +522,21 @@ export class CombatFSM {
       if (effect.tickTimer <= 0) {
         effect.tickTimer = 1000;
         if (effect.id === 'poison' || effect.id === 'burn') {
-          const tickDmg = Math.floor(effect.value);
-          this.enemyHP = Math.max(0, this.enemyHP - tickDmg);
-          const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
-          const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
-          
-          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
-          }
-          bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
+          if (this.enemyHP > 0) {
+            const tickDmg = Math.floor(effect.value);
+            this.enemyHP = Math.max(0, this.enemyHP - tickDmg);
+            const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
+            const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
+            
+            if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+              this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
+            }
+            bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
 
-          if (this.enemyHP <= 0) {
-            this.handleEnemyDefeat();
-            return false;
+            if (this.enemyHP <= 0) {
+              this.handleEnemyDefeat();
+              return false;
+            }
           }
         }
       }
@@ -768,6 +770,7 @@ export class CombatFSM {
   }
 
   private performPlayerAttack() {
+    if (this.enemyHP <= 0) return;
     const ascensionCount = this.characterData.ascensionCount || 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.02); // +2% por ascensão
     const classId = this.characterData.classId || 'warrior';
@@ -836,6 +839,9 @@ export class CombatFSM {
   }
 
   private handleEnemyDefeat() {
+    // Limpa os efeitos do inimigo imediatamente para evitar ticks residuais durante o respawn
+    this.enemyEffects = [];
+
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
 
@@ -1080,6 +1086,9 @@ export class CombatFSM {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Você usou ${skill.name}! Recuperou ${healAmount} de HP.` });
       return;
     }
+
+    // Se o inimigo já estiver morto, não causa dano
+    if (this.enemyHP <= 0) return;
 
     // Dano das habilidades ativas baseado no atributo principal da própria habilidade (skill.classId)
     const skillClass = skill.classId;
