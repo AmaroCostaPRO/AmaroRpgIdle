@@ -271,6 +271,7 @@ interface GameState {
   updateLevel(level: number, xp: number): void;
   incrementPrestigePoints(points: number): void;
   performPrestige(): void;
+  unlockPandemonium(): void;
   upgradePrestigeStat(upgradeId: string): void;
   unlockOrUpgradeSkill(skillId: string): void;
   selectClass(classId: string): void;
@@ -333,6 +334,8 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
     inventory: [],
     inventorySlots: 30,
+    pandemoniumUnlocked: false,
+    activePandemonium: false,
   };
 };
 
@@ -595,8 +598,56 @@ export const useGameStore = create<GameState>((set) => ({
       baseStats: newBaseStats,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+      equipment: (state.character.pandemoniumUnlocked) 
+        ? state.character.equipment 
+        : { head: null, chest: null, legs: null, gloves: null, weapon: null },
       inventory: [],
+      pandemoniumUnlocked: state.character.pandemoniumUnlocked,
+      activePandemonium: false,
+    };
+
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  unlockPandemonium: () => set((state) => {
+    const cost = 100;
+    const baseKeys = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'];
+    const upgrades = state.character.prestigeUpgrades || {};
+    const maxed = baseKeys.every(key => (upgrades[key] || 0) >= 10);
+
+    if (!maxed || (state.character.prestigePoints || 0) < cost) return state;
+
+    const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;
+    const newBaseStats = { ...config.baseStats };
+    Object.entries(upgrades).forEach(([upgradeId, lvl]) => {
+      const upgrade = PRESTIGE_UPGRADES_CATALOG[upgradeId];
+      if (upgrade) {
+        newBaseStats[upgrade.stat] += upgrade.bonusPerLevel * lvl;
+      }
+    });
+
+    console.log(`[Pandemonium] Modo Pandemônio Desbloqueado! Cobrado 100 PP e executada Ascensão Especial.`);
+
+    const updated = {
+      ...state.character,
+      level: 1,
+      xp: 0,
+      gold: 0,
+      attributePoints: 5,
+      skillPoints: 1,
+      unlockedSkills: [...config.initialSkills],
+      skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
+      prestigePoints: (state.character.prestigePoints || 0) - cost,
+      prestigeUpgrades: upgrades,
+      ascensionCount: (state.character.ascensionCount || 0) + 1,
+      baseStats: newBaseStats,
+      currentStage: 1,
+      enemiesDefeatedInStage: 0,
+      equipment: state.character.equipment,
+      inventory: [],
+      pandemoniumUnlocked: true,
+      activePandemonium: false,
     };
 
     saveToLocalStorage(updated);
@@ -751,13 +802,24 @@ export const useGameStore = create<GameState>((set) => ({
   },
 
   advanceStage: () => set((state) => {
-    // Limita as fases a 20 no total (Normal: 1-5, Pesadelo: 6-10, Inferno: 11-15, Apocalipse: 16-20)
-    const nextStage = Math.min(20, state.character.currentStage + 1);
+    const isPandemoniumUnlocked = state.character.pandemoniumUnlocked;
+    let nextStage = state.character.currentStage + 1;
+    let activePandemonium = state.character.activePandemonium || false;
+
+    if (isPandemoniumUnlocked) {
+      if (nextStage >= 21) {
+        activePandemonium = true;
+      }
+    } else {
+      nextStage = Math.min(20, nextStage);
+    }
+
     const updated = {
       ...state.character,
       currentStage: nextStage,
       enemiesDefeatedInStage: 0,
-      highestStageReached: Math.max(state.character.highestStageReached, nextStage)
+      highestStageReached: Math.max(state.character.highestStageReached, nextStage),
+      activePandemonium: activePandemonium
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1141,6 +1203,7 @@ export const useGameStore = create<GameState>((set) => ({
       if (item1.setName) {
         let cleanSetName = item1.setName;
         const isAncestral = item1.setName.startsWith('Set Ancestral');
+        const isPandemonium = item1.setName.startsWith('Set Pandemoníaco');
         
         if (isAncestral) {
           if (cleanSetName.startsWith('Set Ancestral do ')) {
@@ -1151,6 +1214,23 @@ export const useGameStore = create<GameState>((set) => ({
           // Substitui Mística por Mística Ancestral
           baseName = baseName.replace('Mística', 'Mística Ancestral');
           baseName = baseName.replace('Místico', 'Místico Ancestral');
+          
+          if (item1.setName.includes(' do ')) {
+            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+          } else if (item1.setName.includes(' da ')) {
+            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+          } else {
+            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          }
+        } else if (isPandemonium) {
+          if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
+            cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
+          } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
+            cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+          }
+          // Substitui Mística por Mística Pandemoníaca
+          baseName = baseName.replace('Mística', 'Mística Pandemoníaca');
+          baseName = baseName.replace('Místico', 'Místico Pandemoníaco');
           
           if (item1.setName.includes(' do ')) {
             newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;

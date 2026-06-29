@@ -1782,6 +1782,9 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
     : (level >= 5);
   const canPrestige = isProgressReqMet && prestigeEarnedOnReset >= requiredPP;
 
+  const baseKeys = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'];
+  const isBaseMaxed = baseKeys.every(key => (character.prestigeUpgrades[key] || 0) >= 10);
+
   // Coord do Layout Diamante / Estrela
   const hubPos = { x: 50, y: 220 };
   const getUpgradePos = (id: string) => {
@@ -1923,13 +1926,51 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 })}
             </svg>
 
-            {/* Hub Central (Cristal de Almas) */}
+            {/* Hub Central (Cristal de Almas / Pandemônio) */}
             <div 
-              style={{ left: `calc(${hubPos.x}% - 24px)`, top: `calc(${hubPos.y}px - 24px)` }}
+              style={{ left: `calc(${hubPos.x}% - 28px)`, top: `calc(${hubPos.y}px - 28px)`, cursor: isBaseMaxed ? 'pointer' : 'default', zIndex: 10 }}
               className="absolute"
+              onClick={() => {
+                if (isBaseMaxed) {
+                  AudioManager.getInstance().playClick();
+                  setSelectedUpgradeId('alma_pandemonium');
+                  setShowPrestigeModal(true);
+                }
+              }}
             >
-              <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, var(--prestige-from), #4338ca)', borderRadius: '50%', border: '2px solid #a78bfa', boxShadow: 'var(--shadow-glow-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float 3s ease-in-out infinite' }}>
-                <span className="font-heading" style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Alma</span>
+              <div style={{ 
+                width: 56, 
+                height: 56, 
+                background: character.pandemoniumUnlocked 
+                  ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' 
+                  : isBaseMaxed 
+                    ? 'linear-gradient(135deg, #ec4899, #7c3aed)' 
+                    : 'linear-gradient(135deg, var(--prestige-from), #4338ca)', 
+                borderRadius: '50%', 
+                border: character.pandemoniumUnlocked 
+                  ? '2px solid #f87171' 
+                  : isBaseMaxed 
+                    ? '2px solid #f472b6' 
+                    : '2px solid #a78bfa', 
+                boxShadow: character.pandemoniumUnlocked
+                  ? '0 0 15px rgba(239, 68, 68, 0.8)'
+                  : isBaseMaxed
+                    ? '0 0 15px rgba(236, 72, 153, 0.8)'
+                    : 'var(--shadow-glow-purple)', 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                animation: 'float 3s ease-in-out infinite',
+                transition: 'all 0.3s'
+              }}>
+                <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Alma</span>
+                {isBaseMaxed && !character.pandemoniumUnlocked && (
+                  <span className="font-mono text-pink-300" style={{ fontSize: '0.45rem', marginTop: '-1px', fontWeight: 'bold' }}>! UPGRADE</span>
+                )}
+                {character.pandemoniumUnlocked && (
+                  <span className="font-mono text-red-200" style={{ fontSize: '0.45rem', marginTop: '-1px', fontWeight: 'bold' }}>PANDEMÔNIO</span>
+                )}
               </div>
             </div>
 
@@ -2000,7 +2041,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
           </div>
 
           {/* Modal de Detalhes da Ascensão (Desktop) */}
-          {showPrestigeModal && selectedUpgrade && (
+          {showPrestigeModal && (selectedUpgrade || selectedUpgradeId === 'alma_pandemonium') && (
             <div 
               style={{
                 position: 'absolute',
@@ -2040,6 +2081,70 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
               </button>
 
               {(() => {
+                if (selectedUpgradeId === 'alma_pandemonium') {
+                  const isUnlocked = character.pandemoniumUnlocked;
+                  const cost = 100;
+                  const hasPoints = availablePrestigePoints >= cost;
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '36rem', margin: '0 auto' }}>
+                      <div>
+                        <h3 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f87171', textShadow: '0 0 8px rgba(239,68,68,0.5)' }}>
+                          Modo Pandemônio (v3.0.0)
+                        </h3>
+                        <p style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.5rem', lineHeight: 1.6 }}>
+                          {isUnlocked 
+                            ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 21. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
+                            : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 20, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
+                        </p>
+                      </div>
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                        <span className="font-mono" style={{ fontSize: '0.72rem', color: '#f472b6' }}>
+                          Status: {isUnlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: '#f87171', fontWeight: 500 }}>
+                          Multiplicador Inicial: 5x HP/Dano
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          Prestígio Disponível: <span className="font-mono" style={{ color: '#a78bfa', fontWeight: 600 }}>{availablePrestigePoints} PP</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button 
+                            onClick={() => {
+                              AudioManager.getInstance().playClick();
+                              setShowPrestigeModal(false);
+                            }}
+                            className="btn btn-sm btn-ghost"
+                          >
+                            Fechar
+                          </button>
+                          {!isUnlocked && (
+                            <button
+                              onClick={() => {
+                                AudioManager.getInstance().playClick();
+                                useGameStore.getState().unlockPandemonium();
+                                setShowPrestigeModal(false);
+                              }}
+                              disabled={!hasPoints}
+                              className={`btn btn-sm ${hasPoints ? 'btn-purple' : 'btn-ghost'}`}
+                              style={{
+                                background: hasPoints ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
+                                border: hasPoints ? '1px solid #f87171' : undefined
+                              }}
+                            >
+                              Ativar Modo Pandemônio ({cost} PP)
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const currentLevel = character.prestigeUpgrades[selectedUpgradeId] || 0;
                 const isMax = currentLevel >= selectedUpgrade.maxLevel;
                 const cost = selectedUpgrade.costPerLevel * (currentLevel + 1);
@@ -2091,6 +2196,105 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
       {/* Lista Simplificada Vertical (Mobile) - Com Cards Expansíveis */}
       <div className="tree-view-mobile">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
+          {isBaseMaxed && (
+            <div
+              className={`prestige-list-card ${selectedUpgradeId === 'alma_pandemonium' ? 'selected' : character.pandemoniumUnlocked ? 'unlocked' : ''}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                padding: '0.6rem 0.8rem',
+                background: selectedUpgradeId === 'alma_pandemonium' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(0,0,0,0.3)',
+                border: selectedUpgradeId === 'alma_pandemonium' ? '1px solid #ef4444' : '1px solid var(--border-dim)',
+                borderRadius: 'var(--radius-md)',
+                transition: 'all 0.2s'
+              }}
+            >
+              {/* Cabeçalho do Card */}
+              <div
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  if (selectedUpgradeId === 'alma_pandemonium') {
+                    setSelectedUpgradeId('');
+                  } else {
+                    setSelectedUpgradeId('alma_pandemonium');
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', textAlign: 'left' }}>
+                  <span className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f87171' }}>
+                    Alma - Modo Pandemônio (v3.0.0)
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
+                    {character.pandemoniumUnlocked ? 'Desbloqueado' : 'Pronto para Ativar'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {character.pandemoniumUnlocked && <span style={{ fontSize: '0.6rem', color: '#ef4444' }}>Ativo</span>}
+                  <span style={{ fontSize: '0.5rem', color: '#64748b', marginLeft: '0.2rem' }}>
+                    {selectedUpgradeId === 'alma_pandemonium' ? '▲' : '▼'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Conteúdo Expandido no Mobile */}
+              {selectedUpgradeId === 'alma_pandemonium' && (
+                <div 
+                  className="animate-fadeIn"
+                  style={{
+                    paddingTop: '0.6rem',
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    textAlign: 'left'
+                  }}
+                >
+                  <p style={{ fontSize: '0.65rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                    {character.pandemoniumUnlocked 
+                      ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 21. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
+                      : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 20, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
+                  </p>
+                  {!character.pandemoniumUnlocked && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.6rem', color: '#f472b6', fontWeight: 500 }}>
+                        Requer: 100 PP
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const cost = 100;
+                          if (availablePrestigePoints >= cost) {
+                            AudioManager.getInstance().playClick();
+                            useGameStore.getState().unlockPandemonium();
+                            setSelectedUpgradeId('');
+                          }
+                        }}
+                        disabled={availablePrestigePoints < 100}
+                        className={`btn btn-sm ${availablePrestigePoints >= 100 ? 'btn-purple' : 'btn-ghost'}`}
+                        style={{ 
+                          padding: '0.2rem 0.5rem', 
+                          fontSize: '0.6rem',
+                          background: availablePrestigePoints >= 100 ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
+                          border: availablePrestigePoints >= 100 ? '1px solid #f87171' : undefined
+                        }}
+                      >
+                        Ativar (100 PP)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {Object.entries(PRESTIGE_UPGRADES_CATALOG).map(([id, upgrade]) => {
             const currentLevel = character.prestigeUpgrades[id] || 0;
             const isSelected = selectedUpgradeId === id;

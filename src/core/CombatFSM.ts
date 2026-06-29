@@ -378,13 +378,24 @@ export class CombatFSM {
     const theme = ((stage - 1) % 5) + 1;
 
     // Multiplicador de HP/Dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
-    const hpBoost = stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
+    const hpBoost = stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.85x por fase)
     const difficultyScale = Math.pow(1.85, stage - 1);
 
-    if (isBoss) {
+    if (stage >= 21) {
+      // No Pandemônio, todos os inimigos podem aparecer aleatoriamente
+      const randIndex = Math.floor(Math.random() * ENEMY_TYPES.length);
+      this.currentEnemy = ENEMY_TYPES[randIndex];
+      if (isBoss) {
+        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+        console.log(`[CombatFSM] Pandemônio BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP}`);
+      } else {
+        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
+      }
+      this.enemyHP = this.enemyMaxHP;
+    } else if (isBoss) {
       let bossId = 'boss_forest_golem';
       if (theme === 2) bossId = 'boss_sand_scorpion';
       else if (theme === 3) bossId = 'boss_frost_dragon';
@@ -831,8 +842,8 @@ export class CombatFSM {
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
 
     // Multiplicador de dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
-    const dmgBoost = this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
+    const dmgBoost = this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
     
     // Escala exponencial de dano baseado no estágio (ajustada para 1.45x por fase)
     const dmgScale = Math.pow(1.45, this.enemyLevel - 1);
@@ -923,11 +934,14 @@ export class CombatFSM {
       const classId = char.classId;
       const ascensionCount = char.ascensionCount || 0;
       
-      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop
-      const isAncestralDrop = ascensionCount >= 1 && Math.random() < 0.10;
+      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop
+      const isPandemoniumDrop = (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
       
-      // Se for drop ancestral, o multiplicador de atributos é maior (4.5 em vez do lendário 2.5)
-      const mult = isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0));
+      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Pandemônio)
+      const isAncestralDrop = !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
+      
+      // Se for drop do Pandemônio o multiplicador é 7.0; se for Ancestral é 4.5; senão segue o padrão
+      const mult = isPandemoniumDrop ? 7.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0)));
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],
@@ -940,7 +954,7 @@ export class CombatFSM {
       
       const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
       const itemStats: Partial<BaseStats> = {};
-      const numAttributes = isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+      const numAttributes = isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
       
       const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
       pickedStats.forEach((statKey) => {
@@ -965,6 +979,15 @@ export class CombatFSM {
         cleric: 'Set Ancestral do Sábio Divino',
         rogue: 'Set Ancestral do Ceifador de Almas'
       };
+
+      const pandemoniumSetNames: Record<string, string> = {
+        warrior: 'Set Pandemoníaco do Destruidor',
+        mage: 'Set Pandemoníaco do Feiticeiro do Vazio',
+        ranger: 'Set Pandemoníaco do Franco-Atirador',
+        paladin: 'Set Pandemoníaco do Vingador Sagrado',
+        cleric: 'Set Pandemoníaco do Sumo-Inquisidor',
+        rogue: 'Set Pandemoníaco do Executor'
+      };
       
       const slotNames: Record<string, Record<string, string>> = {
         warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
@@ -979,7 +1002,23 @@ export class CombatFSM {
       let name = '';
       let setName: string | undefined = undefined;
       
-      if (isAncestralDrop) {
+      if (isPandemoniumDrop) {
+        setName = pandemoniumSetNames[classId] || `Set Pandemoníaco de ${classId}`;
+        let cleanSetName = setName;
+        if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
+        } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+        }
+        let suffix = 'Pandemoníaco';
+        if (baseName.endsWith('as')) {
+          suffix = 'Pandemoníacas';
+        } else if (baseName.endsWith('a')) {
+          suffix = 'Pandemoníaca';
+        }
+        name = `${baseName} ${suffix} do ${cleanSetName}`;
+        rarity = 'legendary';
+      } else if (isAncestralDrop) {
         setName = ancestralSetNames[classId] || `Set Ancestral de ${classId}`;
         const cleanSetName = setName.replace('Set Ancestral do ', '');
         name = `${baseName} Ancestral do ${cleanSetName}`;

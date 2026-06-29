@@ -116,6 +116,60 @@ export const SET_BONUSES: Record<string, {
       3: { strength: 100, luck: 50 },
       5: { dexterity: 200 }
     }
+  },
+  'Set Pandemoníaco do Destruidor': {
+    name: 'Set Pandemoníaco do Destruidor',
+    classId: 'warrior',
+    bonuses: {
+      2: { strength: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { strength: 600 }
+    }
+  },
+  'Set Pandemoníaco do Feiticeiro do Vazio': {
+    name: 'Set Pandemoníaco do Feiticeiro do Vazio',
+    classId: 'mage',
+    bonuses: {
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
+    }
+  },
+  'Set Pandemoníaco do Franco-Atirador': {
+    name: 'Set Pandemoníaco do Franco-Atirador',
+    classId: 'ranger',
+    bonuses: {
+      2: { dexterity: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { dexterity: 600 }
+    }
+  },
+  'Set Pandemoníaco do Vingador Sagrado': {
+    name: 'Set Pandemoníaco do Vingador Sagrado',
+    classId: 'paladin',
+    bonuses: {
+      2: { constitution: 250 },
+      3: { strength: 300, luck: 150 },
+      5: { constitution: 600 }
+    }
+  },
+  'Set Pandemoníaco do Sumo-Inquisidor': {
+    name: 'Set Pandemoníaco do Sumo-Inquisidor',
+    classId: 'cleric',
+    bonuses: {
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
+    }
+  },
+  'Set Pandemoníaco do Executor': {
+    name: 'Set Pandemoníaco do Executor',
+    classId: 'rogue',
+    bonuses: {
+      2: { dexterity: 250 },
+      3: { strength: 300, luck: 150 },
+      5: { dexterity: 600 }
+    }
   }
 };
 

@@ -227,6 +227,33 @@ graph LR
         *   3 peças: $+100$ Força, $+50$ Sorte
         *   5 peças: $+200$ Destreza *(Total acumulado: +280 Destreza, +100 For, +50 Sorte)*
 
+*   **Sets Pandemoníacos (Exclusivos do Modo Pandemônio)**:
+    Estes conjuntos de tier supremo são obtidos apenas derrotando inimigos na dificuldade Pandemônio (Fase 21+) e possuem atributos extraordinários:
+    *   **Set Pandemoníaco do Destruidor (`warrior`)**:
+        *   2 peças: $+250$ Força
+        *   3 peças: $+300$ Constituição, $+150$ Sorte
+        *   5 peças: $+600$ Força *(Total acumulado: +850 Força, +300 Con, +150 Sorte)*
+    *   **Set Pandemoníaco do Feiticeiro do Vazio (`mage`)**:
+        *   2 peças: $+250$ Magia
+        *   3 peças: $+300$ Constituição, $+150$ Sorte
+        *   5 peças: $+600$ Magia *(Total acumulado: +850 Magia, +300 Con, +150 Sorte)*
+    *   **Set Pandemoníaco do Franco-Atirador (`ranger`)**:
+        *   2 peças: $+250$ Destreza
+        *   3 peças: $+300$ Constituição, $+150$ Sorte
+        *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Con, +150 Sorte)*
+    *   **Set Pandemoníaco do Vingador Sagrado (`paladin`)**:
+        *   2 peças: $+250$ Constituição
+        *   3 peças: $+300$ Força, $+150$ Sorte
+        *   5 peças: $+600$ Constituição *(Total acumulado: +850 Constituição, +300 Força, +150 Sorte)*
+    *   **Set Pandemoníaco do Sumo-Inquisidor (`cleric`)**:
+        *   2 peças: $+250$ Magia
+        *   3 peças: $+300$ Constituição, $+150$ Sorte
+        *   5 peças: $+600$ Magia *(Total acumulado: +850 Magia, +300 Con, +150 Sorte)*
+    *   **Set Pandemoníaco do Executor (`rogue`)**:
+        *   2 peças: $+250$ Destreza
+        *   3 peças: $+300$ Força, $+150$ Sorte
+        *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Força, +150 Sorte)*
+
 ---
 
 ## 6. Árvores de Habilidades
@@ -431,7 +458,7 @@ stateDiagram-v2
     $$\text{Recarga do Inimigo} = \max\left( 1000\text{ ms}, \frac{\text{Recarga Base}}{\text{Multiplicador de Velocidade do Monstro}} \right)$$
 
 ### C. Escalonamento Exponencial de Dificuldade dos Inimigos
-O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas cíclicos de inimigos**. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço. Os temas e inimigos são os mesmos nas 5 primeiras fases e são reutilizados ciclicamente nos tiers seguintes, mas com multiplicadores de status progressivamente maiores.
+O jogo possui **20 fases de campanha** divididas em **4 tiers de dificuldade** e um **Modo Infinito** chamado **Modo Pandemônio (Fase 21+)**. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço. No Modo Pandemônio, a progressão é sem fim e a seleção de inimigos comuns e chefes torna-se inteiramente aleatória.
 
 #### Tiers de Dificuldade e Multiplicadores
 | Tier | Fases | Fator de Dificuldade | Aumento vs. Normal |
@@ -440,13 +467,14 @@ O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas c
 | **Pesadelo** 🔴 | 6 – 10 | × 2.0 | +100% de HP e Dano |
 | **Inferno** 🟠 | 11 – 15 | × 3.0 | +200% de HP e Dano |
 | **Apocalipse** 🟣 | 16 – 20 | × 4.0 | +300% de HP e Dano |
+| **Pandemônio** 💀 | 21+ (Infinito) | × 5.0 inicial | +400% de HP/Dano inicial (escalonamento exponencial padrão contínuo) |
 
-*Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo.*
+*Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo. O Modo Pandemônio é representado por tons e brilhos vermelhos e pretos intensos.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
     $$\text{Fator HP} = 1.85^{\text{Fase} - 1}$$
     $$\text{Fator Dano} = 1.45^{\text{Fase} - 1}$$
-    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \end{cases}$$
+    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \\ 5.0 & \text{se Fase} \ge 21 \text{ (Pandemônio)} \end{cases}$$
 *   **Vida Máxima de Inimigo Comum**:
     $$\text{HP Máximo Normal} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
 *   **Vida Máxima de Chefe**:
@@ -537,8 +565,8 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
     *   **Ascensões Subsequentes (`ascensionCount > 0`)**: Requer que o personagem tenha atingido pelo menos o nível 5 (`level >= 5`) na rodada atual.
 *   **Requisito Mínimo de PP**: Acumular XP suficiente para obter pelo menos o número de Pontos de Prestígio (PP) exigido pelo número de ascensões já efetuadas:
     $$\text{Requisito de PP} = \begin{cases} 1 & \text{se Ascensões} = 0 \\ 3 + 2 \times \text{Ascensões} & \text{se Ascensões} \ge 1 \end{cases}$$
-*   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos, saldo de ouro acumulado (retorna a 0) e todos os equipamentos equipados ou guardados no inventário.
-*   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, e melhorias permanentes de prestígio.
+*   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos, saldo de ouro acumulado (retorna a 0) e os equipamentos do inventário. *Nota especial: se o Modo Pandemônio estiver desbloqueado, os equipamentos equipados no personagem NÃO sofrem reset na ascensão, apenas os itens do inventário de armazenamento.*
+*   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, melhorias permanentes de prestígio e o estado de desbloqueio/ativação do Modo Pandemônio.
 
 ### B. Fórmulas de Recompensa de Prestígio
 A XP total acumulada pelo personagem desde o nível 1 é calculada por:
@@ -547,7 +575,6 @@ O ganho de Pontos de Prestígio (PP) na ascensão é determinado por:
 $$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.85} \rfloor \times 0.5 \rfloor$$
 
 ### C. Catálogo de Upgrades de Prestígio Permanente
-
 Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus permanentes para os atributos iniciais ou mecânicas de toque, aplicando-se de imediato nos resets seguintes:
 *   **Força Divina (`perm_str`)**: $+6$ Strength permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Mente Arcana (`perm_mag`)**: $+6$ Magic permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
@@ -558,6 +585,13 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 *   **Toque Crítico (`perm_touch_crit`)**: $+2\%$ Chance de Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 *   **Toque Devastador (`perm_touch_crit_dmg`)**: $+20\%$ Dano Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+2$ cliques por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
+
+### D. Ativação Especial do Modo Pandemônio
+*   **Requisito de Desbloqueio (Altar de Alma)**: O jogador precisa primeiro atingir o nível máximo (nível 10) nos 5 atributos permanentes de prestígio (Força Divina, Mente Arcana, Foco Ágil, Vigor Eterno e Bênção da Sorte).
+*   **Custo e Ativação**: Ao satisfazer o requisito, a esfera central "Alma" na árvore de prestígio torna-se interativa. O desbloqueio permanente do Modo Pandemônio exige o pagamento de **100 Pontos de Prestígio (PP)**.
+*   **Mecânica de Campanha e Loop Infinito**: O jogador avança normalmente pelas 20 fases da campanha padrão. Ao derrotar o chefe da Fase 20 (Arquidemônio das Ruínas na dificuldade Apocalipse) com o Modo Pandemônio ativado, o jogo entra em um **Loop Infinito (Fase 21+)**.
+*   **Dificuldade e Recompensas no Pandemônio**: A partir da fase 21, o HP e Dano dos inimigos recebem um multiplicador de **5.0x** sobre a base escalonada (aumentando continuamente a cada estágio infinito). Os inimigos comuns e chefes são gerados aleatoriamente em todas as rodadas. Os drops de equipamentos no Modo Pandemônio possuem status **7.0x superiores** e recebem o prefixo "Pandemoníaco(a)".
+*   **Retenção de Itens Equipados**: Estando com o Modo Pandemônio desbloqueado, todas as ascensões futuras do herói preservam as peças de armadura e armas equipadas ativamente nos slots de equipamento (`Cabeça`, `Torso`, `Pernas`, `Mãos` e `Arma`), destruindo apenas as sobras guardadas no inventário de 30 slots. Isso permite que o jogador reinicie rodadas rapidamente utilizando os bônus de seus melhores equipamentos.
 
 ---
 
@@ -674,7 +708,15 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 2.4.4 (Atual)
+### Versão 3.0.0 (Atual)
+*   **💀 Modo Pandemônio (Dificuldade Extrema e Progresso Infinito)**:
+    *   **Desbloqueio por Maestria**: Adicionado o Altar de Alma no painel de Ascensão. Quando todos os 5 atributos base da estrela de prestígio atingem o nível 10, o núcleo de Alma pode ser ativado gastando 100 PP para habilitar o Modo Pandemônio (`pandemoniumUnlocked`).
+    *   **Dificuldade Inicial x5**: Ativar o modo força uma Ascensão especial e, ao concluir a campanha normal na Fase 20, transporta o combate para a Fase 21+ (Fase Infinita), onde o HP e Dano dos monstros e chefes recebem um multiplicador de 5.0x inicial escalonando infinitamente.
+    *   **Spawn Aleatório Total**: Todos os monstros do bestiário e chefes passam a surgir de maneira imprevisível a cada rodada na arena a partir da Fase 21.
+    *   **Sets Pandemoníacos**: Introdução de 6 novos conjuntos de equipamentos exclusivos de tier Pandemônio com multiplicadores de status de 7.0x superiores aos itens convencionais.
+    *   **Retenção de Itens Equipados**: Estando com o Modo Pandemônio desbloqueado, todas as ascensões mantêm os equipamentos equipados ativamente no herói, eliminando apenas o inventário, otimizando muito o recomeço e avanço rápido das rodadas.
+
+### Versão 2.4.4
 *   **⚒️ Preservação e Validação de Sets na Forja**:
     *   **Restrição Estrita de Set**: A Forja agora valida se os dois itens pertencem ao mesmo conjunto (`setName`), impedindo a fusão de peças de conjuntos diferentes.
     *   **Nome Dinâmico de Item Místico**: O item místico resultante agora herda e exibe dinamicamente o nome do conjunto original no título do equipamento (ex: *Arma Mística do Senhor da Guerra +1* ou *Armadura Mística Ancestral do Conquistador +1*), eliminando o nome genérico que causava perda de identidade visual das peças.

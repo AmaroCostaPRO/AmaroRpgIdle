@@ -335,20 +335,53 @@ const App: React.FC = () => {
             gap: '1rem',
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
-            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#c084fc', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🔥 Atualização v2.4.4 — Configurações de Auto-Cast e Balanceamento de Atributos!
+            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(239,68,68,0.3)' }}>
+              🔥 Atualização v3.0.0 — O Despertar do Modo Pandemônio!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz o controle de IA de Auto-Cast customizável por habilidade, slider dinâmico de HP de Cura, correção de layout nos Atributos, balanceamento refinado de atributos e preservação de sets na Forja:
+                Esta atualização introduz a dificuldade definitiva do jogo com progresso infinito de fases, spawn de inimigos aleatórios, novo set de prestígio Pandemoníaco e mecânica de preservação de itens equipados pós-ascensão:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v3.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#f87171', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.0.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        💀 Modo Pandemônio (Dificuldade Suprema & Estágio Infinito)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ao maximizar os 5 atributos base da ascensão (Lvl 10) e pagar 100 PP no Altar da Alma, você ativará o Modo Pandemônio. Ao passar do Apocalipse (Fase 20), você entrará em um modo de fases infinito com chefes e monstros aleatórios, dificuldade 5x inicial e escala contínua.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f472b6', fontSize: '0.72rem' }}>
+                        🎒 Preservação de Itens Equipados
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Uma vez desbloqueado o Modo Pandemônio, realizar ascensões não apagará mais os equipamentos equipados do personagem, apenas os itens do inventário, acelerando drasticamente o avanço.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fca5a5', fontSize: '0.72rem' }}>
+                        ⚔️ Novos Sets de Equipamento Pandemoníaco
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Introduzidos novos conjuntos de itens Pandemoníacos exclusivos para cada classe, com 15% de chance de drop na fase 21+ e multiplicador inicial de 7.0x nos atributos base.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v2.4.4 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.4.4 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#c084fc', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 2.4.4:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>

@@ -87,6 +87,8 @@ export interface Character {
   equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;
+  pandemoniumUnlocked?: boolean;
+  activePandemonium?: boolean;
 }
 
 export enum GameEvent {
