@@ -2234,8 +2234,8 @@ const GuidePanel: React.FC = () => {
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>
-                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor((XP Acumulada / 1000) ^ 0.85)</code>
-                      <span className="text-gray-500 text-[8px] block mt-0.5">(Requer pelo menos Nível 5 para obter o primeiro Ponto de Prestígio. A XP acumulada conta toda a XP gasta em níveis anteriores mais a atual)</span>
+                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.85) * 0.5)</code>
+                      <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi reduzido pela metade. A XP acumulada conta toda a XP gasta em níveis anteriores mais a atual)</span>
                     </li>
                     <li>
                       <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
@@ -2256,13 +2256,13 @@ const GuidePanel: React.FC = () => {
               <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
               <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                 <p>
-                  A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong>. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+5</strong>.
+                  A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) e do <strong>mesmo conjunto</strong> (ex: Senhor da Guerra) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong> que preserva a identidade visual do conjunto original. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+5</strong>.
                 </p>
                 <div>
                   <strong className="text-white block font-semibold">Regras de Fusão:</strong>
                   <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                    <li><span className="text-gray-400">Mesmo slot obrigatório</span> — apenas dois equipamentos do mesmo tipo (arma + arma, luva + luva, etc.)</li>
-                    <li><span className="text-gray-400">Mesma categoria</span> — dois normais <em>ou</em> dois Místicos. Não é possível misturar.</li>
+                    <li><span className="text-gray-400">Mesmo slot e conjunto obrigatórios</span> — os dois equipamentos devem ser do mesmo tipo (ex: arma + arma) e pertencer ao mesmo set (ex: ambos "Senhor da Guerra").</li>
+                    <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
                     <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
                     <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+5</strong>.</li>
                   </ul>
@@ -2292,8 +2292,8 @@ const GuidePanel: React.FC = () => {
                   <strong className="text-white block font-semibold">Custo de Fusão (em Ouro 🪙):</strong>
                   <div className="mt-1 space-y-0.5">
                     {[
-                      { origem: 'Comum/Raro/Épico/Lendário + Lendário', resultado: 'Místico +1', custo: '100' },
-                      { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', custo: '500' },
+                      { origem: 'Convencional + Convencional', resultado: 'Místico +1', custo: '500' },
+                      { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', custo: '1.000' },
                       { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', custo: '2.500' },
                       { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', custo: '12.500' },
                       { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', custo: '62.500' },
