@@ -67,7 +67,7 @@ A interface é construída sobre uma paleta de tons escuros curados, proporciona
 ### B. Elementos do HUD e Viewport
 1.  **Combate Viewport (Phaser Canvas)**: Exibe em tempo real o herói do jogador e o monstro atual no cenário. Possui um `ZOOM_FACTOR` integrado de $1.5\times$ para dar maior clareza visual aos sprites de arte digital escura e efeitos visuais. A base do cenário (*ground*) é travada verticalmente para manter o alinhamento visual durante a movimentação.
 2.  **HUD de Status**: Exibe duas barras horizontais (HP e Mana) com preenchimento colorido e contadores absolutos (`Valor Atual / Valor Máximo`), acompanhados da Fase Atual do jogo, progresso do Estágio (monstros eliminados de 15), velocidade da simulação e atalhos de controle de som.
-3.  **Controle de Velocidade e Pausa**: Permite alterar o ritmo da simulação do Phaser ou pausar o jogo completamente (velocidades `⏸`, `1x`, `2x` e `3x`) usando multiplicadores temporais no relógio interno da cena.
+3.  **Controle de Velocidade e Pausa**: Permite alterar o ritmo da simulação do Phaser ou pausar o jogo completamente (velocidades `⏸`, `1x`, `2x` e `3x`) usando multiplicadores temporais no relógio interno da cena. As velocidades mais rápidas possuem travas de segurança: a velocidade 2x é liberada após a primeira ascensão (`ascensionCount >= 1`), e a velocidade 3x é liberada a partir da quinta ascensão (`ascensionCount >= 5`).
 
 ### C. Estrutura do Menu de Abas
 O painel inferior/lateral de gerenciamento é dividido em abas com transições suaves (`animate-tabFade` para evitar saltos bruscos de tela):
@@ -384,7 +384,7 @@ Escala suas habilidades de ataque com **Destreza** (`dexterity`).
     $$\text{Valor da Cura} = \lfloor \text{HP Máximo} \times (0.30 + (\text{Nível da Habilidade} - 1) \times 0.05) \rfloor$$
     *Onde a cura recupera 30% do HP máximo no nível 1, aumentando +5% por nível adicional, até atingir 50% de cura máxima do HP total no nível 5.*
 *   **Funcionamento de Inteligência Artificial (Auto-Cast)**:
-    Quando a Conjuração Automática de Habilidades está habilitada (liberada após vencer a Fase 5) e o HP do herói cai abaixo de **50% de sua vida máxima**, o motor de combate prioriza imediatamente o uso de **Cura** antes de qualquer outra habilidade ofensiva, desde que haja mana suficiente e a habilidade não esteja em recarga.
+    Quando a Conjuração Automática de Habilidades está habilitada (liberada definitivamente após a primeira ascensão, ou temporariamente ao vencer a Fase 5 na primeira rodada) e o HP do herói cai abaixo de sua vida máxima no percentual configurado pelo jogador (padrão de **50% de sua vida máxima**), o motor de combate prioriza imediatamente o uso de **Cura** antes de qualquer outra habilidade ofensiva, desde que haja mana suficiente e a habilidade não esteja em recarga.
 *   **Efeito Visual no Phaser**:
     Cria um círculo concêntrico verde brilhante nos pés do herói. O círculo sobe verticalmente em direção ao peito e se expande até $1.3\times$ de tamanho antes de desaparecer gradualmente. Exibe um número flutuante verde brilhante `+<quantidade>` acima do herói.
 
@@ -444,15 +444,15 @@ O jogo possui **20 fases** divididas em **4 tiers de dificuldade** e **5 temas c
 *Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
-    $$\text{Fator HP} = 1.65^{\text{Fase} - 1}$$
-    $$\text{Fator Dano} = 1.30^{\text{Fase} - 1}$$
+    $$\text{Fator HP} = 1.85^{\text{Fase} - 1}$$
+    $$\text{Fator Dano} = 1.45^{\text{Fase} - 1}$$
     $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \end{cases}$$
 *   **Vida Máxima de Inimigo Comum**:
-    $$\text{HP Máximo Normal} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
+    $$\text{HP Máximo Normal} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
 *   **Vida Máxima de Chefe**:
-    $$\text{HP Máximo Chefe} = \lfloor (120 + (\text{Fase} \times 35)) \times \text{Fator HP} \times \text{Multiplicador HP Chefe} \times 3.0 \times \text{Fator Tier} \rfloor$$
+    $$\text{HP Máximo Chefe} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Chefe} \times 3.0 \times \text{Fator Tier} \rfloor$$
 *   **Dano dos Ataques do Inimigo**:
-    $$\text{Dano do Inimigo} = \lfloor (5 + \text{Fase} \times 2.0 + \text{Random}(0, 1)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Tier} \rfloor$$
+    $$\text{Dano do Inimigo} = \lfloor (10 + \text{Fase} \times 4.0 + \text{Random}(0, 1)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Tier} \rfloor$$
 
 ---
 
@@ -532,7 +532,10 @@ O combate processa efeitos de status temporários gerados por habilidades ativas
 Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando seu progresso imediato por bônus permanentes e cumulativos.
 
 ### A. Condições e Perda de Dados
-*   **Requisito Mínimo**: Acumular XP suficiente para obter pelo menos o número de Pontos de Prestígio (PP) exigido pelo número de ascensões já efetuadas:
+*   **Requisito de Progresso**:
+    *   **Primeira Ascensão (`ascensionCount === 0`)**: Requer que a fase de nível 5 esteja totalmente completa (o jogador deve ter alcançado a fase 6, ou seja, `highestStageReached >= 6`). O requisito de nível 5 do personagem não se aplica.
+    *   **Ascensões Subsequentes (`ascensionCount > 0`)**: Requer que o personagem tenha atingido pelo menos o nível 5 (`level >= 5`) na rodada atual.
+*   **Requisito Mínimo de PP**: Acumular XP suficiente para obter pelo menos o número de Pontos de Prestígio (PP) exigido pelo número de ascensões já efetuadas:
     $$\text{Requisito de PP} = \begin{cases} 1 & \text{se Ascensões} = 0 \\ 3 + 2 \times \text{Ascensões} & \text{se Ascensões} \ge 1 \end{cases}$$
 *   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos, saldo de ouro acumulado (retorna a 0) e todos os equipamentos equipados ou guardados no inventário.
 *   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, e melhorias permanentes de prestígio.

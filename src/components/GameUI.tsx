@@ -278,7 +278,7 @@ const ActiveSkillsPanel: React.FC = () => {
     return isClassSkill && isUnlocked && skill.type === 'active';
   });
 
-  const isAutoCastUnlocked = character.highestStageReached > 5 || character.currentStage > 5;
+  const isAutoCastUnlocked = (character.ascensionCount || 0) >= 1 || character.highestStageReached > 5 || character.currentStage > 5;
 
   const handleOpenModal = () => {
     setTempHealPercent(character.autoCastHealPercent !== undefined ? character.autoCastHealPercent : 50);
@@ -557,10 +557,20 @@ const ActiveSkillsPanel: React.FC = () => {
         <div style={{ display: 'flex', gap: '0.3rem' }}>
           {[0, 1, 2, 3].map((speed) => {
             const isActive = gameSpeed === speed;
+            const ascensionCount = character.ascensionCount || 0;
+            const isSpeedLocked = (speed === 2 && ascensionCount < 1) || (speed === 3 && ascensionCount < 5);
+            
+            const getSpeedTooltip = () => {
+              if (speed === 2 && ascensionCount < 1) return "Velocidade 2x: Requer 1 Ascensão";
+              if (speed === 3 && ascensionCount < 5) return "Velocidade 3x: Requer 5 Ascensões";
+              return undefined;
+            };
+
             return (
               <button
                 key={speed}
                 onClick={() => {
+                  if (isSpeedLocked) return;
                   AudioManager.getInstance().playClick();
                   setGameSpeed(speed);
                 }}
@@ -575,10 +585,14 @@ const ActiveSkillsPanel: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   background: isActive ? undefined : 'rgba(255,255,255,0.03)',
-                  border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)'
+                  border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)',
+                  opacity: isSpeedLocked ? 0.3 : 1,
+                  cursor: isSpeedLocked ? 'not-allowed' : 'pointer'
                 }}
+                disabled={isSpeedLocked}
+                title={getSpeedTooltip()}
               >
-                {speed === 0 ? '⏸' : `${speed}x`}
+                {isSpeedLocked ? '🔒' : (speed === 0 ? '⏸' : `${speed}x`)}
               </button>
             );
           })}
@@ -1759,10 +1773,14 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const level = character.level;
   const xp = character.xp;
   const totalXp = 50 * level * (level - 1) + xp;
-  const prestigeEarnedOnReset = Math.floor(Math.pow(totalXp / 1000, 0.85));
+  // Multiplicado por 0.5 para alinhar com a redução de 50% no store
+  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 0.5);
   const ascensionCount = character.ascensionCount || 0;
   const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
-  const canPrestige = level >= 5 && prestigeEarnedOnReset >= requiredPP;
+  const isProgressReqMet = ascensionCount === 0 
+    ? (character.highestStageReached >= 6) 
+    : (level >= 5);
+  const canPrestige = isProgressReqMet && prestigeEarnedOnReset >= requiredPP;
 
   // Coord do Layout Diamante / Estrela
   const hubPos = { x: 50, y: 220 };
@@ -1839,8 +1857,10 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
             style={{ width: '100%', cursor: canPrestige ? 'pointer' : 'not-allowed', opacity: canPrestige ? 1 : 0.5 }}
             disabled={!canPrestige}
           >
-            {level < 5 
-              ? 'Requer Nível 5+ para obter PP' 
+            {!isProgressReqMet 
+              ? (ascensionCount === 0 
+                  ? 'Requer completar a Fase 5' 
+                  : 'Requer Nível 5+ para obter PP')
               : prestigeEarnedOnReset < requiredPP 
                 ? `Requer +${requiredPP} PP nesta rodada (Ganho: ${prestigeEarnedOnReset})` 
                 : `Ascender (+${prestigeEarnedOnReset} PP)`

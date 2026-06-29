@@ -454,7 +454,12 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   gameSpeed: 1,
-  setGameSpeed: (speed) => set({ gameSpeed: speed }),
+  setGameSpeed: (speed) => set((state) => {
+    const ascensionCount = state.character.ascensionCount || 0;
+    if (speed === 2 && ascensionCount < 1) return state;
+    if (speed === 3 && ascensionCount < 5) return state;
+    return { gameSpeed: speed };
+  }),
 
   addGold: (amount) => set((state) => {
     const updated = {
@@ -549,8 +554,15 @@ export const useGameStore = create<GameState>((set) => ({
 
     if (pointsEarned <= 0) return state;
     
-    // Validar requisito de PP com base na quantidade de ascensões já realizadas
+    // Validar requisito de progresso (Fase 5 completa para a primeira, Nível 5 para as subsequentes)
     const ascensionCount = state.character.ascensionCount || 0;
+    const isProgressReqMet = ascensionCount === 0 
+      ? (state.character.highestStageReached >= 6) 
+      : (level >= 5);
+      
+    if (!isProgressReqMet) return state;
+    
+    // Validar requisito de PP com base na quantidade de ascensões já realizadas
     const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
     if (pointsEarned < requiredPP) return state;
 

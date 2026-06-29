@@ -381,8 +381,8 @@ export class CombatFSM {
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
     const hpBoost = stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
-    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis
-    const difficultyScale = Math.pow(1.65, stage - 1);
+    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.85x por fase)
+    const difficultyScale = Math.pow(1.85, stage - 1);
 
     if (isBoss) {
       let bossId = 'boss_forest_golem';
@@ -392,7 +392,7 @@ export class CombatFSM {
       else if (theme === 5) bossId = 'boss_archdemon';
 
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
-      this.enemyMaxHP = Math.floor((120 + (stage * 35)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+      this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
       const diffLabel = stage >= 16 ? 'Apocalipse' : stage >= 11 ? 'Inferno' : stage >= 6 ? 'Pesadelo' : 'Normal';
       console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Dificuldade: ${diffLabel})`);
@@ -409,7 +409,7 @@ export class CombatFSM {
       
       const randIndex = defeatedInStage % activeList.length;
       this.currentEnemy = activeList[randIndex];
-      this.enemyMaxHP = Math.floor((120 + (stage * 35)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
+      this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     }
   }
@@ -834,14 +834,14 @@ export class CombatFSM {
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0×
     const dmgBoost = this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
     
-    // Escala exponencial de dano baseado no estágio
-    const dmgScale = Math.pow(1.3, this.enemyLevel - 1);
+    // Escala exponencial de dano baseado no estágio (ajustada para 1.45x por fase)
+    const dmgScale = Math.pow(1.45, this.enemyLevel - 1);
 
     // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
     const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
     const weaknessMultiplier = weaknessEffect ? (1 - weaknessEffect.value) : 1.0;
 
-    const damage = Math.floor((5 + this.enemyLevel * 2.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier);
+    const damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier);
 
     this.scene.animateEnemyAttack();
 
@@ -1326,7 +1326,8 @@ export class CombatFSM {
   private runAutoCastAI(): void {
     if (this.currentState === CombatState.DEAD) return;
     const char = this.characterData;
-    if (!char || char.currentStage <= 5 || !char.autoCastEnabled) return;
+    const isAutoCastUnlocked = char && ((char.ascensionCount || 0) >= 1 || (char.highestStageReached || 0) > 5 || (char.currentStage || 0) > 5);
+    if (!char || !isAutoCastUnlocked || !char.autoCastEnabled) return;
 
     // Colecionar habilidades desbloqueadas do tipo ativo que não estão desativadas nas configurações
     const disabledSkills = char.autoCastDisabledSkills || [];
