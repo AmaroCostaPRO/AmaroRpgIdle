@@ -15,13 +15,14 @@ export interface BaseStats {
 export interface EquipmentItem {
   id: string;
   name: string;
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'consumable';
   classId: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic';
+  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' | 'consumable';
   stats: Partial<BaseStats>;
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch';
 }
 
 export interface EnemyType {

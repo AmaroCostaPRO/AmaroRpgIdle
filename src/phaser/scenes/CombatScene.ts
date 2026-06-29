@@ -21,6 +21,7 @@ export class CombatScene extends Phaser.Scene {
   private xpBar!: Phaser.GameObjects.Graphics;
   private xpText!: Phaser.GameObjects.Text;
   private unsubscribeSkill?: () => void;
+  private unsubscribeFrenzyBoost?: () => void;
   private currentBgTexture: string = 'background';
   private accumulatedTime: number = 0;
 
@@ -271,6 +272,10 @@ export class CombatScene extends Phaser.Scene {
     // Ouvir comandos de skill
     this.unsubscribeSkill = bridge.subscribe(GameEvent.EQUIP_SKILL, (payload) => {
       this.fsm.triggerSkill(payload.skillId);
+    });
+
+    this.unsubscribeFrenzyBoost = bridge.subscribe('ACTIVATE_FRENZY_BOOST' as any, (payload) => {
+      this.fsm.activateFrenzyBoost(payload.duration || 60000);
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -955,6 +960,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeSkill) {
       this.unsubscribeSkill();
       this.unsubscribeSkill = undefined;
+    }
+    if (this.unsubscribeFrenzyBoost) {
+      this.unsubscribeFrenzyBoost();
+      this.unsubscribeFrenzyBoost = undefined;
     }
     if (this.fsm) {
       this.fsm.cleanup();

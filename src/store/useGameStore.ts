@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Character, BaseStats, EquipmentItem } from '../core/types';
+import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
+import { bridge } from '../bridge/GameBridge';
 
 // Configurações de Atributos e Crescimento para cada Classe
 export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
@@ -300,6 +301,10 @@ interface GameState {
   
   // Reforja de itens (v2.0.0)
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
+
+  // Loja e Consumíveis (v3.0.0)
+  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch'): { success: boolean; message: string };
+  useConsumable(itemId: string): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
   gameSpeed: number;
@@ -1022,6 +1027,8 @@ export const useGameStore = create<GameState>((set) => ({
     if (!item) return state;
 
     const slot = item.slot;
+    if (slot === 'consumable') return state;
+    
     const currentEquipped = state.character.equipment[slot];
     
     const newInventory = state.character.inventory.filter(i => i.id !== itemId);
@@ -1290,6 +1297,202 @@ export const useGameStore = create<GameState>((set) => ({
       return { character: updated };
     });
 
+    return result;
+  },
+
+  buyConsumable: (type) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const costs = {
+        chest_legendary: 500,
+        chest_ancestral: 1000,
+        boost_touch: 500
+      };
+      const cost = costs[type];
+      if ((state.character.gold || 0) < cost) {
+        result = { success: false, message: `Ouro insuficiente. Requer ${cost} Ouro.` };
+        return state;
+      }
+      if (state.character.inventory.length >= state.character.inventorySlots) {
+        result = { success: false, message: 'Inventário cheio! Libere espaço antes de comprar.' };
+        return state;
+      }
+
+      const names = {
+        chest_legendary: 'Baú Lendário',
+        chest_ancestral: 'Baú Ancestral',
+        boost_touch: 'Boost de Toque'
+      };
+      const name = names[type];
+
+      const newItem: EquipmentItem = {
+        id: `${type}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        slot: 'consumable',
+        rarity: 'consumable',
+        stats: {},
+        classId: state.character.classId,
+        spriteName: type,
+        consumableType: type
+      };
+
+      const updated = {
+        ...state.character,
+        gold: (state.character.gold || 0) - cost,
+        inventory: [...state.character.inventory, newItem]
+      };
+
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Compra de [${name}] realizada com sucesso!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  useConsumable: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const itemIndex = state.character.inventory.findIndex(i => i.id === itemId);
+      if (itemIndex === -1) {
+        result = { success: false, message: 'Item não encontrado no inventário.' };
+        return state;
+      }
+      const item = state.character.inventory[itemIndex];
+      if (item.slot !== 'consumable') {
+        result = { success: false, message: 'Este item não é um consumível.' };
+        return state;
+      }
+
+      // Copia o inventário e remove o consumível
+      const nextInventory = state.character.inventory.filter(i => i.id !== itemId);
+
+      if (item.consumableType === 'boost_touch') {
+        // Ativar Frenesi do Toque por 1 minuto
+        bridge.emit('ACTIVATE_FRENZY_BOOST' as any, { duration: 60000 });
+        
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Boost de Toque ativado! Frenesi de 1 minuto iniciado!' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'chest_legendary' || item.consumableType === 'chest_ancestral') {
+        const count = Math.floor(Math.random() * 3) + 1; // 1 a 3 itens
+        const slotsLivres = state.character.inventorySlots - state.character.inventory.length;
+        
+        // Como o baú é removido, o ganho líquido de slots ocupados é count - 1.
+        // O limite é verificado comparando se a quantidade de novos itens cabe no espaço
+        // contando com o slot liberado pelo próprio baú.
+        if (slotsLivres + 1 < count) {
+          result = { success: false, message: `Espaço insuficiente no inventário! Libere pelo menos ${count - slotsLivres - 1} slot(s) adicional(is).` };
+          return state;
+        }
+
+        const classId = state.character.classId;
+        const stage = state.character.currentStage;
+        
+        const setNames: Record<string, string> = {
+          warrior: 'Set do Senhor da Guerra',
+          mage: 'Set do Mestre Arcano',
+          ranger: 'Set do Rastreador das Sombras',
+          paladin: 'Set do Guardião Divino',
+          cleric: 'Set do Sumosacerdote',
+          rogue: 'Set do Assassino Fantasma'
+        };
+
+        const ancestralSetNames: Record<string, string> = {
+          warrior: 'Set Ancestral do Conquistador',
+          mage: 'Set Ancestral do Arquimago',
+          ranger: 'Set Ancestral do Caçador Estelar',
+          paladin: 'Set Ancestral do Sentinela Eterno',
+          cleric: 'Set Ancestral do Sábio Divino',
+          rogue: 'Set Ancestral do Ceifador de Almas'
+        };
+
+        const slotNames: Record<string, Record<string, string>> = {
+          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
+          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
+          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
+          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
+          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
+          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' }
+        };
+
+        const possibleStatsMap: Record<string, string[]> = {
+          warrior: ['strength', 'constitution', 'luck'],
+          mage: ['magic', 'constitution', 'luck'],
+          ranger: ['dexterity', 'constitution', 'luck'],
+          paladin: ['constitution', 'strength', 'luck'],
+          cleric: ['magic', 'constitution', 'luck'],
+          rogue: ['dexterity', 'strength', 'luck']
+        };
+
+        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon'> = ['head', 'chest', 'legs', 'gloves', 'weapon'];
+        const newItems: EquipmentItem[] = [];
+
+        for (let i = 0; i < count; i++) {
+          const slot = slots[Math.floor(Math.random() * slots.length)];
+          const baseName = slotNames[classId]?.[slot] || 'Equipamento';
+          
+          let setName = '';
+          let mult = 2.5;
+          let name = '';
+
+          if (item.consumableType === 'chest_legendary') {
+            setName = setNames[classId] || `Set do ${classId}`;
+            const cleanSetName = setName.replace('Set do ', '');
+            name = `${baseName} do ${cleanSetName}`;
+            mult = 2.5;
+          } else {
+            setName = ancestralSetNames[classId] || `Set Ancestral de ${classId}`;
+            const cleanSetName = setName.replace('Set Ancestral do ', '').replace('Set Ancestral de ', '');
+            name = `${baseName} Ancestral do ${cleanSetName}`;
+            mult = 4.5;
+          }
+
+          const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
+          const itemStats: Partial<BaseStats> = {};
+          const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos
+
+          const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+          pickedStats.forEach((statKey) => {
+            const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
+            itemStats[statKey as keyof BaseStats] = val;
+          });
+
+          newItems.push({
+            id: `${classId}-${slot}-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
+            name,
+            slot,
+            rarity: 'legendary',
+            stats: itemStats,
+            setName,
+            classId,
+            spriteName: `${classId}-${slot}`
+          });
+        }
+
+        const updated = {
+          ...state.character,
+          inventory: [...nextInventory, ...newItems]
+        };
+
+        saveToLocalStorage(updated);
+
+        // Notifica no log de combate de cada item recebido
+        newItems.forEach(ni => {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Você abriu o baú e obteve: [${ni.name}]!` });
+        });
+
+        result = { success: true, message: `Baú aberto com sucesso! Recebido(s) ${count} equipamento(s).` };
+        return { character: updated };
+      }
+
+      return state;
+    });
     return result;
   }
 }));

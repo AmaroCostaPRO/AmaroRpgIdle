@@ -8,6 +8,7 @@ import { ENEMY_TYPES } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
+import { ShopPanel } from './ShopPanel';
 
 // Funções utilitárias para obter informações sobre Efeitos de Status aplicados por Habilidades
 export const getSimpleStatusEffectInfo = (id: string): string => {
@@ -720,6 +721,8 @@ const getRarityColor = (rarity: string) => {
     case 'místico':
     case 'mística':
       return '#d946ef';
+    case 'consumable':
+      return '#06b6d4';
     default: 
       return '#94a3b8';
   }
@@ -740,6 +743,8 @@ const getRarityBg = (rarity: string) => {
     case 'místico':
     case 'mística':
       return 'rgba(217, 70, 239, 0.2)';
+    case 'consumable':
+      return 'rgba(6, 182, 212, 0.15)';
     default: 
       return 'rgba(148, 163, 184, 0.1)';
   }
@@ -750,7 +755,8 @@ const slotLabels: Record<string, string> = {
   chest: 'Peito',
   legs: 'Pernas',
   gloves: 'Luvas',
-  weapon: 'Arma'
+  weapon: 'Arma',
+  consumable: 'Consumível'
 };
 
 const slotIcons: Record<string, string> = {
@@ -758,7 +764,8 @@ const slotIcons: Record<string, string> = {
   chest: '👕',
   legs: '👖',
   gloves: '🧤',
-  weapon: '⚔️'
+  weapon: '⚔️',
+  consumable: '📦'
 };
 
 const statLabels: Record<string, string> = {
@@ -1154,7 +1161,14 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <span style={{ fontSize: '1.2rem' }}>{slotIcons[item.slot]}</span>
+                <span style={{ fontSize: '1.2rem' }}>
+                  {item.slot === 'consumable' ? (
+                    item.consumableType === 'boost_touch' ? '⚡' : 
+                    item.consumableType === 'chest_ancestral' ? '🔮' : '🎁'
+                  ) : (
+                    slotIcons[item.slot]
+                  )}
+                </span>
                 {isAncestral && (
                   <div style={{ 
                     position: 'absolute', 
@@ -2995,8 +3009,9 @@ export default function GameUI() {
   const equipItem = useGameStore((state) => state.equipItem);
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
+  const useConsumable = useGameStore((state) => state.useConsumable);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'bestiary' | 'guide' | 'saves'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -3062,6 +3077,7 @@ export default function GameUI() {
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️' },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
+    { id: 'shop' as const, label: 'Loja', icon: '🛒' },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
     { id: 'saves' as const, label: 'Saves', icon: '💾' },
@@ -3294,6 +3310,7 @@ export default function GameUI() {
             />
           )}
           {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
+          {activeTab === 'shop' && <ShopPanel />}
           {activeTab === 'bestiary' && (
             <BestiaryPanel 
               selectedEnemy={selectedEnemy}
@@ -3341,14 +3358,27 @@ export default function GameUI() {
               </div>
 
               <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                  {Object.entries(selectedItem.stats).map(([stat, val]) => (
-                    <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                      +{val} {statLabels[stat] || stat}
-                    </span>
-                  ))}
-                </div>
+                {selectedItem.slot === 'consumable' ? (
+                  <>
+                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito do Consumível</span>
+                    <div style={{ fontSize: '0.65rem', color: '#22d3ee', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                      {selectedItem.consumableType === 'boost_touch' && '🔥 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.'}
+                      {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
+                      {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                      {Object.entries(selectedItem.stats).map(([stat, val]) => (
+                        <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                          +{val} {statLabels[stat] || stat}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {selectedItem.setName && (
@@ -3363,17 +3393,35 @@ export default function GameUI() {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                <button 
-                  onClick={() => {
-                    AudioManager.getInstance().playClick();
-                    equipItem(selectedItem.id);
-                    setSelectedItem(null);
-                  }}
-                  className="btn btn-sm btn-gold" 
-                  style={{ width: '100%' }}
-                >
-                  Equipar Item
-                </button>
+                {selectedItem.slot === 'consumable' ? (
+                  <button 
+                    onClick={() => {
+                      AudioManager.getInstance().playClick();
+                      const res = useConsumable(selectedItem.id);
+                      if (res.success) {
+                        setSelectedItem(null);
+                      } else {
+                        alert(res.message);
+                      }
+                    }}
+                    className="btn btn-sm btn-gold" 
+                    style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
+                  >
+                    Usar Item
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      AudioManager.getInstance().playClick();
+                      equipItem(selectedItem.id);
+                      setSelectedItem(null);
+                    }}
+                    className="btn btn-sm btn-gold" 
+                    style={{ width: '100%' }}
+                  >
+                    Equipar Item
+                  </button>
+                )}
 
                 {showDiscardConfirm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>

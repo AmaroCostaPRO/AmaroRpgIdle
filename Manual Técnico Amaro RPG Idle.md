@@ -704,7 +704,34 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 ---
 
-## 13. Histórico de Updates e Otimizações de Engenharia
+## 13. Loja e Sistema de Consumíveis
+
+A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adquirir equipamentos poderosos e impulsionar a progressão de combate através de recursos consumíveis temporários e instantâneos.
+
+### A. Estrutura de Custos e Economia
+Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumulado pelo personagem no decorrer das batalhas.
+*   **Boost de Toque (Touch Booster)**: Custa $500$ Ouro.
+*   **Baú de Equipamento Lendário**: Custa $500$ Ouro.
+*   **Baú de Equipamento Ancestral**: Custa $1.000$ Ouro.
+
+### B. Funcionamento dos Consumíveis
+Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao inventário geral de equipamentos (com propriedade `slot: 'consumable'`), ocupando um slot livre. A compra é bloqueada caso o inventário do jogador esteja completamente cheio ($30$ itens).
+
+#### 1. Baús de Equipamento (Lendário e Ancestral)
+*   **Geração de Itens**: Ao abrir o baú, ele é consumido e removido do inventário, gerando aleatoriamente de **1 a 3 equipamentos** de classe correspondente à classe ativa do personagem.
+*   **Raridade e Sets**: 
+    *   *Baú Lendário*: Sorteia peças de raridade **Lendária** do conjunto padrão correspondente à classe atual.
+    *   *Baú Ancestral*: Sorteia peças de raridade **Ancestral** (Set Ancestral pós-ascensão) correspondentes à classe ativa.
+*   **Validação de Espaço**: Para abrir o baú, o sistema valida se há espaço suficiente no inventário para acomodar os novos equipamentos (até 3 slots livres). Caso contrário, a abertura é cancelada impedindo a perda de itens por falta de slots.
+
+#### 2. Boost de Toque (Frenesi de 1 minuto)
+*   **Efeito**: Ao ativar o booster de toque, ele é removido do inventário e emite um evento especial de ativação via `GameBridge` (`ACTIVATE_FRENZY_BOOST`).
+*   **Integração de Motor**: O evento é ouvido no motor Phaser (`CombatScene.ts`), que aciona o método `activateFrenzyBoost` no `CombatFSM`.
+*   **Mecânica de Combate**: O FSM força o estado de **Frenesi** ativado independentemente do medidor de combos/toques, configurando o tempo restante do Frenesi para $60$ segundos ($60.000$ ms) e garantindo $100\%$ de taxa de acerto crítico e cliques automáticos na arena durante este período.
+
+---
+
+## 14. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 

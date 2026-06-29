@@ -678,6 +678,15 @@ export class CombatFSM {
     return Math.max(1, dps);
   }
 
+  public activateFrenzyBoost(durationMs: number): void {
+    this.isFrenzyActive = true;
+    this.frenzyDuration = durationMs;
+    this.frenzyAutoTapTimer = 0;
+    this.frenzyEnergy = 100;
+    bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: true, energy: 100 });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 BOOST DE FRENESI! Auto-ataques críticos ativos por ${Math.round(durationMs / 1000)} segundos!` });
+  }
+
   public handlePlayerTap(clickX?: number, clickY?: number): void {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;

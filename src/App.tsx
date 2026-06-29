@@ -376,6 +376,24 @@ const App: React.FC = () => {
                         Introduzidos novos conjuntos de itens Pandemoníacos exclusivos para cada classe, com 15% de chance de drop na fase 21+ e multiplicador inicial de 7.0x nos atributos base.
                       </div>
                     </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🛒 Nova Aba Loja & Suprimentos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionada a Aba Loja! Compre suprimentos essenciais por ouro: Baús Lendários (500 gold), Baús Ancestrais (1000 gold) e Boosters de Toque (500 gold).
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#06b6d4', fontSize: '0.72rem' }}>
+                        ⚡ Sistema de Consumíveis & Frenesi Instantâneo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Os itens comprados vão para o seu inventário na aba Equipamentos. Ao abrir baús, você recebe de 1 a 3 equipamentos aleatórios para sua classe. Ao consumir o Boost de Toque, ativa instantaneamente o modo Frenesi (críticos e auto-toques) por 1 minuto inteiro!
+                      </div>
+                    </div>
                   </div>
                 </div>
 
