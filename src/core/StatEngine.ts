@@ -185,6 +185,11 @@ export class StatEngine {
       });
     }
 
+    // 3. Aplicar bônus do atributo Sorte (Luck) na chance e dano de crítico de toque
+    const luckValue = finalStats.luck || 0;
+    finalStats.touchCritChance += luckValue * 0.05;
+    finalStats.touchCritDamage += luckValue * 0.2;
+
     return finalStats;
   }
 

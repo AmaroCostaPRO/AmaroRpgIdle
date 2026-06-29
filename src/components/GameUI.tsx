@@ -633,7 +633,7 @@ const AttributePanel: React.FC = () => {
           : 'Vida Máxima +18 / Regen +0.08/s (Bônus secundário aumentado!)';
       }
       case 'luck': 
-        return 'Aumenta a chance e raridade dos drops de itens e o ouro obtido.';
+        return 'Aumenta a chance e raridade dos drops de itens, ouro obtido, Chance de Crítico (+0.05%/pt) e Dano Crítico (+0.2%/pt).';
       case 'touch': 
         return 'Aumenta o Dano de Clique (cada 2 pontos de Toque aumentam 1 de dano base).';
       default: 
@@ -971,19 +971,25 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   const equipBonus = Math.max(0, finalVal - baseVal);
                   const hasAnyBonus = equipBonus > 0 || ascensionBonus > 0;
 
+                  const isPercent = statKey === 'touchCritChance' || statKey === 'touchCritDamage';
+                  const formatVal = (val: number) => {
+                    const rounded = Number(val.toFixed(2));
+                    return isPercent ? `${rounded}%` : rounded.toString();
+                  };
+
                   return (
                     <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', padding: '0.25rem 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                       <span className="font-heading" style={{ fontWeight: 600, color: '#cbd5e1' }}>{statLabels[statKey] || statKey}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <span className="font-mono" style={{ fontWeight: 700, color: '#fff' }}>{pureBase}</span>
+                        <span className="font-mono" style={{ fontWeight: 700, color: '#fff' }}>{formatVal(pureBase)}</span>
                         {hasAnyBonus && (
                           <span className="font-mono" style={{ color: '#64748b', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                             <span>(</span>
                             {equipBonus > 0 && (
-                              <span style={{ color: '#10b981' }}>+{equipBonus}</span>
+                              <span style={{ color: '#10b981' }}>+{formatVal(equipBonus)}</span>
                             )}
                             {ascensionBonus > 0 && (
-                              <span style={{ color: '#c084fc' }}>+{ascensionBonus}</span>
+                              <span style={{ color: '#c084fc' }}>+{formatVal(ascensionBonus)}</span>
                             )}
                             <span>)</span>
                           </span>
@@ -2322,6 +2328,25 @@ const GuidePanel: React.FC = () => {
                       <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Dodge Chance = Min(75%, Destreza × 0.1%)</code>
                     </div>
                     <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(800ms, 3000ms / Mult. Velocidade)</code>
+                  </div>
+                </div>
+
+                <div>
+                  <strong className="text-white block font-semibold">Drop, Ouro e Combate (Sorte)</strong>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Aumenta a chance e raridade de drops, ouro obtido e aprimora os acertos críticos:</span>
+                  <div className="pl-2 mt-0.5 space-y-1">
+                    <div>
+                      <span className="text-amber-300 font-bold">Chance de Drop (Monstros Normais):</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Chance = Min(50%, 5% + Sorte × 0.2%)</code>
+                    </div>
+                    <div>
+                      <span className="text-amber-300 font-bold">Multiplicador de Ouro:</span>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Bônus = 1.0 + (Sorte / 100)</code>
+                    </div>
+                    <div>
+                      <span className="text-emerald-300 font-bold">Chance e Dano Crítico de Toque:</span>
+                      <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Chance +0.05% e Dano Crítico +0.2% por ponto de Sorte</code>
+                    </div>
                   </div>
                 </div>
 

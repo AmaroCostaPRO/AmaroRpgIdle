@@ -138,6 +138,17 @@ A velocidade com que o herói realiza ataques básicos e sua chance de se esquiv
 *   **Esquiva (Todas as Classes)**:
     *   Cada ponto de Destreza concede $+0.1\%$ de Chance de Esquiva contra ataques recebidos de monstros, com limite de até $75\%$ de esquiva máxima para fins de balanceamento do jogo.
 
+#### 4. Drop, Ouro e Crítico (Sorte)
+O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados, o ouro ganho e também o desempenho em combate ativamente através do clique:
+*   **Chance de Drop (Monstros Normais)**:
+    $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\%\right)$$
+*   **Multiplicador de Ouro**:
+    $$\text{Bônus} = 1 + \frac{\text{Sorte Final}}{100}$$
+*   **Chance de Crítico de Toque**:
+    Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
+*   **Dano Crítico de Toque**:
+    Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
+
 ---
 
 ## 5. Sistema de Equipamentos e Inventário
@@ -579,9 +590,15 @@ Cada inimigo derrotado concede uma quantidade de ouro calculada dinamicamente, e
     $$\text{Ouro Inicial} = \begin{cases} \text{Ouro Base} \times 3.5 & \text{se for Chefe} \\ \text{Ouro Base} & \text{se for Monstro Comum} \end{cases}$$
 
 ### B. Influência do Atributo Sorte (Luck)
-O atributo de Sorte (`Luck`) do herói aplica um multiplicador direto de ganho de ouro, calculando um bônus percentual:
-$$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
-$$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
+O atributo de Sorte (`Luck`) do herói atua como um multiplicador direto de ganho de ouro e também influencia o desempenho em combate ativamente através do clique:
+*   **Ganho de Ouro**:
+    $$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
+    $$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
+*   **Performance de Combate**:
+    *   **Chance de Crítico de Toque**: Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico de Toque:
+        $$\text{Bônus Crit Chance} = \text{Sorte Final} \times 0.05\%$$
+    *   **Dano Crítico de Toque**: Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico de Toque:
+        $$\text{Bônus Crit Damage} = \text{Sorte Final} \times 0.2\%$$
 
 ### C. Comportamento no Prestígio (Ascensão)
 Durante o ritual de Ascensão (Prestígio), o saldo de ouro acumulado pelo herói **é redefinido para zero** (sofre reset total junto com os demais recursos). Isso exige que o jogador recomece a acumular moedas em sua nova jornada de evolução para poder usufruir da forja.
@@ -659,6 +676,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   **Restrição Estrita de Set**: A Forja agora valida se os dois itens pertencem ao mesmo conjunto (`setName`), impedindo a fusão de peças de conjuntos diferentes.
     *   **Nome Dinâmico de Item Místico**: O item místico resultante agora herda e exibe dinamicamente o nome do conjunto original no título do equipamento (ex: *Arma Mística do Senhor da Guerra +1* ou *Armadura Mística Ancestral do Conquistador +1*), eliminando o nome genérico que causava perda de identidade visual das peças.
 *   **⚖️ Balanceamento e Escalonamento Dinâmico de Atributos**:
+    *   **Ajuste no Atributo Sorte (Luck) no Combate**: O atributo Sorte agora também influencia o combate de forma direta. Cada ponto de Sorte concede $+0.05\%$ de Chance de Crítico de Toque e $+0.2\%$ de Dano Crítico de Toque, aumentando o retorno do investimento nesse atributo no final do jogo.
     *   **Escalonamento por Classe**: A progressão de atributos foi reformulada para ser dinâmica e dependente da classe do personagem.
     *   **Amplificação de Atributos Secundários**: Atributos que normalmente seriam ignorados por uma classe (como Magia para um Guerreiro ou Constituição para um Mago) agora fornecem bonificações significativamente maiores (como mais mana máxima e regeneração de mana amplificada), resolvendo o problema de escassez de recursos em classes físicas sem quebrar o balanceamento das classes de nicho.
     *   **Ajustes nos Tooltips**: Adicionados tooltips e fórmulas detalhadas na tela de atributos e guia para maior clareza visual dos status derivados.

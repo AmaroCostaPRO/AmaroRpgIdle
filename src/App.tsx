@@ -220,20 +220,66 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🛡️ Bem-vindo ao Amaro RPG Idle!
+              🛡️ Guia Rápido & Tutorial Inicial
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                <strong>Amaro RPG Idle</strong> é um RPG incremental onde seu herói avança por estágios de combate automático, derrota inimigos e chefes e acumula riquezas e poder.
+                Bem-vindo ao <strong>Amaro RPG Idle</strong>! Prepare-se para enfrentar hordas de monstros e ascender sua alma. Siga este guia rápido para iniciar sua jornada de poder:
               </p>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'rgba(0,0,0,0.15)', padding: '0.6rem', borderRadius: 'var(--radius-md)' }}>
-                <span style={{ fontWeight: 700, color: 'var(--gold-300)' }}>Como Jogar:</span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>• ⚔️ <strong>Combate:</strong> Seu herói luta de forma automática. Você pode conjurar habilidades manualmente ou ligar o <i>Auto-Cast</i>.</span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>• ◆ <strong>Atributos:</strong> Distribua pontos obtidos ao passar de nível para especializar seu herói.</span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>• ★ <strong>Habilidades:</strong> Desbloqueie talentos ativos e passivos na árvore de habilidades da sua classe.</span>
-                <span style={{ display: 'flex', gap: '0.3rem' }}>• 🎒 <strong>Equipamentos (Novo!):</strong> Colete itens raros ou lendários e monte o conjunto perfeito para sua classe!</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', background: 'rgba(0,0,0,0.2)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⚔️</span>
+                  <div>
+                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Combate Automático e Toques Ativos</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
+                      Seu herói ataca automaticamente. Mas você pode ajudar clicando ou tocando ativamente na tela de combate para desferir danos de clique adicionais e ativar combos de Frenesi!
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>◆</span>
+                  <div>
+                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Evolução e Atributos</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
+                      Suba de nível para ganhar pontos e distribuí-los. O Atributo Principal da sua classe ativa escala seu dano básico. Atributos secundários concedem vida, mana e esquiva de forma aprimorada.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⚙️</span>
+                  <div>
+                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Habilidades e Auto-Cast</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
+                      Compre novas habilidades ativas e passivas. Ative o <i>Auto-Cast</i> para conjuração automática e clique na engrenagem ao lado para definir o limite de vida para a Cura e selecionar quais habilidades usar.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🎒</span>
+                  <div>
+                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Equipamentos e a Grande Forja</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
+                      Derrote monstros para coletar itens e formar bônus de conjunto. Na Forja, você pode fundir peças idênticas de um mesmo conjunto pagando taxas em ouro para criar e evoluir itens de raridade <strong>Mística</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👑</span>
+                  <div>
+                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Ascensão da Alma (Roguelite)</strong>
+                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
+                      Quando o avanço ficar difícil, Ascenda sua Alma. Você resetará o progresso temporário, mas ganhará bônus permanentes acumulados e Pontos de Prestígio (PP) para evoluir sua árvore de talentos de Alma.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -318,7 +364,7 @@ const App: React.FC = () => {
                         ⚖️ Balanceamento e Ajuste de Atributos
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Ajustado o balanceamento dos atributos: Toque agora requer 2 pontos para conceder 1 de Dano Base; Destreza passa a adicionar +0.1% de chance de esquiva defensiva por ponto (limite de 75%); e Força concede bônus secundário de +0.25 de Dano Geral por ponto para as classes não físicas.
+                        Ajustado o balanceamento dos atributos: Toque agora requer 2 pontos para conceder 1 de Dano Base; Destreza passa a adicionar +0.1% de chance de esquiva defensiva por ponto (limite de 75%); Força concede bônus secundário de +0.25 de Dano Geral por ponto para as classes não físicas; e o atributo <strong>Sorte (Luck)</strong> agora concede +0.05% de Chance de Crítico de Toque e +0.2% de Dano Crítico de Toque por ponto.
                       </div>
                     </div>
 
