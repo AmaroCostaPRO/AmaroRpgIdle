@@ -2880,6 +2880,31 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
         <h2 className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Bestiário de Monstros</h2>
       </div>
 
+      {/* Resumo de Bônus do Bestiário */}
+      <div style={{ 
+        background: 'rgba(251, 191, 36, 0.05)', 
+        border: '1px solid rgba(251, 191, 36, 0.15)', 
+        padding: '0.75rem 1rem', 
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.25rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--gold-400)' }}>
+            Efeito do Bestiário
+          </span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4ade80' }}>
+            +{Math.round((StatEngine.calculateBestiaryDamageMultiplier(killCount) - 1.0) * 100)}% de Dano Geral
+          </span>
+        </div>
+        <p style={{ fontSize: '0.52rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+          Cada monstro com 100+ abates concede <strong className="text-white">+1% de Dano Geral</strong>. 
+          Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong>.
+          Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +50% de Dano).
+        </p>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {phases.map((phase) => (
           <div key={phase.number} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -2894,7 +2919,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
               {phase.enemies.map((enemy) => {
                 const kills = killCount[enemy.id] || 0;
                 const isBoss = enemy.id.startsWith('boss_');
-                const reqKills = isBoss ? 3 : 10;
+                const reqKills = 100;
                 const isUnlocked = kills >= reqKills;
                 const isHovered = hoveredEnemyId === enemy.id;
 
@@ -3650,7 +3675,7 @@ export default function GameUI() {
                         {selectedEnemy.name}
                       </h3>
                       <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
-                        Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills}</strong>
+                        Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills} / 100</strong>
                       </span>
                     </div>
                   </div>
@@ -3660,6 +3685,34 @@ export default function GameUI() {
                     <p style={{ fontSize: '0.65rem', color: '#e2e8f0', fontStyle: 'italic', lineHeight: 1.6, margin: 0, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                       "{LORE_DATABASE[selectedEnemy.id] || 'Nenhum registro antigo recuperado para esta besta.'}"
                     </p>
+                  </div>
+
+                  {/* Bônus do Inimigo no Bestiário */}
+                  <div style={{ 
+                    background: kills >= 100 ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255, 255, 255, 0.02)', 
+                    padding: '0.6rem 0.8rem', 
+                    borderRadius: 'var(--radius-md)', 
+                    border: kills >= 100 ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.2rem'
+                  }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 800, color: kills >= 100 ? '#4ade80' : '#94a3b8', textTransform: 'uppercase' }}>
+                      Bônus de Abate
+                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.65rem', color: '#cbd5e1' }}>
+                        {kills >= 100 ? '✓ Registro de 100 Abates Concluído' : 'Progresso de Dano:'}
+                      </span>
+                      <span className="font-mono" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: kills >= 100 ? '#4ade80' : '#a1a1aa' }}>
+                        +1% Dano
+                      </span>
+                    </div>
+                    {kills < 100 && (
+                      <span style={{ fontSize: '0.5rem', color: '#71717a' }}>
+                        Faltam {100 - kills} abates para ativar este bônus.
+                      </span>
+                    )}
                   </div>
 
                   {/* Estatísticas e Escalonamento */}

@@ -288,6 +288,46 @@ export class StatEngine {
   }
 
   /**
+   * Calcula o multiplicador de dano acumulado do bestiário.
+   * +1% por monstro com 100+ abates.
+   * +2% adicionais por fase completada (todos os 4 monstros da fase com 100+ abates).
+   * +20% adicionais se todas as 5 fases forem completadas (totalizando +50%).
+   */
+  static calculateBestiaryDamageMultiplier(killCount: Record<string, number>): number {
+    const BESTIARY_PHASES = [
+      ['goblin', 'shadow_wolf', 'orc_warrior', 'boss_forest_golem'],
+      ['sand_serpent', 'desert_bandit', 'desert_scorpion', 'boss_sand_scorpion'],
+      ['frost_wolf', 'ice_elemental', 'cave_yeti', 'boss_frost_dragon'],
+      ['skeleton_warrior', 'decaying_zombie', 'tormented_ghost', 'boss_necromancer'],
+      ['stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon']
+    ];
+
+    let bonusPct = 0;
+    let completedPhases = 0;
+
+    BESTIARY_PHASES.forEach((phaseEnemies) => {
+      let completedInPhase = 0;
+      phaseEnemies.forEach((enemyId) => {
+        const kills = killCount[enemyId] || 0;
+        if (kills >= 100) {
+          bonusPct += 1;
+          completedInPhase++;
+        }
+      });
+      if (completedInPhase === 4) {
+        bonusPct += 2;
+        completedPhases++;
+      }
+    });
+
+    if (completedPhases === 5) {
+      bonusPct += 20;
+    }
+
+    return 1.0 + (bonusPct / 100);
+  }
+
+  /**
    * Mantido para retrocompatibilidade da assinatura original.
    */
   static calculateAllStats(

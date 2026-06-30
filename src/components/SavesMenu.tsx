@@ -182,7 +182,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   };
 
   return (
-    <div className={`panel ${isInGame ? '' : 'animate-slideUp'}`} style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', overflowY: 'visible', position: 'relative' }}>
+    <div className={`panel ${isInGame ? '' : 'animate-slideUp'}`} style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
       {/* Glow de fundo */}
       {!isInGame && (
         <>

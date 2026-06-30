@@ -671,7 +671,8 @@ export class CombatFSM {
       primaryStatVal = finalStats.constitution;
     }
 
-    const damageBoost = 1 + (ascensionCount * 0.05);
+    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(char.killCount || {});
+    const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult;
     const basicDmg = primaryStatVal * damageBoost;
     
     let dps = basicDmg * attackSpeedHz;
@@ -746,7 +747,8 @@ export class CombatFSM {
       }
     }
 
-    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier);
+    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult);
     if (finalTouchDmg < 1) finalTouchDmg = 1;
 
     this.enemyHP = Math.max(0, this.enemyHP - finalTouchDmg);
@@ -831,7 +833,8 @@ export class CombatFSM {
     // Inimigo sob status EXPOSTO sofre 20% a mais de dano
     const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
-    const damageBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
+    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
     const damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
 
@@ -1189,7 +1192,8 @@ export class CombatFSM {
     }
 
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const damageBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
+    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
     // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
     let dmg = 0;
