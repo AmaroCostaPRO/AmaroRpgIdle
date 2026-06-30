@@ -246,7 +246,7 @@ export class StatEngine {
 
     // 4. Aplicar bônus do acúmulo de ascensões (ascensionCount) nos atributos de toque
     const ascensionCount = character.ascensionCount || 0;
-    finalStats.touch += ascensionCount * 10;
+    finalStats.touch += ascensionCount * 5;
     finalStats.touchCritChance += ascensionCount * 0.1;
     finalStats.touchCritDamage += ascensionCount * 1.0;
 

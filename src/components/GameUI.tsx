@@ -2726,7 +2726,7 @@ const GuidePanel: React.FC = () => {
                       <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
                     </li>
                     <li>
-                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+10 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
+                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>

@@ -373,7 +373,7 @@ const App: React.FC = () => {
                         🛡️ Rebalanceamento & Novos Bônus de Alma
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Ajuste nos bônus antigos de ascensão (+5% Dano geral, +1% Atk Speed, +2.5% HP/Mana) e novos bônus adicionados por nível: +10 Dano de Toque, +0.1% Chance Crítica de Toque, +1% Dano Crítico de Toque e +0.5% de Esquiva.
+                        Ajuste nos bônus antigos de ascensão (+5% Dano geral, +1% Atk Speed, +2.5% HP/Mana) e novos bônus adicionados por nível: +5 Dano de Toque, +0.1% Chance Crítica de Toque, +1% Dano Crítico de Toque e +0.5% de Esquiva.
                       </div>
                     </div>
                   </div>
