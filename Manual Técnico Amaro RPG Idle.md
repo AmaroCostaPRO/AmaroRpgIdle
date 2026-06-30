@@ -572,15 +572,15 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
 A XP total acumulada pelo personagem desde o nível 1 é calculada por:
 $$\text{XP Total} = 50 \times \text{Nível} \times (\text{Nível} - 1) + \text{XP Atual na Barra}$$
 O ganho de Pontos de Prestígio (PP) na ascensão é determinado por:
-$$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.85} \rfloor \times 0.5 \rfloor$$
+$$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.85} \rfloor \times 1.5 \rfloor$$
 
 ### C. Catálogo de Upgrades de Prestígio Permanente
 Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus permanentes para os atributos iniciais ou mecânicas de toque, aplicando-se de imediato nos resets seguintes:
-*   **Força Divina (`perm_str`)**: $+6$ Strength permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Mente Arcana (`perm_mag`)**: $+6$ Magic permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Foco Ágil (`perm_dex`)**: $+3$ Dexterity permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Vigor Eterno (`perm_con`)**: $+9$ Constitution permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Bênção da Sorte (`perm_luk`)**: $+3$ Luck permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Força Divina (`perm_str`)**: $+12$ Strength permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
+*   **Mente Arcana (`perm_mag`)**: $+12$ Magic permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
+*   **Foco Ágil (`perm_dex`)**: $+6$ Dexterity permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
+*   **Vigor Eterno (`perm_con`)**: $+18$ Constitution permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
+*   **Bênção da Sorte (`perm_luk`)**: $+6$ Luck permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
 *   **Toque Divino (`perm_touch`)**: $+5$ Poder do Toque permanente por nível. Custo inicial: $2\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Toque Crítico (`perm_touch_crit`)**: $+2\%$ Chance de Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 *   **Toque Devastador (`perm_touch_crit_dmg`)**: $+20\%$ Dano Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
@@ -735,7 +735,23 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.0.0 (Atual)
+### Versão 3.1.0 (Atual)
+*   **⚖️ Overhaul do Sistema de Ascensão e Prestígio**:
+    *   **Ascensões Infinitas**: Removidas barreiras de progresso fictícias para suportar ascensões infinitas com total escalonamento de combate.
+    *   **Multiplicador de PP Triplicado**: Ajustada a fórmula de ganho de Pontos de Prestígio (PP) em `useGameStore.ts` e `GameUI.tsx` alterando o multiplicador final de `0.5` para `1.5`, acelerando drasticamente o ganho de PP.
+    *   **Remoção de Limite Base no Pandemônio**: O limite de nível 10 para os 5 atributos base de ascensão (`perm_str`, `perm_mag`, `perm_dex`, `perm_con`, `perm_luk`) é inteiramente removido (tornando-se infinito/ilimitado) assim que o jogador desbloqueia o Modo Pandemônio.
+    *   **Bônus de Atributos Duplicados**: Os atributos ganhos por nível de upgrade nos 5 atributos de ascensão foram dobrados para acelerar a progressão tardia:
+        *   Força Divina: $+12$ de Força por nível (antes $+6$)
+        *   Mente Arcana: $+12$ de Magia por nível (antes $+6$)
+        *   Foco Ágil: $+6$ de Destreza por nível (antes $+3$)
+        *   Vigor Eterno: $+18$ de Constituição por nível (antes $+9$)
+        *   Bênção da Sorte: $+6$ de Sorte por nível (antes $+3$)
+    *   **Rebalanceamento e Novos Bônus de Alma**:
+        *   Redução dos bônus originais de alma: Dano Geral reduzido para $+5\%$ por ascensão (antes $+10\%$), Velocidade de Ataque reduzido para $+1\%$ (antes $+2\%$), e HP/Mana Máximo reduzidos para $+2.5\%$ (antes $+5\%$).
+        *   Novos atributos de clique e combate adicionados por nível de ascensão: $+10$ de Dano de Toque, $+0.1\%$ de Chance de Crítico de Toque, $+1\%$ de Dano Crítico de Toque e $+0.5\%$ de Esquiva.
+    *   **Integração FSM de Combate**: Os novos bônus de ascensão foram acoplados nos cálculos de dano de toque, chance e multiplicador crítico do `StatEngine` e na chance de esquiva defensiva do jogador no `CombatFSM.ts`, atualizando dinamicamente a HUD.
+
+### Versão 3.0.0
 *   **💀 Modo Pandemônio (Dificuldade Extrema e Progresso Infinito)**:
     *   **Desbloqueio por Maestria**: Adicionado o Altar de Alma no painel de Ascensão. Quando todos os 5 atributos base da estrela de prestígio atingem o nível 10, o núcleo de Alma pode ser ativado gastando 100 PP para habilitar o Modo Pandemônio (`pandemoniumUnlocked`).
     *   **Dificuldade Inicial x5**: Ativar o modo força uma Ascensão especial e, ao concluir a campanha normal na Fase 20, transporta o combate para a Fase 21+ (Fase Infinita), onde o HP e Dano dos monstros e chefes recebem um multiplicador de 5.0x inicial escalonando infinitamente.

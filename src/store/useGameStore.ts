@@ -72,11 +72,11 @@ export const CLASS_CONFIGS: Record<string, {
 
 // Catálogo estático de melhorias de Prestígio (Roguelite)
 export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; description: string; stat: keyof BaseStats; bonusPerLevel: number; costPerLevel: number; maxLevel: number }> = {
-  perm_str: { name: 'Força Divina', description: 'Aumento definitivo de +6 em Strength por nível', stat: 'strength', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
-  perm_mag: { name: 'Mente Arcana', description: 'Aumento definitivo de +6 em Magic por nível', stat: 'magic', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
-  perm_dex: { name: 'Foco Ágil', description: 'Aumento definitivo de +3 em Dexterity por nível', stat: 'dexterity', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
-  perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +9 em Constitution por nível', stat: 'constitution', bonusPerLevel: 9, costPerLevel: 3, maxLevel: 10 },
-  perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +3 em Luck por nível', stat: 'luck', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_str: { name: 'Força Divina', description: 'Aumento definitivo de +12 em Strength por nível', stat: 'strength', bonusPerLevel: 12, costPerLevel: 3, maxLevel: 10 },
+  perm_mag: { name: 'Mente Arcana', description: 'Aumento definitivo de +12 em Magic por nível', stat: 'magic', bonusPerLevel: 12, costPerLevel: 3, maxLevel: 10 },
+  perm_dex: { name: 'Foco Ágil', description: 'Aumento definitivo de +6 em Dexterity por nível', stat: 'dexterity', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
+  perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +18 em Constitution por nível', stat: 'constitution', bonusPerLevel: 18, costPerLevel: 3, maxLevel: 10 },
+  perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +6 em Luck por nível', stat: 'luck', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
   perm_touch: { name: 'Toque Divino', description: 'Aumento definitivo de +8 em Poder do Toque por nível', stat: 'touch', bonusPerLevel: 8, costPerLevel: 3, maxLevel: 10 },
   perm_touch_crit: { name: 'Toque Crítico', description: 'Aumento de +3% na Chance de Crítico do Toque por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
   perm_touch_crit_dmg: { name: 'Toque Devastador', description: 'Aumento de +15% no Dano Crítico do Toque por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
@@ -558,7 +558,7 @@ export const useGameStore = create<GameState>((set) => ({
     const level = state.character.level;
     const xp = state.character.xp;
     const totalXp = 50 * level * (level - 1) + xp;
-    const pointsEarned = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 0.5);
+    const pointsEarned = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 1.5);
 
     if (pointsEarned <= 0) return state;
     
@@ -664,7 +664,9 @@ export const useGameStore = create<GameState>((set) => ({
     if (!upgrade) return state;
 
     const currentLvl = state.character.prestigeUpgrades[upgradeId] || 0;
-    if (currentLvl >= upgrade.maxLevel) return state;
+    const isBaseStatUpgrade = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'].includes(upgradeId);
+    const maxLevel = (isBaseStatUpgrade && state.character.pandemoniumUnlocked) ? Infinity : upgrade.maxLevel;
+    if (currentLvl >= maxLevel) return state;
 
     const cost = upgrade.costPerLevel * (currentLvl + 1);
     if (state.character.prestigePoints < cost) return state;

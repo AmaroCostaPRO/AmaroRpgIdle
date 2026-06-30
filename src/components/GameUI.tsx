@@ -1787,8 +1787,8 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const level = character.level;
   const xp = character.xp;
   const totalXp = 50 * level * (level - 1) + xp;
-  // Multiplicado por 0.5 para alinhar com a redução de 50% no store
-  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 0.5);
+  // Multiplicado por 1.5 para alinhar com a triplicação no store
+  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 1.5);
   const ascensionCount = character.ascensionCount || 0;
   const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
   const isProgressReqMet = ascensionCount === 0 
@@ -1840,19 +1840,35 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem 0.8rem', fontSize: '0.62rem', color: '#94a3b8' }}>
           <div className="flex justify-between">
             <span>Dano Geral:</span>
-            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 10}%</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}%</span>
           </div>
           <div className="flex justify-between">
             <span>Velocidade de Ataque:</span>
-            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 2}%</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 1}%</span>
           </div>
           <div className="flex justify-between">
             <span>Vida Máxima:</span>
-            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}%</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 2.5}%</span>
           </div>
           <div className="flex justify-between">
             <span>Mana Máxima:</span>
-            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}%</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 2.5}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Dano de Toque:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 10}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Chance de Crítico:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{(ascensionCount * 0.1).toFixed(1)}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Dano Crítico:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 1}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Esquiva:</span>
+            <span className="font-semibold text-purple-300 font-mono">+{(ascensionCount * 0.5).toFixed(1)}%</span>
           </div>
         </div>
       </div>
@@ -2012,7 +2028,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     className={`skill-node prestige-node ${isSelected ? 'selected' : isUpgraded ? 'unlocked' : ''}`}
                   >
                     <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{upgrade.name}</span>
-                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{upgrade.maxLevel}</span>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#a78bfa', marginTop: '0.15rem' }}>Lvl {currentLevel}/{character.pandemoniumUnlocked ? '∞' : upgrade.maxLevel}</span>
                   </button>
                 );
               })}
@@ -2160,7 +2176,9 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 }
 
                 const currentLevel = character.prestigeUpgrades[selectedUpgradeId] || 0;
-                const isMax = currentLevel >= selectedUpgrade.maxLevel;
+                const isBaseStatUpgrade = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'].includes(selectedUpgradeId);
+                const maxLevel = (isBaseStatUpgrade && character.pandemoniumUnlocked) ? Infinity : selectedUpgrade.maxLevel;
+                const isMax = currentLevel >= maxLevel;
                 const cost = selectedUpgrade.costPerLevel * (currentLevel + 1);
                 const hasPoints = availablePrestigePoints >= cost;
 
@@ -2172,7 +2190,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                      <span className="font-mono" style={{ fontSize: '0.72rem', color: '#a78bfa' }}>Nível: {currentLevel} / {selectedUpgrade.maxLevel}</span>
+                      <span className="font-mono" style={{ fontSize: '0.72rem', color: '#a78bfa' }}>Nível: {currentLevel} / {maxLevel === Infinity ? '∞' : selectedUpgrade.maxLevel}</span>
                       <span style={{ fontSize: '0.68rem', color: '#c4b5fd', fontWeight: 500 }}>Bônus atual: +{currentLevel * selectedUpgrade.bonusPerLevel}</span>
                     </div>
 
@@ -2313,7 +2331,9 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
             const currentLevel = character.prestigeUpgrades[id] || 0;
             const isSelected = selectedUpgradeId === id;
             const isUpgraded = currentLevel > 0;
-            const isMax = currentLevel >= upgrade.maxLevel;
+            const isBaseStatUpgrade = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'].includes(id);
+            const maxLevel = (isBaseStatUpgrade && character.pandemoniumUnlocked) ? Infinity : upgrade.maxLevel;
+            const isMax = currentLevel >= maxLevel;
             const cost = upgrade.costPerLevel * (currentLevel + 1);
             const hasPoints = availablePrestigePoints >= cost;
 
@@ -2355,7 +2375,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       {upgrade.name}
                     </span>
                     <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
-                      Lv {currentLevel}/{upgrade.maxLevel}
+                      Lv {currentLevel}/{maxLevel === Infinity ? '∞' : upgrade.maxLevel}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2706,12 +2726,12 @@ const GuidePanel: React.FC = () => {
                       <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
                     </li>
                     <li>
-                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+10% de Dano Geral</strong>, <strong>+2% de Velocidade de Ataque</strong>, <strong>+5% de HP Máximo</strong> e <strong>+5% de Mana Máxima</strong>.
+                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+10 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>
-                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.85) * 0.5)</code>
-                      <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi reduzido pela metade. A XP acumulada conta toda a XP gasta em níveis anteriores mais a atual)</span>
+                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.85) * 1.5)</code>
+                      <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
                     </li>
                     <li>
                       <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
@@ -2721,7 +2741,7 @@ const GuidePanel: React.FC = () => {
                 <div>
                   <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
                   <p className="text-gray-400 mt-0.5">
-                    Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+6 Força, +6 Magia, +3 Destreza, +9 Constituição, +3 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas.
+                    Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
                   </p>
                 </div>
               </div>

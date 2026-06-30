@@ -431,8 +431,8 @@ export class CombatFSM {
     this.playerFinalStats = StatEngine.calculateFinalStats(char);
 
     const ascensionCount = char.ascensionCount || 0;
-    const hpBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
-    const manaBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
+    const hpBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
+    const manaBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
 
     const prevMaxHP = this.playerMaxHP;
     this.playerMaxHP = this.calculatePlayerMaxHP(this.playerFinalStats.constitution, hpBoost, char.classId || 'warrior');
@@ -657,7 +657,7 @@ export class CombatFSM {
     
     const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
     const ascensionCount = char.ascensionCount || 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.02);
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01);
     const speedMultiplier = this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost);
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
 
@@ -671,7 +671,7 @@ export class CombatFSM {
       primaryStatVal = finalStats.constitution;
     }
 
-    const damageBoost = 1 + (ascensionCount * 0.10);
+    const damageBoost = 1 + (ascensionCount * 0.05);
     const basicDmg = primaryStatVal * damageBoost;
     
     let dps = basicDmg * attackSpeedHz;
@@ -804,7 +804,7 @@ export class CombatFSM {
   private performPlayerAttack() {
     if (this.enemyHP <= 0) return;
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.02); // +2% por ascensão
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01); // +1% por ascensão
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost);
     this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
@@ -831,7 +831,7 @@ export class CombatFSM {
     // Inimigo sob status EXPOSTO sofre 20% a mais de dano
     const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
-    const damageBoost = 1 + (ascensionCount * 0.10); // +10% por ascensão
+    const damageBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
 
     const damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
 
@@ -866,7 +866,8 @@ export class CombatFSM {
     this.scene.animateEnemyAttack();
 
     // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
-    const dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1);
+    const ascensionCount = this.characterData.ascensionCount || 0;
+    const dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5));
     const isDodge = Math.random() * 100 < dodgeChance;
 
     if (isDodge) {
@@ -1188,7 +1189,7 @@ export class CombatFSM {
     }
 
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const damageBoost = 1 + (ascensionCount * 0.10); // +10% por ascensão
+    const damageBoost = 1 + (ascensionCount * 0.05); // +5% por ascensão
 
     // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
     let dmg = 0;

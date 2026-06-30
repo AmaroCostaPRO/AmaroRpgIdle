@@ -335,20 +335,53 @@ const App: React.FC = () => {
             gap: '1rem',
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
-            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(239,68,68,0.3)' }}>
-              🔥 Atualização v3.0.0 — O Despertar do Modo Pandemônio!
+            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
+              🔥 Atualização v3.1.0 — Overhaul de Ascensão e Prestígio!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz a dificuldade definitiva do jogo com progresso infinito de fases, spawn de inimigos aleatórios, novo set de prestígio Pandemoníaco e mecânica de preservação de itens equipados pós-ascensão:
+                Esta atualização traz um rebalanceamento completo e melhorias de fim de jogo para a progressão de Prestígio e do Modo Pandemônio, além de remover o limite dos atributos de ascensão:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v3.1.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.1.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        ⚖️ Overhaul de Ascensão & Pontos Triplicados
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Aceleração da progressão com pontos de prestígio triplicados (multiplicador final de PP ajustado de 0.5x para 1.5x) e remoção do limite de nível 10 nos 5 atributos de prestígio base ao ativar o Modo Pandemônio.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a78bfa', fontSize: '0.72rem' }}>
+                        💪 Bônus de Atributos Dobrados
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Melhorias permanentes de atributos base na árvore de ascensão agora concedem o dobro de atributos por nível (+12 Força, +12 Magia, +6 Destreza, +18 Constituição e +6 Sorte).
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c4b5fd', fontSize: '0.72rem' }}>
+                        🛡️ Rebalanceamento & Novos Bônus de Alma
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ajuste nos bônus antigos de ascensão (+5% Dano geral, +1% Atk Speed, +2.5% HP/Mana) e novos bônus adicionados por nível: +10 Dano de Toque, +0.1% Chance Crítica de Toque, +1% Dano Crítico de Toque e +0.5% de Esquiva.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v3.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#f87171', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.0.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#f87171', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.0.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
