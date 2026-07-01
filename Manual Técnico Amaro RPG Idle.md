@@ -261,12 +261,48 @@ graph LR
 Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adicionalmente, a habilidade ativa de **Cura** está disponível para todas as classes.
 
 ### Regras de Progressão e Nível Máximo
-*   **Limite de Nível Padrão**: Por padrão (Fases 1 a 10, dificuldades Normal e Pesadelo), cada habilidade pode ser aprimorada até o **Nível 5**.
-*   **Expansão no End-Game**: Ao alcançar a Fase 11 (dificuldades Inferno e Apocalipse), o limite máximo de nível de todas as habilidades é expandido para o **Nível 10**.
+*   **Limite de Nível Padrão**: Por padrão (Fases 1 a 10, dificuldades Normal e Pesadelo), cada habilidade comum pode ser aprimorada até o **Nível 5**.
+*   **Expansão no End-Game (Inferno / Apocalipse)**: Ao alcançar a Fase 11 (dificuldades Inferno e Apocalipse), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 10**.
+*   **Expansão no End-Game (Modo Pandemônio)**: Ao alcançar a Fase 21 (dificuldade Pandemônio), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 15**.
 *   **Escalonamento**:
-    *   *Habilidades Ativas*: O dano aumenta em $+15\%$ multiplicativo por nível da habilidade baseado no multiplicador original (ex: dano de $150\%$ vai para $240\%$ no nível 5 e até $315\%$ no nível 10).
-    *   *Cura*: A porcentagem curada aumenta em $+5\%$ por nível (de $30\%$ no nível 1 para $50\%$ no nível 5 e até $75\%$ no nível 10).
-    *   *Habilidades Passivas*: Os bônus de atributos se acumulam linearmente por nível (ex: $+5$ de Força por nível resulta em $+25$ no nível 5 e até $+50$ no nível 10).
+    *   *Habilidades Ativas*: O dano aumenta em $+15\%$ multiplicativo por nível da habilidade baseado no multiplicador original (ex: dano de $150\%$ vai para $240\%$ no nível 5, $315\%$ no nível 10 e até $465\%$ no nível 15).
+    *   *Cura*: A porcentagem curada aumenta em $+5\%$ por nível (de $30\%$ no nível 1 para $50\%$ no nível 5, $75\%$ no nível 10 e até $100\%$ de cura no nível 15).
+    *   *Habilidades Passivas*: Os bônus de atributos se acumulam linearmente por nível (ex: $+5$ de Força por nível resulta em $+25$ no nível 5, $+50$ no nível 10 e até $+75$ no nível 15).
+    *   *Efeitos e Debuffs*: Os valores de dano ou durações dos efeitos secundários aplicados pelas habilidades escalam em $+15\%$ multiplicativo por nível adicional da habilidade:
+        *   *Efeitos de Dano/Regeneração Periódica*: O dano/cura por tick aumenta a cada nível, mantendo a duração fixa (ex: o Veneno da *Flecha Venenosa* de $20\%$ da Destreza passa a causar $32\%$ no nível 5, $47\%$ no nível 10 e $62\%$ no nível 15).
+        *   *Efeitos de Controle/Utilidade*: A duração (tempo do efeito) aumenta a cada nível, mantendo a potência fixa (ex: o Atordoamento de *Bater Escudo* de $2\text{s}$ dura $3.2\text{s}$ no nível 5, $4.7\text{s}$ no nível 10 e $6.2\text{s}$ no nível 15).
+
+### Habilidades Ultimate (End-Game)
+As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada classe, desbloqueadas sob condições estritas:
+*   **Condições de Desbloqueio**: O personagem precisa estar na dificuldade **Inferno** ou superior (Fase 11+), ter alcançado pelo menos o **Nível 15** e possuir a habilidade tier 6 de sua classe desbloqueada (nível $\ge 1$).
+*   **Limitação**: O limite máximo de nível de todas as habilidades Ultimate é fixado em **Nível 1**, não sendo possível aumentá-lo.
+*   **Custo e Cooldown**: Possuem custos elevados de mana e tempos de recarga prolongados (50 a 80 segundos), refletindo seu impacto massivo no combate.
+
+#### Catálogo de Habilidades Ultimate por Classe
+1.  **Guerreiro**: *Cólera dos Titãs* (`ultimate_warrior`)
+    *   *Dano*: Causa $1200\%$ de dano físico baseado em Força.
+    *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Efeito Visual*: Impacto titânico com grandes rachaduras de fogo e forte tremor contínuo de tela.
+2.  **Mago**: *Supernova* (`ultimate_mage`)
+    *   *Dano*: Causa $1500\%$ de dano mágico baseado em Magia.
+    *   *Custo de Mana*: $80$ Mana | *Tempo de Recarga*: $70.000$ ms (70s)
+    *   *Efeito Visual*: Explosão estelar expansiva cobrindo a tela inteira em tons brilhantes de azul e branco.
+3.  **Arqueiro**: *Flecha do Juízo Final* (`ultimate_ranger`)
+    *   *Dano*: Causa $1100\%$ de dano de perfuração baseado em Destreza.
+    *   *Custo de Mana*: $45$ Mana | *Tempo de Recarga*: $55.000$ ms (55s)
+    *   *Efeito Visual*: Raio de energia verde esmeralda de alta velocidade cortando a tela horizontalmente com múltiplos feixes adicionais.
+4.  **Paladino**: *Julgamento Sagrado* (`ultimate_paladin`)
+    *   *Dano*: Causa $1000\%$ de dano sagrado baseado em Constituição.
+    *   *Custo de Mana*: $60$ Mana | *Tempo de Recarga*: $65.000$ ms (65s)
+    *   *Efeito Visual*: Três pilares gigantes dourados atingindo o monstro consecutivamente com explosões de luz divina.
+5.  **Clérigo**: *Ascensão Celestial* (`ultimate_cleric`)
+    *   *Dano e Efeito*: Causa $900\%$ de dano sagrado baseado em Magia e **cura 100% da Vida Máxima** do herói.
+    *   *Custo de Mana*: $70$ Mana | *Tempo de Recarga*: $80.000$ ms (80s)
+    *   *Efeito Visual*: Anjos de luz cruzam a tela com ondas curativas verdejantes e chuva de faíscas brilhantes.
+6.  **Ladrão**: *Lâmina da Aniquilação* (`ultimate_rogue`)
+    *   *Dano*: Causa $1400\%$ de dano físico baseado em Destreza.
+    *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $50.000$ ms (50s)
+    *   *Efeito Visual*: Animação de corte sombrio em X na cor vermelha com desfoque de movimento, tremor e partículas de sombras.
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
 Os custos de mana e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
@@ -274,6 +310,7 @@ Os custos de mana e os tempos de cooldown são calculados de acordo com o nível
     *   *Slash (Guerreiro)*: $8$ Mana
     *   *Fireball (Mago)*: $15$ Mana
     *   *Cura (Comum)*: $12$ Mana
+    *   *Habilidades Ultimate*: Custo fixado por classe (45 a 80 de Mana)
     *   *Outras Habilidades*: $10 + (\text{Nível Requerido} \times 1.5)$ Mana
 *   **Tempo de Recarga (Cooldown) no Combate**:
     *   *Cura (Comum)*: $10.000$ ms (10.0 segundos)
@@ -281,6 +318,7 @@ Os custos de mana e os tempos de cooldown são calculados de acordo com o nível
     *   *Habilidades de Nível Requerido $\le 3$*: $10.000$ ms (10.0 segundos)
     *   *Habilidades de Nível Requerido $\le 7$*: $16.000$ ms (16.0 segundos)
     *   *Habilidades de Nível Requerido $> 7$*: $24.000$ ms (24.0 segundos)
+    *   *Habilidades Ultimate*: Cooldown fixado por classe (50s a 80s)
 
 ---
 
@@ -758,10 +796,26 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.2.0 (Atual)
+### Versão 3.3.0 (Atual)
+*   **⚡ Habilidades de Fim de Jogo (Modo Pandemônio & Habilidades Ultimate)**:
+    *   **Habilidades até Nível 15**: O limite máximo de todas as habilidades comuns foi expandido para o nível 15 na dificuldade Pandemônio (Fases 21+), permitindo um escalonamento de dano e cura até 100%.
+    *   **Habilidades Ultimate de Classe**: Adicionada 1 habilidade de classe Ultimate ultra poderosa por personagem (limite fixado de Nível 1, desbloqueada a partir do nível 15 do herói na dificuldade Inferno+). Elas possuem custos elevados de mana e cooldowns longos de 50s a 80s:
+        *   Guerreiro (*Cólera dos Titãs*): 1200% de dano de Força | 60s CD | 50 Mana.
+        *   Mago (*Supernova*): 1500% de dano de Magia | 70s CD | 80 Mana.
+        *   Arqueiro (*Flecha do Juízo Final*): 1100% de dano de Destreza | 55s CD | 45 Mana.
+        *   Paladino (*Julgamento Sagrado*): 1000% de dano de Constituição | 65s CD | 60 Mana.
+        *   Clérigo (*Ascensão Celestial*): 900% de dano de Magia e cura 100% de HP | 80s CD | 70 Mana.
+        *   Ladrão (*Lâmina da Aniquilação*): 1400% de dano de Destreza | 50s CD | 50 Mana.
+*   **🔊 Usabilidade Visual e Sonora**:
+    *   **Confirmações de Transação**: Implementados pop-ups de confirmação antes de efetuar compras na Loja e ao clicar nos botões de venda em massa de equipamentos.
+    *   **Efeitos Sonoros de Transações**: Integrados áudios de confirmação ao efetuar compras bem-sucedidas ou vender itens para prover feedback sonoro tátil imediato.
+*   **⚖️ Correções de Interface**:
+    *   **Dano do Toque na Ascensão**: Ajustada a exibição do bônus de Dano de Toque na aba de Ascensão para relatar $+5$ por nível de upgrade, alinhando a informação visual com a fórmula de cálculo real interna.
+
+### Versão 3.2.0
 *   **🪙 Implementação do Sistema de Venda de Equipamentos**:
     *   **Substituição da Destruição**: Removida a opção de descarte/destruição para equipamentos e substituída por uma mecânica de venda por ouro em tempo real. Itens consumíveis ainda podem ser descartados.
-    *   **Fórmulas de Precificação por Estágio**: O valor de venda em ouro agora escala de forma exponencial baseado na raridade e no estágio (`stage`) em que o item foi dropado ou gerado ($1.25^{\text{stage} - 1}$), incentivando a busca por itens em maiores dificuldades.
+    *   **Fórmulas de Precificação por Estágio**: O valor de venda em ouro agora escala de forma exponencial baseado na raridade e no estágio (`stage`) em que o item foi dropado ou gerado ($1.25^{\text{stage} - 1}$), incentivando a busca por itens in maiores dificuldades.
     *   **Bônus de Conjunto na Precificação**: Itens pertencentes a conjuntos Ancestrais ganham bônus de $1.5\times$ e conjuntos Pandemoníacos ganham $3.0\times$ em seu valor de venda.
     *   **Rastreamento do Estágio (`stage`)**: Atualizada a geração de drops em combate (`CombatFSM`), abertura de baús na Loja (`useConsumable`) e fusões na Forja para capturar e persistir o maior estágio de obtenção nos equipamentos.
     *   **Venda em Lote (Batch Selling)**: Adicionados os botões premium "Vender Comuns & Mágicos" e "Vender Lendários" no rodapé do painel de inventário na interface do usuário (`GameUI.tsx`) para agilizar a limpeza do inventário e a geração de ouro.

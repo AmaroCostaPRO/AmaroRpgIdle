@@ -1139,6 +1139,9 @@ export class CombatFSM {
       return;
     }
 
+    // Fator de multiplicador de nivel: +15% por nivel adicional
+    const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
+
     // Verifica se a habilidade está em recarga (cooldown)
     const activeCooldown = this.skillCooldowns[skillId] || 0;
     if (activeCooldown > 0) {
@@ -1146,8 +1149,8 @@ export class CombatFSM {
       return;
     }
 
-    // Custo de mana dinâmico com base no nível requerido
-    const manaCost = skillId === 'heal' ? 12 : (skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5));
+    // Custo de mana dinâmico com base no nível requerido ou custo fixo da Ultimate
+    const manaCost = skill.isUltimate ? (skill.manaCost || 50) : (skillId === 'heal' ? 12 : (skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5)));
     if (this.playerMana < manaCost) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Mana insuficiente para ${skill.name}! (Requer ${Math.floor(manaCost)})` });
       return;
@@ -1155,19 +1158,23 @@ export class CombatFSM {
 
     this.playerMana -= manaCost;
 
-    // Registra o tempo de recarga
-    const cooldownTime = skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 6000 : (skill.requiredLevel <= 3 ? 10000 : (skill.requiredLevel <= 7 ? 16000 : 24000)));
+    // Registra o tempo de recarga (lê cooldown específico da Ultimate se existir)
+    const cooldownTime = skill.isUltimate ? (skill.cooldown || 60000) : (skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 6000 : (skill.requiredLevel <= 3 ? 10000 : (skill.requiredLevel <= 7 ? 16000 : 24000))));
     this.skillCooldowns[skillId] = cooldownTime;
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
-    if (skillId === 'heal' || skillId === 'holy_light') {
-      // Restaura 30% do HP máximo, mais 5% a cada nível adicional
-      const healAmount = Math.floor(this.playerMaxHP * (0.30 + (skillLvl - 1) * 0.05));
+    if (skillId === 'heal' || skillId === 'holy_light' || skillId === 'ultimate_cleric') {
+      // Restaura 30% do HP máximo, mais 5% a cada nível adicional. A ultimate cura 100% da vida máxima.
+      const healAmount = skillId === 'ultimate_cleric' ? this.playerMaxHP : Math.floor(this.playerMaxHP * (0.30 + (skillLvl - 1) * 0.05));
       this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
       this.scene.animateHealEffect();
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healAmount}`, '#10b981');
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Você usou ${skill.name}! Recuperou ${healAmount} de HP.` });
-      return;
+      
+      // A ultimate do clérigo também causa dano de prece celestial, então não retorna!
+      if (skillId !== 'ultimate_cleric') {
+        return;
+      }
     }
 
     // Se o inimigo já estiver morto, não causa dano
@@ -1200,12 +1207,10 @@ export class CombatFSM {
     let dmg = 0;
     if (skillId === 'smite_paladin') {
       // Dano misto: 250% da média de constituição e força (ou seja, 1.25x cada)
-      const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
       dmg = Math.floor((this.playerFinalStats.constitution * 1.25 + this.playerFinalStats.strength * 1.25) * levelMultiplier + Math.random() * 5);
       damageType = 'sagrado';
     } else {
       const baseMult = SKILL_BASE_MULTIPLIERS[skillId] || 1.0;
-      const levelMultiplier = 1 + (skillLvl - 1) * 0.15;
       dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
     }
 
@@ -1272,12 +1277,12 @@ export class CombatFSM {
       }
     }
 
-    // Aplicação dos efeitos de status após causar o dano
+    // Aplicação dos efeitos de status após causar o dano (escalonamento pelo levelMultiplier)
     if (skillId === 'shield_bash') {
       this.enemyEffects.push({
         id: 'stun',
         name: 'Atordoado',
-        duration: 2000,
+        duration: Math.floor(2000 * levelMultiplier),
         tickTimer: 0,
         value: 0
       });
@@ -1286,13 +1291,13 @@ export class CombatFSM {
       this.enemyEffects.push({
         id: 'slow',
         name: 'Lentidão',
-        duration: 4000,
+        duration: Math.floor(4000 * levelMultiplier),
         tickTimer: 0,
         value: 0.40
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[LENTO]', '#93c5fd');
     } else if (skillId === 'fireball') {
-      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15));
+      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15 * levelMultiplier));
       this.enemyEffects.push({
         id: 'burn',
         name: 'Queimadura',
@@ -1305,11 +1310,11 @@ export class CombatFSM {
       this.enemyEffects.push({
         id: 'stun',
         name: 'Atordoado',
-        duration: 1500,
+        duration: Math.floor(1500 * levelMultiplier),
         tickTimer: 0,
         value: 0
       });
-      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15));
+      const burnDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.15 * levelMultiplier));
       this.enemyEffects.push({
         id: 'burn',
         name: 'Queimadura',
@@ -1319,7 +1324,7 @@ export class CombatFSM {
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ATORDADO & QUEIMADO]', '#ef4444');
     } else if (skillId === 'poison_arrow') {
-      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.20));
+      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.20 * levelMultiplier));
       this.enemyEffects.push({
         id: 'poison',
         name: 'Envenenado',
@@ -1332,13 +1337,13 @@ export class CombatFSM {
       this.enemyEffects.push({
         id: 'weakness',
         name: 'Enfraquecido',
-        duration: 5000,
+        duration: Math.floor(5000 * levelMultiplier),
         tickTimer: 0,
         value: 0.30
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[ENFRAQUECIDO]', '#f87171');
     } else if (skillId === 'consecration') {
-      const regenVal = Math.max(1, Math.floor(this.playerFinalStats.constitution * 0.15));
+      const regenVal = Math.max(1, Math.floor(this.playerFinalStats.constitution * 0.15 * levelMultiplier));
       this.playerEffects.push({
         id: 'consecration',
         name: 'Consagração',
@@ -1351,13 +1356,13 @@ export class CombatFSM {
       this.enemyEffects.push({
         id: 'exposed',
         name: 'Exposto',
-        duration: 5000,
+        duration: Math.floor(5000 * levelMultiplier),
         tickTimer: 0,
         value: 0.20
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[EXPOSTO]', '#60a5fa');
     } else if (skillId === 'poison_dagger') {
-      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.25));
+      const poisonDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.25 * levelMultiplier));
       this.enemyEffects.push({
         id: 'poison',
         name: 'Envenenado',
@@ -1422,7 +1427,7 @@ export class CombatFSM {
       if (!skill) continue;
 
       const cooldown = this.skillCooldowns[skillId] || 0;
-      const manaCost = skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5);
+      const manaCost = skill.isUltimate ? (skill.manaCost || 50) : (skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5));
 
       if (cooldown <= 0 && this.playerMana >= manaCost) {
         this.triggerSkill(skillId);

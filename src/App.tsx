@@ -336,35 +336,77 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔥 Atualização v3.2.0 — Expansão do Bestiário e Novos Bônus!
+              🔥 Atualização v3.3.0 — Habilidades Supremas & Usabilidade!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização traz uma reformulação completa para o Bestiário, oferecendo bônus de escalamento de dano global para recompensar a conclusão de registros de monstros:
+                Esta atualização expande o sistema de combate final de jogo com habilidades Ultimate devastadoras, novos limites de nível e melhorias completas de usabilidade visual e sonora:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
-                {/* v3.2.0 */}
+                {/* v3.3.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#fbbf24', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.2.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#fbbf24', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.3.0 (Atual):</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
-                        📖 Meta de 100 Abates & +1% de Dano por Monstro
+                        ⚡ Habilidades Ultimates de Classe (Inferno+)
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        A meta para desbloquear a lore e concluir o registro de cada monstro do Bestiário foi ajustada para 100 abates (incluindo chefes). Completar o registro de um inimigo concede +1% de Dano Geral de forma permanente.
+                        Desbloqueie uma habilidade Ultimate única e devastadora por classe ao alcançar o nível 15 na dificuldade Inferno ou superior (como a <i>Cólera dos Titãs</i> do Guerreiro ou a <i>Supernova</i> do Mago). Elas possuem custos de mana substanciais e cooldowns estratégicos de 50s a 80s.
                       </div>
                     </div>
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>
-                        💥 Bônus de Fases & Completude (+50% Dano Máx)
+                        💀 Nível Máximo 15 no Modo Pandemônio
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Completar os 4 monstros de uma mesma fase garante um bônus adicional de +2% de Dano Geral. Caso complete o Bestiário inteiro (todas as 5 fases e 20 monstros), você ganhará um bônus extra de +20% de Dano, totalizando +50% de dano acumulado!
+                        O limite de evolução das habilidades comuns foi aumentado do nível 10 para o nível 15 na dificuldade Pandemônio (Fases 21+), expandindo o teto de dano e permitindo que a Cura restaure até 100% do HP.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🧬 Escalonamento Dinâmico de Debuffs e Efeitos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Agora, os aprimoramentos de habilidades aumentam os efeitos de seus debuffs em +15% por nível: debuffs de dano/cura contínua (como Veneno ou Queimadura) recebem aumento no dano causado, enquanto efeitos de controle (como Atordoamento ou Lentidão) recebem aumento na duração.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb7185', fontSize: '0.72rem' }}>
+                        🔊 Usabilidade, Confirmações e Efeitos Sonoros
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionadas janelas de confirmação de transação ao comprar itens na Loja e ao vender equipamentos em massa no Inventário. Agora, transações bem-sucedidas emitem feedbacks sonoros táteis.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* v3.2.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#fb923c', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.2.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb923c', fontSize: '0.72rem' }}>
+                        🪙 Venda de Equipamentos por Ouro
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A opção de destruir equipamentos foi substituída pela venda por ouro. O valor obtido escala de acordo com a raridade do item e a dificuldade/estágio em que ele foi gerado.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        🎒 Botões de Venda Rápida em Lote
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Adicionados novos botões no rodapé do inventário para vender instantaneamente todos os itens comuns/mágicos ou todos os itens lendários de uma única vez.
                       </div>
                     </div>
                   </div>

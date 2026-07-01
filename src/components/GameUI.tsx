@@ -1456,6 +1456,8 @@ const SkillsTreePanel: React.FC = () => {
         return { x: 75, y: 390 }; // Passiva T5
       case 11:
         return { x: 25, y: 390 }; // Active T6
+      case 15:
+        return { x: 50, y: 500 }; // Ultimate no rodapé centralizado
       default:
         return { x: 50, y: 50 };
     }
@@ -1478,7 +1480,7 @@ const SkillsTreePanel: React.FC = () => {
 
       {/* Árvore Visual 2D (Desktop) */}
       <div className="tree-view-desktop">
-        <div className="tree-container" style={{ height: '470px' }}>
+        <div className="tree-container" style={{ height: '560px' }}>
           <div className="tree-content-area">
             {/* Renderiza as linhas de conexões SVG */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none">
@@ -1534,14 +1536,24 @@ const SkillsTreePanel: React.FC = () => {
                     setShowSkillModal(true);
                   }}
                   style={{ left, top }}
-                  className={`skill-node ${isSelected ? 'selected' : isUnlocked ? 'unlocked' : !meetsLevelReq ? 'locked' : ''}`}
+                  className={`skill-node ${
+                    isSelected ? 'selected' : 
+                    getSkillMaxLevel(id, character.currentStage) === 0 ? 'locked' :
+                    isUnlocked ? 'unlocked' : 
+                    !meetsLevelReq ? 'locked' : ''
+                  }`}
                 >
                   <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '105px' }}>{skill.name}</span>
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.15rem' }}>
                     <span className={`badge ${skill.type === 'active' ? 'badge-active' : 'badge-passive'}`}>
                       {skill.type === 'active' ? 'Ativ' : 'Pass'}
                     </span>
-                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lv {currentLevel}/{getSkillMaxLevel(id, character.currentStage)}</span>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>
+                      {getSkillMaxLevel(id, character.currentStage) === 0 
+                        ? 'Bloq' 
+                        : `Lv ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
+                      }
+                    </span>
                   </div>
                 </button>
               );
@@ -1646,7 +1658,12 @@ const SkillsTreePanel: React.FC = () => {
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                  <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Nível: {character.skillLevels[selectedSkillId] || 0} / {getSkillMaxLevel(selectedSkillId, character.currentStage)}</span>
+                  <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0 
+                      ? 'Bloqueado (Requer Dificuldade Inferno)'
+                      : `Nível: ${character.skillLevels[selectedSkillId] || 0} / ${getSkillMaxLevel(selectedSkillId, character.currentStage)}`
+                    }
+                  </span>
                   <span className="font-heading" style={{ fontSize: '0.65rem', color: 'var(--gold-400)', fontWeight: 600 }}>Requer Level {selectedSkill.requiredLevel}</span>
                 </div>
 
@@ -1680,7 +1697,12 @@ const SkillsTreePanel: React.FC = () => {
                           ? 'btn-gold' : 'btn-ghost'
                       }`}
                     >
-                      {(character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) ? 'Nível Máximo' : `Aprimorar (${selectedSkill.cost} SP)`}
+                      {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0 
+                        ? 'Bloqueado'
+                        : (character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) 
+                          ? 'Nível Máximo' 
+                          : `Aprimorar (${selectedSkill.cost} SP)`
+                      }
                     </button>
                   </div>
                 </div>
@@ -1744,16 +1766,24 @@ const SkillsTreePanel: React.FC = () => {
                       </span>
                     </div>
                     <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
-                      {isLocked 
-                        ? `Requer Lvl ${skill.requiredLevel}${skill.dependencies.length > 0 ? ` + ${SKILLS_CATALOG[skill.dependencies[0]]?.name}` : ''}`
-                        : `Nível ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
+                      {getSkillMaxLevel(id, character.currentStage) === 0
+                        ? 'Requer Dificuldade Inferno'
+                        : isLocked 
+                          ? `Requer Lvl ${skill.requiredLevel}${skill.dependencies.length > 0 ? ` + ${SKILLS_CATALOG[skill.dependencies[0]]?.name}` : ''}`
+                          : `Nível ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
                       }
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {isLocked && <span style={{ fontSize: '0.6rem', color: '#64748b' }}>🔒 Bloqueada</span>}
-                    {!isLocked && !isUnlocked && <span style={{ fontSize: '0.6rem', color: 'var(--gold-400)' }}>Disponível</span>}
-                    {isUnlocked && <span className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>Lv {currentLevel}</span>}
+                    {getSkillMaxLevel(id, character.currentStage) === 0 ? (
+                      <span style={{ fontSize: '0.6rem', color: '#f43f5e' }}>🔒 Requer Inferno</span>
+                    ) : (
+                      <>
+                        {isLocked && <span style={{ fontSize: '0.6rem', color: '#64748b' }}>🔒 Bloqueada</span>}
+                        {!isLocked && !isUnlocked && <span style={{ fontSize: '0.6rem', color: 'var(--gold-400)' }}>Disponível</span>}
+                        {isUnlocked && <span className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>Lv {currentLevel}</span>}
+                      </>
+                    )}
                     
                     <span style={{ fontSize: '0.5rem', color: '#64748b', marginLeft: '0.2rem' }}>
                       {isSelected ? '▲' : '▼'}
@@ -1847,7 +1877,12 @@ const SkillsTreePanel: React.FC = () => {
                         }`}
                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.6rem' }}
                       >
-                        {(character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) ? 'Nível Máximo' : `Aprimorar (${skill.cost} SP)`}
+                        {getSkillMaxLevel(id, character.currentStage) === 0 
+                          ? 'Bloqueado' 
+                          : (character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) 
+                            ? 'Nível Máximo' 
+                            : `Aprimorar (${skill.cost} SP)`
+                        }
                       </button>
                     </div>
                   </div>

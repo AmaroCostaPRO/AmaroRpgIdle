@@ -47,6 +47,15 @@ export const calculateItemSellValue = (item: EquipmentItem): number => {
 export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
   const skill = SKILLS_CATALOG[skillId];
   if (!skill) return 0;
+  
+  // Ultimates só estão liberadas a partir da dificuldade Inferno (Fase 11+)
+  if (skill.isUltimate && currentStage < 11) {
+    return 0;
+  }
+
+  if (currentStage >= 21) {
+    return Math.max(skill.maxLevel, 15);
+  }
   if (currentStage >= 11) {
     return Math.max(skill.maxLevel, 10);
   }
@@ -159,7 +168,15 @@ export const SKILL_BASE_MULTIPLIERS: Record<string, number> = {
   stab: 1.8,
   poison_dagger: 1.2,
   backstab: 3.2,
-  death_blossom: 4.5
+  death_blossom: 4.5,
+
+  // Ultimates
+  ultimate_warrior: 12.0,
+  ultimate_mage: 15.0,
+  ultimate_ranger: 11.0,
+  ultimate_paladin: 10.0,
+  ultimate_cleric: 9.0,
+  ultimate_rogue: 14.0
 };
 
 // Catálogo estático de Habilidades (Árvore de Habilidades por Classe)
@@ -173,6 +190,9 @@ export const SKILLS_CATALOG: Record<string, {
   statBonuses?: Partial<BaseStats>;
   requiredLevel: number;
   classId: string;
+  isUltimate?: boolean;
+  cooldown?: number;
+  manaCost?: number;
 }> = {
   // Guerreiro (Warrior)
   slash: { name: 'Slash', description: 'Corte rápido causando 150% do dano de Força.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'warrior' },
@@ -181,6 +201,7 @@ export const SKILLS_CATALOG: Record<string, {
   execute: { name: 'Executar', description: 'Golpe de misericórdia causando 300% do dano de Força.', cost: 2, maxLevel: 5, dependencies: ['shield_bash'], type: 'active', requiredLevel: 7, classId: 'warrior' },
   battle_cry: { name: 'Grito de Guerra', description: 'Intimida oponentes. Aumento passivo de +5 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 9, classId: 'warrior' },
   bladestorm: { name: 'Tempestade de Aço', description: 'Ataque giratório contínuo que causa 400% de Força.', cost: 3, maxLevel: 5, dependencies: ['execute'], type: 'active', requiredLevel: 11, classId: 'warrior' },
+  ultimate_warrior: { name: 'Cólera dos Titãs', description: 'Guerreia com fúria divina descarregando um golpe sísmico que causa 1200% de Força. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['bladestorm'], type: 'active', requiredLevel: 15, classId: 'warrior', isUltimate: true, cooldown: 60000, manaCost: 50 },
 
   // Mago (Mage)
   fireball: { name: 'Fireball', description: 'Conjura uma esfera de fogo causando 250% de Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'mage' },
@@ -189,6 +210,7 @@ export const SKILLS_CATALOG: Record<string, {
   lightning: { name: 'Relâmpago', description: 'Descarga elétrica que causa 350% de Magia.', cost: 2, maxLevel: 5, dependencies: ['frostbolt'], type: 'active', requiredLevel: 7, classId: 'mage' },
   arcane_intellect: { name: 'Brilho Arcano', description: 'Expansão mental. Aumento passivo de +5 em Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5 }, requiredLevel: 9, classId: 'mage' },
   meteor: { name: 'Meteoro', description: 'Evoca um meteoro cataclísmico que causa 500% de Magia.', cost: 3, maxLevel: 5, dependencies: ['lightning'], type: 'active', requiredLevel: 11, classId: 'mage' },
+  ultimate_mage: { name: 'Supernova', description: 'Colapsa energia arcana em uma explosão estelar massiva, causando 1500% de Magia. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['meteor'], type: 'active', requiredLevel: 15, classId: 'mage', isUltimate: true, cooldown: 70000, manaCost: 80 },
 
   // Arqueiro (Ranger)
   arrow_shot: { name: 'Disparo Preciso', description: 'Tiro rápido causando 150% do dano de Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'ranger' },
@@ -197,6 +219,7 @@ export const SKILLS_CATALOG: Record<string, {
   double_shot: { name: 'Disparo Duplo', description: 'Dispara duas flechas simultâneas causadoras de 280% de Destreza.', cost: 2, maxLevel: 5, dependencies: ['poison_arrow'], type: 'active', requiredLevel: 7, classId: 'ranger' },
   fleet_footed: { name: 'Passo Ligeiro', description: 'Passividade ágil. Aumento de +3 em Destreza e +2 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 3, constitution: 2 }, requiredLevel: 9, classId: 'ranger' },
   rain_arrows: { name: 'Chuva de Flechas', description: 'Saraivada de flechas que causa 420% de Destreza.', cost: 3, maxLevel: 5, dependencies: ['double_shot'], type: 'active', requiredLevel: 11, classId: 'ranger' },
+  ultimate_ranger: { name: 'Flecha do Juízo Final', description: 'Dispara um projétil infundido com energia cósmica que perfura e causa 1100% de Destreza. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['rain_arrows'], type: 'active', requiredLevel: 15, classId: 'ranger', isUltimate: true, cooldown: 55000, manaCost: 45 },
 
   // Paladino (Paladin)
   holy_strike: { name: 'Golpe Sagrado', description: 'Ataque abençoado causando 150% de Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'paladin' },
@@ -205,6 +228,7 @@ export const SKILLS_CATALOG: Record<string, {
   smite_paladin: { name: 'Punição da Luz', description: 'Causa 250% de dano misto de Constituição e Força.', cost: 2, maxLevel: 5, dependencies: ['shield_righteousness'], type: 'active', requiredLevel: 7, classId: 'paladin' },
   sacred_duty: { name: 'Dever Sagrado', description: 'Aumento passivo de +3 em Força e +3 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 3, constitution: 3 }, requiredLevel: 9, classId: 'paladin' },
   consecration: { name: 'Consagração', description: 'Santifica o solo causando 380% de Constituição.', cost: 3, maxLevel: 5, dependencies: ['smite_paladin'], type: 'active', requiredLevel: 11, classId: 'paladin' },
+  ultimate_paladin: { name: 'Julgamento Sagrado', description: 'Evoca uma espada de luz do céu causando 1000% de Constituição sagrada. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['consecration'], type: 'active', requiredLevel: 15, classId: 'paladin', isUltimate: true, cooldown: 65000, manaCost: 60 },
 
   // Clérigo (Cleric)
   holy_smite: { name: 'Golpe de Fé', description: 'Punição divina causando 150% de Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'cleric' },
@@ -213,6 +237,7 @@ export const SKILLS_CATALOG: Record<string, {
   wrath_heaven: { name: 'Ira do Céu', description: 'Relâmpago sagrado que causa 300% de Magia.', cost: 2, maxLevel: 5, dependencies: ['holy_smite'], type: 'active', requiredLevel: 7, classId: 'cleric' },
   spirit_growth: { name: 'Crescimento Espiritual', description: 'Conexão divina. Aumento passivo de +3 em Magia e +3 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 3, constitution: 3 }, requiredLevel: 9, classId: 'cleric' },
   divine_judgement: { name: 'Julgamento Final', description: 'Raios sagrados massivos causando 450% de Magia.', cost: 3, maxLevel: 5, dependencies: ['wrath_heaven'], type: 'active', requiredLevel: 11, classId: 'cleric' },
+  ultimate_cleric: { name: 'Ascensão Celestial', description: 'Prece suprema que causa 900% de Magia e cura 100% da vida máxima. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['divine_judgement'], type: 'active', requiredLevel: 15, classId: 'cleric', isUltimate: true, cooldown: 80000, manaCost: 70 },
 
   // Ladrão (Rogue)
   stab: { name: 'Apunhalar', description: 'Golpe rápido com adagas causando 180% de Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'rogue' },
@@ -221,6 +246,7 @@ export const SKILLS_CATALOG: Record<string, {
   backstab: { name: 'Ataque Furtivo', description: 'Ataque surpresa por trás causando 320% de Destreza.', cost: 2, maxLevel: 5, dependencies: ['poison_dagger'], type: 'active', requiredLevel: 7, classId: 'rogue' },
   shadowstep: { name: 'Passo Sombrio', description: 'Aumento passivo de +3 em Destreza e +3 em Força.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 3, strength: 3 }, requiredLevel: 9, classId: 'rogue' },
   death_blossom: { name: 'Florescer Letal', description: 'Redemoinho de cortes causando 450% de Destreza.', cost: 3, maxLevel: 5, dependencies: ['backstab'], type: 'active', requiredLevel: 11, classId: 'rogue' },
+  ultimate_rogue: { name: 'Lâmina da Aniquilação', description: 'Surge das sombras desferindo um corte letal instantâneo que causa 1400% de Destreza. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['death_blossom'], type: 'active', requiredLevel: 15, classId: 'rogue', isUltimate: true, cooldown: 50000, manaCost: 50 },
 
   // Comum
   heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }

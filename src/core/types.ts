@@ -50,6 +50,7 @@ export interface SkillNode {
   statBonuses?: Partial<BaseStats>;
   requiredLevel: number; // Nível necessário para liberar
   classId: string; // classe associada ('warrior', 'mage', 'ranger', 'paladin', 'cleric', 'rogue' ou 'common')
+  isUltimate?: boolean;
 }
 
 export interface PrestigeUpgradeNode {
