@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
@@ -801,10 +801,14 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     const saved = localStorage.getItem('amaro_rpg_show_equip_stats');
     return saved !== 'false';
   });
+  const [confirmSellCommon, setConfirmSellCommon] = useState(false);
+  const [confirmSellLegendary, setConfirmSellLegendary] = useState(false);
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
+  const sellAllCommonAndRare = useGameStore((state) => state.sellAllCommonAndRare);
+  const sellAllLegendary = useGameStore((state) => state.sellAllLegendary);
 
   const finalStats = StatEngine.calculateFinalStats(character);
   const baseStats = character.baseStats;
@@ -1226,6 +1230,88 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               </button>
             );
           })}
+        </div>
+
+        {/* Botões de Venda em Lote */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button
+            onClick={() => {
+              if (confirmSellCommon) {
+                AudioManager.getInstance().playCoin();
+                sellAllCommonAndRare();
+                setConfirmSellCommon(false);
+              } else {
+                AudioManager.getInstance().playClick();
+                setConfirmSellCommon(true);
+                // Auto reseta a confirmação após 3 segundos
+                setTimeout(() => {
+                  setConfirmSellCommon(current => current ? false : false);
+                }, 3000);
+              }
+            }}
+            className="btn btn-sm"
+            style={{ 
+              flex: 1, 
+              fontSize: '0.62rem', 
+              padding: '0.45rem 0.5rem',
+              background: confirmSellCommon 
+                ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
+                : 'linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))',
+              border: confirmSellCommon
+                ? '1px solid rgba(16, 185, 129, 0.5)'
+                : '1px solid rgba(168, 85, 247, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: confirmSellCommon ? '#34d399' : '#c084fc',
+              cursor: 'pointer',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span>{confirmSellCommon ? '🪙 Confirmar Venda?' : '🪙 Vender Comuns & Mágicos'}</span>
+          </button>
+          <button
+            onClick={() => {
+              if (confirmSellLegendary) {
+                AudioManager.getInstance().playCoin();
+                sellAllLegendary();
+                setConfirmSellLegendary(false);
+              } else {
+                AudioManager.getInstance().playClick();
+                setConfirmSellLegendary(true);
+                // Auto reseta a confirmação após 3 segundos
+                setTimeout(() => {
+                  setConfirmSellLegendary(current => current ? false : false);
+                }, 3000);
+              }
+            }}
+            className="btn btn-sm"
+            style={{ 
+              flex: 1, 
+              fontSize: '0.62rem', 
+              padding: '0.45rem 0.5rem',
+              background: confirmSellLegendary
+                ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
+                : 'linear-gradient(to right, rgba(245, 158, 11, 0.15), rgba(217, 70, 239, 0.15))',
+              border: confirmSellLegendary
+                ? '1px solid rgba(16, 185, 129, 0.5)'
+                : '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: confirmSellLegendary ? '#34d399' : '#fbbf24',
+              cursor: 'pointer',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span>{confirmSellLegendary ? '🪙 Confirmar Venda?' : '🪙 Vender Lendários'}</span>
+          </button>
         </div>
       </div>
 
@@ -1856,7 +1942,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
           </div>
           <div className="flex justify-between">
             <span>Dano de Toque:</span>
-            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 10}</span>
+            <span className="font-semibold text-purple-300 font-mono">+{ascensionCount * 5}</span>
           </div>
           <div className="flex justify-between">
             <span>Chance de Crítico:</span>
@@ -3055,6 +3141,7 @@ export default function GameUI() {
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
   const useConsumable = useGameStore((state) => state.useConsumable);
+  const sellItem = useGameStore((state) => state.sellItem);
 
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
@@ -3468,26 +3555,50 @@ export default function GameUI() {
                   </button>
                 )}
 
-                {showDiscardConfirm ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button onClick={() => {
-                        AudioManager.getInstance().playClick();
-                        discardItem(selectedItem.id);
-                        setSelectedItem(null);
-                        setShowDiscardConfirm(false);
-                      }} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
-                      <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                {selectedItem.slot === 'consumable' ? (
+                  showDiscardConfirm ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        <button onClick={() => {
+                          AudioManager.getInstance().playClick();
+                          discardItem(selectedItem.id);
+                          setSelectedItem(null);
+                          setShowDiscardConfirm(false);
+                        }} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
+                        <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <button 
+                      onClick={() => setShowDiscardConfirm(true)}
+                      className="btn btn-sm btn-danger" 
+                      style={{ width: '100%', opacity: 0.8 }}
+                    >
+                      Descartar / Destruir
+                    </button>
+                  )
                 ) : (
                   <button 
-                    onClick={() => setShowDiscardConfirm(true)}
-                    className="btn btn-sm btn-danger" 
-                    style={{ width: '100%', opacity: 0.8 }}
+                    onClick={() => {
+                      AudioManager.getInstance().playCoin();
+                      sellItem(selectedItem.id);
+                      setSelectedItem(null);
+                    }}
+                    className="btn btn-sm" 
+                    style={{ 
+                      width: '100%', 
+                      background: 'linear-gradient(to right, #fbbf24, #d97706)', 
+                      borderColor: '#d97706', 
+                      color: '#000',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem'
+                    }}
                   >
-                    Descartar / Destruir
+                    <span>🪙 Vender por {calculateItemSellValue(selectedItem).toLocaleString()} Ouro</span>
                   </button>
                 )}
               </div>

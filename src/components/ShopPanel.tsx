@@ -6,6 +6,7 @@ export const ShopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buyConsumable = useGameStore((state) => state.buyConsumable);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | null>(null);
 
   const shopItems = [
     {
@@ -44,7 +45,7 @@ export const ShopPanel: React.FC = () => {
   ];
 
   const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch') => {
-    AudioManager.getInstance().playClick();
+    AudioManager.getInstance().playCoin();
     const result = buyConsumable(itemId);
     
     if (result.success) {
@@ -154,16 +155,37 @@ export const ShopPanel: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => handleBuy(item.id)}
-                  disabled={!canAfford}
-                  className={`btn btn-sm ${canAfford ? 'btn-gold' : 'btn-disabled'}`}
+                  onClick={() => {
+                    if (confirmBuyId === item.id) {
+                      handleBuy(item.id);
+                      setConfirmBuyId(null);
+                    } else {
+                      AudioManager.getInstance().playClick();
+                      setConfirmBuyId(item.id);
+                      // Auto reseta a confirmação após 3 segundos
+                      setTimeout(() => {
+                        setConfirmBuyId(current => current === item.id ? null : current);
+                      }, 3000);
+                    }
+                  }}
+                  disabled={!canAfford || isInvFull}
+                  className={`btn btn-sm ${canAfford && !isInvFull ? 'btn-gold' : 'btn-disabled'}`}
                   style={{ 
                     width: '100%',
-                    opacity: canAfford ? 1 : 0.5,
-                    cursor: canAfford ? 'pointer' : 'not-allowed'
+                    opacity: (canAfford && !isInvFull) ? 1 : 0.5,
+                    cursor: (canAfford && !isInvFull) ? 'pointer' : 'not-allowed',
+                    background: confirmBuyId === item.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                    borderColor: confirmBuyId === item.id ? '#10b981' : undefined,
+                    color: confirmBuyId === item.id ? '#fff' : undefined,
                   }}
                 >
-                  {!canAfford ? 'Ouro Insuficiente' : isInvFull ? 'Inventário Cheio' : 'Comprar'}
+                  {!canAfford 
+                    ? 'Ouro Insuficiente' 
+                    : isInvFull 
+                      ? 'Inventário Cheio' 
+                      : confirmBuyId === item.id 
+                        ? 'Confirmar?' 
+                        : 'Comprar'}
                 </button>
               </div>
             </div>

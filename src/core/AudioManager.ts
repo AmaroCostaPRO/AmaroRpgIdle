@@ -172,6 +172,37 @@ export class AudioManager {
   }
 
   /**
+   * Som de Moeda (Compra / Venda de itens)
+   * Sintetiza duas notas agudas e curtas simulando o tilintar de moedas.
+   */
+  public playCoin() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [987.77, 1318.51]; // B5 -> E6
+
+    notes.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + index * 0.07);
+
+      gain.gain.setValueAtTime(0, now + index * 0.07);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + index * 0.07 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.07 + 0.15);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.07);
+      osc.stop(now + index * 0.07 + 0.18);
+    });
+  }
+
+  /**
    * Som de Ataque Físico / Corte (Slash)
    * Sintetiza ruído branco com filtro passa-altas para simular o vento/corte da espada.
    */

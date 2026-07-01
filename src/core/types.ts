@@ -23,6 +23,7 @@ export interface EquipmentItem {
   spriteName: string;
   mysticLevel?: number;
   consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch';
+  stage?: number;
 }
 
 export interface EnemyType {

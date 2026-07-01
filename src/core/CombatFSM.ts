@@ -1052,7 +1052,8 @@ export class CombatFSM {
         stats: itemStats,
         setName,
         classId,
-        spriteName: `${classId}-${slot}`
+        spriteName: `${classId}-${slot}`,
+        stage
       };
       
       const added = useGameStore.getState().addItemToInventory(newItem);

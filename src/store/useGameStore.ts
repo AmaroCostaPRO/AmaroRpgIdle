@@ -2,6 +2,47 @@ import { create } from 'zustand';
 import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 
+export const calculateItemSellValue = (item: EquipmentItem): number => {
+  if (item.rarity === 'consumable') return 0;
+
+  let baseValue = 15;
+  switch (item.rarity) {
+    case 'common':
+      baseValue = 15;
+      break;
+    case 'rare':
+      baseValue = 40;
+      break;
+    case 'epic':
+      baseValue = 100;
+      break;
+    case 'legendary':
+      baseValue = 250;
+      break;
+    case 'mystic':
+      baseValue = 1000 * (item.mysticLevel || 1);
+      break;
+    default:
+      baseValue = 15;
+  }
+
+  // Fator de escala por dificuldade (estágio em que o item foi gerado ou o estágio atual como fallback)
+  const itemStage = item.stage || 1;
+  const goldScale = Math.pow(1.25, itemStage - 1);
+  let finalValue = baseValue * goldScale;
+
+  // Bônus para itens de sets especiais (Ancestral ou Pandemoníaco)
+  if (item.setName) {
+    if (item.setName.startsWith('Set Pandemoníaco')) {
+      finalValue *= 3.0; // Itens Pandemoníacos valem 3x mais
+    } else if (item.setName.startsWith('Set Ancestral')) {
+      finalValue *= 1.5; // Itens Ancestrais valem 1.5x mais
+    }
+  }
+
+  return Math.floor(finalValue);
+};
+
 // Configurações de Atributos e Crescimento para cada Classe
 export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
   const skill = SKILLS_CATALOG[skillId];
@@ -297,6 +338,9 @@ interface GameState {
   equipItem(itemId: string): void;
   unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon'): void;
   discardItem(itemId: string): void;
+  sellItem(itemId: string): void;
+  sellAllCommonAndRare(): void;
+  sellAllLegendary(): void;
   addItemToInventory(item: EquipmentItem): boolean;
   
   // Reforja de itens (v2.0.0)
@@ -1088,6 +1132,75 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  sellItem: (itemId) => set((state) => {
+    const item = state.character.inventory.find(i => i.id === itemId);
+    if (!item) return state;
+
+    const goldEarned = calculateItemSellValue(item);
+    const newInventory = state.character.inventory.filter(i => i.id !== itemId);
+    
+    const updated = {
+      ...state.character,
+      gold: (state.character.gold || 0) + goldEarned,
+      inventory: newInventory
+    };
+    saveToLocalStorage(updated);
+
+    if (goldEarned > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu [${item.name}] por +${goldEarned} Ouro!` });
+    }
+
+    return { character: updated };
+  }),
+
+  sellAllCommonAndRare: () => set((state) => {
+    const itemsToSell = state.character.inventory.filter(i => i.rarity === 'common' || i.rarity === 'rare');
+    if (itemsToSell.length === 0) return state;
+
+    let totalGold = 0;
+    itemsToSell.forEach(item => {
+      totalGold += calculateItemSellValue(item);
+    });
+
+    const newInventory = state.character.inventory.filter(i => i.rarity !== 'common' && i.rarity !== 'rare');
+    const updated = {
+      ...state.character,
+      gold: (state.character.gold || 0) + totalGold,
+      inventory: newInventory
+    };
+    saveToLocalStorage(updated);
+
+    if (totalGold > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você limpou seu inventário vendendo ${itemsToSell.length} equipamentos comuns/mágicos por +${totalGold} Ouro!` });
+    }
+
+    return { character: updated };
+  }),
+
+  sellAllLegendary: () => set((state) => {
+    const itemsToSell = state.character.inventory.filter(i => i.rarity === 'legendary');
+    if (itemsToSell.length === 0) return state;
+
+    let totalGold = 0;
+    itemsToSell.forEach(item => {
+      totalGold += calculateItemSellValue(item);
+    });
+
+    const newInventory = state.character.inventory.filter(i => i.rarity !== 'legendary');
+    const updated = {
+      ...state.character,
+      gold: (state.character.gold || 0) + totalGold,
+      inventory: newInventory
+    };
+    saveToLocalStorage(updated);
+
+    if (totalGold > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu todos os ${itemsToSell.length} equipamentos lendários do seu inventário por +${totalGold} Ouro!` });
+    }
+
+    return { character: updated };
+  }),
+
   addItemToInventory: (item) => {
     let success = false;
     set((state) => {
@@ -1278,7 +1391,8 @@ export const useGameStore = create<GameState>((set) => ({
         mysticLevel: targetMysticLevel,
         // Preserva o set do Item A: o item Místico continua contando
         // para os bônus de conjunto como se fosse um item Lendário do mesmo set.
-        setName: item1.setName
+        setName: item1.setName,
+        stage: Math.max(item1.stage || 1, item2.stage || 1)
       };
 
       // Remove os dois itens fundidos do inventário
@@ -1473,7 +1587,8 @@ export const useGameStore = create<GameState>((set) => ({
             stats: itemStats,
             setName,
             classId,
-            spriteName: `${classId}-${slot}`
+            spriteName: `${classId}-${slot}`,
+            stage
           });
         }
 
