@@ -350,6 +350,7 @@ interface GameState {
   resetAllData(): void;
   toggleAutoCast(): void;
   updateAutoCastSettings(healPercent: number, disabledSkills: string[]): void;
+  toggleTestMode(): void;
   registerEnemyKill(enemyId: string): void;
   
   // Novos métodos de gerenciamento de save slots
@@ -411,6 +412,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     inventorySlots: 30,
     pandemoniumUnlocked: false,
     activePandemonium: false,
+    testMode: false,
   };
 };
 
@@ -930,6 +932,20 @@ export const useGameStore = create<GameState>((set) => ({
       autoCastEnabled: !state.character.autoCastEnabled
     };
     saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  toggleTestMode: () => set((state) => {
+    const updated = {
+      ...state.character,
+      testMode: !state.character.testMode
+    };
+    saveToLocalStorage(updated);
+    bridge.emit(GameEvent.LOG_EMITTED, { 
+      message: updated.testMode 
+        ? '🧪 MODO DE TESTE ATIVADO! (5x Atributos / Dano / XP)' 
+        : '🧪 Modo de teste desativado.' 
+    });
     return { character: updated };
   }),
 

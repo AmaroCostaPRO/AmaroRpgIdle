@@ -250,6 +250,16 @@ export class StatEngine {
     finalStats.touchCritChance += ascensionCount * 0.1;
     finalStats.touchCritDamage += ascensionCount * 1.0;
 
+    // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)
+    if (character.testMode) {
+      finalStats.strength *= 5;
+      finalStats.magic *= 5;
+      finalStats.dexterity *= 5;
+      finalStats.constitution *= 5;
+      finalStats.luck *= 5;
+      finalStats.touch *= 5;
+    }
+
     return finalStats;
   }
 

@@ -92,6 +92,7 @@ export interface Character {
   inventorySlots: number;
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
+  testMode?: boolean;
 }
 
 export enum GameEvent {

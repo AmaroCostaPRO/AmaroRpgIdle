@@ -749,6 +749,9 @@ export class CombatFSM {
 
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult);
+    if (this.characterData.testMode) {
+      finalTouchDmg *= 5;
+    }
     if (finalTouchDmg < 1) finalTouchDmg = 1;
 
     this.enemyHP = Math.max(0, this.enemyHP - finalTouchDmg);
@@ -836,7 +839,10 @@ export class CombatFSM {
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
-    const damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
+    if (this.characterData.testMode) {
+      damage *= 5;
+    }
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
@@ -902,7 +908,10 @@ export class CombatFSM {
     // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
     const xpScale = Math.pow(1.35, char.currentStage - 1);
     const baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
-    const gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
+    let gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
+    if (char.testMode) {
+      gainedXp *= 5;
+    }
 
     // Escala de Gold por fase e sorte
     const goldScale = Math.pow(1.25, char.currentStage - 1);
@@ -1225,6 +1234,9 @@ export class CombatFSM {
     const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
     dmg = Math.floor(dmg * exposedMultiplier);
+    if (this.characterData.testMode) {
+      dmg *= 5;
+    }
 
     this.enemyHP = Math.max(0, this.enemyHP - dmg);
 

@@ -611,6 +611,47 @@ const ActiveSkillsPanel: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Modo de Teste (Cheat Mode) */}
+      <div style={{ 
+        marginTop: '0.6rem', 
+        paddingTop: '0.6rem', 
+        borderTop: '1px solid var(--border-dim)', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        background: 'rgba(239, 68, 68, 0.05)', 
+        padding: '0.5rem 0.6rem', 
+        borderRadius: 'var(--radius-md)', 
+        border: '1px solid rgba(239, 68, 68, 0.2)' 
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            🧪 Modo de Teste (5x)
+          </span>
+          <span style={{ fontSize: '0.5rem', color: '#fca5a5', opacity: 0.7, lineHeight: 1.4 }}>Multiplica Dano, Vida, Mana e XP por 5.</span>
+        </div>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            useGameStore.getState().toggleTestMode();
+          }}
+          className={`btn btn-sm ${character.testMode ? 'btn-red' : 'btn-ghost'}`}
+          style={{ 
+            minWidth: '4.2rem', 
+            height: '1.3rem', 
+            padding: 0, 
+            fontSize: '0.55rem', 
+            fontWeight: 700,
+            color: character.testMode ? '#fff' : '#ef4444',
+            background: character.testMode ? '#ef4444' : 'rgba(255,255,255,0.03)',
+            border: character.testMode ? 'none' : '1px solid rgba(239, 68, 68, 0.3)',
+            boxShadow: character.testMode ? '0 0 8px rgba(239, 68, 68, 0.4)' : 'none'
+          }}
+        >
+          {character.testMode ? 'ATIVADO' : 'DESATIVADO'}
+        </button>
+      </div>
     </div>
   );
 };
