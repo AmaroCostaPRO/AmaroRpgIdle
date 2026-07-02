@@ -813,8 +813,12 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 *   **🔊 Usabilidade Visual e Sonora**:
     *   **Confirmações de Transação**: Implementados pop-ups de confirmação antes de efetuar compras na Loja e ao clicar nos botões de venda em massa de equipamentos.
     *   **Efeitos Sonoros de Transações**: Integrados áudios de confirmação ao efetuar compras bem-sucedidas ou vender itens para prover feedback sonoro tátil imediato.
-*   **⚖️ Correções de Interface**:
+*   **⚖️ Correções de Interface e Balanceamento**:
     *   **Dano do Toque na Ascensão**: Ajustada a exibição do bônus de Dano de Toque na aba de Ascensão para relatar $+5$ por nível de upgrade, alinhando a informação visual com a fórmula de cálculo real interna.
+    *   **Overhaul de Velocidade de Ataque**:
+        *   *Redução do Cooldown Mínimo*: O limite de recarga de ataque do jogador foi drasticamente reduzido de 800ms para **200ms**, elevando o limite máximo de velocidade para até 5 ataques por segundo.
+        *   *Curva de Destreza Não-Linear*: Substituída a fórmula linear simples por uma curva de raiz quadrada ($\sqrt{\text{Destreza}}$) para equilibrar a progressão de midgame e endgame (multiplicadores ajustados para $0.15$ para classes primárias e $0.40$ para secundárias), evitando saturação precoce ou quebra com valores de destreza extremamente elevados (500+ a 2000+).
+        *   *Sincronização de DPS*: Acoplada limitação de multiplicador de 15x no DPS passivo (`CombatFSM.ts`) para sincronizá-lo fielmente com o limite real de 200ms simulado na arena.
 
 ### Versão 3.2.0
 *   **🪙 Implementação do Sistema de Venda de Equipamentos**:
@@ -983,3 +987,46 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   Remoção de rotinas repetitivas de instanciação de eventos que causavam *memory leaks* e travamento de navegadores móveis.
     *   Refatoração do ciclo de atualização do HUD de HP e Mana no React para utilizar referências diretas (`useRef`) em vez de recriar estados reativos estritos do React a cada 30 ms.
     *   Ajuste da IA de Auto-Cast para disparar a cada 300 ms em vez de atuar no ciclo físico de renderização de 60 FPS do Phaser.
+
+---
+
+## 15. Modo de Teste (God Mode / Cheat de Desenvolvimento)
+
+Esta seção documenta o **Modo de Teste (Multiplicador 5x)** implementado especificamente para testes internos e validação ágil de conteúdos de fim de jogo (*endgame*). Por se tratar de um recurso de trapaça temporário que **não deve constar na versão final do jogo**, todas as intervenções de código foram mapeadas abaixo para facilitar sua remoção completa no futuro.
+
+### A. Mecânica de Funcionamento
+Quando ativado na interface, o modo aplica as seguintes regras:
+1. **Atributos de Personagem**: Todos os status finais consolidados do personagem (`strength`, `magic`, `dexterity`, `constitution`, `luck` e `touch`) são multiplicados por **5x** na engine de cálculo. Como consequência direta, a vida máxima (`playerMaxHP`), mana máxima (`playerMaxMana`) e as suas respectivas taxas de regeneração automática aumentam em exatamente **5x**.
+2. **Dano Causado**: Todos os danos diretos desferidos pelo jogador contra monstros (ataques básicos automáticos, cliques físicos de toque na arena e dano de todas as habilidades ativas disparadas) recebem um multiplicador de **5x**.
+3. **Recompensas**: Toda a experiência ganha ao derrotar monstros comuns ou chefes de estágio é multiplicada por **5x**.
+
+### B. Mapeamento das Intervenções de Código (Guia de Remoção)
+
+Para remover completamente este recurso no futuro, remova ou reverta as seguintes linhas de código:
+
+#### 1. Tipos e Interfaces (`src/core/types.ts`)
+*   **Arquivo**: `src/core/types.ts`
+*   *O que remover*: A propriedade opcional `testMode?: boolean;` dentro da interface `Character`.
+
+#### 2. Estado Global (`src/store/useGameStore.ts`)
+*   **Arquivo**: `src/store/useGameStore.ts`
+*   *O que remover*:
+    *   A assinatura do método `toggleTestMode(): void;` na interface `GameState`.
+    *   A inicialização da chave `testMode: false,` no objeto `DEFAULT_CHARACTER`.
+    *   A implementação da ação `toggleTestMode` (que faz o toggle da flag e emite o log de ativação/desativação no chat).
+
+#### 3. Motor de Atributos (`src/core/StatEngine.ts`)
+*   **Arquivo**: `src/core/StatEngine.ts`
+*   *O que remover*: O bloco condicional `if (character.testMode)` dentro do método `calculateFinalStats` que multiplica por 5 os atributos principais do personagem antes de retornar o objeto `finalStats`.
+
+#### 4. Motor de Batalha e Regras de Combate (`src/core/CombatFSM.ts`)
+*   **Arquivo**: `src/core/CombatFSM.ts`
+*   *O que remover*:
+    *   No método `performTap`: A condicional que multiplica `finalTouchDmg` por 5 se `this.characterData.testMode` for verdadeiro.
+    *   No método `performPlayerAttack`: A condicional que multiplica `damage` por 5 se `this.characterData.testMode` for verdadeiro (lembre-se de reverter a palavra-chave `let damage` de volta para `const damage`).
+    *   No método `handleEnemyDefeat`: A condicional que multiplica `gainedXp` por 5 se `char.testMode` for verdadeiro (lembre-se de reverter `let gainedXp` de volta para `const gainedXp`).
+    *   No método `triggerSkill`: A condicional que multiplica `dmg` por 5 se `this.characterData.testMode` for verdadeiro.
+
+#### 5. Interface Visual do Jogo (`src/components/GameUI.tsx`)
+*   **Arquivo**: `src/components/GameUI.tsx`
+*   *O que remover*: A marcação TSX do botão switch do Modo de Teste (bloco contendo o comentário `{/* Modo de Teste (Cheat Mode) */}` dentro do componente `ActiveSkillsPanel`).

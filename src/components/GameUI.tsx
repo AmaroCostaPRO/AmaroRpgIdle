@@ -2765,17 +2765,17 @@ const GuidePanel: React.FC = () => {
                   <div className="pl-2 mt-0.5 space-y-1">
                     <div>
                       <span className="text-amber-300 font-bold">Arqueiro / Ladrão (Classes Primárias):</span>
-                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.01)</code>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (√Destreza × 0.15)</code>
                     </div>
                     <div>
                       <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
-                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (Destreza × 0.035)</code>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Mult. Velocidade = 1.0 + (√Destreza × 0.40)</code>
                     </div>
                     <div>
                       <span className="text-amber-300 font-bold">Chance de Esquiva (Todas as Classes):</span>
                       <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Dodge Chance = Min(75%, Destreza × 0.1%)</code>
                     </div>
-                    <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(800ms, 3000ms / Mult. Velocidade)</code>
+                    <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Tempo de Recarga = Max(200ms, 3000ms / Mult. Velocidade) (Limite: 5 atq/s)</code>
                   </div>
                 </div>
 

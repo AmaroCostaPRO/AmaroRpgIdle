@@ -344,10 +344,10 @@ export class CombatFSM {
   }
 
   private getSpeedMultiplier(dexterity: number, classId: string, attackSpeedBoost: number): number {
-    // Se destreza é o atributo primário (Arqueiro, Ladrão), escala menos: 1% por ponto (0.01)
-    // Se NÃO é o atributo primário (outras classes), escala mais: 3.5% por ponto (0.035)
-    const factor = (classId === 'ranger' || classId === 'rogue') ? 0.01 : 0.035;
-    return (1 + (dexterity * factor)) * attackSpeedBoost;
+    // Se destreza é o atributo primário (Arqueiro, Ladrão), usa um multiplicador menor baseado na raiz quadrada
+    // Se NÃO é o atributo primário (outras classes), o multiplicador de raiz quadrada é maior para compensar a falta de destreza base
+    const factor = (classId === 'ranger' || classId === 'rogue') ? 0.15 : 0.40;
+    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost;
   }
 
   constructor(scene: any, initialTarget?: any) {
@@ -658,7 +658,7 @@ export class CombatFSM {
     const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
     const ascensionCount = char.ascensionCount || 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.01);
-    const speedMultiplier = this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost);
+    const speedMultiplier = Math.min(15, this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost));
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
 
     const classId = char.classId || 'warrior';
@@ -811,8 +811,8 @@ export class CombatFSM {
     const ascensionCount = this.characterData.ascensionCount || 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.01); // +1% por ascensão
     const classId = this.characterData.classId || 'warrior';
-    const speedMultiplier = this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost);
-    this.attackCooldown = Math.max(800, 3000 / speedMultiplier);
+    const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
+    this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
     let primaryStatVal = this.playerFinalStats.strength;
