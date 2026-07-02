@@ -828,8 +828,8 @@ const statLabels: Record<string, string> = {
   constitution: 'Constituição',
   luck: 'Sorte',
   touch: 'Poder do Toque',
-  touchCritChance: 'Crítico de Toque',
-  touchCritDamage: 'Dano Crítico de Toque',
+  touchCritChance: 'Chance de Crítico',
+  touchCritDamage: 'Dano Crítico',
   robotClicks: 'Cliques do Robô'
 };
 

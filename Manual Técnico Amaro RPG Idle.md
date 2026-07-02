@@ -479,8 +479,8 @@ stateDiagram-v2
 5.  **`DEAD`**: O herói foi derrotado. O progresso de monstros derrotados no estágio atual é resetado para zero. Após um período de 3 segundos, o herói ressuscita com HP e mana cheios e o FSM retorna para `IDLE` no início da mesma fase.
 
 ### B. Ciclos de Ataque e Velocidades
-*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $1.0\times$ do Atributo Principal da classe ativa e seu bônus de Força secundário, mais uma variação aleatória de $+0$ a $+3$:
-    $$\text{Dano Básico} = (\text{Atributo Principal} + \text{Bônus Secundário de Força}) \times 1.0 + \text{Random}(0, 2)$$
+*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $3.0\times$ do Atributo Principal da classe ativa e seu bônus de Força secundário (com a adição de chance e dano crítico globalizados), mais uma variação aleatória de $+0$ a $+3$:
+    $$\text{Dano Básico} = \lfloor ((\text{Atributo Principal} + \text{Bônus Secundário de Força}) \times 3.0 + \text{Random}(0, 2)) \times \text{Multiplicador de Crítico} \rfloor$$
     *   *Onde o bônus secundário de Força se aplica apenas a classes que não possuem a Força como atributo primário:*
         $$\text{Bônus Secundário de Força} = \begin{cases} 0 & \text{se Guerreiro} \\ \text{Força} \times 0.25 & \text{se Mago, Arqueiro, Paladino, Clérigo, Ladrão} \end{cases}$$
     A recarga do ataque básico é calculada dinamicamente:
@@ -510,8 +510,8 @@ O jogo possui **20 fases de campanha** divididas em **4 tiers de dificuldade** e
 *Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo. O Modo Pandemônio é representado por tons e brilhos vermelhos e pretos intensos.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
-    $$\text{Fator HP} = 1.85^{\text{Fase} - 1}$$
-    $$\text{Fator Dano} = 1.45^{\text{Fase} - 1}$$
+    $$\text{Fator HP} = 1.50^{\text{Fase} - 1}$$
+    $$\text{Fator Dano} = 1.25^{\text{Fase} - 1}$$
     $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \\ 5.0 & \text{se Fase} \ge 21 \text{ (Pandemônio)} \end{cases}$$
 *   **Vida Máxima de Inimigo Comum**:
     $$\text{HP Máximo Normal} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
@@ -620,8 +620,8 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 *   **Vigor Eterno (`perm_con`)**: $+18$ Constitution permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
 *   **Bênção da Sorte (`perm_luk`)**: $+6$ Luck permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
 *   **Toque Divino (`perm_touch`)**: $+5$ Poder do Toque permanente por nível. Custo inicial: $2\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Toque Crítico (`perm_touch_crit`)**: $+2\%$ Chance de Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
-*   **Toque Devastador (`perm_touch_crit_dmg`)**: $+20\%$ Dano Crítico do Toque por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Foco Crítico (`perm_touch_crit`)**: $+3\%$ Chance de Crítico global por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Poder Devastador (`perm_touch_crit_dmg`)**: $+15\%$ Dano Crítico global por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+2$ cliques por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 
 ### D. Ativação Especial do Modo Pandemônio
@@ -670,9 +670,9 @@ O atributo de Sorte (`Luck`) do herói atua como um multiplicador direto de ganh
     $$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
     $$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
 *   **Performance de Combate**:
-    *   **Chance de Crítico de Toque**: Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico de Toque:
+    *   **Chance de Crítico (Global)**: Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico (anteriormente restrito ao Toque, agora aplicável globalmente a ataques e habilidades):
         $$\text{Bônus Crit Chance} = \text{Sorte Final} \times 0.05\%$$
-    *   **Dano Crítico de Toque**: Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico de Toque:
+    *   **Dano Crítico (Global)**: Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico (anteriormente restrito ao Toque, agora aplicável globalmente a ataques e habilidades):
         $$\text{Bônus Crit Damage} = \text{Sorte Final} \times 0.2\%$$
 
 ### C. Comportamento no Prestígio (Ascensão)
@@ -800,7 +800,18 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.3.0 (Atual)
+### Versão 3.4.0 (Atual)
+*   **⚖️ Suavização do Escalamento de Dificuldade**:
+    *   **Ajuste no Escalamento dos Monstros**: Curvas de escalonamento exponencial de HP e dano dos inimigos foram suavizadas significativamente para evitar hitkills e barreiras insuperáveis no endgame. A curva de HP do inimigo foi reduzida de $1.85^{\text{Fase} - 1}$ para $1.50^{\text{Fase} - 1}$ e a de dano de $1.45^{\text{Fase} - 1}$ para $1.25^{\text{Fase} - 1}$.
+    *   **Aumento de Dano do Jogador**: O multiplicador de dano dos atributos principais nos ataques básicos e habilidades foi elevado de $1.0\times$ para $3.0\times$ para dar ao jogador ferramentas eficazes contra a vida elevada dos monstros.
+*   **⚡ Unificação e Globalização da Mecânica de Crítico**:
+    *   **Crítico Global**: A Chance de Crítico e o Dano Crítico (anteriormente limitados apenas ao clique manual do "Toque") foram unificados e agora aplicam-se a ataques básicos automáticos e a todas as habilidades de ataque.
+    *   **Feedback Visual e Logs**: Adicionados indicadores visuais e mensagens de console que destacam quando um crítico é desferido (símbolo `⚡` e cor vermelha `#ef4444` no texto flutuante e logs).
+*   **🏷️ Renomeação Visual e Alinhamento da Interface (UI)**:
+    *   **Nomenclatura Consistente**: Os upgrades permanentes na tela de prestígio foram renomeados de "Toque Crítico" e "Toque Devastador" para "Foco Crítico" e "Poder Devastador", alinhando os nomes com a nova mecânica global de combate.
+    *   **Rótulos de Atributos**: Os rótulos de atributos no menu de atributos do herói e no altar de forja foram atualizados de "Crítico de Toque" para "Chance de Crítico" e "Dano Crítico".
+
+### Versão 3.3.0
 *   **⚡ Habilidades de Fim de Jogo (Modo Pandemônio & Habilidades Ultimate)**:
     *   **Habilidades até Nível 15**: O limite máximo de todas as habilidades comuns foi expandido para o nível 15 na dificuldade Pandemônio (Fases 21+), permitindo um escalonamento de dano e cura até 100%.
     *   **Habilidades Ultimate de Classe**: Adicionada 1 habilidade de classe Ultimate ultra poderosa por personagem (limite fixado de Nível 1, desbloqueada a partir do nível 15 do herói na dificuldade Inferno+). Elas possuem custos elevados de mana e cooldowns longos de 50s a 80s:

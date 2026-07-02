@@ -381,8 +381,8 @@ export class CombatFSM {
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
     const hpBoost = stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
-    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.85x por fase)
-    const difficultyScale = Math.pow(1.85, stage - 1);
+    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.50x por fase)
+    const difficultyScale = Math.pow(1.50, stage - 1);
 
     if (stage >= 21) {
       // No Pandemônio, todos os inimigos podem aparecer aleatoriamente
@@ -673,7 +673,7 @@ export class CombatFSM {
 
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(char.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult;
-    const basicDmg = primaryStatVal * damageBoost;
+    const basicDmg = primaryStatVal * 3.0 * damageBoost;
     
     let dps = basicDmg * attackSpeedHz;
     return Math.max(1, dps);
@@ -839,16 +839,30 @@ export class CombatFSM {
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
-    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 1.0 + Math.random() * 3) * exposedMultiplier * damageBoost);
+    // Chance de Crítico global no Ataque Básico
+    let isCrit = false;
+    let critMultiplier = 1.0;
+    if (this.isFrenzyActive) {
+      isCrit = true;
+      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+    } else {
+      const roll = Math.random() * 100;
+      if (roll < this.playerFinalStats.touchCritChance) {
+        isCrit = true;
+        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      }
+    }
+
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
     }
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
-    this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${damage}`, '#f59e0b');
+    this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}-${damage}`, isCrit ? '#ef4444' : '#f59e0b');
 
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${damage} de dano ${damageType}.` });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${damage} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
 
     if (this.enemyHP <= 0) {
       this.handleEnemyDefeat();
@@ -863,8 +877,8 @@ export class CombatFSM {
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
     const dmgBoost = this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
     
-    // Escala exponencial de dano baseado no estágio (ajustada para 1.45x por fase)
-    const dmgScale = Math.pow(1.45, this.enemyLevel - 1);
+    // Escala exponencial de dano baseado no estágio (ajustada para 1.25x por fase)
+    const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
 
     // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
     const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
@@ -1212,18 +1226,32 @@ export class CombatFSM {
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
+    // Chance de Crítico global nas Habilidades
+    let isCrit = false;
+    let critMultiplier = 1.0;
+    if (this.isFrenzyActive) {
+      isCrit = true;
+      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+    } else {
+      const roll = Math.random() * 100;
+      if (roll < this.playerFinalStats.touchCritChance) {
+        isCrit = true;
+        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      }
+    }
+
     // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
     let dmg = 0;
     if (skillId === 'smite_paladin') {
-      // Dano misto: 250% da média de constituição e força (ou seja, 1.25x cada)
-      dmg = Math.floor((this.playerFinalStats.constitution * 1.25 + this.playerFinalStats.strength * 1.25) * levelMultiplier + Math.random() * 5);
+      // Dano misto: 250% da média de constituição e força escalado por 3x (3.75x cada)
+      dmg = Math.floor((this.playerFinalStats.constitution * 3.75 + this.playerFinalStats.strength * 3.75) * levelMultiplier + Math.random() * 5);
       damageType = 'sagrado';
     } else {
-      const baseMult = SKILL_BASE_MULTIPLIERS[skillId] || 1.0;
+      const baseMult = (SKILL_BASE_MULTIPLIERS[skillId] || 1.0) * 3.0; // Multiplicadores escalados por 3x
       dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
     }
 
-    dmg = Math.floor(dmg * damageBoost);
+    dmg = Math.floor(dmg * damageBoost * critMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
@@ -1247,7 +1275,7 @@ export class CombatFSM {
       } else {
         this.scene.animateFireballEffect();
       }
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `GELO: ${dmg}!`, '#38bdf8');
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}GELO: ${dmg}!`, '#38bdf8');
     } else if (skillId === 'lightning' || skillId === 'wrath_heaven' || skillId === 'divine_judgement') {
       if (typeof this.scene.animateLightningEffect === 'function') {
         this.scene.animateLightningEffect();
@@ -1256,14 +1284,14 @@ export class CombatFSM {
       }
       const lightningColor = skillId === 'lightning' ? '#a855f7' : '#fbbf24';
       const lightningLabel = skillId === 'lightning' ? 'RAIO' : 'DIVINO';
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${lightningLabel}: ${dmg}!`, lightningColor);
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}${lightningLabel}: ${dmg}!`, lightningColor);
     } else if (skillId === 'meteor') {
       if (typeof this.scene.animateMeteorEffect === 'function') {
         this.scene.animateMeteorEffect();
       } else {
         this.scene.animateFireballEffect();
       }
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `METEORO: ${dmg}!`, '#ef4444');
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}METEORO: ${dmg}!`, '#ef4444');
     } else if (skillId === 'poison_arrow' || skillId === 'poison_dagger') {
       if (typeof this.scene.animatePoisonArrowEffect === 'function') {
         this.scene.animatePoisonArrowEffect();
@@ -1271,21 +1299,21 @@ export class CombatFSM {
         this.scene.animateSlashEffect();
       }
       const toxColor = skillId === 'poison_arrow' ? '#22c55e' : '#c084fc';
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `TOXINA: ${dmg}!`, toxColor);
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}TOXINA: ${dmg}!`, toxColor);
     } else if (skillId === 'consecration') {
       if (typeof this.scene.animateConsecrationEffect === 'function') {
         this.scene.animateConsecrationEffect();
       } else {
         this.scene.animateSlashEffect();
       }
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `SANTIFICADO: ${dmg}!`, '#fef08a');
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}SANTIFICADO: ${dmg}!`, '#fef08a');
     } else {
       if (skillClass === 'mage' || skillClass === 'cleric') {
         this.scene.animateFireballEffect();
-        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f97316');
+        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}${damageType.toUpperCase()}: ${dmg}!`, '#f97316');
       } else {
         this.scene.animateSlashEffect();
-        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${damageType.toUpperCase()}: ${dmg}!`, '#f43f5e');
+        this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}${damageType.toUpperCase()}: ${dmg}!`, '#f43f5e');
       }
     }
 
@@ -1387,7 +1415,7 @@ export class CombatFSM {
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '¡MISERICÓRDIA!', '#ef4444');
     }
 
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}.` });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}${isCrit ? ' (Crítico!)' : ''}.` });
 
     if (this.enemyHP <= 0) {
       this.handleEnemyDefeat();

@@ -128,8 +128,8 @@ export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; descripti
   perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +18 em Constitution por nível', stat: 'constitution', bonusPerLevel: 18, costPerLevel: 3, maxLevel: 10 },
   perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +6 em Luck por nível', stat: 'luck', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
   perm_touch: { name: 'Toque Divino', description: 'Aumento definitivo de +8 em Poder do Toque por nível', stat: 'touch', bonusPerLevel: 8, costPerLevel: 3, maxLevel: 10 },
-  perm_touch_crit: { name: 'Toque Crítico', description: 'Aumento de +3% na Chance de Crítico do Toque por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
-  perm_touch_crit_dmg: { name: 'Toque Devastador', description: 'Aumento de +15% no Dano Crítico do Toque por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit: { name: 'Foco Crítico', description: 'Aumento de +3% na Chance de Crítico por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit_dmg: { name: 'Poder Devastador', description: 'Aumento de +15% no Dano Crítico por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
   perm_robot: { name: 'Robô Assistente', description: 'Invoca um assistente automático que desfere +1 Toque por segundo por nível', stat: 'robotClicks', bonusPerLevel: 1, costPerLevel: 5, maxLevel: 5 }
 };
 

@@ -336,19 +336,52 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔥 Atualização v3.3.0 — Habilidades Supremas & Usabilidade!
+              🔥 Atualização v3.4.0 — Combate Rebalanceado & Crítico Global!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização expande o sistema de combate final de jogo com habilidades Ultimate devastadoras, novos limites de nível e melhorias completas de usabilidade visual e sonora:
+                Esta atualização traz um rebalanceamento completo no escalonamento do fim do jogo (endgame), globaliza a mecânica de acertos críticos para todas as ações e habilidades, e refina a interface de atributos:
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v3.4.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.4.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        ⚖️ Suavização de Dificuldade no Endgame
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        As curvas de HP e Dano exponencial dos monstros no final do jogo foram atenuadas (HP de 1.85x para 1.50x; Dano de 1.45x para 1.25x por estágio) e o multiplicador de dano dos atributos principais do jogador foi elevado de 1.0x para 3.0x para mitigar mortes instantâneas ("hitkill") e equilibrar o combate.
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>
+                        ⚡ Unificação do Crítico Global
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Os acertos críticos deixaram de ser exclusivos do Toque manual. Ataques básicos e habilidades automáticas agora compartilham das mesmas chances e multiplicadores críticos globais do jogador, fornecendo feedback flutuante (ícone ⚡ e cor vermelha).
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🏷️ Ajuste Visual de Atributos e Upgrades
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Os upgrades permanentes da Ascensão foram renomeados para "Foco Crítico" (+3% Chance de Crítico global por nível) e "Poder Devastador" (+15% Dano Crítico global por nível). Rótulos de UI atualizados para "Chance de Crítico" e "Dano Crítico".
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v3.3.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#fbbf24', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.3.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#fbbf24', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 3.3.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
