@@ -6,7 +6,7 @@ export const ShopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buyConsumable = useGameStore((state) => state.buyConsumable);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | null>(null);
+  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | null>(null);
 
   const shopItems = [
     {
@@ -24,7 +24,7 @@ export const ShopPanel: React.FC = () => {
       id: 'chest_ancestral' as const,
       name: 'Baú de Equipamento Ancestral',
       description: 'Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.',
-      cost: 1000,
+      cost: 3000, // Ajustado de 1000 para 3000
       icon: '✨🎁✨',
       color: '#a78bfa',
       bgColor: 'rgba(167, 139, 250, 0.08)',
@@ -35,16 +35,27 @@ export const ShopPanel: React.FC = () => {
       id: 'boost_touch' as const,
       name: 'Boost de Toque (Frenesi)',
       description: 'Consumível que ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.',
-      cost: 500,
+      cost: 1000, // Ajustado de 500 para 1000
       icon: '⚡',
       color: '#06b6d4',
       bgColor: 'rgba(6, 182, 212, 0.08)',
       borderColor: 'rgba(6, 182, 212, 0.3)',
       badge: 'Boost'
+    },
+    {
+      id: 'boost_touch_x3' as const,
+      name: 'Boost de Toque x3 (Frenesi)',
+      description: 'Consumível que ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.',
+      cost: 5000, // Preço de 5000 para a versão x3
+      icon: '⚡⚡⚡',
+      color: '#38bdf8',
+      bgColor: 'rgba(56, 189, 248, 0.08)',
+      borderColor: 'rgba(56, 189, 248, 0.3)',
+      badge: 'Boost x3'
     }
   ];
 
-  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch') => {
+  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3') => {
     AudioManager.getInstance().playCoin();
     const result = buyConsumable(itemId);
     
@@ -116,7 +127,7 @@ export const ShopPanel: React.FC = () => {
                 fontSize: '0.5rem',
                 fontWeight: 700,
                 color: item.color,
-                background: `rgba(${item.id === 'chest_legendary' ? '245, 158, 11' : item.id === 'chest_ancestral' ? '167, 139, 250' : '6, 182, 212'}, 0.15)`,
+                background: item.id === 'chest_legendary' ? 'rgba(245, 158, 11, 0.15)' : item.id === 'chest_ancestral' ? 'rgba(167, 139, 250, 0.15)' : item.id === 'boost_touch_x3' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(6, 182, 212, 0.15)',
                 padding: '0.15rem 0.4rem',
                 borderRadius: '4px',
                 textTransform: 'uppercase',

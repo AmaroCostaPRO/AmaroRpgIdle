@@ -22,7 +22,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3';
   stage?: number;
 }
 

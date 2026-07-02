@@ -11,41 +11,53 @@ import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
 
 // Funções utilitárias para obter informações sobre Efeitos de Status aplicados por Habilidades
-export const getSimpleStatusEffectInfo = (id: string): string => {
+export const getSimpleStatusEffectInfo = (id: string, skillLevel: number = 1): string => {
+  const levelMultiplier = 1 + (Math.max(1, skillLevel) - 1) * 0.15;
   switch (id) {
-    case 'shield_bash': return 'Atordoa por 2.0s';
-    case 'frostbolt': return 'Lento 40% por 4.0s';
-    case 'fireball': return 'Queima por 3.0s (15% Magia/s)';
-    case 'meteor': return 'Atordoa por 1.5s e Queima por 5.0s';
-    case 'poison_arrow': return 'Veneno por 5.0s (20% Destreza/s)';
-    case 'shield_righteousness': return 'Fraqueza (Inimigo causa -30% dano) por 5.0s';
-    case 'consecration': return 'Regenera 15% Const/s por 6.0s';
-    case 'wrath_heaven': return 'Exposto (Inimigo sofre +20% dano) por 5.0s';
-    case 'poison_dagger': return 'Veneno por 4.0s (25% Destreza/s)';
-    default: return '';
+    case 'shield_bash': 
+      return `Atordoa por ${(2.0 * levelMultiplier).toFixed(1)}s`;
+    case 'frostbolt': 
+      return `Lento 40% por ${(4.0 * levelMultiplier).toFixed(1)}s`;
+    case 'fireball': 
+      return `Queima por 3.0s (${Math.round(15 * levelMultiplier)}% Magia/s)`;
+    case 'meteor': 
+      return `Atordoa por ${(1.5 * levelMultiplier).toFixed(1)}s e Queima por 5.0s (${Math.round(15 * levelMultiplier)}% Magia/s)`;
+    case 'poison_arrow': 
+      return `Veneno por 5.0s (${Math.round(20 * levelMultiplier)}% Destreza/s)`;
+    case 'shield_righteousness': 
+      return `Fraqueza (Inimigo causa -30% dano) por ${(5.0 * levelMultiplier).toFixed(1)}s`;
+    case 'consecration': 
+      return `Regenera ${Math.round(15 * levelMultiplier)}% Const/s por 6.0s`;
+    case 'wrath_heaven': 
+      return `Exposto (Inimigo sofre +20% dano) por ${(5.0 * levelMultiplier).toFixed(1)}s`;
+    case 'poison_dagger': 
+      return `Veneno por 4.0s (${Math.round(25 * levelMultiplier)}% Destreza/s)`;
+    default: 
+      return '';
   }
 };
 
-export const getDetailedStatusEffectInfo = (id: string): string => {
+export const getDetailedStatusEffectInfo = (id: string, skillLevel: number = 1): string => {
+  const levelMultiplier = 1 + (Math.max(1, skillLevel) - 1) * 0.15;
   switch (id) {
     case 'shield_bash':
-      return 'Efeito: Atordoa o inimigo por 2.0s (impede ações). Ao se recuperar, o monstro é forçado a recarregar o tempo total de seu ataque do zero.';
+      return `Efeito: Atordoa o inimigo por ${(2.0 * levelMultiplier).toFixed(1)}s (impede ações). Ao se recuperar, o monstro é forçado a recarregar o tempo total de seu ataque do zero.`;
     case 'frostbolt':
-      return 'Efeito: Reduz a velocidade de ataque do inimigo em 40% (Lentidão) por 4.0s.';
+      return `Efeito: Reduz a velocidade de ataque do inimigo em 40% (Lentidão) por ${(4.0 * levelMultiplier).toFixed(1)}s.`;
     case 'fireball':
-      return 'Efeito: Aplica Queimadura por 3.0s, causando dano contínuo (DOT) de 15% do Poder Mágico por segundo.';
+      return `Efeito: Aplica Queimadura por 3.0s, causando dano contínuo (DOT) de ${Math.round(15 * levelMultiplier)}% do Poder Mágico por segundo.`;
     case 'meteor':
-      return 'Efeito: Atordoa o inimigo por 1.5s (recarrega ataque dele após expirar) e aplica Queimadura por 5.0s, causando 15% do Poder Mágico por segundo como dano.';
+      return `Efeito: Atordoa o inimigo por ${(1.5 * levelMultiplier).toFixed(1)}s (recarrega ataque dele após expirar) e aplica Queimadura por 5.0s, causando ${Math.round(15 * levelMultiplier)}% do Poder Mágico por segundo como dano.`;
     case 'poison_arrow':
-      return 'Efeito: Aplica Veneno por 5.0s, causando dano contínuo (DOT) de 20% da Destreza por segundo.';
+      return `Efeito: Aplica Veneno por 5.0s, causando dano contínuo (DOT) de ${Math.round(20 * levelMultiplier)}% da Destreza por segundo.`;
     case 'shield_righteousness':
-      return 'Efeito: Aplica Fraqueza por 5.0s, reduzindo todo o dano causado pelo inimigo em 30%.';
+      return `Efeito: Aplica Fraqueza por ${(5.0 * levelMultiplier).toFixed(1)}s, reduzindo todo o dano causado pelo inimigo em 30%.`;
     case 'consecration':
-      return 'Efeito: Cria área sagrada que cura o jogador em 15% da sua Constituição por segundo durante 6.0s.';
+      return `Efeito: Cria área sagrada que cura o jogador em ${Math.round(15 * levelMultiplier)}% da sua Constituição por segundo durante 6.0s.`;
     case 'wrath_heaven':
-      return 'Efeito: Aplica Exposto por 5.0s, aumentando todo o dano sofrido pelo inimigo em 20%.';
+      return `Efeito: Aplica Exposto por ${(5.0 * levelMultiplier).toFixed(1)}s, aumentando todo o dano sofrido pelo inimigo em 20%.`;
     case 'poison_dagger':
-      return 'Efeito: Aplica Veneno por 4.0s, causando dano contínuo (DOT) de 25% da Destreza por segundo.';
+      return `Efeito: Aplica Veneno por 4.0s, causando dano contínuo (DOT) de ${Math.round(25 * levelMultiplier)}% da Destreza por segundo.`;
     default:
       return '';
   }
@@ -1636,10 +1648,18 @@ const SkillsTreePanel: React.FC = () => {
 
                     return (
                       <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.68rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        {getSimpleStatusEffectInfo(selectedSkillId) && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.25rem', marginBottom: '0.25rem' }}>
-                            <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
-                            <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(selectedSkillId)}</span>
+                        {getSimpleStatusEffectInfo(selectedSkillId, skillLvl || 1) && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
+                              <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(selectedSkillId, skillLvl || 1)}</span>
+                            </div>
+                            {skillLvl > 0 && skillLvl < getSkillMaxLevel(selectedSkillId, character.currentStage) && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.85 }}>
+                                <span style={{ color: '#64748b', fontSize: '0.62rem' }}>Próx. Nível Status:</span>
+                                <span style={{ color: '#34d399', fontWeight: 500, fontSize: '0.62rem' }}>{getSimpleStatusEffectInfo(selectedSkillId, skillLvl + 1)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1833,10 +1853,18 @@ const SkillsTreePanel: React.FC = () => {
 
                       return (
                         <div style={{ padding: '0.4rem', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-sm)', fontSize: '0.62rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                          {getSimpleStatusEffectInfo(id) && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.2rem', marginBottom: '0.2rem' }}>
-                              <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
-                              <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(id)}</span>
+                          {getSimpleStatusEffectInfo(id, currentLevel || 1) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem', marginBottom: '0.2rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: '#94a3b8' }}>Status Aplicado:</span>
+                                <span style={{ color: '#60a5fa', fontWeight: 600 }}>{getSimpleStatusEffectInfo(id, currentLevel || 1)}</span>
+                              </div>
+                              {currentLevel > 0 && currentLevel < getSkillMaxLevel(id, character.currentStage) && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.85 }}>
+                                  <span style={{ color: '#64748b', fontSize: '0.58rem' }}>Próx. Nível Status:</span>
+                                  <span style={{ color: '#34d399', fontWeight: 500, fontSize: '0.58rem' }}>{getSimpleStatusEffectInfo(id, currentLevel + 1)}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>

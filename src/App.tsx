@@ -481,7 +481,7 @@ const App: React.FC = () => {
                         🛒 Nova Aba Loja & Suprimentos
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Adicionada a Aba Loja! Compre suprimentos essenciais por ouro: Baús Lendários (500 gold), Baús Ancestrais (1000 gold) e Boosters de Toque (500 gold).
+                        Adicionada a Aba Loja! Compre suprimentos essenciais por ouro: Baús Lendários (500 gold), Baús Ancestrais (3000 gold), Boosters de Toque (1000 gold) e o potente Boost de Toque x3 (5000 gold).
                       </div>
                     </div>
 
@@ -490,7 +490,7 @@ const App: React.FC = () => {
                         ⚡ Sistema de Consumíveis & Frenesi Instantâneo
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Os itens comprados vão para o seu inventário na aba Equipamentos. Ao abrir baús, você recebe de 1 a 3 equipamentos aleatórios para sua classe. Ao consumir o Boost de Toque, ativa instantaneamente o modo Frenesi (críticos e auto-toques) por 1 minuto inteiro!
+                        Os itens comprados vão para o seu inventário na aba Equipamentos. Ao abrir baús, você recebe de 1 a 3 equipamentos aleatórios para sua classe. Ao consumir o Boost de Toque, ativa instantaneamente o modo Frenesi (críticos e auto-toques) por 1 minuto (ou 3 minutos na versão x3) inteiro!
                       </div>
                     </div>
                   </div>

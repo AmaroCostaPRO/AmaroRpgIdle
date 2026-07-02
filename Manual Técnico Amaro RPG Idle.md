@@ -771,9 +771,10 @@ A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adqui
 
 ### A. Estrutura de Custos e Economia
 Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumulado pelo personagem no decorrer das batalhas.
-*   **Boost de Toque (Touch Booster)**: Custa $500$ Ouro.
+*   **Boost de Toque (Touch Booster)**: Custa $1.000$ Ouro.
 *   **Baú de Equipamento Lendário**: Custa $500$ Ouro.
-*   **Baú de Equipamento Ancestral**: Custa $1.000$ Ouro.
+*   **Baú de Equipamento Ancestral**: Custa $3.000$ Ouro.
+*   **Boost de Toque x3 (Touch Booster x3)**: Custa $5.000$ Ouro.
 
 ### B. Funcionamento dos Consumíveis
 Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao inventário geral de equipamentos (com propriedade `slot: 'consumable'`), ocupando um slot livre. A compra é bloqueada caso o inventário do jogador esteja completamente cheio ($30$ itens).
@@ -785,10 +786,13 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
     *   *Baú Ancestral*: Sorteia peças de raridade **Ancestral** (Set Ancestral pós-ascensão) correspondentes à classe ativa.
 *   **Validação de Espaço**: Para abrir o baú, o sistema valida se há espaço suficiente no inventário para acomodar os novos equipamentos (até 3 slots livres). Caso contrário, a abertura é cancelada impedindo a perda de itens por falta de slots.
 
-#### 2. Boost de Toque (Frenesi de 1 minuto)
-*   **Efeito**: Ao ativar o booster de toque, ele é removido do inventário e emite um evento especial de ativação via `GameBridge` (`ACTIVATE_FRENZY_BOOST`).
+#### 2. Boost de Toque (Frenesi de 1 minuto ou 3 minutos)
+*   **Efeito**: Ao ativar o booster de toque normal (`boost_touch`) ou a versão aprimorada (`boost_touch_x3`), o item correspondente é removido do inventário e emite um evento especial de ativação via `GameBridge` (`ACTIVATE_FRENZY_BOOST`) contendo a respectiva duração.
 *   **Integração de Motor**: O evento é ouvido no motor Phaser (`CombatScene.ts`), que aciona o método `activateFrenzyBoost` no `CombatFSM`.
-*   **Mecânica de Combate**: O FSM força o estado de **Frenesi** ativado independentemente do medidor de combos/toques, configurando o tempo restante do Frenesi para $60$ segundos ($60.000$ ms) e garantindo $100\%$ de taxa de acerto crítico e cliques automáticos na arena durante este período.
+*   **Mecânica de Combate**: O FSM força o estado de **Frenesi** ativado independentemente do medidor de combos/toques, configurando o tempo restante do Frenesi para a duração especificada:
+    *   *Boost de Toque normal*: $60$ segundos ($60.000$ ms).
+    *   *Boost de Toque x3*: $180$ segundos ($180.000$ ms ou 3 minutos).
+    Durante o período, garante $100\%$ de taxa de acerto crítico e cliques automáticos na arena.
 
 ---
 

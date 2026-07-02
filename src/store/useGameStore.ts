@@ -373,7 +373,7 @@ interface GameState {
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
   // Loja e Consumíveis (v3.0.0)
-  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch'): { success: boolean; message: string };
+  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
@@ -1447,8 +1447,9 @@ export const useGameStore = create<GameState>((set) => ({
     set((state) => {
       const costs = {
         chest_legendary: 500,
-        chest_ancestral: 1000,
-        boost_touch: 500
+        chest_ancestral: 3000, // Ajustado de 1000 para 3000
+        boost_touch: 1000,     // Ajustado de 500 para 1000
+        boost_touch_x3: 5000   // Novo boost de toque x3
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
@@ -1463,7 +1464,8 @@ export const useGameStore = create<GameState>((set) => ({
       const names = {
         chest_legendary: 'Baú Lendário',
         chest_ancestral: 'Baú Ancestral',
-        boost_touch: 'Boost de Toque'
+        boost_touch: 'Boost de Toque',
+        boost_touch_x3: 'Boost de Toque x3'
       };
       const name = names[type];
 
@@ -1518,6 +1520,19 @@ export const useGameStore = create<GameState>((set) => ({
         };
         saveToLocalStorage(updated);
         result = { success: true, message: 'Boost de Toque ativado! Frenesi de 1 minuto iniciado!' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'boost_touch_x3') {
+        // Ativar Frenesi do Toque por 3 minutos
+        bridge.emit('ACTIVATE_FRENZY_BOOST' as any, { duration: 180000 });
+        
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Boost de Toque x3 ativado! Frenesi de 3 minutos iniciado!' };
         return { character: updated };
       }
 
