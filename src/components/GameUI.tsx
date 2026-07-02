@@ -2807,16 +2807,34 @@ const GuidePanel: React.FC = () => {
               <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">Fórmulas e Matemática dos Atributos</span>
               <div className="text-[10px] space-y-3 leading-relaxed text-gray-300">
                 <div>
-                  <strong className="text-white block font-semibold">HP Máximo e Regeneração (Constituição)</strong>
-                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala dinamicamente com base na classe:</span>
+                  <strong className="text-white block font-semibold">HP Máximo, Regeneração e Redução de Dano (Constituição)</strong>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Escala a sobrevivência geral e a resistência do herói:</span>
                   <div className="pl-2 mt-0.5 space-y-1">
                     <div>
-                      <span className="text-amber-300 font-bold">Paladino (Classe Primária):</span>
+                      <span className="text-amber-300 font-bold">HP Máx e Regeneração (Paladino - Classe Primária):</span>
                       <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">HP Máx = Const × 8 | Regen = Const × 0.03 / s</code>
                     </div>
                     <div>
-                      <span className="text-amber-300 font-bold">Outras Classes (Bônus Secundário):</span>
+                      <span className="text-amber-300 font-bold">HP Máx e Regeneração (Outras Classes):</span>
                       <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">HP Máx = Const × 18 | Regen = Const × 0.08 / s</code>
+                    </div>
+                    <div>
+                      <span className="text-emerald-300 font-bold">Redução de Dano Recebido (Todas as Classes):</span>
+                      <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Redução = Min(95%, Constituição × 0.05% de redução de dano)</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <strong className="text-white block font-semibold">Dano e Penetração de Armadura (Força)</strong>
+                  <span className="text-gray-400 block text-[9px] mb-0.5">Aprimora o poder ofensivo do herói:</span>
+                  <div className="pl-2 mt-0.5 space-y-1">
+                    <div>
+                      <span className="text-emerald-300 font-bold">Penetração de Armadura / Aumento de Dano (Todas as Classes):</span>
+                      <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Dano Amplificado = Dano Inicial × (1.0 + Força × 0.05%)</code>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block text-[9px]">Guerreiro escala 100% de ataque direto com Força. Demais classes herdam um bônus secundário de Força × 0.25 no ataque básico.</span>
                     </div>
                   </div>
                 </div>

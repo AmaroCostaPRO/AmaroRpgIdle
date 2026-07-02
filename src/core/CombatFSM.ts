@@ -853,7 +853,8 @@ export class CombatFSM {
       }
     }
 
-    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier);
+    const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult);
     if (this.characterData.testMode) {
       damage *= 5;
     }
@@ -884,7 +885,9 @@ export class CombatFSM {
     const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
     const weaknessMultiplier = weaknessEffect ? (1 - weaknessEffect.value) : 1.0;
 
-    const damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier);
+    // Constituição reduz o dano recebido em 0.05% por ponto (Redução Máxima de 95%)
+    const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
+    const damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
 
     this.scene.animateEnemyAttack();
 
@@ -1251,7 +1254,8 @@ export class CombatFSM {
       dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
     }
 
-    dmg = Math.floor(dmg * damageBoost * critMultiplier);
+    const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
+    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {

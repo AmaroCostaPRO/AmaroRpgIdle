@@ -111,14 +111,16 @@ Cada classe possui uma distribuição distinta de atributos base e ganha bônus 
 ### C. Fórmulas de Atributos Derivados (Balanceamento de Utilidade)
 Para garantir um combate equilibrado e incentivar a distribuição diversificada de pontos, o jogo aplica um sistema de **escalonamento dinâmico**. Atributos que servem como fonte primária de dano para uma classe concedem bônus reduzidos aos status secundários (como HP Máximo ou regenerações), enquanto as demais classes se beneficiam de uma escala amplificada nesses mesmos atributos.
 
-#### 1. Vida Máxima (HP) e Regeneração
-A Vida Máxima e a Regeneração de HP escalam a partir do atributo **Constituição**:
+#### 1. Vida Máxima (HP), Regeneração e Redução de Dano
+A Vida Máxima, a Regeneração de HP e a resistência a danos escalam a partir do atributo **Constituição**:
 *   **Classes Primárias de Constituição (Paladino)**:
     *   HP Máximo ganho por ponto de Constituição: $8\text{ HP}$
     *   Regeneração de HP ganha por ponto de Constituição: $0.03\text{ HP/s}$
 *   **Outras Classes (Guerreiro, Mago, Arqueiro, Clérigo, Ladrão)**:
     *   HP Máximo ganho por ponto de Constituição: $18\text{ HP}$ (incentiva classes frágeis a investirem em sobrevivência)
     *   Regeneração de HP ganha por ponto de Constituição: $0.08\text{ HP/s}$
+*   **Redução de Dano Recebido (Todas as Classes)**:
+    *   Cada ponto de Constituição reduz em $0.05\%$ todo o dano recebido por ataques de monstros, com um limite máximo de $95\%$ de redução total para fins de equilíbrio de jogabilidade.
 
 #### 2. Mana Máxima e Regeneração
 A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
@@ -148,6 +150,11 @@ O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados
     Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
 *   **Dano Crítico de Toque**:
     Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
+
+#### 5. Penetração de Armadura e Dano Geral (Força)
+Além dos modificadores de classe e bônus secundários em ataques físicos, o atributo **Força** concede um aumento passivo global de dano:
+*   **Aumento de Dano (Todas as Classes)**:
+    Cada ponto de Força adiciona $+0.05\%$ de aumento no dano final causado pelo jogador (penetração de armadura). Este bônus é multiplicativo e aplica-se tanto a ataques básicos quanto a todas as habilidades de ataque.
 
 ---
 
@@ -800,7 +807,16 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.4.0 (Atual)
+### Versão 3.4.5 (Atual)
+*   **⚖️ Balanceamento de Atributos Secundários (Força & Constituição)**:
+    *   **Penetração de Armadura (Força)**: Cada ponto de Força agora concede $+0,05\%$ de aumento no dano final causado pelo herói (ataques básicos e todas as habilidades de ataque).
+    *   **Redução de Dano (Constituição)**: Cada ponto de Constituição agora concede $+0,05\%$ de redução de dano recebido (proteção contra ataques de monstros, limitado a $95\%$ de redução máxima).
+*   **🛡️ Nova Hierarquia Visual do Set Pandemoníaco**:
+    *   **Pandemônio (Base)**: Itens de raridade convencional representados por bordas tracejadas verdes (`#10b981`), fundo verde suave e gema de conjunto.
+    *   **Pandemônio (Místico)**: Itens refinados na forja de raridade mística contam com borda tracejada verde, fundo roxo escuro (`rgba(124, 58, 237, 0.2)`) e efeito de brilho pulsante verde.
+    *   **Garantia de Raridade**: Forçada a raridade **Lendária** para os itens de conjuntos iniciais ("Set Inicial"), alinhando a progressão.
+
+### Versão 3.4.0
 *   **⚖️ Suavização do Escalamento de Dificuldade**:
     *   **Ajuste no Escalamento dos Monstros**: Curvas de escalonamento exponencial de HP e dano dos inimigos foram suavizadas significativamente para evitar hitkills e barreiras insuperáveis no endgame. A curva de HP do inimigo foi reduzida de $1.85^{\text{Fase} - 1}$ para $1.50^{\text{Fase} - 1}$ e a de dano de $1.45^{\text{Fase} - 1}$ para $1.25^{\text{Fase} - 1}$.
     *   **Aumento de Dano do Jogador**: O multiplicador de dano dos atributos principais nos ataques básicos e habilidades foi elevado de $1.0\times$ para $3.0\times$ para dar ao jogador ferramentas eficazes contra a vida elevada dos monstros.
