@@ -1059,7 +1059,7 @@ export class CombatFSM {
         const cleanSetName = setName.replace('Set Ancestral do ', '');
         name = `${baseName} Ancestral do ${cleanSetName}`;
         rarity = 'legendary'; // Os itens do set ancestral herdam visual lendário base
-      } else if (rarity === 'legendary' || rarity === 'rare') {
+      } else if (rarity === 'legendary') {
         setName = setNames[classId];
         const cleanSetName = setName.replace('Set do ', '');
         name = `${baseName} do ${cleanSetName}`;

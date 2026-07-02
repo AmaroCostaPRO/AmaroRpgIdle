@@ -1098,41 +1098,48 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   
                   const isAnyBonusActive = count >= 2;
                   const isAncestral = setName.startsWith('Set Ancestral');
-                  const bonusText2 = isAncestral ? '(2) +80 Atrib.' : '(2) +15 Atrib.';
-                  const bonusText3 = isAncestral ? '(3) +100 Con/For +50 Sorte' : '(3) +20 Con/For';
-                  const bonusText5 = isAncestral ? '(5) +200 Atrib.' : '(5) +35 Atrib.';
+                  const isPandemonium = setName.startsWith('Set Pandemoníaco');
+                  const bonusText2 = isPandemonium ? '(2) +250 Atrib.' : (isAncestral ? '(2) +80 Atrib.' : '(2) +15 Atrib.');
+                  const bonusText3 = isPandemonium ? '(3) +300 Con/For +150 Sorte' : (isAncestral ? '(3) +100 Con/For +50 Sorte' : '(3) +20 Con/For');
+                  const bonusText5 = isPandemonium ? '(5) +600 Atrib.' : (isAncestral ? '(5) +200 Atrib.' : '(5) +35 Atrib.');
+
+                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : '');
+                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : 'var(--gold-400)');
+                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)');
+                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : '#34d399');
+                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)');
 
                   return (
                     <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
-                        <span style={{ fontWeight: 700, color: isAnyBonusActive ? (isAncestral ? '#c084fc' : 'var(--gold-400)') : '#cbd5e1' }}>
-                          {isAncestral ? `✨ ${setName}` : setName}
+                        <span style={{ fontWeight: 700, color: isAnyBonusActive ? activeColor : '#cbd5e1' }}>
+                          {setIcon}{setName}
                         </span>
-                        <span className="font-mono" style={{ fontSize: '0.6rem', color: isAncestral ? '#c084fc' : 'inherit' }}>{count}/5 Peças</span>
+                        <span className="font-mono" style={{ fontSize: '0.6rem', color: isAnyBonusActive ? activeColor : 'inherit' }}>{count}/5 Peças</span>
                       </div>
                       {isAnyBonusActive && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.1rem' }}>
                           <span className="badge" style={{ 
                             fontSize: '0.5rem', 
-                            background: count >= 2 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
-                            color: count >= 2 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
-                            border: count >= 2 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                            background: count >= 2 ? badgeBg : 'rgba(255,255,255,0.05)', 
+                            color: count >= 2 ? badgeColor : '#64748b', 
+                            border: count >= 2 ? badgeBorder : '1px solid transparent' 
                           }}>
                             {bonusText2}
                           </span>
                           <span className="badge" style={{ 
                             fontSize: '0.5rem', 
-                            background: count >= 3 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
-                            color: count >= 3 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
-                            border: count >= 3 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                            background: count >= 3 ? badgeBg : 'rgba(255,255,255,0.05)', 
+                            color: count >= 3 ? badgeColor : '#64748b', 
+                            border: count >= 3 ? badgeBorder : '1px solid transparent' 
                           }}>
                             {bonusText3}
                           </span>
                           <span className="badge" style={{ 
                             fontSize: '0.5rem', 
-                            background: count >= 5 ? (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)') : 'rgba(255,255,255,0.05)', 
-                            color: count >= 5 ? (isAncestral ? '#c4b5fd' : '#34d399') : '#64748b', 
-                            border: count >= 5 ? (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)') : '1px solid transparent' 
+                            background: count >= 5 ? badgeBg : 'rgba(255,255,255,0.05)', 
+                            color: count >= 5 ? badgeColor : '#64748b', 
+                            border: count >= 5 ? badgeBorder : '1px solid transparent' 
                           }}>
                             {bonusText5}
                           </span>
@@ -1194,6 +1201,27 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
             }
 
             const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
+            const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
+            const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
+            const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
+
+            let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
+            let itemShadow = 'none';
+            let itemBg = getRarityBg(item.rarity);
+
+            if (isAncestral) {
+              itemBorder = '2px dashed #a78bfa';
+              itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
+            } else if (isPandemonium) {
+              itemBorder = '2px dashed #10b981';
+              itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
+              if (isPandemoniumBase) {
+                itemBg = 'rgba(16, 185, 129, 0.15)';
+              } else if (isPandemoniumMystic) {
+                itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
+              }
+            }
+
             return (
               <button
                 key={item.id}
@@ -1204,9 +1232,9 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 className="inventory-item-slot"
                 style={{
                   aspectRatio: '1',
-                  background: getRarityBg(item.rarity),
-                  border: isAncestral ? '2px dashed #a78bfa' : `2px solid ${getRarityColor(item.rarity)}`,
-                  boxShadow: isAncestral ? '0 0 10px rgba(167, 139, 250, 0.8)' : 'none',
+                  background: itemBg,
+                  border: itemBorder,
+                  boxShadow: itemShadow,
                   borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1239,7 +1267,20 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     animation: 'glow-pulse 1.5s infinite'
                   }} />
                 )}
-                {!isAncestral && item.rarity === 'legendary' && (
+                {isPandemonium && (
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '2px', 
+                    right: '2px', 
+                    width: '5px', 
+                    height: '5px', 
+                    borderRadius: '50%', 
+                    background: '#10b981',
+                    boxShadow: '0 0 6px #10b981',
+                    animation: 'glow-pulse 1.5s infinite'
+                  }} />
+                )}
+                {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
                   <div style={{ 
                     position: 'absolute', 
                     top: '2px', 
@@ -1251,7 +1292,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     boxShadow: '0 0 4px #f59e0b'
                   }} />
                 )}
-                {item.rarity === 'mystic' && (
+                {!isPandemonium && item.rarity === 'mystic' && (
                   <div style={{ 
                     position: 'absolute', 
                     top: '2px', 
@@ -1383,15 +1424,38 @@ const EquipmentSlot: React.FC<{
   getRarityBg: (rarity: string) => string;
 }> = ({ slot, item, onClick, icons, labels, getRarityColor, getRarityBg }) => {
   const isAncestral = !!(item && item.setName && item.setName.startsWith('Set Ancestral'));
+  const isPandemonium = !!(item && item.setName && item.setName.startsWith('Set Pandemoníaco'));
+  const isPandemoniumMystic = isPandemonium && item?.rarity === 'mystic';
+  const isPandemoniumBase = isPandemonium && item?.rarity !== 'mystic';
+
+  let itemBorder = item ? `2px solid ${getRarityColor(item.rarity)}` : '1px dashed rgba(255,255,255,0.08)';
+  let itemShadow = 'none';
+  let itemBg = item ? getRarityBg(item.rarity) : 'rgba(0,0,0,0.4)';
+
+  if (item) {
+    if (isAncestral) {
+      itemBorder = '2px dashed #a78bfa';
+      itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
+    } else if (isPandemonium) {
+      itemBorder = '2px dashed #10b981';
+      itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
+      if (isPandemoniumBase) {
+        itemBg = 'rgba(16, 185, 129, 0.15)';
+      } else if (isPandemoniumMystic) {
+        itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
+      }
+    }
+  }
+
   return (
     <button
       onClick={() => item && onClick()}
       style={{
         width: '52px',
         height: '52px',
-        background: item ? getRarityBg(item.rarity) : 'rgba(0,0,0,0.4)',
-        border: item ? (isAncestral ? '2px dashed #a78bfa' : `2px solid ${getRarityColor(item.rarity)}`) : '1px dashed rgba(255,255,255,0.08)',
-        boxShadow: isAncestral ? '0 0 10px rgba(167, 139, 250, 0.8)' : 'none',
+        background: itemBg,
+        border: itemBorder,
+        boxShadow: itemShadow,
         borderRadius: 'var(--radius-md)',
         display: 'flex',
         flexDirection: 'column',
@@ -1419,7 +1483,20 @@ const EquipmentSlot: React.FC<{
           animation: 'glow-pulse 1.5s infinite'
         }} />
       )}
-      {!isAncestral && item?.rarity === 'legendary' && (
+      {isPandemonium && (
+        <div style={{ 
+          position: 'absolute', 
+          top: '2px', 
+          right: '2px', 
+          width: '5px', 
+          height: '5px', 
+          borderRadius: '50%', 
+          background: '#10b981',
+          boxShadow: '0 0 6px #10b981',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
+      {!isAncestral && !isPandemonium && item?.rarity === 'legendary' && (
         <div style={{ 
           position: 'absolute', 
           top: '2px', 
@@ -1431,7 +1508,7 @@ const EquipmentSlot: React.FC<{
           boxShadow: '0 0 4px #f59e0b'
         }} />
       )}
-      {item?.rarity === 'mystic' && (
+      {!isPandemonium && item?.rarity === 'mystic' && (
         <div style={{ 
           position: 'absolute', 
           top: '2px', 
@@ -1464,7 +1541,7 @@ const EquipmentSlot: React.FC<{
         position: 'absolute', 
         bottom: '2px', 
         fontSize: '0.45rem', 
-        color: item ? (isAncestral ? '#c084fc' : getRarityColor(item.rarity)) : '#475569',
+        color: item ? (isPandemoniumBase ? '#10b981' : (isPandemoniumMystic ? '#8b5cf6' : (isAncestral ? '#c084fc' : getRarityColor(item.rarity)))) : '#475569',
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '0.05em'
@@ -3559,156 +3636,188 @@ export default function GameUI() {
         </div>
 
         {/* Modais de Equipamento e Bestiário agora posicionados de forma absoluta no wrapper relativo */}
-        {activeTab === 'equipment' && selectedItem && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99,
-            padding: '1rem'
-          }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
+        {activeTab === 'equipment' && selectedItem && (() => {
+          const isAncestral = !!(selectedItem.setName && selectedItem.setName.startsWith('Set Ancestral'));
+          const isPandemonium = !!(selectedItem.setName && selectedItem.setName.startsWith('Set Pandemoníaco'));
+          const isPandemoniumMystic = isPandemonium && selectedItem.rarity === 'mystic';
+          const isPandemoniumBase = isPandemonium && selectedItem.rarity !== 'mystic';
+
+          let itemBorder = `2px solid ${getRarityColor(selectedItem.rarity)}`;
+          let itemNameColor = getRarityColor(selectedItem.rarity);
+          let itemShadow = 'none';
+          if (isAncestral) {
+            itemBorder = '2px dashed #a78bfa';
+            itemNameColor = '#c084fc';
+            itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
+          } else if (isPandemonium) {
+            itemBorder = '2px dashed #10b981';
+            itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
+            if (isPandemoniumBase) {
+              itemNameColor = '#10b981';
+            } else if (isPandemoniumMystic) {
+              itemNameColor = '#8b5cf6'; // Violeta escuro
+            }
+          }
+
+          return (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-              border: `2px solid ${getRarityColor(selectedItem.rarity)}`,
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.25rem',
-              width: '100%',
-              maxWidth: '320px',
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.75)',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-              position: 'relative'
-            }} onClick={(e) => e.stopPropagation()}>
-              <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99,
+              padding: '1rem'
+            }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+                border: itemBorder,
+                boxShadow: itemShadow,
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem',
+                width: '100%',
+                maxWidth: '320px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                position: 'relative'
+              }} onClick={(e) => e.stopPropagation()}>
+                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
 
-              <div>
-                <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(selectedItem.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
-                </span>
-                <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(selectedItem.rarity) }}>
-                  {selectedItem.name}
-                </h4>
-              </div>
-
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                {selectedItem.slot === 'consumable' ? (
-                  <>
-                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito do Consumível</span>
-                    <div style={{ fontSize: '0.65rem', color: '#22d3ee', marginTop: '0.2rem', lineHeight: 1.4 }}>
-                      {selectedItem.consumableType === 'boost_touch' && '🔥 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.'}
-                      {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
-                      {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      {Object.entries(selectedItem.stats).map(([stat, val]) => (
-                        <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                          +{val} {statLabels[stat] || stat}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {selectedItem.setName && (
-                <div style={{ 
-                  fontSize: '0.6rem', 
-                  color: selectedItem.setName.startsWith('Set Ancestral') ? '#c084fc' : 'var(--gold-400)', 
-                  fontWeight: 600,
-                  textShadow: selectedItem.setName.startsWith('Set Ancestral') ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none'
-                }}>
-                  {selectedItem.setName.startsWith('Set Ancestral') ? '✨ Conjunto Ancestral: ' : 'Conjunto: '} {selectedItem.setName}
+                <div>
+                  <span className="font-mono" style={{ fontSize: '0.5rem', color: itemNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
+                  </span>
+                  <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: itemNameColor }}>
+                    {selectedItem.name}
+                  </h4>
                 </div>
-              )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                {selectedItem.slot === 'consumable' ? (
-                  <button 
-                    onClick={() => {
-                      AudioManager.getInstance().playClick();
-                      const res = useConsumable(selectedItem.id);
-                      if (res.success) {
-                        setSelectedItem(null);
-                      } else {
-                        alert(res.message);
-                      }
-                    }}
-                    className="btn btn-sm btn-gold" 
-                    style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
-                  >
-                    Usar Item
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      AudioManager.getInstance().playClick();
-                      equipItem(selectedItem.id);
-                      setSelectedItem(null);
-                    }}
-                    className="btn btn-sm btn-gold" 
-                    style={{ width: '100%' }}
-                  >
-                    Equipar Item
-                  </button>
-                )}
-
-                {selectedItem.slot === 'consumable' ? (
-                  showDiscardConfirm ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
-                      <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button onClick={() => {
-                          AudioManager.getInstance().playClick();
-                          discardItem(selectedItem.id);
-                          setSelectedItem(null);
-                          setShowDiscardConfirm(false);
-                        }} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
-                        <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  {selectedItem.slot === 'consumable' ? (
+                    <>
+                      <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito do Consumível</span>
+                      <div style={{ fontSize: '0.65rem', color: '#22d3ee', marginTop: '0.2rem', lineHeight: 1.4 }}>
+                        {selectedItem.consumableType === 'boost_touch' && '🔥 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.'}
+                        {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
+                        {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
                       </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                        {Object.entries(selectedItem.stats).map(([stat, val]) => (
+                          <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                            +{val} {statLabels[stat] || stat}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {selectedItem.setName && (() => {
+                  const setAncestral = selectedItem.setName.startsWith('Set Ancestral');
+                  const setPandemonium = selectedItem.setName.startsWith('Set Pandemoníaco');
+                  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : 'var(--gold-400)');
+                  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none');
+                  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : 'Conjunto: ');
+                  return (
+                    <div style={{ 
+                      fontSize: '0.6rem', 
+                      color: setTextColor, 
+                      fontWeight: 600,
+                      textShadow: setShadow
+                    }}>
+                      {prefix} {selectedItem.setName}
                     </div>
+                  );
+                })()}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                  {selectedItem.slot === 'consumable' ? (
+                    <button 
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        const res = useConsumable(selectedItem.id);
+                        if (res.success) {
+                          setSelectedItem(null);
+                        } else {
+                          alert(res.message);
+                        }
+                      }}
+                      className="btn btn-sm btn-gold" 
+                      style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
+                    >
+                      Usar Item
+                    </button>
                   ) : (
                     <button 
-                      onClick={() => setShowDiscardConfirm(true)}
-                      className="btn btn-sm btn-danger" 
-                      style={{ width: '100%', opacity: 0.8 }}
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        equipItem(selectedItem.id);
+                        setSelectedItem(null);
+                      }}
+                      className="btn btn-sm btn-gold" 
+                      style={{ width: '100%' }}
                     >
-                      Descartar / Destruir
+                      Equipar Item
                     </button>
-                  )
-                ) : (
-                  <button 
-                    onClick={() => {
-                      AudioManager.getInstance().playCoin();
-                      sellItem(selectedItem.id);
-                      setSelectedItem(null);
-                    }}
-                    className="btn btn-sm" 
-                    style={{ 
-                      width: '100%', 
-                      background: 'linear-gradient(to right, #fbbf24, #d97706)', 
-                      borderColor: '#d97706', 
-                      color: '#000',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.25rem'
-                    }}
-                  >
-                    <span>🪙 Vender por {calculateItemSellValue(selectedItem).toLocaleString()} Ouro</span>
-                  </button>
-                )}
+                  )}
+
+                  {selectedItem.slot === 'consumable' ? (
+                    showDiscardConfirm ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '0.55rem', color: '#f87171', textAlign: 'center' }}>Confirmar destruição permanente?</span>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button onClick={() => {
+                            AudioManager.getInstance().playClick();
+                            discardItem(selectedItem.id);
+                            setSelectedItem(null);
+                            setShowDiscardConfirm(false);
+                          }} className="btn btn-sm btn-danger" style={{ flex: 1 }}>Sim, Descartar</button>
+                          <button onClick={() => setShowDiscardConfirm(false)} className="btn btn-sm btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => setShowDiscardConfirm(true)}
+                        className="btn btn-sm btn-danger" 
+                        style={{ width: '100%', opacity: 0.8 }}
+                      >
+                        Descartar / Destruir
+                      </button>
+                    )
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        AudioManager.getInstance().playCoin();
+                        sellItem(selectedItem.id);
+                        setSelectedItem(null);
+                      }}
+                      className="btn btn-sm" 
+                      style={{ 
+                        width: '100%', 
+                        background: 'linear-gradient(to right, #fbbf24, #d97706)', 
+                        borderColor: '#d97706', 
+                        color: '#000',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <span>🪙 Vender por {calculateItemSellValue(selectedItem).toLocaleString()} Ouro</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'equipment' && selectedSlot && character.equipment[selectedSlot] && (
           <div style={{
@@ -3723,10 +3832,33 @@ export default function GameUI() {
           }} onClick={() => setSelectedSlot(null)}>
             {(() => {
               const item = character.equipment[selectedSlot]!;
+              const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
+              const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
+              const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
+              const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
+
+              let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
+              let itemNameColor = getRarityColor(item.rarity);
+              let itemShadow = 'none';
+              if (isAncestral) {
+                itemBorder = '2px dashed #a78bfa';
+                itemNameColor = '#c084fc';
+                itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
+              } else if (isPandemonium) {
+                itemBorder = '2px dashed #10b981';
+                itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
+                if (isPandemoniumBase) {
+                  itemNameColor = '#10b981';
+                } else if (isPandemoniumMystic) {
+                  itemNameColor = '#8b5cf6'; // Violeta escuro
+                }
+              }
+
               return (
                 <div style={{
                   background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-                  border: `2px solid ${getRarityColor(item.rarity)}`,
+                  border: itemBorder,
+                  boxShadow: itemShadow,
                   borderRadius: 'var(--radius-lg)',
                   padding: '1.25rem',
                   width: '100%',
@@ -3739,10 +3871,10 @@ export default function GameUI() {
                   <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedSlot(null)}>✕</button>
 
                   <div>
-                    <span className="font-mono" style={{ fontSize: '0.5rem', color: getRarityColor(item.rarity), fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    <span className="font-mono" style={{ fontSize: '0.5rem', color: itemNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       EQUIPADO • {slotLabels[selectedSlot]}
                     </span>
-                    <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: getRarityColor(item.rarity) }}>
+                    <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: itemNameColor }}>
                       {item.name}
                     </h4>
                   </div>
@@ -3758,16 +3890,23 @@ export default function GameUI() {
                     </div>
                   </div>
 
-                  {item.setName && (
-                    <div style={{ 
-                      fontSize: '0.6rem', 
-                      color: item.setName.startsWith('Set Ancestral') ? '#c084fc' : 'var(--gold-400)', 
-                      fontWeight: 600,
-                      textShadow: item.setName.startsWith('Set Ancestral') ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none'
-                    }}>
-                      {item.setName.startsWith('Set Ancestral') ? '✨ Conjunto Ancestral: ' : 'Conjunto: '} {item.setName}
-                    </div>
-                  )}
+                  {item.setName && (() => {
+                    const setAncestral = item.setName.startsWith('Set Ancestral');
+                    const setPandemonium = item.setName.startsWith('Set Pandemoníaco');
+                    const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : 'var(--gold-400)');
+                    const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none');
+                    const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : 'Conjunto: ');
+                    return (
+                      <div style={{ 
+                        fontSize: '0.6rem', 
+                        color: setTextColor, 
+                        fontWeight: 600,
+                        textShadow: setShadow
+                      }}>
+                        {prefix} {item.setName}
+                      </div>
+                    );
+                  })()}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                     <button 
