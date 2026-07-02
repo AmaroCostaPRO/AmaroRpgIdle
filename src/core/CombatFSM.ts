@@ -287,6 +287,8 @@ export class CombatFSM {
   public enemyMaxHP: number = 100;
   public enemyLevel: number = 1;
   public currentEnemy: EnemyType = ENEMY_TYPES[0];
+  public isElite: boolean = false;
+  public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador';
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
@@ -423,6 +425,29 @@ export class CombatFSM {
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     }
+
+    // Inicializar estado de elite como falso por padrão
+    this.isElite = false;
+    this.eliteAfix = undefined;
+
+    // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
+    if (!isBoss && stage >= 11) {
+      let eliteChance = 0.08;
+      if (stage >= 21) {
+        // Pandemônio: +0.5% chance por fase adicional
+        eliteChance += (stage - 20) * 0.005;
+      }
+      if (Math.random() < eliteChance) {
+        this.isElite = true;
+        const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador'] as const;
+        this.eliteAfix = afixos[Math.floor(Math.random() * afixos.length)];
+        
+        // HP do Elite é multiplicado por 3.0x
+        this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+        this.enemyHP = this.enemyMaxHP;
+        console.log(`[CombatFSM] ELITE ${this.currentEnemy.name} Spawned! Afixo: ${this.eliteAfix}. MaxHP: ${this.enemyMaxHP}`);
+      }
+    }
   }
 
   private updateStatsFromStore() {
@@ -527,6 +552,12 @@ export class CombatFSM {
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * (delta / 1000)));
 
+    // Regeneração de HP para inimigos Elite com o afixo 'regenerador' (2% do HP Máximo por segundo)
+    if (this.isElite && this.eliteAfix === 'regenerador' && this.enemyHP > 0 && this.enemyHP < this.enemyMaxHP) {
+      const regenAmount = this.enemyMaxHP * 0.02 * (delta / 1000);
+      this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + regenAmount);
+    }
+
     // Processar e atualizar durações de efeitos de status no inimigo
     const wasEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
 
@@ -562,7 +593,11 @@ export class CombatFSM {
     const isEnemyStunnedNow = this.enemyEffects.some(e => e.id === 'stun');
     if (wasEnemyStunned && !isEnemyStunnedNow && this.enemyHP > 0) {
       const baseCooldown = 3600 - (this.enemyLevel * 30);
-      this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
+      let speedMult = this.currentEnemy.attackSpeedMultiplier;
+      if (this.isElite && this.eliteAfix === 'enfurecido') {
+        speedMult *= 1.4;
+      }
+      this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
       bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo se recuperou do atordoamento e recomeça a preparar seu ataque!` });
     }
 
@@ -752,6 +787,9 @@ export class CombatFSM {
     if (this.characterData.testMode) {
       finalTouchDmg *= 5;
     }
+    if (this.isElite && this.eliteAfix === 'blindado') {
+      finalTouchDmg = Math.floor(finalTouchDmg * 0.75);
+    }
     if (finalTouchDmg < 1) finalTouchDmg = 1;
 
     this.enemyHP = Math.max(0, this.enemyHP - finalTouchDmg);
@@ -858,6 +896,9 @@ export class CombatFSM {
     if (this.characterData.testMode) {
       damage *= 5;
     }
+    if (this.isElite && this.eliteAfix === 'blindado') {
+      damage = Math.floor(damage * 0.75);
+    }
 
     this.scene.animatePlayerAttack();
     this.enemyHP = Math.max(0, this.enemyHP - damage);
@@ -872,7 +913,11 @@ export class CombatFSM {
 
   private performEnemyAttack() {
     const baseCooldown = 3600 - (this.enemyLevel * 30);
-    this.enemyAttackCooldown = Math.max(1000, baseCooldown / this.currentEnemy.attackSpeedMultiplier);
+    let speedMult = this.currentEnemy.attackSpeedMultiplier;
+    if (this.isElite && this.eliteAfix === 'enfurecido') {
+      speedMult *= 1.4;
+    }
+    this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
 
     // Multiplicador de dano por dificuldade:
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
@@ -887,7 +932,13 @@ export class CombatFSM {
 
     // Constituição reduz o dano recebido em 0.05% por ponto (Redução Máxima de 95%)
     const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
-    const damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
+    
+    let damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
+    
+    // Inimigos Elite causam 3.0x de dano base
+    if (this.isElite) {
+      damage = Math.floor(damage * 3.0);
+    }
 
     this.scene.animateEnemyAttack();
 
@@ -905,7 +956,20 @@ export class CombatFSM {
     this.playerHP = Math.max(0, this.playerHP - damage);
     this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damage}`, '#ef4444');
 
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${this.currentEnemy.name} causou ${damage} de dano a você.` });
+    const enemyLabel = this.isElite ? `ELITE ${this.currentEnemy.name}` : this.currentEnemy.name;
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} causou ${damage} de dano a você.` });
+
+    // Vampírico: cura a si mesmo em 10% do dano causado
+    if (this.isElite && this.eliteAfix === 'vampirico') {
+      const healVal = Math.floor(damage * 0.10);
+      if (healVal > 0 && this.enemyHP > 0) {
+        this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + healVal);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `+${healVal} (Vampírico)`, '#10b981');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} drenou sua vida e curou-se em +${healVal} HP!` });
+      }
+    }
 
     if (this.playerHP <= 0) {
       this.handlePlayerDefeat();
@@ -919,6 +983,14 @@ export class CombatFSM {
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
 
+    // Lógica do afixo Volátil: explode ao morrer causando 20% da Vida Máxima do herói, mitigada por Constituição
+    let volatileDamage = 0;
+    if (this.isElite && this.eliteAfix === 'volatil') {
+      const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
+      volatileDamage = Math.floor(this.playerMaxHP * 0.20 * constitutionReduction);
+      this.playerHP = Math.max(0, this.playerHP - volatileDamage);
+    }
+
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
 
@@ -926,6 +998,12 @@ export class CombatFSM {
     const xpScale = Math.pow(1.35, char.currentStage - 1);
     const baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
     let gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
+    
+    // Inimigos Elite concedem 2.0x mais XP
+    if (this.isElite) {
+      gainedXp *= 2.0;
+    }
+    
     if (char.testMode) {
       gainedXp *= 5;
     }
@@ -934,11 +1012,19 @@ export class CombatFSM {
     const goldScale = Math.pow(1.25, char.currentStage - 1);
     const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale);
     let gainedGold = isBoss ? baseGainedGold * 3.5 : baseGainedGold;
+    
+    // Inimigos Elite concedem 2.0x mais Ouro (acumula com multiplicador base)
+    if (this.isElite) {
+      gainedGold *= 2.0;
+    }
+    
     const luckBonus = 1 + ((this.playerFinalStats.luck || 0) * 0.01);
     gainedGold = Math.floor(gainedGold * luckBonus);
 
     if (isBoss) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Chefe ${this.currentEnemy.name} derrotado! Você avançou para a Fase ${char.currentStage + 1}, ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
+    } else if (this.isElite) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `👾 ELITE ${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro (Bônus Elite 2x)!` });
     } else {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
     }
@@ -946,10 +1032,25 @@ export class CombatFSM {
     useGameStore.getState().addXp(gainedXp);
     useGameStore.getState().addGold(gainedGold);
 
+    // Se houve dano explosivo do afixo Volátil, exibe o texto na tela e loga o dano
+    if (volatileDamage > 0) {
+      if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${volatileDamage} (Volátil)`, '#ef4444');
+      }
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `💥 O inimigo Elite explodiu ao morrer, causando ${volatileDamage} de dano explosivo!` });
+    }
+
+    // Se a explosão do Volátil matou o jogador, encerra o combate e não dropa item
+    if (this.playerHP <= 0) {
+      this.handlePlayerDefeat();
+      return;
+    }
+
     // === SISTEMA DE DROP DE EQUIPAMENTOS ===
     const luck = this.playerFinalStats.luck || 0;
     const baseDropChance = 0.05;
-    const dropChance = isBoss ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002);
+    // Elites e Chefes têm 100% de chance de drop de equipamento
+    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002);
     
     if (Math.random() < dropChance) {
       const slots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
@@ -1268,6 +1369,10 @@ export class CombatFSM {
     dmg = Math.floor(dmg * exposedMultiplier);
     if (this.characterData.testMode) {
       dmg *= 5;
+    }
+
+    if (this.isElite && this.eliteAfix === 'blindado') {
+      dmg = Math.floor(dmg * 0.75);
     }
 
     this.enemyHP = Math.max(0, this.enemyHP - dmg);

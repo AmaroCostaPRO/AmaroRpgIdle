@@ -807,7 +807,26 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.4.5 (Atual)
+### Versão 3.5.0 (Atual)
+*   **👾 Inimigos de Elite e Mecânica de Afixos**:
+    *   **Spawn Procedural**: Introduzida $8\%$ de chance de spawn de inimigos de Elite na geração de monstros normais (`setupEnemyForLevel`) a partir das dificuldades Inferno ou superior (Fase $\ge 11$). No Modo Pandemônio (Fases 21+), a chance de Elite escala $+0,5\%$ por nível de fase adicional (ex: 10,5% de chance na Fase 25).
+    *   **Vida e Dano Triplicados**: Inimigos Elite recebem um aumento de $3.0\times$ em seu HP Máximo (`enemyMaxHP`) e de $3.0\times$ em seu Dano base causado por ataque automático.
+    *   **Bônus de Recompensas e Drops**: Eliminar um inimigo Elite concede $2.0\times$ mais Ouro (acumulável com multiplicador base de prestígio) e $2.0\times$ mais XP. Adicionalmente, garante $100\%$ de chance de drop de equipamentos (igual a um Chefe de Fase).
+    *   **Cinco Afixos do Vazio**: Cada Elite recebe um dos seguintes modificadores de combate aleatoriamente no spawn:
+        1.  *Enfurecido*: Aumenta a velocidade de ataque do monstro em $40\%$ (cooldown de ataque reduzido).
+        2.  *Blindado*: Reduz em $25\%$ todo o dano direto recebido (toques do jogador, ataques básicos e habilidades de ataque).
+        3.  *Vampírico*: Cura a si mesmo em $10\%$ do dano causado ao jogador por seus ataques físicos.
+        4.  *Volátil*: Explode ao ser derrotado, causando dano explosivo equivalente a $20\%$ da Vida Máxima do herói (mitigado pelo status defensivo de Constituição).
+        5.  *Regenerador*: Regenera passivamente $2\%$ de seu HP Máximo a cada segundo de combate.
+    *   **Feedback Visual e Efeitos Especiais (Phaser)**:
+        *   Modificador de escala de $+15\%$ no sprite do inimigo na arena.
+        *   Efeito de pulsação suave contínua de escala de tamanho em loop de combate.
+        *   Indicador de afixo prateado e nome especial exibido no HUD de combate (ex: `Gárgula de Pedra [Elite BLINDADO]`).
+        *   Colorização metálica prateada com brilho pulsante dinâmico nos frames de renderização do sprite do monstro.
+*   **📜 Introdução Narrativa Imersiva ("Ciclo da Alma Partida")**:
+    *   **Modal de Lore Inicial**: Criação de modal cinemático com suporte a filtros de desfoque, efeitos de transição visual premium e textos descritivos da Lore oficial do jogo, exibido estritamente ao iniciar um novo save/personagem para prender e ambientar o jogador. A persistência de exibição é rastreada individualmente por save slot no Zustand.
+
+### Versão 3.4.5
 *   **⚖️ Balanceamento de Atributos Secundários (Força & Constituição)**:
     *   **Penetração de Armadura (Força)**: Cada ponto de Força agora concede $+0,05\%$ de aumento no dano final causado pelo herói (ataques básicos e todas as habilidades de ataque).
     *   **Redução de Dano (Constituição)**: Cada ponto de Constituição agora concede $+0,05\%$ de redução de dano recebido (proteção contra ataques de monstros, limitado a $95\%$ de redução máxima).

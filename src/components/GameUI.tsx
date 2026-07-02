@@ -4201,6 +4201,137 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* Modal de Abertura da Lore: O Ciclo da Alma Partida */}
+      {character.introLoreShown === false && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 2, 6, 0.97)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            overflowY: 'auto'
+          }}
+        >
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, rgba(12, 8, 20, 0.99), rgba(24, 18, 36, 1))',
+              border: '2px solid rgba(167, 139, 250, 0.5)',
+              boxShadow: '0 0 30px rgba(139, 92, 246, 0.25)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '2rem 1.5rem',
+              width: '100%',
+              maxWidth: '520px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+              animation: 'fade-in 0.4s ease-out',
+              position: 'relative'
+            }}
+          >
+            {/* Elemento Visual Decorativo Superior */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '-0.5rem' }}>
+              <div 
+                style={{ 
+                  width: '50px', 
+                  height: '50px', 
+                  background: 'radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, rgba(139, 92, 246, 0) 70%)', 
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(167, 139, 250, 0.3)',
+                  boxShadow: '0 0 15px rgba(167, 139, 250, 0.2)'
+                }}
+              >
+                <span style={{ fontSize: '1.5rem', color: '#c4b5fd', textShadow: '0 0 8px rgba(196, 181, 253, 0.6)' }}>✧</span>
+              </div>
+            </div>
+
+            {/* Cabeçalho */}
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.55rem', fontWeight: 700, color: '#a78bfa', letterSpacing: '0.25em', textTransform: 'uppercase' }}>O Ciclo da Alma Partida</span>
+              <h2 className="font-heading" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--gold-400)', margin: 0, letterSpacing: '0.05em', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                AMARO RPG IDLE
+              </h2>
+            </div>
+
+            {/* Texto da Lore */}
+            <div 
+              style={{ 
+                background: 'rgba(0, 0, 0, 0.4)', 
+                padding: '1.25rem', 
+                borderRadius: 'var(--radius-md)', 
+                border: '1px solid rgba(167, 139, 250, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.8rem',
+                maxHeight: '320px',
+                overflowY: 'auto',
+                fontSize: '0.68rem',
+                lineHeight: 1.6,
+                color: '#cbd5e1',
+                textAlign: 'justify'
+              }}
+              className="ui-scrollable-content"
+            >
+              <p style={{ margin: 0, fontStyle: 'italic' }}>
+                "Antes que houvesse reinos, havia uma única Alma — vasta, inteira, sonhando o mundo em existência.
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, color: '#a78bfa', textAlign: 'center' }}>
+                Ela se partiu.
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic' }}>
+                Ninguém sabe se foi guerra, acidente ou escolha. O que se sabe é que seus cacos caíram sobre a terra como estrelas, e cada um deles despertou como um herói: um Guerreiro de fúria inquebrantável, um Mago de fogo arcano, um Arqueiro de mira impossível — seis ecos de uma única vontade, cada um convencido de ser o único."
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic' }}>
+                "Os monsters que você enfrenta não nasceram deste mundo. São o vazio entre os cacos, tentando preencher o espaço onde a Alma deveria estar inteira — e a cada fase que você atravessa, o vazio fica mais denso, mais faminto, mais forte."
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic' }}>
+                "Você vai morrer. Muitas vezes. Mas cada morte é só um fragmento retornando à fonte por um instante — e cada retorno o torna mais do que era.
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--gold-400)' }}>
+                Chamam isso de Ascensão. Você chama de a única forma de continuar."
+              </p>
+              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '0.62rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem' }}>
+                *E em algum lugar, no fundo de tudo, algo mais antigo que os cacos está esperando você cavar fundo demais. Chamam isso de Pandemônio.*
+              </p>
+            </div>
+
+            {/* Botão de Ação */}
+            <button 
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                useGameStore.getState().markIntroLoreAsShown();
+              }} 
+              className="btn btn-gold font-heading"
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
+                border: '1px solid #a78bfa',
+                color: '#fff',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Aceitar o Destino
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

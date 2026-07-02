@@ -93,6 +93,7 @@ export interface Character {
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
   testMode?: boolean;
+  introLoreShown?: boolean;
 }
 
 export enum GameEvent {

@@ -396,8 +396,16 @@ export class CombatScene extends Phaser.Scene {
         this.playerBody.y = this.PLAYER_START_Y;
       }
 
-      // Aplicar colorização (tint) nos sprites dependendo de status efeitos ativos
+      // Aplicar colorização (tint) e pulsação de tamanho de Elites nos sprites dependendo de status efeitos ativos
       if (this.fsm.enemyHP > 0 && this.enemyBody) {
+        // Pulsação suave de tamanho para Elites
+        const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_');
+        let baseSize = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+        if (this.fsm.isElite && this.fsm.getCurrentState() !== CombatState.DEAD) {
+          const pulseScale = 1.15 + Math.sin(this.accumulatedTime * 0.005) * 0.03;
+          this.enemyBody.setDisplaySize(baseSize * pulseScale, baseSize * pulseScale);
+        }
+
         const effects = this.fsm.enemyEffects;
         if (effects.some(e => e.id === 'stun')) {
           this.enemyBody.setTint(0xfacc15); // Amarelo/Dourado se atordoado
@@ -414,7 +422,13 @@ export class CombatScene extends Phaser.Scene {
         } else {
           // Aplicar tint de dificuldade ao inimigo se não houver efeito ativo
           const char = useGameStore.getState().character;
-          if (char && char.currentStage >= 16) {
+          if (this.fsm.isElite) {
+            // Onda senoidal de 0.6 a 1.0 para pulso prateado metálico
+            const pulse = 0.7 + Math.sin(this.accumulatedTime * 0.007) * 0.3;
+            const component = Math.floor(160 + pulse * 95);
+            const tintVal = (component << 16) + (component << 8) + component;
+            this.enemyBody.setTint(tintVal);
+          } else if (char && char.currentStage >= 16) {
             this.enemyBody.setTint(0xdd88ff); // Apocalipse: roxo
           } else if (char && char.currentStage >= 11) {
             this.enemyBody.setTint(0xff8844); // Inferno: laranja
@@ -712,7 +726,11 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
       
       const isBoss = enemyType.id.startsWith('boss_');
-      const size = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+      let size = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+      if (this.fsm.isElite) {
+        size *= 1.15; // 15% de aumento de tamanho para Elites
+      }
+      
       const targetY = Math.round((600 - 50 * ZOOM_FACTOR) - size / 2 + (enemyType.yOffset || 0) * ZOOM_FACTOR);
       
       this.enemyBody.setPosition(startX, targetY);
@@ -723,11 +741,20 @@ export class CombatScene extends Phaser.Scene {
     }
     if (this.enemyLevelText && this.enemyBody) {
       const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === ENEMIES_PER_STAGE || enemyType.id.startsWith('boss_');
-      const enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
+      let enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
+      if (this.fsm.isElite) {
+        const afixLabel = this.fsm.eliteAfix ? ` [Elite ${this.fsm.eliteAfix.toUpperCase()}]` : ' [Elite]';
+        enemyName = `${enemyType.name}${afixLabel}`;
+      }
       const level = this.fsm.enemyLevel;
-      const prefix = level >= 16 ? '[Apocalipse] ' : level >= 11 ? '[Inferno] ' : level >= 6 ? '[Pesadelo] ' : '';
-      this.enemyLevelText.setText(`${prefix}${enemyName} (Lv. ${level})`);
-      this.enemyLevelText.setColor(enemyType.color);
+      this.enemyLevelText.setText(`${enemyName} (Lv. ${level})`);
+      
+      if (this.fsm.isElite) {
+        this.enemyLevelText.setColor('#e2e8f0'); // Prateado metálico para nome de Elites
+      } else {
+        this.enemyLevelText.setColor(enemyType.color);
+      }
+      
       this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 30 * ZOOM_FACTOR;
     }
 

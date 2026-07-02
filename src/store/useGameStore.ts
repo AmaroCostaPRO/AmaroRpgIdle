@@ -380,6 +380,7 @@ interface GameState {
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
   gameSpeed: number;
   setGameSpeed(speed: number): void;
+  markIntroLoreAsShown(): void;
 }
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -413,6 +414,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     pandemoniumUnlocked: false,
     activePandemonium: false,
     testMode: false,
+    introLoreShown: false,
   };
 };
 
@@ -842,9 +844,14 @@ export const useGameStore = create<GameState>((set) => ({
         const char = JSON.parse(saved) as Character;
         if (char && char.classId) {
           const defaults = DEFAULT_CHARACTER(char.classId);
+          const hasProgress = (char.level && char.level > 1) || 
+                              (char.highestStageReached && char.highestStageReached > 1) || 
+                              (char.gold && char.gold > 0) || 
+                              (char.ascensionCount && char.ascensionCount > 0);
           const merged: Character = {
             ...defaults,
             ...char,
+            introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
             baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
             growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
             skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
@@ -949,6 +956,15 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  markIntroLoreAsShown: () => set((state) => {
+    const updated = {
+      ...state.character,
+      introLoreShown: true
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
   updateAutoCastSettings: (healPercent, disabledSkills) => set((state) => {
     const updated = {
       ...state.character,
@@ -1010,9 +1026,14 @@ export const useGameStore = create<GameState>((set) => ({
         const char = JSON.parse(saved) as Character;
         if (char && char.classId) {
           const defaults = DEFAULT_CHARACTER(char.classId);
+          const hasProgress = (char.level && char.level > 1) || 
+                              (char.highestStageReached && char.highestStageReached > 1) || 
+                              (char.gold && char.gold > 0) || 
+                              (char.ascensionCount && char.ascensionCount > 0);
           const merged: Character = {
             ...defaults,
             ...char,
+            introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
             baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
             growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
             skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
@@ -1062,9 +1083,14 @@ export const useGameStore = create<GameState>((set) => ({
       const char = JSON.parse(decodedStr) as Character;
       if (char && char.classId && typeof char.level === 'number') {
         const defaults = DEFAULT_CHARACTER(char.classId);
+        const hasProgress = (char.level && char.level > 1) || 
+                            (char.highestStageReached && char.highestStageReached > 1) || 
+                            (char.gold && char.gold > 0) || 
+                            (char.ascensionCount && char.ascensionCount > 0);
         const merged: Character = {
           ...defaults,
           ...char,
+          introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
           baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
           growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
           skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
