@@ -58,22 +58,22 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 ## 2. Linha do Tempo e Roadmap das Versões
 
 ```
-[v3.4.5] (Atual)
+[v3.6.0] (Atual)
    │
-   ├──► [v3.5.0] Elites do Vazio (Monstros com afixos + Lore no Bestiário)
-   ├──► [v3.6.0] Trilha da Ascensão (Desafios Diários + Recordes)
-   ├──► [v3.7.0] Ecos Instáveis (Sistema básico de Relíquias + useRelicStore)
+   ├──► [v3.5.0] Elites do Vazio (Monstros com afixos + Lore no Bestiário) [IMPLEMENTADO]
+   ├──► [v3.6.0] Trilha da Ascensão (Desafios Diários + Recordes) [IMPLEMENTADO]
+   ├──► [v3.7.0] Ecos Instáveis (Sistema básico de Relíquias + useRelicStore) [PLANEJADO]
    │
-[v4.0.0] O Purgatório e as Relíquias (Major Update)
+[v4.0.0] O Purgatório e as Relíquias (Major Update) [PLANEJADO]
    │   ├── Novo Território: Purgatório (Fases 21-30) e Chefe de 2 Fases
    │   ├── Expansão do Sistema de Relíquias (8 Relíquias com habilidades ativas no Nível 5)
    │   └── Nova Classe Secundária: Necromante
    │
-   ├──► [v4.1.0] Torre Infinita (Modo semanal vertical sem regeneração de HP/Mana)
-   ├──► [v4.2.0] Memórias Celestiais (Sets Celestiais + Extensão de Forja para +8)
-   ├──► [v4.3.0] Codex de Lendas (Protótipo de leitura de Lore de conquistas)
+   ├──► [v4.1.0] Torre Infinita (Modo semanal vertical sem regeneração de HP/Mana) [PLANEJADO]
+   ├──► [v4.2.0] Memórias Celestiais (Sets Celestiais + Extensão de Forja para +8) [PLANEJADO]
+   ├──► [v4.3.0] Codex de Lendas (Protótipo de leitura de Lore de conquistas) [PLANEJADO]
    │
-[v5.0.0] Transcendência e o Segundo Ciclo (Major Update)
+[v5.0.0] Transcendência e o Segundo Ciclo (Major Update) [PLANEJADO]
        ├── Nova Camada de Prestígio (Transcendência e Pontos de Transcendência - PT)
        ├── Nova Zona: Ecoterra (Fases espelhadas com drops de Essência de Transcendência)
        ├── Classe Suprema: Avatar (Escala com o maior atributo dinâmico)
@@ -84,7 +84,7 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 
 ## 3. Especificação Detalhada das Versões Menores (Ciclo v3.5.0 → v3.7.0)
 
-### 3.1 Versão 3.5.0 — "Elites do Vazio"
+### 3.1 Versão 3.5.0 — "Elites do Vazio" [IMPLEMENTADO]
 *   **Monstros Elite**:
     *   **Chance de Spawn**: $8\%$ em dificuldades Inferno ou superior, escalando $+0.5\%$ por nível de fase no Pandemônio.
     *   **Identidade Visual**: Contorno pulsante prateado ao redor do sprite do Phaser, indicador `[ELITE]` no HUD de combate e tamanho aumentado em $1.15\times$.
@@ -97,9 +97,9 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
         5.  *Regenerador*: Recupera $2\%$ do HP Máximo por segundo no tick do combate.
     *   **Recompensas**: Garante $100\%$ de chance de drop de equipamentos (ignorando Sorte) e bônus fixo de $2.0\times$ no drop de ouro.
 *   **Bestiário Estendido**:
-    *   Inclusão de $2$ a $3$ linhas de descrição narrativa para cada um dos 20 monstros do catálogo básico, ligando-os ao "vazio".
+    *   Inclusão de $2$ a $3$ lines de descrição narrativa para cada um dos 20 monstros do catálogo básico, ligando-os ao "vazio".
 
-### 3.2 Versão 3.6.0 — "Trilha da Ascensão"
+### 3.2 Versão 3.6.0 — "Trilha da Ascensão" [IMPLEMENTADO]
 *   **Desafio Diário Local**:
     *   Usa uma semente (*seed*) numérica gerada a partir da data local do sistema (`YYYYMMDD`) para criar uma **Fase Espelho** única por dia.
     *   Modificadores fixos diários (ex.: *Dano Recebido aumentado em 50% e Cooldowns reduzidos em 30%*).

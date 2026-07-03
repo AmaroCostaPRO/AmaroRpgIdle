@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords } from '../store/useGameStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
@@ -9,6 +9,34 @@ import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
+
+export const DAILY_MODIFIERS = [
+  {
+    name: "🩸 Dreno de Alma",
+    description: "Os monstros curam a si mesmos em 15% do dano que causam a você.",
+    color: "#f87171"
+  },
+  {
+    name: "⚡ Escudo de Espinhos",
+    description: "Os monstros refletem 20% de todo o dano direto que recebem.",
+    color: "#facc15"
+  },
+  {
+    name: "🌀 Frenesi Sombrio",
+    description: "A velocidade de ataque dos monstros é aumentada em 30%.",
+    color: "#a78bfa"
+  },
+  {
+    name: "🌪️ Vento Cortante",
+    description: "O vento congelante reduz sua Chance de Esquiva em 15%.",
+    color: "#60a5fa"
+  },
+  {
+    name: "🤢 Veneno Rastejante",
+    description: "Você perde 1% da sua Vida Máxima a cada 1.5 segundos.",
+    color: "#34d399"
+  }
+];
 
 // Funções utilitárias para obter informações sobre Efeitos de Status aplicados por Habilidades
 export const getSimpleStatusEffectInfo = (id: string, skillLevel: number = 1): string => {
@@ -2049,6 +2077,11 @@ interface PrestigeTreePanelProps {
 const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => {
   const character = useGameStore((state) => state.character);
   const upgradePrestigeStat = useGameStore((state) => state.upgradePrestigeStat);
+  const startDailyChallenge = useGameStore((state) => state.startDailyChallenge);
+  const exitDailyChallenge = useGameStore((state) => state.exitDailyChallenge);
+  const getTodayYYYYMMDD = useGameStore((state) => state.getTodayYYYYMMDD);
+
+  const [subTab, setSubTab] = useState<'tree' | 'trail'>('tree');
 
   const availablePrestigePoints = character.prestigePoints;
   const level = character.level;
@@ -2099,7 +2132,186 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
         </div>
       </div>
 
-      {/* Resumo de Bônus Ativos das Ascensões */}
+      {/* Sub-abas */}
+      <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setSubTab('tree');
+          }}
+          className={`btn btn-sm ${subTab === 'tree' ? 'btn-purple' : 'btn-ghost'}`}
+          style={{ flex: 1, fontSize: '0.62rem', padding: '0.35rem 0', fontWeight: 'bold' }}
+        >
+          🌳 Árvore de Almas
+        </button>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setSubTab('trail');
+          }}
+          className={`btn btn-sm ${subTab === 'trail' ? 'btn-purple' : 'btn-ghost'}`}
+          style={{ flex: 1, fontSize: '0.62rem', padding: '0.35rem 0', fontWeight: 'bold' }}
+        >
+          🏆 Trilha da Ascensão
+        </button>
+      </div>
+
+      {subTab === 'trail' ? (
+        (() => {
+          const today = getTodayYYYYMMDD();
+          const seed = parseInt(today, 10);
+          const challengeStage = (seed % 10) + 10;
+          const activeModifierIndex = seed % 5;
+          const modifier = DAILY_MODIFIERS[activeModifierIndex] || DAILY_MODIFIERS[0];
+          const isCompleted = character.lastCompletedDailyChallenge === today;
+          const isActive = character.activeDailyChallenge;
+          const records = getPersonalRecords();
+
+          const formatTime = (seconds: number) => {
+            if (seconds === 999999) return 'N/A';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}m ${secs}s`;
+          };
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }} className="animate-tabFade">
+              {/* Card de Desafio Diário */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(76,29,149,0.08) 100%)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid rgba(124,58,237,0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#c4b5fd', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    📅 Desafio Diário (Fase Espelho)
+                  </h3>
+                  <span style={{ fontSize: '0.58rem', color: '#94a3b8', background: 'rgba(0,0,0,0.3)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                    {today.substring(6, 8)}/{today.substring(4, 6)}/{today.substring(0, 4)}
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
+                  Enfronte a Fase Espelho com modificadores únicos que mudam diariamente à meia-noite (horário local).
+                </p>
+
+                {/* Fase Espelho & Modificador */}
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--border-dim)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Dificuldade do Dia:</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#f59e0b' }}>Fase Espelho {challengeStage}</span>
+                  </div>
+                  
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 'bold', color: modifier.color, display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.2rem' }}>
+                      {modifier.name}
+                    </div>
+                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', lineHeight: '1.3' }}>
+                      {modifier.description}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recompensas */}
+                <div>
+                  <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.68rem', fontWeight: 'bold', color: '#e2e8f0' }}>Recompensas de Primeira Conclusão:</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-dim)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '0.8rem' }}>🪙</span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Ouro</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: 'var(--gold-400)' }}>+{1000 * challengeStage}</span>
+                      </div>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-dim)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '0.8rem' }}>🌀</span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Fragmento de Alma</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: '#c084fc' }}>+1 Instável</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div style={{ marginTop: '0.25rem' }}>
+                  {isCompleted ? (
+                    <button 
+                      disabled
+                      style={{ width: '100%', cursor: 'not-allowed', opacity: 0.8 }}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      🏆 Desafio Diário Concluído Hoje
+                    </button>
+                  ) : isActive ? (
+                    <button 
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        exitDailyChallenge(false);
+                      }}
+                      style={{ width: '100%' }}
+                      className="btn btn-red btn-sm"
+                    >
+                      🚪 Abandonar Desafio Diário
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        AudioManager.getInstance().playClick();
+                        startDailyChallenge();
+                      }}
+                      style={{ width: '100%', background: 'linear-gradient(135deg, #7c3aed, #4c1d95)', color: '#fff' }}
+                      className="btn btn-purple btn-sm"
+                    >
+                      ⚔️ Iniciar Desafio Diário
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Card de Recordes Pessoais */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30,41,59,0.5) 0%, rgba(15,23,42,0.5) 100%)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-dim)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  🏅 Recordes Pessoais
+                </h3>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.68rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ color: '#94a3b8' }}>Maior Fase Alcançada:</span>
+                    <span className="font-semibold text-white font-mono">{records.maxStageReached}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ color: '#94a3b8' }}>Maior ganho de PP em uma rodada:</span>
+                    <span className="font-semibold text-white font-mono">{records.maxPPGainedInSingleReset} PP</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ color: '#94a3b8' }}>Melhor tempo até Fase 20:</span>
+                    <span className="font-semibold text-white font-mono">{formatTime(records.minTimeToStage20)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0' }}>
+                    <span style={{ color: '#94a3b8' }}>Total de Ascensões Realizadas:</span>
+                    <span className="font-semibold text-white font-mono">{records.totalAscensions || ascensionCount}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()
+      ) : (
+        <>
+          {/* Resumo de Bônus Ativos das Ascensões */}
       <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(76,29,149,0.05) 100%)', padding: '0.8rem 1rem', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Bônus de Alma ({ascensionCount} {ascensionCount === 1 ? 'Ascensão' : 'Ascensões'})</h4>
@@ -2692,6 +2904,8 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
           })}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
@@ -3344,6 +3558,35 @@ export default function GameUI() {
 
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
+
+  const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
+  const loreContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (character.introLoreShown === false) {
+      const totalParagraphs = 7;
+      const timer = setInterval(() => {
+        setVisibleParagraphs((prev) => {
+          if (prev < totalParagraphs) {
+            return prev + 1;
+          } else {
+            clearInterval(timer);
+            return prev;
+          }
+        });
+      }, 2000);
+      return () => clearInterval(timer);
+    }
+  }, [character.introLoreShown]);
+
+  useEffect(() => {
+    if (loreContainerRef.current) {
+      loreContainerRef.current.scrollTo({
+        top: loreContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [visibleParagraphs]);
   const setScreen = useGameStore((state) => state.setScreen);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -4263,6 +4506,7 @@ export default function GameUI() {
 
             {/* Texto da Lore */}
             <div 
+              ref={loreContainerRef}
               style={{ 
                 background: 'rgba(0, 0, 0, 0.4)', 
                 padding: '1.25rem', 
@@ -4280,27 +4524,41 @@ export default function GameUI() {
               }}
               className="ui-scrollable-content"
             >
-              <p style={{ margin: 0, fontStyle: 'italic' }}>
-                "Antes que houvesse reinos, havia uma única Alma — vasta, inteira, sonhando o mundo em existência.
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, color: '#a78bfa', textAlign: 'center' }}>
-                Ela se partiu.
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic' }}>
-                Ninguém sabe se foi guerra, acidente ou escolha. O que se sabe é que seus cacos caíram sobre a terra como estrelas, e cada um deles despertou como um herói: um Guerreiro de fúria inquebrantável, um Mago de fogo arcano, um Arqueiro de mira impossível — seis ecos de uma única vontade, cada um convencido de ser o único."
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic' }}>
-                "Os monsters que você enfrenta não nasceram deste mundo. São o vazio entre os cacos, tentando preencher o espaço onde a Alma deveria estar inteira — e a cada fase que você atravessa, o vazio fica mais denso, mais faminto, mais forte."
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic' }}>
-                "Você vai morrer. Muitas vezes. Mas cada morte é só um fragmento retornando à fonte por um instante — e cada retorno o torna mais do que era.
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--gold-400)' }}>
-                Chamam isso de Ascensão. Você chama de a única forma de continuar."
-              </p>
-              <p style={{ margin: 0, fontStyle: 'italic', fontSize: '0.62rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem' }}>
-                *E em algum lugar, no fundo de tudo, algo mais antigo que os cacos está esperando você cavar fundo demais. Chamam isso de Pandemônio.*
-              </p>
+              {visibleParagraphs >= 1 && (
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                  "Antes que houvesse reinos, havia uma única Alma — vasta, inteira, sonhando o mundo em existência.
+                </p>
+              )}
+              {visibleParagraphs >= 2 && (
+                <p style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, color: '#a78bfa', textAlign: 'center', animation: 'fade-in 0.6s ease-out' }}>
+                  Ela se partiu.
+                </p>
+              )}
+              {visibleParagraphs >= 3 && (
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                  Ninguém sabe se foi guerra, acidente ou escolha. O que se sabe é que seus cacos caíram sobre a terra como estrelas, e cada um deles despertou como um herói: um Guerreiro de fúria inquebrantável, um Mago de fogo arcano, um Arqueiro de mira impossível — seis ecos de uma única vontade, cada um convencido de ser o único."
+                </p>
+              )}
+              {visibleParagraphs >= 4 && (
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                  "Os monstros que você enfrenta não nasceram deste mundo. São o vazio entre os cacos, tentando preencher o espaço onde a Alma deveria estar inteira — e a cada fase que você atravessa, o vazio fica mais denso, mais faminto, mais forte."
+                </p>
+              )}
+              {visibleParagraphs >= 5 && (
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                  "Você vai morrer. Muitas vezes. Mas cada morte é só um fragmento retornando à fonte por um instante — e cada retorno o torna mais do que era.
+                </p>
+              )}
+              {visibleParagraphs >= 6 && (
+                <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--gold-400)', animation: 'fade-in 0.6s ease-out' }}>
+                  Chamam isso de Ascensão. Você chama de a única forma de continuar."
+                </p>
+              )}
+              {visibleParagraphs >= 7 && (
+                <p style={{ margin: 0, fontStyle: 'italic', fontSize: '0.62rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem', animation: 'fade-in 0.6s ease-out' }}>
+                  *E em algum lugar, no fundo de tudo, algo mais antigo que os cacos está esperando você cavar fundo demais. Chamam isso de Pandemônio.*
+                </p>
+              )}
             </div>
 
             {/* Botão de Ação */}
@@ -4309,7 +4567,7 @@ export default function GameUI() {
                 AudioManager.getInstance().playClick();
                 useGameStore.getState().markIntroLoreAsShown();
               }} 
-              className="btn btn-gold font-heading"
+              className={`btn font-heading ${visibleParagraphs >= 7 ? 'btn-gold animate-pulse' : 'btn-secondary'}`}
               style={{
                 width: '100%',
                 padding: '0.8rem',
@@ -4317,16 +4575,16 @@ export default function GameUI() {
                 fontWeight: 700,
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
-                border: '1px solid #a78bfa',
+                background: visibleParagraphs >= 7 ? 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)' : 'rgba(255,255,255,0.05)',
+                border: visibleParagraphs >= 7 ? '1px solid #a78bfa' : '1px solid rgba(255,255,255,0.1)',
                 color: '#fff',
                 borderRadius: 'var(--radius-md)',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                boxShadow: visibleParagraphs >= 7 ? '0 4px 12px rgba(124, 58, 237, 0.3)' : 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in-out'
               }}
             >
-              Aceitar o Destino
+              {visibleParagraphs >= 7 ? 'Aceitar o Destino' : 'Pular Introdução'}
             </button>
           </div>
         </div>

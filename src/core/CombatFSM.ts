@@ -315,6 +315,7 @@ export class CombatFSM {
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
   private robotTapTimer: number = 0;
+  private creepingPoisonTimer: number = 0;
 
   // Métodos auxiliares de balanceamento de atributos por classe
   private calculatePlayerMaxHP(constitution: number, hpBoost: number, classId: string): number {
@@ -552,6 +553,28 @@ export class CombatFSM {
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * (delta / 1000)));
 
+    // Processamento do afixo diário Veneno Rastejante (perde 1% do HP máximo a cada 1.5s)
+    if (this.characterData.activeDailyChallenge) {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const seed = parseInt(today, 10);
+      const activeModifierIndex = seed % 5;
+      if (activeModifierIndex === 4 && this.enemyHP > 0 && this.playerHP > 0) { // 4: creeping_poison
+        this.creepingPoisonTimer += delta;
+        if (this.creepingPoisonTimer >= 1500) {
+          this.creepingPoisonTimer = 0;
+          const poisonDmg = Math.max(1, Math.floor(this.playerMaxHP * 0.01));
+          this.playerHP = Math.max(0, this.playerHP - poisonDmg);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${poisonDmg} (Veneno)`, '#10b981');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🤢 O Veneno Rastejante causou ${poisonDmg} de dano contínuo a você.` });
+          if (this.playerHP <= 0) {
+            this.handlePlayerDefeat();
+          }
+        }
+      }
+    }
+
     // Regeneração de HP para inimigos Elite com o afixo 'regenerador' (2% do HP Máximo por segundo)
     if (this.isElite && this.eliteAfix === 'regenerador' && this.enemyHP > 0 && this.enemyHP < this.enemyMaxHP) {
       const regenAmount = this.enemyMaxHP * 0.02 * (delta / 1000);
@@ -569,21 +592,18 @@ export class CombatFSM {
       if (effect.tickTimer <= 0) {
         effect.tickTimer = 1000;
         if (effect.id === 'poison' || effect.id === 'burn') {
-          if (this.enemyHP > 0) {
-            const tickDmg = Math.floor(effect.value);
-            this.enemyHP = Math.max(0, this.enemyHP - tickDmg);
-            const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
-            const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
-            
-            if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-              this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
-            }
-            bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
+          const tickDmg = Math.floor(effect.value);
+          const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
+          const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
+          
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
 
-            if (this.enemyHP <= 0) {
-              this.handleEnemyDefeat();
-              return false;
-            }
+          this.damageEnemy(tickDmg, false);
+          if (this.enemyHP <= 0) {
+            return false;
           }
         }
       }
@@ -792,15 +812,11 @@ export class CombatFSM {
     }
     if (finalTouchDmg < 1) finalTouchDmg = 1;
 
-    this.enemyHP = Math.max(0, this.enemyHP - finalTouchDmg);
-
     if (this.scene && typeof this.scene.spawnTouchEffect === 'function') {
       this.scene.spawnTouchEffect(isCrit, finalTouchDmg, clickX, clickY);
     }
 
-    if (this.enemyHP <= 0) {
-      this.handleEnemyDefeat();
-    }
+    this.damageEnemy(finalTouchDmg, true);
   }
 
   private handleIdle(): void {
@@ -901,14 +917,11 @@ export class CombatFSM {
     }
 
     this.scene.animatePlayerAttack();
-    this.enemyHP = Math.max(0, this.enemyHP - damage);
     this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}-${damage}`, isCrit ? '#ef4444' : '#f59e0b');
 
     bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${damage} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
 
-    if (this.enemyHP <= 0) {
-      this.handleEnemyDefeat();
-    }
+    this.damageEnemy(damage, true);
   }
 
   private performEnemyAttack() {
@@ -917,6 +930,17 @@ export class CombatFSM {
     if (this.isElite && this.eliteAfix === 'enfurecido') {
       speedMult *= 1.4;
     }
+    
+    // Aplicar afixo diário Frenesi Sombrio (+30% velocidade de ataque)
+    if (this.characterData.activeDailyChallenge) {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const seed = parseInt(today, 10);
+      const activeModifierIndex = seed % 5;
+      if (activeModifierIndex === 2) { // 2: shadow_frenzy
+        speedMult *= 1.3;
+      }
+    }
+
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
 
     // Multiplicador de dano por dificuldade:
@@ -944,7 +968,18 @@ export class CombatFSM {
 
     // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5));
+    let dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5));
+    
+    // Aplicar afixo diário Vento Cortante (-15% de Esquiva para o jogador)
+    if (this.characterData.activeDailyChallenge) {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const seed = parseInt(today, 10);
+      const activeModifierIndex = seed % 5;
+      if (activeModifierIndex === 3) { // 3: cutting_wind
+        dodgeChance = Math.max(0, dodgeChance - 15);
+      }
+    }
+
     const isDodge = Math.random() * 100 < dodgeChance;
 
     if (isDodge) {
@@ -971,8 +1006,52 @@ export class CombatFSM {
       }
     }
 
+    // Aplicar afixo diário Drenagem de Alma (cura 5% do HP máximo do inimigo ao acertar)
+    if (this.characterData.activeDailyChallenge && this.enemyHP > 0) {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const seed = parseInt(today, 10);
+      const activeModifierIndex = seed % 5;
+      if (activeModifierIndex === 0) { // 0: soul_drain
+        const healVal = Math.floor(this.enemyMaxHP * 0.05);
+        this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + healVal);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `+${healVal} (Drenagem)`, '#10b981');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo drenou sua alma e curou-se em +${healVal} HP!` });
+      }
+    }
+
     if (this.playerHP <= 0) {
       this.handlePlayerDefeat();
+    }
+  }
+
+  private damageEnemy(amount: number, isDirect: boolean): void {
+    if (amount <= 0 || this.enemyHP <= 0) return;
+    this.enemyHP = Math.max(0, this.enemyHP - amount);
+
+    // Aplicar afixo diário Escudo de Espinhos (reflete 15% de dano direto recebido)
+    if (isDirect && this.characterData.activeDailyChallenge && this.playerHP > 0) {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const seed = parseInt(today, 10);
+      const activeModifierIndex = seed % 5;
+      if (activeModifierIndex === 1) { // 1: thorns_shield
+        const reflected = Math.floor(amount * 0.15);
+        if (reflected > 0) {
+          this.playerHP = Math.max(0, this.playerHP - reflected);
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${reflected} (Refletido)`, '#ef4444');
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `💥 Você recebeu ${reflected} de dano refletido pelo Escudo de Espinhos!` });
+          
+          if (this.playerHP <= 0) {
+            this.handlePlayerDefeat();
+            return;
+          }
+        }
+      }
+    }
+
+    if (this.enemyHP <= 0) {
+      this.handleEnemyDefeat();
     }
   }
 
@@ -1195,6 +1274,34 @@ export class CombatFSM {
       }
     }
 
+    if (this.characterData.activeDailyChallenge) {
+      if (isBoss) {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ DESAFIO DIÁRIO CONCLUÍDO! Você derrotou o Chefe da Fase Espelho!` });
+        useGameStore.getState().completeDailyChallenge();
+      } else {
+        useGameStore.setState((state) => ({
+          character: {
+            ...state.character,
+            enemiesDefeatedInStage: state.character.enemiesDefeatedInStage + 1
+          }
+        }));
+      }
+
+      this.scene.animateEnemyDeath();
+      this.currentState = CombatState.IDLE;
+      this.enemyHP = 0;
+
+      setTimeout(() => {
+        const nextChar = useGameStore.getState().character;
+        this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+
+        const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+      }, 1500);
+      return;
+    }
+
     if (isBoss) {
       useGameStore.getState().advanceStage();
     } else {
@@ -1222,10 +1329,30 @@ export class CombatFSM {
 
   private handlePlayerDefeat() {
     this.currentState = CombatState.DEAD;
+    this.scene.animatePlayerDeath();
+
+    if (this.characterData.activeDailyChallenge) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu ao Desafio Diário e retornou à sua jornada normal.` });
+      useGameStore.getState().exitDailyChallenge(false);
+
+      setTimeout(() => {
+        this.playerHP = this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.currentState = CombatState.IDLE;
+
+        const char = useGameStore.getState().character;
+        this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+        this.scene.respawnPlayer();
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Você ressuscitou e retornou à sua Fase ${char.currentStage}!` });
+      }, 3000);
+      return;
+    }
+
     bridge.emit(GameEvent.LOG_EMITTED, { message: `Você foi derrotado! Progresso da fase resetado.` });
 
     useGameStore.getState().resetStageProgress();
-    this.scene.animatePlayerDeath();
 
     setTimeout(() => {
       this.playerHP = this.playerMaxHP;
@@ -1375,7 +1502,7 @@ export class CombatFSM {
       dmg = Math.floor(dmg * 0.75);
     }
 
-    this.enemyHP = Math.max(0, this.enemyHP - dmg);
+    this.damageEnemy(dmg, true);
 
     // Determina os efeitos visuais e sonoros na cena dependendo da habilidade específica
     if (skillId === 'frostbolt') {

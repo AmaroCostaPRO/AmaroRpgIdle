@@ -288,6 +288,9 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
   return false;
 };
 
+let savedStageBeforeChallenge = 1;
+let savedEnemiesDefeatedBeforeChallenge = 0;
+
 const saveToLocalStorage = (char: Character) => {
   try {
     // Adiciona carimbo de data/hora do salvamento
@@ -295,6 +298,13 @@ const saveToLocalStorage = (char: Character) => {
       ...char,
       lastSaved: new Date().toISOString()
     };
+    
+    // Se o salvamento ocorrer durante o Desafio Diário, restaura os dados originais no JSON salvo
+    if (updatedChar.activeDailyChallenge) {
+      updatedChar.activeDailyChallenge = false;
+      updatedChar.currentStage = savedStageBeforeChallenge;
+      updatedChar.enemiesDefeatedInStage = savedEnemiesDefeatedBeforeChallenge;
+    }
     
     // Salva o save ativo padrão (para compatibilidade/carregamento rápido)
     localStorage.setItem('medieval_idle_save', JSON.stringify(updatedChar));
@@ -381,7 +391,47 @@ interface GameState {
   gameSpeed: number;
   setGameSpeed(speed: number): void;
   markIntroLoreAsShown(): void;
+
+  // Desafio Diário e Recordes Pessoais (v3.6.0)
+  startDailyChallenge(): void;
+  completeDailyChallenge(): void;
+  exitDailyChallenge(success: boolean): void;
+  getTodayYYYYMMDD(): string;
 }
+
+export interface PersonalRecords {
+  maxStageReached: number;
+  maxPPGainedInSingleReset: number;
+  minTimeToStage20: number;
+  totalAscensions: number;
+}
+
+export const getPersonalRecords = (): PersonalRecords => {
+  try {
+    const raw = localStorage.getItem('medieval_idle_personal_records');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        maxStageReached: parsed.maxStageReached ?? 0,
+        maxPPGainedInSingleReset: parsed.maxPPGainedInSingleReset ?? 0,
+        minTimeToStage20: parsed.minTimeToStage20 ?? 999999,
+        totalAscensions: parsed.totalAscensions ?? 0
+      };
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return {
+    maxStageReached: 0,
+    maxPPGainedInSingleReset: 0,
+    minTimeToStage20: 999999,
+    totalAscensions: 0
+  };
+};
+
+export const savePersonalRecords = (records: PersonalRecords): void => {
+  localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
+};
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
   const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
@@ -415,6 +465,9 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     activePandemonium: false,
     testMode: false,
     introLoreShown: false,
+    lastCompletedDailyChallenge: '',
+    activeDailyChallenge: false,
+    runStartTime: Date.now(),
   };
 };
 
@@ -683,7 +736,30 @@ export const useGameStore = create<GameState>((set) => ({
       inventory: [],
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
+      runStartTime: Date.now()
     };
+
+    // Processa os recordes pessoais
+    const records = getPersonalRecords();
+    let broken = false;
+    let messages: string[] = [];
+
+    if (pointsEarned > records.maxPPGainedInSingleReset) {
+      records.maxPPGainedInSingleReset = pointsEarned;
+      broken = true;
+      messages.push(`🏆 NOVO RECORDE: Maior quantidade de PP obtida em um único reset (${pointsEarned} PP)!`);
+    }
+
+    records.totalAscensions = ascensionCount + 1;
+    savePersonalRecords(records);
+
+    if (broken) {
+      messages.forEach(msg => {
+        setTimeout(() => {
+          bridge.emit(GameEvent.RECORD_BROKEN, { message: msg });
+        }, 1000);
+      });
+    }
 
     saveToLocalStorage(updated);
     return { character: updated };
@@ -852,6 +928,9 @@ export const useGameStore = create<GameState>((set) => ({
             ...defaults,
             ...char,
             introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
+            lastCompletedDailyChallenge: char.lastCompletedDailyChallenge || '',
+            activeDailyChallenge: false,
+            runStartTime: char.runStartTime !== undefined ? char.runStartTime : Date.now(),
             baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
             growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
             skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
@@ -898,6 +977,38 @@ export const useGameStore = create<GameState>((set) => ({
       }
     } else {
       nextStage = Math.min(20, nextStage);
+    }
+
+    // Processamento de recordes pessoais de fase e tempo
+    const records = getPersonalRecords();
+    let broken = false;
+    let messages: string[] = [];
+
+    if (nextStage > records.maxStageReached) {
+      records.maxStageReached = nextStage;
+      broken = true;
+      messages.push(`🏆 NOVO RECORDE: Maior fase alcançada na sua jornada (Fase ${nextStage})!`);
+    }
+
+    if (nextStage === 20 && state.character.runStartTime) {
+      const duration = (Date.now() - state.character.runStartTime) / 1000;
+      if (duration < records.minTimeToStage20) {
+        records.minTimeToStage20 = duration;
+        broken = true;
+        const mins = Math.floor(duration / 60);
+        const secs = Math.floor(duration % 60);
+        const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        messages.push(`🏆 NOVO RECORDE: Menor tempo de run até a Fase 20 (${timeStr})!`);
+      }
+    }
+
+    if (broken) {
+      savePersonalRecords(records);
+      messages.forEach(msg => {
+        setTimeout(() => {
+          bridge.emit(GameEvent.RECORD_BROKEN, { message: msg });
+        }, 1000);
+      });
     }
 
     const updated = {
@@ -962,6 +1073,107 @@ export const useGameStore = create<GameState>((set) => ({
       introLoreShown: true
     };
     saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  getTodayYYYYMMDD: () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${y}${m}${day}`;
+  },
+
+  startDailyChallenge: () => set((state) => {
+    // Salva o progresso normal atual do jogador na memória
+    savedStageBeforeChallenge = state.character.currentStage;
+    savedEnemiesDefeatedBeforeChallenge = state.character.enemiesDefeatedInStage;
+
+    const today = useGameStore.getState().getTodayYYYYMMDD();
+    const seed = parseInt(today, 10);
+    // Fase Espelho baseada no dia (entre 10 e 19)
+    const challengeStage = (seed % 10) + 10;
+
+    const updated = {
+      ...state.character,
+      currentStage: challengeStage,
+      enemiesDefeatedInStage: 0,
+      activeDailyChallenge: true
+    };
+
+    setTimeout(() => {
+      bridge.emit(GameEvent.START_COMBAT, {});
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚔️ Desafio Diário iniciado! Bem-vindo à Fase Espelho ${challengeStage}.` });
+    }, 100);
+
+    return { character: updated };
+  }),
+
+  completeDailyChallenge: () => set((state) => {
+    const today = useGameStore.getState().getTodayYYYYMMDD();
+    const seed = parseInt(today, 10);
+    const challengeStage = (seed % 10) + 10;
+
+    const rewardGold = 1000 * challengeStage;
+    
+    // Cria o item consumível Fragmento de Alma Instável
+    const soulFragmentItem: EquipmentItem = {
+      id: `soul_fragment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: 'Fragmento de Alma Instável',
+      slot: 'consumable',
+      rarity: 'epic',
+      classId: state.character.classId,
+      spriteName: 'unstable_soul_fragment',
+      consumableType: 'unstable_soul_fragment',
+      stage: challengeStage,
+      stats: {}
+    };
+
+    // Adiciona o item ao inventário
+    const inventory = [...state.character.inventory];
+    let addedMsg = '';
+    if (inventory.length < state.character.inventorySlots) {
+      inventory.push(soulFragmentItem);
+      addedMsg = ` e recebeu [${soulFragmentItem.name}] em seu inventário!`;
+    } else {
+      addedMsg = `, mas seu inventário estava cheio para receber o [${soulFragmentItem.name}]!`;
+    }
+
+    const updated = {
+      ...state.character,
+      gold: state.character.gold + rewardGold,
+      lastCompletedDailyChallenge: today,
+      activeDailyChallenge: false,
+      currentStage: savedStageBeforeChallenge,
+      enemiesDefeatedInStage: savedEnemiesDefeatedBeforeChallenge,
+      inventory
+    };
+
+    saveToLocalStorage(updated);
+
+    setTimeout(() => {
+      bridge.emit(GameEvent.START_COMBAT, {});
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🏆 Desafio Diário concluído! Você recebeu +${rewardGold} de Ouro${addedMsg}` });
+    }, 100);
+
+    return { character: updated };
+  }),
+
+  exitDailyChallenge: (success) => set((state) => {
+    const updated = {
+      ...state.character,
+      activeDailyChallenge: false,
+      currentStage: savedStageBeforeChallenge,
+      enemiesDefeatedInStage: savedEnemiesDefeatedBeforeChallenge
+    };
+
+    setTimeout(() => {
+      bridge.emit(GameEvent.START_COMBAT, {});
+      if (!success) {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Retornando ao combate normal na Fase ${savedStageBeforeChallenge}.` });
+      }
+    }, 100);
+
     return { character: updated };
   }),
 

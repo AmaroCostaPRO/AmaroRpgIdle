@@ -22,7 +22,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment';
   stage?: number;
 }
 
@@ -94,6 +94,9 @@ export interface Character {
   activePandemonium?: boolean;
   testMode?: boolean;
   introLoreShown?: boolean;
+  lastCompletedDailyChallenge?: string;
+  activeDailyChallenge?: boolean;
+  runStartTime?: number;
 }
 
 export enum GameEvent {
@@ -113,7 +116,8 @@ export enum GameEvent {
   COOLDOWNS_CHANGED = 'COOLDOWNS_CHANGED',
   ARENA_READY = 'ARENA_READY',
   COMBO_STATE_CHANGED = 'COMBO_STATE_CHANGED',
-  FRENZY_STATE_CHANGED = 'FRENZY_STATE_CHANGED'
+  FRENZY_STATE_CHANGED = 'FRENZY_STATE_CHANGED',
+  RECORD_BROKEN = 'RECORD_BROKEN'
 }
 
 export interface GameEventPayload {

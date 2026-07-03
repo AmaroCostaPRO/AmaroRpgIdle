@@ -807,7 +807,26 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.5.0 (Atual)
+### Versão 3.6.0 (Atual)
+*   **🔮 Painel de Prestígio e Trilha da Ascensão**:
+    *   **Abas de Prestígio**: O painel `PrestigeTreePanel` foi refatorado para abrigar duas sub-abas: **Árvore de Almas** (Upgrades clássicos com PP e Esfera do Pandemônio) e a nova **Trilha da Ascensão** (Desafios Diários e Recordes).
+    *   **Desafio Diário (Fase Espelho)**:
+        *   **Seed determinística baseada na data**: A semente numérica do dia é calculada via `YYYYMMDD` (baseada no horário local do sistema do jogador), gerando modificadores diários e recompensas fixas.
+        *   **Afixos Rotativos**: O desafio conta com modificadores especiais de dificuldade retirados do array `DAILY_MODIFIERS` (como bônus de CD, multiplicadores de dano ou debuffs de HP).
+        *   **Reset Automático**: Ocorre diariamente à meia-noite (**00:00**) do fuso horário local do dispositivo do usuário.
+        *   **Recompensas Especiais**: O desafio concede Ouro e o novo item consumível **Fragmento de Alma Instável** (essencial para futuras forjas de relíquias).
+    *   **Painel de Recordes Pessoais**:
+        *   Persistência local sob a chave `medieval_idle_personal_records` no `localStorage`. Rastreia: Maior Fase Alcançada, Maior ganho de PP em um único reset, Menor tempo de speedrun até a Fase 20 (Speedrun a 20) e Número Total de Ascensões.
+        *   Dispara um toast dourado comemorativo com a mensagem de recorde batido.
+*   **📜 Revelação Gradual da Lore de Abertura**:
+    *   **Efeito Cinemático Temporizado**: Os parágrafos do modal da Lore de Abertura ("O Ciclo da Alma Partida") agora são revelados progressivamente com intervalos estritos de **2 segundos** entre cada um, gerando uma experiência de imersão literária.
+    *   **Scroll Automático**: Inserida a referência `loreContainerRef` que aciona um scroll vertical suave a cada novo parágrafo exibido, garantindo que o texto em exibição permaneça legível.
+    *   **Botão Dinâmico de Ação**: O botão de destino brilha em tons dourados pulsantes e muda de "Pular Introdução" para "Aceitar o Destino" somente após a revelação do 7º e último parágrafo do texto.
+    *   **Bloqueio Estrito de Combate**: O loop de combate no Phaser (`CombatScene.ts`) permanece completamente travado enquanto a flag de lore de abertura (`character.introLoreShown`) for falsa, respeitando a narrativa do jogo.
+*   **⚔️ Limpeza do HUD de Combate**:
+    *   Remoção de prefixos repetitivos de fase (como `[Inferno]`) nos nomes dos monstros no HUD de combate superior da tela principal, otimizando o espaço da interface e a clareza para o jogador.
+
+### Versão 3.5.0
 *   **👾 Inimigos de Elite e Mecânica de Afixos**:
     *   **Spawn Procedural**: Introduzida $8\%$ de chance de spawn de inimigos de Elite na geração de monstros normais (`setupEnemyForLevel`) a partir das dificuldades Inferno ou superior (Fase $\ge 11$). No Modo Pandemônio (Fases 21+), a chance de Elite escala $+0,5\%$ por nível de fase adicional (ex: 10,5% de chance na Fase 25).
     *   **Vida e Dano Triplicados**: Inimigos Elite recebem um aumento de $3.0\times$ em seu HP Máximo (`enemyMaxHP`) e de $3.0\times$ em seu Dano base causado por ataque automático.

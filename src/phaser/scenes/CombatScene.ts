@@ -287,7 +287,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Captura cliques/toques no canvas para desferir dano de toque
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.fsm) {
+      if (this.fsm && useGameStore.getState().character.introLoreShown !== false) {
         this.fsm.handlePlayerTap(pointer.x, pointer.y);
       }
     });
@@ -300,7 +300,8 @@ export class CombatScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.fsm) {
-      const gameSpeed = useGameStore.getState().gameSpeed;
+      const isLoreOpen = useGameStore.getState().character.introLoreShown === false;
+      const gameSpeed = isLoreOpen ? 0 : useGameStore.getState().gameSpeed;
       const speedMultiplier = gameSpeed === 0 ? 0 : (gameSpeed || 1);
       this.accumulatedTime += delta * speedMultiplier;
 
