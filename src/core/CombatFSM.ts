@@ -1,6 +1,7 @@
 import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem } from './types';
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
+import { useRelicStore } from '../store/useRelicStore';
 import { StatEngine } from './StatEngine';
 
 
@@ -803,7 +804,8 @@ export class CombatFSM {
     }
 
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
-    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult);
+    const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
+    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus));
     if (this.characterData.testMode) {
       finalTouchDmg *= 5;
     }
@@ -908,7 +910,8 @@ export class CombatFSM {
     }
 
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
-    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult);
+    const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus));
     if (this.characterData.testMode) {
       damage *= 5;
     }
@@ -1098,7 +1101,8 @@ export class CombatFSM {
     }
     
     const luckBonus = 1 + ((this.playerFinalStats.luck || 0) * 0.01);
-    gainedGold = Math.floor(gainedGold * luckBonus);
+    const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
+    gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus));
 
     if (isBoss) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Chefe ${this.currentEnemy.name} derrotado! Você avançou para a Fase ${char.currentStage + 1}, ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
@@ -1125,11 +1129,39 @@ export class CombatFSM {
       return;
     }
 
+    // Drop raro de 5% de Fragmento de Alma Instável em Chefes de Fase
+    if (isBoss && Math.random() < 0.05) {
+      const stage = char.currentStage;
+      const classId = char.classId;
+      const soulFragmentItem: EquipmentItem = {
+        id: `soul_fragment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: 'Fragmento de Alma Instável',
+        slot: 'consumable',
+        rarity: 'epic',
+        classId: classId,
+        spriteName: 'unstable_soul_fragment',
+        consumableType: 'unstable_soul_fragment',
+        stage: stage,
+        stats: {}
+      };
+      const addedFragment = useGameStore.getState().addItemToInventory(soulFragmentItem);
+      if (addedFragment) {
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `✨ Você encontrou um [${soulFragmentItem.name}] raro ao derrotar o Chefe!` 
+        });
+      } else {
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `Um [${soulFragmentItem.name}] caiu do Chefe, mas seu inventário está cheio!` 
+        });
+      }
+    }
+
     // === SISTEMA DE DROP DE EQUIPAMENTOS ===
     const luck = this.playerFinalStats.luck || 0;
     const baseDropChance = 0.05;
     // Elites e Chefes têm 100% de chance de drop de equipamento
-    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002);
+    const relicDropBonus = useRelicStore.getState().getRelicEffectBonus('simbolo_aprendizado');
+    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus);
     
     if (Math.random() < dropChance) {
       const slots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
@@ -1483,7 +1515,8 @@ export class CombatFSM {
     }
 
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
-    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult);
+    const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
+    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus));
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {

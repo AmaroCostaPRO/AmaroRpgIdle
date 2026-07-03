@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords } from '../store/useGameStore';
+import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
@@ -2081,7 +2082,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const exitDailyChallenge = useGameStore((state) => state.exitDailyChallenge);
   const getTodayYYYYMMDD = useGameStore((state) => state.getTodayYYYYMMDD);
 
-  const [subTab, setSubTab] = useState<'tree' | 'trail'>('tree');
+  const [subTab, setSubTab] = useState<'tree' | 'trail' | 'relics'>('tree');
 
   const availablePrestigePoints = character.prestigePoints;
   const level = character.level;
@@ -2153,6 +2154,16 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
           style={{ flex: 1, fontSize: '0.62rem', padding: '0.35rem 0', fontWeight: 'bold' }}
         >
           🏆 Trilha da Ascensão
+        </button>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setSubTab('relics');
+          }}
+          className={`btn btn-sm ${subTab === 'relics' ? 'btn-purple' : 'btn-ghost'}`}
+          style={{ flex: 1, fontSize: '0.62rem', padding: '0.35rem 0', fontWeight: 'bold' }}
+        >
+          🔮 Altar de Relíquias
         </button>
       </div>
 
@@ -2305,6 +2316,227 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     <span className="font-semibold text-white font-mono">{records.totalAscensions || ascensionCount}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          );
+        })()
+      ) : subTab === 'relics' ? (
+        (() => {
+          const unstableSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
+          const relics = useRelicStore((state) => state.relics);
+          const forgeRelic = useRelicStore((state) => state.forgeRelic);
+          const [forgeResult, setForgeResult] = useState<string | null>(null);
+
+          const upgradeable = Object.values(relics).filter(r => r.level < r.maxLevel);
+          const isAllMaxed = upgradeable.length === 0;
+
+          const handleForge = () => {
+            AudioManager.getInstance().playClick();
+            const res = forgeRelic();
+            if (res.success) {
+              setForgeResult(res.message);
+              setTimeout(() => setForgeResult(null), 4000);
+            } else {
+              alert(res.message);
+            }
+          };
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }} className="animate-tabFade">
+              {/* Card Central do Altar */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.15) 0%, rgba(124, 58, 237, 0.08) 100%)',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid rgba(167, 139, 250, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                position: 'relative'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#c4b5fd', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    🔮 Altar de Relíquias de Alma
+                  </h3>
+                  <div style={{
+                    fontSize: '0.68rem',
+                    color: '#c4b5fd',
+                    background: 'rgba(0,0,0,0.3)',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid rgba(167, 139, 250, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}>
+                    <span>🌀 Fragmentos:</span>
+                    <strong className="font-mono text-purple-300" style={{ fontSize: '0.75rem' }}>{unstableSoulFragments}</strong>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
+                  Canalize seus <strong>Fragmentos de Alma Instável</strong> no altar para forjar relíquias lendárias. Cada tentativa consome <strong>10 Fragmentos</strong> e concede ou aprimora uma relíquia aleatória. As relíquias permanecem ativas permanentemente e <strong>são preservadas durante a Ascensão</strong>!
+                </p>
+
+                {/* Botão de Forja */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={handleForge}
+                    disabled={unstableSoulFragments < 10 || isAllMaxed}
+                    className={`btn ${unstableSoulFragments >= 10 && !isAllMaxed ? 'btn-purple' : 'btn-secondary'} btn-sm`}
+                    style={{
+                      width: '100%',
+                      background: unstableSoulFragments >= 10 && !isAllMaxed 
+                        ? 'linear-gradient(135deg, #a78bfa, #7c3aed)' 
+                        : undefined,
+                      color: '#fff',
+                      boxShadow: unstableSoulFragments >= 10 && !isAllMaxed 
+                        ? '0 0 10px rgba(167, 139, 250, 0.4)' 
+                        : undefined,
+                      height: '2.2rem',
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem',
+                      cursor: unstableSoulFragments >= 10 && !isAllMaxed ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    {isAllMaxed 
+                      ? '✨ Todas as Relíquias no Nível Máximo' 
+                      : unstableSoulFragments < 10 
+                        ? `Requer 10 Fragmentos (Você tem ${unstableSoulFragments})`
+                        : '🔮 Canalizar Alma (10 Fragmentos)'
+                    }
+                  </button>
+
+                  {forgeResult && (
+                    <div style={{
+                      marginTop: '0.5rem',
+                      padding: '0.5rem',
+                      background: 'rgba(16,185,129,0.15)',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.68rem',
+                      color: '#34d399',
+                      textAlign: 'center',
+                      animation: 'fadeIn 0.3s ease-out'
+                    }}>
+                      {forgeResult}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Relíquias */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {Object.values(relics).map((relic) => {
+                  const isLocked = relic.level === 0;
+                  const isMaxed = relic.level === relic.maxLevel;
+                  
+                  // Escolhe um ícone/emoji representativo
+                  let icon = '🔮';
+                  if (relic.id === 'luz_alma') icon = '⚔️';
+                  if (relic.id === 'moeda_ciclo') icon = '🪙';
+                  if (relic.id === 'simbolo_aprendizado') icon = '📚';
+
+                  return (
+                    <div
+                      key={relic.id}
+                      style={{
+                        background: isLocked 
+                          ? 'rgba(30, 41, 59, 0.2)' 
+                          : 'linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(124, 58, 237, 0.04) 100%)',
+                        border: isLocked 
+                          ? '1px solid rgba(255,255,255,0.05)' 
+                          : isMaxed
+                            ? '1px solid rgba(245, 158, 11, 0.35)'
+                            : '1px solid rgba(167, 139, 250, 0.2)',
+                        padding: '0.85rem 1rem',
+                        borderRadius: 'var(--radius-md)',
+                        opacity: isLocked ? 0.6 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      {/* Ícone */}
+                      <div style={{
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        background: isLocked 
+                          ? 'rgba(0,0,0,0.4)' 
+                          : isMaxed
+                            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2))'
+                            : 'linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(124, 58, 237, 0.2))',
+                        border: isLocked
+                          ? '1px solid rgba(255,255,255,0.1)'
+                          : isMaxed
+                            ? '1px solid rgba(245, 158, 11, 0.4)'
+                            : '1px solid rgba(167, 139, 250, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.25rem',
+                        boxShadow: isLocked ? 'none' : isMaxed ? '0 0 8px rgba(245, 158, 11, 0.3)' : '0 0 8px rgba(167, 139, 250, 0.2)',
+                      }}>
+                        {icon}
+                      </div>
+
+                      {/* Conteúdo */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: isLocked ? '#94a3b8' : isMaxed ? 'var(--gold-400)' : '#fff'
+                          }}>
+                            {relic.name}
+                          </span>
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 'bold',
+                            color: isLocked ? '#64748b' : isMaxed ? 'var(--gold-400)' : '#c4b5fd'
+                          }}>
+                            {isLocked ? 'Bloqueado' : isMaxed ? 'MÁXIMO' : `Nível ${relic.level}/${relic.maxLevel}`}
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '0.65rem', color: '#cbd5e1', margin: 0 }}>
+                          {relic.description}
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.15rem' }}>
+                          <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
+                            Bônus Atual: <strong style={{ color: isLocked ? '#64748b' : '#34d399' }}>+{relic.level * 3}%</strong>
+                          </span>
+                          
+                          {/* Progresso visual (estrelas/bolinhas) */}
+                          <div style={{ display: 'flex', gap: '0.2rem' }}>
+                            {[1, 2, 3].map((star) => {
+                              const active = relic.level >= star;
+                              return (
+                                <span
+                                  key={star}
+                                  style={{
+                                    fontSize: '0.65rem',
+                                    color: active 
+                                      ? isMaxed ? '#fbbf24' : '#c084fc' 
+                                      : '#374151',
+                                    textShadow: active 
+                                      ? isMaxed ? '0 0 4px rgba(251,191,36,0.6)' : '0 0 4px rgba(192,132,252,0.6)' 
+                                      : 'none'
+                                  }}
+                                >
+                                  ★
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

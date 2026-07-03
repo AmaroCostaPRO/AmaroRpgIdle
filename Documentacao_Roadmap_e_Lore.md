@@ -47,22 +47,30 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 | **Guerreiro** | O Eco da Vontade | A teimosia e resistência de nunca aceitar a derrota. |
 | **Mago** | O Eco do Pensamento | A curiosidade que busca compreender o universo, queimando tudo ao redor. |
 | **Arqueiro** | O Eco da Precisão | A percepção à distância que aprendeu a atingir o perigo antes de ser tocada. |
-| **Paladino** | O Eco da Devoção | A fusão da Vontade e do Instinto para proteger os outros cacos. |
-| **Clérigo** | O Eco da Compaixão | A fusão do Pensamento e da Vontade, entendendo que para durar é preciso curar. |
-| **Ladrão** | O Eco da Sobrevivência | O Instinto de preservação puro, que enxerga brechas e oportunidades no caos. |
-| **Necromante** *(v4.0.0)* | O Eco da Reivindicação | A fusão do Pensamento e da Precisão, dominando o próprio vazio para reerguer os mortos. |
-| **Avatar** *(v5.0.0)* | A Alma Unificada | O caco que transcendeu e uniu todas as facetas em uma forma integrada. |
+| **Paladino** | O Eco da Devoção | A fusão da Vontade e do Instinto para proteger os outros cacos (Evolução do Guerreiro). |
+| **Clérigo** | O Eco da Compaixão | A fusão do Pensamento e da Vontade, entendendo que para durar é preciso curar (Evolução do Mago). |
+| **Ladrão** | O Eco da Sobrevivência | O Instinto de preservação puro, que enxerga brechas e oportunidades no caos (Evolução do Arqueiro). |
+| **Necromante** *(v4.0.0)* | O Eco da Reivindicação | A fusão do Pensamento e da Precisão, dominando o próprio vazio para reerguer os mortos (Classe Avançada). |
+| **Avatar** *(v5.0.0)* | A Alma Unificada | O caco que transcendeu e uniu todas as facetas em uma forma integrada (Classe de Prestígio Suprema). |
+
+Esta relação justifica narrativamente a regra de que classes avançadas exigem Nível 10 em classes primárias: a evolução de poder acompanha a fusão de diferentes Ecos da Alma-Mundo.
+
+### 1.3 Onde a Lore Aparece no Jogo
+Para manter a imersão sem sobrecarregar a jogabilidade ou exigir novos motores visuais:
+*   **Modal de Introdução**: Exibido uma única vez ao iniciar um novo save slot pela primeira vez, reaproveitando o padrão visual de modal do inventário.
+*   **Sub-aba "Crônicas"**: Inserida no painel de Guia, contendo o texto mestre e registros de progressão.
+*   **Falas do Bestiário**: Adição de 1 a 2 linhas narrativas no detalhe de cada monstro indicando o que ele representa na distorção do vazio.
 
 ---
 
 ## 2. Linha do Tempo e Roadmap das Versões
 
 ```
-[v3.6.0] (Atual)
+[v3.7.0] (Atual)
    │
    ├──► [v3.5.0] Elites do Vazio (Monstros com afixos + Lore no Bestiário) [IMPLEMENTADO]
    ├──► [v3.6.0] Trilha da Ascensão (Desafios Diários + Recordes) [IMPLEMENTADO]
-   ├──► [v3.7.0] Ecos Instáveis (Sistema básico de Relíquias + useRelicStore) [PLANEJADO]
+   ├──► [v3.7.0] Ecos Instáveis (Sistema básico de Relíquias + useRelicStore) [IMPLEMENTADO]
    │
 [v4.0.0] O Purgatório e as Relíquias (Major Update) [PLANEJADO]
    │   ├── Novo Território: Purgatório (Fases 21-30) e Chefe de 2 Fases
@@ -79,6 +87,19 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
        ├── Classe Suprema: Avatar (Escala com o maior atributo dinâmico)
        └── Codex de Lendas Completo (Integração de 40+ Conquistas)
 ```
+
+### 2.1 Visão Geral do Alinhamento Narrativo
+
+| Versão | Tipo | Tema | Amarração com a Lore | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **3.5.0** | Menor | Elites e Afixos de Monstros | O vazio começa a "aprender" a imitar os heróis. | `[IMPLEMENTADO]` |
+| **3.6.0** | Menor | Desafios Diários e Recordes | O ciclo de Ascensão ganha marcos mensuráveis. | `[IMPLEMENTADO]` |
+| **3.7.0** | Menor | Relíquias (prévia) | Primeiros cacos de Alma "estranhos" começam a cair. | `[IMPLEMENTADO]` |
+| **4.0.0** | Grande | O Purgatório e as Relíquias | O vazio entre os cacos ganha um nome e um território. | `[PLANEJADO]` |
+| **4.1.0** | Menor | Torre Infinita | Um teste vertical e isolado da própria Alma. | `[PLANEJADO]` |
+| **4.2.0** | Menor | Sets Celestiais e Refinamento de Forja | Memórias de uma vida ainda não vivida. | `[PLANEJADO]` |
+| **4.3.0** | Menor | Codex de Lendas (prévia) | O jogo começa a registrar a própria história do jogador. | `[PLANEJADO]` |
+| **5.0.0** | Grande | Transcendência e o Segundo Ciclo | A Alma-Mundo descobre que já se partiu antes. | `[PLANEJADO]` |
 
 ---
 
@@ -110,7 +131,7 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
     *   Registra: Maior fase alcançada, maior quantidade de PP ganho em um único reset, menor tempo de run até a Fase 20, e número total de Ascensões.
     *   *Toasts* dourados personalizados ao quebrar recordes locais baseados no fuso horário do usuário.
 
-### 3.3 Versão 3.7.0 — "Ecos Instáveis"
+### 3.3 Versão 3.7.0 — "Ecos Instáveis" [IMPLEMENTADO]
 *   **Sistema de Relíquias (Protótipo)**:
     *   Introdução dos **Fragmentos de Alma Instável** como recompensa do Desafio Diário e drop raro ($5\%$) de Chefes de Fase.
     *   Forja de Relíquias no Altar de Alma a um custo de $10$ Fragmentos por tentativa.
@@ -118,26 +139,30 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
         1.  *Luz da Alma Partida*: $+3\%$ Dano Geral por nível.
         2.  *Moeda do Ciclo Eterno*: $+3\%$ Ouro Ganho por nível.
         3.  *Símbolo do Aprendizado*: $+3\%$ Chance de Drop por nível.
-*   **Arquitetura Técnica**:
-    *   Criação do slice de estado isolado `useRelicStore` para gerenciar a lista de relíquias desbloqueadas, níveis atuais e contagem de fragmentos, garantindo a integridade dos dados durante resets de Ascensão comuns.
 
 ---
 
 ## 4. Versão 4.0.0 — "O Purgatório e as Relíquias" (Major Update)
 
-### 4.1 Novo Território: O Purgatório (Fases 21–30)
+### 4.1 Pilar Narrativo
+O vazio entre os cacos da Alma-Mundo finalmente ganha um nome: o **Purgatório** — uma camada entre a Fase 20 (fim do Apocalipse) e o loop infinito do Pandemônio, onde os cacos perdidos de vidas passadas do herói (as **Relíquias**) podem ser recuperados antes de ele decidir mergulhar de vez no Pandemônio.
+
+### 4.2 Novo Território: O Purgatório (Fases 21–30)
 *   **Posicionamento**: O Purgatório substitui a transição imediata da Fase 20 para o Pandemônio. Ao vencer o chefe da Fase 20, o jogador entra no Purgatório.
+*   **Estrutura de Fases**: Novo bloco intermediário de **10 fases fixas e não-aleatórias** (diferente do spawn aleatório do Pandemônio), narrativamente ambientadas em cenários de cristal partido / espelhos quebrados.
 *   **Escalonamento**: HP e Dano dos inimigos escalam em $4.5\times$ sobre a base do Apocalipse (intermediário entre Apocalipse $4.0\times$ e Pandemônio $5.0\times$).
 *   **Identidade Visual**: Tons de cristal lilás e cinza, simulando espelhos quebrados.
+*   **Gatilho de Progressão**: Concluir o Purgatório pela primeira vez é o novo requisito e gatilho para desbloquear o Modo Pandemônio (substituindo o requisito direto de Fase 20).
 *   **Chefe Final (Fase 30) - "O Guardião dos Cacos"**:
     *   Primeiro chefe com duas fases distintas de combate.
     *   *Fase 1 (100% a 50% HP)*: Combate físico e uso de atordoamentos.
     *   *Fase 2 (Abaixo de 50% HP)*: O chefe se divide ou entra em estado de Fúria Arcana (+50% velocidade de ataque, mudando a textura para um aspecto cristalino brilhante e conjurando relâmpagos contínuos de dano mágico).
-    *   Derrotar este chefe pela primeira vez libera o acesso ao Modo Pandemônio.
 
-### 4.2 Expansão do Sistema de Relíquias
-*   Expansão de 3 para **8 Relíquias** totais, com o Nível Máximo elevado de 3 para **5**.
-*   **Efeito Capstone (Nível 5)**: Além dos atributos lineares, atingir o nível máximo em uma relíquia concede uma passiva única:
+### 4.3 Expansão do Sistema de Relíquias (Versão Completa)
+*   **Total de Relíquias**: Expansão de 3 para **8 Relíquias** totais, com o Nível Máximo de cada uma elevado de 3 para **5**.
+*   **Drops de Fragmentos**: Além do Desafio Diário, Fragmentos de Alma Instável agora também dropam de chefes de fases normais da campanha (múltiplos de 5), tornando o sistema viável para quem não faz os desafios diários.
+*   **Nova Interface Dedicada**: Criação de uma aba dedicada "Relíquias" no menu principal (substituindo o acesso apenas pela árvore de prestígio/Altar de Alma), com grade visual informativa e estatísticas de progresso parecidas com a aba de Bestiário.
+*   **Efeito Capstone (Nível 5)**: Além dos atributos lineares normais dos níveis 1 a 4, atingir o nível máximo (5) em uma relíquia concede uma passiva única e poderosa:
 
 | Relíquia | Bônus por Nível (1-4) | Efeito de Nível 5 (Capstone) |
 | :--- | :--- | :--- |
@@ -150,9 +175,10 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 | **Brasão da Devoção** | $+6$ Constituição | Concede $+2\%$ de HP máximo como barreira no início do combate |
 | **Olho da Sobrevivência** | $+4$ Sorte | Reduz o cooldown da habilidade de Cura em 1.5s |
 
-### 4.3 Nova Classe Secundária: Necromante (`Necromancer`)
-*   **Desbloqueio**: Requer **Nível 10 simultâneo** em Guerreiro e Mago.
-*   **Atributo Principal**: Magia | **Atributo Secundário**: Sorte.
+### 4.4 Nova Classe Secundária: Necromante (`Necromancer`)
+*   **Requisito de Desbloqueio**: Requer **Nível 10 simultâneo** em **duas classes primárias diferentes** (ex.: Mago E Arqueiro), representando narrativamente a fusão de dois Ecos da Alma-Mundo.
+*   **Atributo Principal**: Magia | **Atributo Secundário**: Sorte (Primeira classe a usar Sorte para escala de dano secundário).
+*   **Fantasia de Combate (Drenagem e Inversão)**: Em oposição ao Clérigo, o Necromante drena a energia dos monstros para o herói e ressuscita temporariamente o último monstro derrotado como aliado por 10 segundos na Ultimate.
 *   **Habilidade Passiva Única**: O dano das habilidades do Necromante aumenta em $+0.1\%$ para cada $1$ ponto de Sorte.
 *   **Mecânica de Drenagem**: Habilidades com efeito de drenagem de vida curam o herói com escalonamento dinâmico baseado em sua integridade física:
     $$\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível Habilidade}) \rfloor$$
@@ -165,6 +191,23 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
     5.  *Ecos da Tumba* (Passiva - Nível 9): $+5$ de Constituição por nível.
     6.  *Exército de Esqueletos* (Ativa - Nível 11): Conjura dois servos que causam $120\%$ de dano por segundo por 8 segundos.
     7.  *Ceifa das Almas Perdidas* (Ultimate - Nível 15): Causa $1300\%$ de dano mágico de área baseado em Magia e ressuscita o último inimigo derrotado como um lacaio aliado temporário que desfere ataques básicos equivalentes a $100\%$ do dano do Necromante por 10 segundos.
+*   **Equipamentos Próprios (Sets)**:
+    *   **Set do Arauto da Ceifa** (Qualidade Comum/Rara de drop inicial).
+    *   **Set Ancestral do Senhor dos Ecos Perdidos** (Obtido pós-Ascensão via forja/drops).
+    *   **Set Pandemoníaco do Devorador de Almas** (Obtido na dificuldade Pandemônio).
+
+### 4.5 Itens e Economia (v4.0.0)
+*   **Baú de Relíquia na Loja**: Um novo item na Loja comprável com **Ouro** (não em Fragmentos de Alma Instável). Ao ser aberto, ele garante 3 Fragmentos de Alma Instável. Isso provê um sumidouro prático de ouro para jogadores endgame que possuem ouro excedente, mas poucos Fragmentos para aprimorar Relíquias.
+*   **Ajuste de Recompensa de Desafio**: Como agora os chefes da campanha também dropam Fragmentos de Alma Instável de forma passiva, a recompensa de Fragmentos do Desafio Diário é **duplicada (2×)**, garantindo que o desafio mantenha sua primazia e relevância diária.
+
+### 4.6 Resumo de Escopo Técnico da 4.0.0
+
+| Sistema | Está pronto (herdado) | Precisa ser criado |
+| :--- | :--- | :--- |
+| **Fases fixas do Purgatório** | Sistema de fases/tiers (Pesadelo/Inferno/Apocalipse) | Novo bloco de 10 fases + flag `purgatoryCompleted` como requisito |
+| **Chefe com 2 fases** | `CombatFSM` de chefe único tradicional | Máquina de estados de transição por % de HP na FSM |
+| **Relíquias** | `useRelicStore` (protótipo da v3.7.0) | Expansão de 3 para 8 relíquias, nível máximo de 3 para 5, nova aba de UI |
+| **Necromante** | Framework de classes/skill tree/sets | Dados da classe, ícones, lógica de Drenagem no `CombatFSM` e sets |
 
 ---
 
@@ -172,49 +215,58 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 
 ### 5.1 Versão 4.1.0 — "Torre Infinita"
 *   **Mecânica de Subida**:
-    *   Abas alternativas que contêm andares progressivos de combate de escopo fechado.
-    *   **Tensão de Recursos**: O HP e a Mana do herói **não são restaurados** automaticamente entre os andares da torre. Os cooldowns das habilidades persistem de um andar para o outro.
-    *   **Recompensas**: Títulos visuais no painel do personagem e fragmentos de Alma Instável.
-    *   Reset semanal baseado em data local do fuso do usuário.
+    *   **Nova Aba "Torre"**: Adição de um menu dedicado no painel principal, onde o jogador acessa andares verticais e progressivos de combate de escopo fechado. Este modo não consome vidas da campanha e não interfere no progresso de fases da campanha principal.
+    *   **Tensão de Recursos**: O HP e a Mana do herói **não são restaurados** automaticamente entre os andares da torre. Os cooldowns das habilidades persistem de um andar para o outro, exigindo conservação estratégica de mana e habilidades de cura.
+    *   **Recompensas**: Títulos visuais decorativos exibidos no painel do personagem e fragmentos de Alma Instável.
+    *   **Reset Semanal**: A torre e seus andares são resetados semanalmente usando a mesma lógica de semente temporal (*seed*) do Desafio Diário, garantindo novos layouts de andares todas as semanas.
 
 ### 5.2 Versão 4.2.0 — "Memórias Celestiais"
 *   **Sets Celestiais (Tier Superior)**:
-    *   Disponíveis no drop apenas após derrotar o chefe da Fase 30 do Purgatório pela segunda vez.
+    *   Disponíveis no drop apenas após derrotar o chefe da Fase 30 do Purgatório pela segunda vez em diante.
     *   **Multiplicador de Atributo**: $6.0\times$ (superior aos $4.5\times$ dos Sets Ancestrais).
     *   **Forja Expandida**: O limite de nível místico na forja aumenta de +5 para **+8**. A curva de custo segue a fórmula:
         $$\text{Custo Místico} = 100 \times 5^{L}\text{ Ouro para } L \ge 5$$
-*   **Polimento de UX**: Interface de visualização lado a lado dos itens sacrificados e do item resultante estimado antes da fusão.
+*   **Polimento de UX da Forja**: Substituição do antigo painel estático de resultado estimado por uma interface de visualização lado a lado. Agora exibe em tempo real o item resultante da fusão comparado diretamente com os dois itens sacrificados no inventário.
 
 ### 5.3 Versão 4.3.0 — "Primeiras Páginas do Codex"
 *   **Codex (Protótipo)**:
-    *   Inserção do menu visual com as crônicas do personagem e o registro cronológico de conquistas locais do jogador.
+    *   Inserção de uma sub-aba "Codex" no menu de Guia/Crônicas, com o registro cronológico de conquistas locais do jogador (ex.: primeira Ascensão realizada, classe Necromante desbloqueada, Pandemônio ativo).
+    *   **Lore Adicional**: Cada conquista desbloqueada revela um curto parágrafo de lore de imersão sobre a história da Alma-Mundo e as vidas passadas do jogador, sem impacto mecânico de atributos para evitar desbalanceamento.
 
 ---
 
 ## 6. Versão 5.0.0 — "Transcendência e o Segundo Ciclo" (Major Update)
 
-### 6.1 Mecânica da Transcendência (Prestígio Secundário)
-*   **Desbloqueio**: Disponível para personagens que alcançaram a Fase 50 no modo Pandemônio.
+### 6.1 Pilar Narrativo
+> *Você achou que estava se recompondo. Estava apenas repetindo.*
+>
+> *Em algum lugar sob o Pandemônio, uma versão sua de um ciclo esquecido está esperando — não para te deter, mas para te mostrar o que vem depois de "inteiro".*
+
+### 6.2 Mecânica da Transcendência (Prestígio Secundário)
+*   **Requisito de Desbloqueio**: Disponível para personagens que possuem o modo Pandemônio ativo e alcançaram a **Fase 50** no loop infinito pelo menos uma vez.
 *   **O Ritual**: Ao Transcender, o jogador reseta todo o progresso da Ascensão (incluindo níveis de upgrades permanentes comprados com PP, ouro, e inventário), mas recebe os valiosos **Pontos de Transcendência (PT)**.
 *   **Fórmula de PT**:
     $$\text{PT Obtidos} = \lfloor \left( \frac{\text{PP Vitalício Acumulado}}{500} \right)^{0.75} \rfloor$$
-*   **Upgrades Permanentes de Transcendência**:
+*   **Bônus Visual**: A esfera "Alma" no Altar de Alma ganha uma segunda camada dourada ao redor do roxo existente para indicar o prestígio transcendido.
+*   **Upgrades Permanentes de Transcendência (Árvore de PT)**:
     1.  *Eco Permanente*: $+1.5\%$ de todos os atributos globais por nível (Sem limite de nível).
     2.  *Essência Vital*: $+2\%$ HP Máximo e $+2\%$ Mana Máxima por nível.
     3.  *Forja Infinita*: Aumenta a chance de acionar a "Forja Lendária" em $+1\%$ por nível.
     4.  *Domínio do Vazio*: Aumenta o dano causado contra Elites do Vazio em $+10\%$ por nível.
 
-### 6.2 A Zona Espelho: Ecoterra (O Segundo Ciclo)
-*   Após a primeira Transcendência, o jogador pode ativar a **Ecoterra** no início das fases.
-*   As fases de 1 a 20 recebem uma paleta invertida espectral (tingimento azul-neon / ciano).
-*   Monstros da Ecoterra possuem $+30\%$ de Vida e $+20\%$ de Velocidade, mas dropam a valiosa **Essência de Transcendência**, necessária para comprar consumíveis especiais e redefinir talentos na árvore de PT.
+### 6.3 A Zona Espelho: Ecoterra (O Segundo Ciclo)
+*   **Acesso**: Após a primeira Transcendência, o jogador pode ativar a **Ecoterra** no painel de seleção de zonas.
+*   **Revelância de Gameplay**: Pode ser jogada desde a Fase 1 de cada nova Ascensão, dando utilidade imediata e reuso para as fases iniciais com alta dificuldade.
+*   **Estética**: As fases de 1 a 20 recebem uma paleta invertida espectral (tingimento azul-neon / ciano).
+*   **Monstros**: Monstros da Ecoterra possuem $+30\%$ de Vida e $+20\%$ de Velocidade, mas dropam a valiosa **Essência de Transcendência**, necessária para comprar consumíveis especiais e redefinir talentos na árvore de PT.
 *   **Debuff Contínuo — Instabilidade da Alma**:
     Devido à distorção temporal do ciclo espelhado na Ecoterra, o herói é penalizado com debuffs ambientais constantes enquanto estiver nesta zona:
     *   **Drenagem de Mana**: Perda contínua de $1.5\%$ da Mana Máxima por segundo.
     *   **Erosão Temporal**: O tempo de recarga (cooldown) de todas as habilidades ativas é aumentado em $+15\%$.
 
-### 6.3 Classe Suprema: Avatar (`Avatar`)
-*   **Desbloqueio**: Concedido automaticamente ao acumular $10$ Pontos de Transcendência.
+### 6.4 Classe Suprema: Avatar (`Avatar`)
+*   **Desbloqueio**: Concedido automaticamente ao acumular **10 Pontos de Transcendência (PT)** permanentes, independente do histórico ou níveis de outras classes.
+*   **Conceito**: É uma classe de prestígio, não possuindo árvore de talentos tradicional. O jogador foca em maximizar seus atributos via Relíquias e Transcendência.
 *   **Fórmula de Dano Única**: O Avatar não possui atributo principal. Todo o seu dano escala dinamicamente a partir do **Maior Atributo Ativo** do herói no momento do tick de dano:
     $$\text{Atributo Efetivo} = \max(\text{Strength}, \text{Magic}, \text{Dexterity}, \text{Constitution}, \text{Luck})$$
 *   **Habilidades de Combate**:
@@ -224,6 +276,23 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
         3.  *Coro da Alma Inteira* (Ultimate): Canaliza o poder de todos os cacos, causando dano imediato de:
             $$\text{Dano do Coro} = (\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 5.0$$
             *Cooldown: 60s | Mana: 100*
+*   **Equipamentos Próprios (Sets)**:
+    *   **Set do Avatar Celestizado** (Qualidade Comum/Rara de drop na Ecoterra).
+    *   **Set Ancestral da Totalidade** (Obtido via fusão de forja).
+    *   **Set Pandemoníaco do Eco Supremo** (Tier máximo de Pandemônio pós-Transcendência).
+
+### 6.5 Codex de Lendas (Versão Completa)
+*   **Expansão do Protótipo**: O Codex agora contém mais de 40 conquistas narrativas de fim de jogo.
+*   **Recompensa de Completude**: Ao desbloquear todas as conquistas do Codex de Lendas, o jogador recebe o título cosmético permanente **"Guardião do Ciclo Completo"** em dourado sob o nome do personagem, sem ganho de poder mecânico.
+
+### 6.6 Resumo de Escopo Técnico da 5.0.0
+
+| Sistema | Está pronto (herdado) | Precisa ser criado |
+| :--- | :--- | :--- |
+| **Mecânica de Transcendência** | Base de PP e resets da Ascensão | Nova moeda PT, árvore de upgrades de Transcendência, reset estendido |
+| **Zona Ecoterra** | Framework de zonas de campanha | Efeitos de tintura de tela (Phaser), debuffs ambientais e drop de Essência |
+| **Classe Avatar** | Sistema de classes comuns | Lógica de `StatEngine` para recálculo do maior atributo no tick, habilidades integradas |
+| **Codex de Lendas** | Protótipo básico da v4.3.0 | 40+ entradas de conquistas e sistema de rastreamento local |
 
 ---
 
@@ -253,6 +322,17 @@ export interface RelicState {
     Adicionar um campo opcional `affixes: string[]` nos monstros instanciados. Na transição do estado do inimigo para ativo, a FSM do combate deve aplicar modificadores temporários aos status do monstro ou injetar callbacks específicos para afixos como *Regenerador* e *Vampírico*.
 *   **Transição de Fase de Chefes**:
     No loop de atualização do `CombatFSM`, verificar o percentual de vida do chefe. Ao cruzar o limiar de 50% pela primeira vez, pausar a animação por 500ms, disparar partículas de explosão no Phaser e atualizar o estado de combate interno do chefe com novos valores de velocidade e dano.
+
+### 7.3 Considerações Finais de Sequenciamento e Riscos
+*   **Riscos da v4.0.0 (O Purgatório e o Guardião)**:
+    A transição do chefe "Guardião dos Cacos" para uma segunda fase a 50% de HP requer um gerenciamento cuidadoso do estado da FSM no `CombatFSM.ts`. Recomenda-se implementar testes automatizados locais que comprovem que efeitos ativos (queimação, veneno, lentidão) persistem ou limpam de forma consistente durante a pausa da transição de 500ms para evitar travamento de ticks de combate.
+*   **Riscos da v5.0.0 (Escalonamento do Avatar)**:
+    Como o Avatar calcula seu dano e efeitos com base no maior atributo ativo, a computação dinâmica do `StatEngine` no tick de ataque do herói pode introduzir micro-gargalos de processamento. Recomenda-se cachear o cálculo do maior atributo por tick de combate, atualizando-o somente quando houver alteração de equipamentos ou ativação de poções/boosts.
+*   **Consistência de Nomenclatura (Imersão de Equipamentos)**:
+    Para manter a consistência com a lore dos Ecos da Alma-Mundo, novos conjuntos de equipamentos devem seguir estritamente o padrão gramatical em português:
+    *   *Sets Comuns*: `"Set do Arauto da Ceifa"`, `"Set do Avatar Celestizado"`.
+    *   *Sets Ancestrais*: `"Set Ancestral do Senhor dos Ecos Perdidos"`, `"Set Ancestral da Totalidade"`.
+    *   *Sets Pandemoníacos*: `"Set Pandemoníaco do Devorador de Almas"`, `"Set Pandemoníaco do Eco Supremo"`.
 
 ---
 

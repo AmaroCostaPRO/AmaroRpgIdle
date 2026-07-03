@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
+import { useRelicStore } from './useRelicStore';
 
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
@@ -1767,6 +1768,18 @@ export const useGameStore = create<GameState>((set) => ({
 
       // Copia o inventário e remove o consumível
       const nextInventory = state.character.inventory.filter(i => i.id !== itemId);
+
+      if (item.consumableType === 'unstable_soul_fragment') {
+        useRelicStore.getState().addFragments(1);
+        
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Fragmento de Alma absorvido! +1 Fragmento no Altar de Alma.' };
+        return { character: updated };
+      }
 
       if (item.consumableType === 'boost_touch') {
         // Ativar Frenesi do Toque por 1 minuto
