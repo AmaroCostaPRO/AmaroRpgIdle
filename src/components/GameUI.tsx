@@ -2084,6 +2084,25 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
   const [subTab, setSubTab] = useState<'tree' | 'trail' | 'relics'>('tree');
 
+  const unstableSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
+  const relics = useRelicStore((state) => state.relics);
+  const forgeRelic = useRelicStore((state) => state.forgeRelic);
+  const [forgeResult, setForgeResult] = useState<string | null>(null);
+
+  const upgradeable = Object.values(relics).filter(r => r.level < r.maxLevel);
+  const isAllMaxed = upgradeable.length === 0;
+
+  const handleForge = () => {
+    AudioManager.getInstance().playClick();
+    const res = forgeRelic();
+    if (res.success) {
+      setForgeResult(res.message);
+      setTimeout(() => setForgeResult(null), 4000);
+    } else {
+      alert(res.message);
+    }
+  };
+
   const availablePrestigePoints = character.prestigePoints;
   const level = character.level;
   const xp = character.xp;
@@ -2286,10 +2305,10 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
               {/* Card de Recordes Pessoais */}
               <div style={{
-                background: 'linear-gradient(135deg, rgba(30,41,59,0.5) 0%, rgba(15,23,42,0.5) 100%)',
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(76,29,149,0.08) 100%)',
                 padding: '1.25rem',
                 borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-dim)',
+                border: '1px solid rgba(124,58,237,0.25)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem'
@@ -2322,25 +2341,6 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
         })()
       ) : subTab === 'relics' ? (
         (() => {
-          const unstableSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
-          const relics = useRelicStore((state) => state.relics);
-          const forgeRelic = useRelicStore((state) => state.forgeRelic);
-          const [forgeResult, setForgeResult] = useState<string | null>(null);
-
-          const upgradeable = Object.values(relics).filter(r => r.level < r.maxLevel);
-          const isAllMaxed = upgradeable.length === 0;
-
-          const handleForge = () => {
-            AudioManager.getInstance().playClick();
-            const res = forgeRelic();
-            if (res.success) {
-              setForgeResult(res.message);
-              setTimeout(() => setForgeResult(null), 4000);
-            } else {
-              alert(res.message);
-            }
-          };
-
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }} className="animate-tabFade">
               {/* Card Central do Altar */}
