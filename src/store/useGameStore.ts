@@ -1510,6 +1510,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Itens não encontrados no inventário.' };
         return state;
       }
+      if (item1.slot === 'consumable' || item2.slot === 'consumable') {
+        result = { success: false, message: 'Consumíveis não podem ser forjados.' };
+        return state;
+      }
       if (item1.slot !== item2.slot) {
         result = { success: false, message: 'Os itens devem ser do mesmo tipo/slot.' };
         return state;
