@@ -41,6 +41,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('snow_background', 'assets/snow_background.png');
     this.load.image('cemetery_background', 'assets/cemetery_background.png');
     this.load.image('ruins_background', 'assets/ruins_background.png');
+    this.load.image('purgatory_background', 'assets/purgatory_background.png');
     this.load.image('hero', 'assets/hero_sprite.png');
     this.load.image('mage_sprite', 'assets/mage_sprite.png');
     this.load.image('ranger_sprite', 'assets/ranger_sprite.png');
@@ -75,6 +76,11 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('enemy_living_armor', 'assets/enemy_living_armor.png');
     this.load.image('enemy_imp', 'assets/enemy_imp.png');
     this.load.image('boss_archdemon', 'assets/boss_archdemon.png');
+    this.load.image('boss_crystal_guardian', 'assets/boss_crystal_guardian.png');
+    this.load.image('boss_mirror_guardian', 'assets/boss_mirror_guardian.png');
+    this.load.image('enemy_glass_shard', 'assets/enemy_glass_shard.png');
+    this.load.image('enemy_mirror_illusion', 'assets/enemy_mirror_illusion.png');
+    this.load.image('enemy_shadow_reflection', 'assets/enemy_shadow_reflection.png');
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
@@ -164,6 +170,11 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_living_armor', 'enemy_living_armor_transparent');
     this.makeTextureTransparent('enemy_imp', 'enemy_imp_transparent');
     this.makeTextureTransparent('boss_archdemon', 'boss_archdemon_transparent');
+    this.makeTextureTransparent('boss_crystal_guardian', 'boss_crystal_guardian_transparent');
+    this.makeTextureTransparent('boss_mirror_guardian', 'boss_mirror_guardian_transparent');
+    this.makeTextureTransparent('enemy_glass_shard', 'enemy_glass_shard_transparent');
+    this.makeTextureTransparent('enemy_mirror_illusion', 'enemy_mirror_illusion_transparent');
+    this.makeTextureTransparent('enemy_shadow_reflection', 'enemy_shadow_reflection_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -367,15 +378,19 @@ export class CombatScene extends Phaser.Scene {
         if (char) {
           const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
           // Labels e cores por dificuldade
-          const modeLabel = char.currentStage >= 16 ? 'APOCALIPSE'
+          const modeLabel = char.currentStage >= 31 ? 'PANDEMÔNIO'
+            : (char.currentStage >= 21 && char.currentStage <= 30) ? 'PURGATÓRIO'
+            : char.currentStage >= 16 ? 'APOCALIPSE'
             : char.currentStage >= 11 ? 'INFERNO'
             : char.currentStage >= 6 ? 'PESADELO' : 'FASE';
-          const modeColor = char.currentStage >= 16 ? '#c084fc'
+          const modeColor = char.currentStage >= 31 ? '#f43f5e'
+            : (char.currentStage >= 21 && char.currentStage <= 30) ? '#d8b4fe'
+            : char.currentStage >= 16 ? '#c084fc'
             : char.currentStage >= 11 ? '#fb923c'
             : char.currentStage >= 6 ? '#f43f5e' : '#f59e0b';
           if (isBoss) {
             this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
-            this.stageText.setColor('#c084fc');
+            this.stageText.setColor(char.currentStage >= 31 ? '#f43f5e' : char.currentStage >= 21 ? '#d8b4fe' : '#c084fc');
           } else {
             this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/${ENEMIES_PER_STAGE}`);
             this.stageText.setColor(modeColor);
@@ -459,12 +474,16 @@ export class CombatScene extends Phaser.Scene {
     const stage = char.currentStage;
     let textureKey = 'background'; // Default: Floresta
     
-    // Mapeamento de fase para background (ciclos de 1-5)
-    const stageTheme = ((stage - 1) % 5) + 1;
-    if (stageTheme === 2) textureKey = 'desert_background';
-    else if (stageTheme === 3) textureKey = 'snow_background';
-    else if (stageTheme === 4) textureKey = 'cemetery_background';
-    else if (stageTheme === 5) textureKey = 'ruins_background';
+    if (stage >= 21 && stage <= 30) {
+      textureKey = 'purgatory_background';
+    } else {
+      // Mapeamento de fase para background (ciclos de 1-5)
+      const stageTheme = ((stage - 1) % 5) + 1;
+      if (stageTheme === 2) textureKey = 'desert_background';
+      else if (stageTheme === 3) textureKey = 'snow_background';
+      else if (stageTheme === 4) textureKey = 'cemetery_background';
+      else if (stageTheme === 5) textureKey = 'ruins_background';
+    }
 
     if (this.currentBgTexture !== textureKey) {
       console.log(`[CombatScene] Atualizando background para: ${textureKey}`);
@@ -473,20 +492,36 @@ export class CombatScene extends Phaser.Scene {
       const baseBgScale = 600 / 1024;
       const currentBgScale = baseBgScale * ZOOM_FACTOR;
       this.background.setTileScale(currentBgScale, currentBgScale);
-      this.background.tilePositionY = 1024 - (600 / currentBgScale);
+      
+      // Ajuste fino do Y para posicionar o chão um pouco mais para baixo no Purgatório
+      if (textureKey === 'purgatory_background') {
+        // Aumentar ligeiramente o offset vertical faz a imagem de fundo subir, 
+        // deslocando o chão em pixels para baixo em relação aos sprites dos heróis.
+        this.background.tilePositionY = 1024 - (600 / currentBgScale) + 40;
+      } else {
+        this.background.tilePositionY = 1024 - (600 / currentBgScale);
+      }
     }
 
     // Aplicar tint de acordo com a dificuldade
-    if (stage >= 16) {
-      // Apocalipse: roxo sinistro
+    if (stage >= 31) {
+      // Pandemônio: Caótico vermelho/rosa do Vazio
+      this.background.setTint(0x550022);
+      if (this.enemyBody) this.enemyBody.setTint(0xff88aa);
+    } else if (stage >= 21 && stage <= 30) {
+      // Purgatório: Sem distorções para preservar a identidade visual cristalina gerada
+      this.background.clearTint();
+      if (this.enemyBody) this.enemyBody.clearTint();
+    } else if (stage >= 16) {
+      // Apocalipse: Roxo sinistro
       this.background.setTint(0x440066);
       if (this.enemyBody) this.enemyBody.setTint(0xdd88ff);
     } else if (stage >= 11) {
-      // Inferno: laranja queimado
+      // Inferno: Laranja queimado
       this.background.setTint(0x661100);
       if (this.enemyBody) this.enemyBody.setTint(0xff8844);
     } else if (stage >= 6) {
-      // Pesadelo: vermelho escuro
+      // Pesadelo: Vermelho escuro
       this.background.setTint(0x773333);
       if (this.enemyBody) this.enemyBody.setTint(0xff9999);
     } else {

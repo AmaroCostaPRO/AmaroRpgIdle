@@ -1,4 +1,5 @@
 import { BaseStats, Character, EquipmentItem } from '../core/types';
+import { useRelicStore } from '../store/useRelicStore';
 
 export const SET_BONUSES: Record<string, {
   name: string;
@@ -170,6 +171,33 @@ export const SET_BONUSES: Record<string, {
       3: { strength: 300, luck: 150 },
       5: { dexterity: 600 }
     }
+  },
+  'Set do Arauto da Ceifa': {
+    name: 'Set do Arauto da Ceifa',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 15 },
+      3: { constitution: 20 },
+      5: { magic: 35 }
+    }
+  },
+  'Set Ancestral do Senhor dos Ecos Perdidos': {
+    name: 'Set Ancestral do Senhor dos Ecos Perdidos',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 80 },
+      3: { constitution: 100, luck: 50 },
+      5: { magic: 200 }
+    }
+  },
+  'Set Pandemoníaco do Devorador de Almas': {
+    name: 'Set Pandemoníaco do Devorador de Almas',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
+    }
   }
 };
 
@@ -237,6 +265,20 @@ export class StatEngine {
           }
         }
       });
+    }
+
+    // 2.5. Somar atributos das relíquias
+    try {
+      const relicsState = useRelicStore.getState();
+      const getRelicLvl = (id: string) => relicsState.relics[id]?.level || 0;
+
+      finalStats.strength += getRelicLvl('gema_vontade') * 4;
+      finalStats.magic += getRelicLvl('nucleo_pensamento') * 4;
+      finalStats.dexterity += getRelicLvl('foco_precisao') * 4;
+      finalStats.constitution += getRelicLvl('brasao_devoacao') * 6;
+      finalStats.luck += getRelicLvl('olho_sobrevivencia') * 4;
+    } catch (e) {
+      console.error('Erro ao somar atributos das relíquias:', e);
     }
 
     // 3. Aplicar bônus do atributo Sorte (Luck) na chance e dano de crítico de toque

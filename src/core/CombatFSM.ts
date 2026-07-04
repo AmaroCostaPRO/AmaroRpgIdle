@@ -254,6 +254,55 @@ export const ENEMY_TYPES: EnemyType[] = [
     color: '#f43f5e',
     flipX: false,
     yOffset: 0
+  },
+  // === FASE 6: Purgatório (Fases 21-30) ===
+  {
+    id: 'purgatory_specter',
+    name: 'Espectro do Purgatório',
+    texture: 'enemy_shadow_reflection',
+    hpMultiplier: 3.8,
+    damageMultiplier: 3.2,
+    attackSpeedMultiplier: 1.2,
+    xpValue: 500,
+    color: '#e9d5ff',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'lost_soul',
+    name: 'Alma Perdida',
+    texture: 'enemy_mirror_illusion',
+    hpMultiplier: 4.2,
+    damageMultiplier: 2.8,
+    attackSpeedMultiplier: 1.0,
+    xpValue: 550,
+    color: '#a5f3fc',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'crystal_shatterer',
+    name: 'Quebrador de Cristais',
+    texture: 'enemy_glass_shard',
+    hpMultiplier: 4.6,
+    damageMultiplier: 3.5,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 600,
+    color: '#f472b6',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'boss_crystal_guardian',
+    name: 'Guardião dos Cacos',
+    texture: 'boss_crystal_guardian',
+    hpMultiplier: 8.0,
+    damageMultiplier: 4.5,
+    attackSpeedMultiplier: 1.1,
+    xpValue: 2500,
+    color: '#38bdf8',
+    flipX: false,
+    yOffset: 0
   }
 ];
 
@@ -266,7 +315,7 @@ export enum CombatState {
 }
 
 export interface StatusEffect {
-  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed';
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon';
   name: string;
   duration: number; // em ms
   tickTimer: number; // em ms
@@ -317,6 +366,11 @@ export class CombatFSM {
   private lastTapTimestamp: number = 0;
   private robotTapTimer: number = 0;
   private creepingPoisonTimer: number = 0;
+  private crystalGuardianSecondPhase: boolean = false;
+  private lastCommonEnemyDefeated: any = null;
+  private summonedAlly: any = null;
+  private summonedAllyTimer: number = 0;
+  private summonedAllyAttackCooldown: number = 0;
 
   // Métodos auxiliares de balanceamento de atributos por classe
   private calculatePlayerMaxHP(constitution: number, hpBoost: number, classId: string): number {
@@ -378,28 +432,59 @@ export class CombatFSM {
     this.enemyEffects = [];
     this.playerEffects = [];
     this.enemyLevel = stage;
+    this.crystalGuardianSecondPhase = false; // Reset da flag da segunda fase
+    this.summonedAlly = null;
+    this.summonedAllyTimer = 0;
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
-    const theme = ((stage - 1) % 5) + 1;
 
     // Multiplicador de HP/Dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
-    const hpBoost = stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 18.0× | Pandemônio (31+): 22.0×
+    const hpBoost = stage >= 31 ? 22.0 : stage >= 21 ? 18.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.50x por fase)
     const difficultyScale = Math.pow(1.50, stage - 1);
 
-    if (stage >= 21) {
-      // No Pandemônio, todos os inimigos podem aparecer aleatoriamente
-      const randIndex = Math.floor(Math.random() * ENEMY_TYPES.length);
-      this.currentEnemy = ENEMY_TYPES[randIndex];
+    if (stage >= 31) {
+      // No Pandemônio, todos os inimigos comuns podem aparecer aleatoriamente
+      const nonBossEnemies = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_'));
+      const randIndex = Math.floor(Math.random() * nonBossEnemies.length);
+      this.currentEnemy = nonBossEnemies[randIndex];
       if (isBoss) {
+        // Boss aleatório no Pandemônio
+        const bossEnemies = ENEMY_TYPES.filter(e => e.id.startsWith('boss_'));
+        const randBossIndex = Math.floor(Math.random() * bossEnemies.length);
+        this.currentEnemy = bossEnemies[randBossIndex];
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
         console.log(`[CombatFSM] Pandemônio BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP}`);
       } else {
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       }
       this.enemyHP = this.enemyMaxHP;
+    } else if (stage >= 21 && stage <= 30) {
+      // Purgatório: fases fixas
+      if (isBoss) {
+        if (stage === 30) {
+          // Guardião dos Cacos
+          this.currentEnemy = ENEMY_TYPES.find(e => e.id === 'boss_crystal_guardian') || ENEMY_TYPES[ENEMY_TYPES.length - 1];
+        } else {
+          // Outros chefes para fases 21-29 do Purgatório (cíclico dos chefes normais)
+          const bossIds = ['boss_forest_golem', 'boss_sand_scorpion', 'boss_frost_dragon', 'boss_necromancer', 'boss_archdemon'];
+          const idx = (stage - 21) % bossIds.length;
+          this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossIds[idx]) || ENEMY_TYPES[0];
+        }
+        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+      } else {
+        // Monstros comuns do Purgatório
+        const purgatoryEnemies = ENEMY_TYPES.filter(e => ['purgatory_specter', 'lost_soul', 'crystal_shatterer'].includes(e.id));
+        const randIndex = defeatedInStage % purgatoryEnemies.length;
+        this.currentEnemy = purgatoryEnemies[randIndex];
+        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
+      }
+      this.enemyHP = this.enemyMaxHP;
+      const label = isBoss ? 'CHEFE' : 'COMUM';
+      console.log(`[CombatFSM] Purgatório ${label} ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP}`);
     } else if (isBoss) {
+      const theme = ((stage - 1) % 5) + 1;
       let bossId = 'boss_forest_golem';
       if (theme === 2) bossId = 'boss_sand_scorpion';
       else if (theme === 3) bossId = 'boss_frost_dragon';
@@ -412,6 +497,7 @@ export class CombatFSM {
       const diffLabel = stage >= 16 ? 'Apocalipse' : stage >= 11 ? 'Inferno' : stage >= 6 ? 'Pesadelo' : 'Normal';
       console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Dificuldade: ${diffLabel})`);
     } else {
+      const theme = ((stage - 1) % 5) + 1;
       let commonIds: string[] = [];
       if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
       else if (theme === 2) commonIds = ['sand_serpent', 'desert_bandit', 'desert_scorpion'];
@@ -481,7 +567,12 @@ export class CombatFSM {
     if (this.enemyLevel !== char.currentStage || hasPrestigeReset) {
       this.enemyLevel = char.currentStage;
       this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
-      this.playerHP = this.playerMaxHP;
+      const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+      if (devocaoLvl === 5) {
+        this.playerHP = Math.floor(this.playerMaxHP * 1.02);
+      } else {
+        this.playerHP = this.playerMaxHP;
+      }
       this.playerMana = this.playerMaxMana;
       this.currentState = CombatState.IDLE;
       this.skillCooldowns = {};
@@ -495,6 +586,35 @@ export class CombatFSM {
 
   public update(delta: number): void {
     if (this.currentState === CombatState.DEAD) return;
+
+    // Processamento do servo ressuscitado (Necromancia)
+    if (this.summonedAlly && this.summonedAllyTimer > 0) {
+      this.summonedAllyTimer -= delta;
+      if (this.summonedAllyTimer <= 0) {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 O servo ressuscitado de ${this.summonedAlly.name} retornou ao descanso eterno.` });
+        this.summonedAlly = null;
+      } else {
+        this.summonedAllyAttackCooldown -= delta;
+        if (this.summonedAllyAttackCooldown <= 0 && this.enemyHP > 0) {
+          const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
+          const dmgBoost = this.enemyLevel >= 31 ? 22.0 : this.enemyLevel >= 21 ? 18.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
+          let summonDmg = Math.floor((10 + this.enemyLevel * 4.0) * dmgScale * this.summonedAlly.damageMultiplier * dmgBoost);
+          
+          if (this.characterData && this.characterData.classId === 'necromancer') {
+            const luckBonus = 1 + (this.playerFinalStats.luck * 0.001);
+            summonDmg = Math.floor(summonDmg * luckBonus);
+          }
+          
+          this.damageEnemy(summonDmg, false);
+          this.summonedAllyAttackCooldown = 1500;
+          
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, `-${summonDmg} (${this.summonedAlly.name})`, '#a855f7');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Seu servo ${this.summonedAlly.name} atacou o inimigo e causou ${summonDmg} de dano!` });
+        }
+      }
+    }
 
     // Atualização de Frenesi
     if (this.isFrenzyActive) {
@@ -552,7 +672,8 @@ export class CombatFSM {
     // Recuperação de HP/Mana baseada em atributos e balanceada por classe
     const classId = this.characterData?.classId || 'warrior';
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
-    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * (delta / 1000)));
+    const regenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5 ? 1.15 : 1.0;
+    this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * regenPctBoost * (delta / 1000)));
 
     // Processamento do afixo diário Veneno Rastejante (perde 1% do HP máximo a cada 1.5s)
     if (this.characterData.activeDailyChallenge) {
@@ -625,7 +746,19 @@ export class CombatFSM {
     // Processar e atualizar durações de efeitos de status no jogador
     this.playerEffects = this.playerEffects.filter(effect => {
       effect.duration -= delta;
-      if (effect.duration <= 0) return false;
+      if (effect.duration <= 0) {
+        if (effect.id === 'bone_shield') {
+          const constVal = this.playerFinalStats.constitution || 0;
+          const levelMultiplier = effect.value;
+          const boneShieldDmg = Math.floor(1.50 * constVal * levelMultiplier * 3.0);
+          this.damageEnemy(boneShieldDmg, false);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${boneShieldDmg} (Escudo Ósseo)`, '#7c3aed');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Seu Escudo Ósseo expirou e explodiu causando ${boneShieldDmg} de dano ao inimigo!` });
+        }
+        return false;
+      }
 
       effect.tickTimer -= delta;
       if (effect.tickTimer <= 0) {
@@ -713,7 +846,9 @@ export class CombatFSM {
     
     const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
     const ascensionCount = char.ascensionCount || 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.01);
+    const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
+    const precisionSpeedBoost = relicLvlFoco === 5 ? 0.05 : 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost));
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
 
@@ -792,14 +927,16 @@ export class CombatFSM {
 
     let isCrit = false;
     let critMultiplier = 1.0;
+    const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
+    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
       if (roll < this.playerFinalStats.touchCritChance) {
         isCrit = true;
-        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
       }
     }
 
@@ -865,7 +1002,9 @@ export class CombatFSM {
   private performPlayerAttack() {
     if (this.enemyHP <= 0) return;
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.01); // +1% por ascensão
+    const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
+    const precisionSpeedBoost = relicLvlFoco === 5 ? 0.05 : 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
     this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
@@ -898,14 +1037,16 @@ export class CombatFSM {
     // Chance de Crítico global no Ataque Básico
     let isCrit = false;
     let critMultiplier = 1.0;
+    const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
+    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
       if (roll < this.playerFinalStats.touchCritChance) {
         isCrit = true;
-        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
       }
     }
 
@@ -965,6 +1106,16 @@ export class CombatFSM {
     // Inimigos Elite causam 3.0x de dano base
     if (this.isElite) {
       damage = Math.floor(damage * 3.0);
+    }
+
+    if (this.currentEnemy.id === 'boss_crystal_guardian' && this.crystalGuardianSecondPhase) {
+      damage = Math.floor(damage * 1.5);
+    }
+
+    // Se o jogador estiver sob efeito do Escudo Ósseo (Necromante), mitiga 20% do dano recebido
+    const boneShieldEffect = this.playerEffects.find(e => e.id === 'bone_shield');
+    if (boneShieldEffect) {
+      damage = Math.floor(damage * 0.80);
     }
 
     this.scene.animateEnemyAttack();
@@ -1053,17 +1204,62 @@ export class CombatFSM {
       }
     }
 
+    // Drenagem de vida da classe Necromante: 15% do dano direto causado
+    if (isDirect && this.characterData && this.characterData.classId === 'necromancer' && this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
+      const drainAmount = Math.floor(amount * 0.15);
+      if (drainAmount > 0) {
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount} (Dreno)`, '#10b981');
+        }
+      }
+    }
+
     if (this.enemyHP <= 0) {
+      if (this.currentEnemy.id === 'boss_crystal_guardian' && !this.crystalGuardianSecondPhase) {
+        this.enemyHP = this.enemyMaxHP;
+        this.crystalGuardianSecondPhase = true;
+        
+        // Atualiza dinamicamente a textura e o nome do chefe na cena do Phaser para a Fase 2 (Guardião do Espelho)
+        if (this.scene) {
+          if (this.scene.enemyBody) {
+            this.scene.enemyBody.setTexture('boss_mirror_guardian_transparent');
+          }
+          if (this.scene.enemyLevelText) {
+            this.scene.enemyLevelText.setText(`CHEFE Guardião do Espelho (Lv. ${this.enemyLevel})`);
+            this.scene.enemyLevelText.setColor('#fda4af'); // Rosa brilhante indicando a transformação caótica
+          }
+        }
+
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, 'REGENERADO!', '#10b981');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `✨ O Guardião dos Cacos estilhaça sua carcaça de cristal e se regenera com fúria elemental como o Guardião do Espelho! SEGUNDA FASE ATIVADA (Frenesi: +50% de dano!).` 
+        });
+        return;
+      }
       this.handleEnemyDefeat();
     }
   }
 
   private handleEnemyDefeat() {
-    // Limpa os efeitos do inimigo imediatamente para evitar ticks residuais durante o respawn
-    this.enemyEffects = [];
-
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
+
+    // Se o inimigo foi derrotado sob o efeito do Sifão de Almas (Necromante), restaura 20% da mana máxima do jogador
+    const soulSiphonActive = this.enemyEffects.some(e => e.id === 'soul_siphon');
+    if (soulSiphonActive) {
+      const manaHeal = Math.floor(this.playerMaxMana * 0.20);
+      this.playerMana = Math.min(this.playerMaxMana, this.playerMana + manaHeal);
+      if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, `+${manaHeal} (Mana)`, '#3b82f6');
+      }
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Sifão de Almas: O inimigo foi derrotado e você restaurou +${manaHeal} de mana!` });
+    }
+
+    // Limpa os efeitos do inimigo imediatamente para evitar ticks residuais durante o respawn
+    this.enemyEffects = [];
 
     // Lógica do afixo Volátil: explode ao morrer causando 20% da Vida Máxima do herói, mitigada por Constituição
     let volatileDamage = 0;
@@ -1075,6 +1271,11 @@ export class CombatFSM {
 
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
+
+    // Armazena o último inimigo comum derrotado para ser ressuscitado pelo Necromante
+    if (!isBoss && !this.isElite) {
+      this.lastCommonEnemyDefeated = this.currentEnemy;
+    }
 
     // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
     const xpScale = Math.pow(1.35, char.currentStage - 1);
@@ -1363,12 +1564,14 @@ export class CombatFSM {
     this.currentState = CombatState.DEAD;
     this.scene.animatePlayerDeath();
 
+    const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+
     if (this.characterData.activeDailyChallenge) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu ao Desafio Diário e retornou à sua jornada normal.` });
       useGameStore.getState().exitDailyChallenge(false);
 
       setTimeout(() => {
-        this.playerHP = this.playerMaxHP;
+        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.currentState = CombatState.IDLE;
 
@@ -1387,7 +1590,7 @@ export class CombatFSM {
     useGameStore.getState().resetStageProgress();
 
     setTimeout(() => {
-      this.playerHP = this.playerMaxHP;
+      this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
       this.playerMana = this.playerMaxMana;
       this.currentState = CombatState.IDLE;
 
@@ -1449,6 +1652,27 @@ export class CombatFSM {
     this.skillCooldowns[skillId] = cooldownTime;
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
+    if (skillId === 'ultimate_necromancer') {
+      if (!this.lastCommonEnemyDefeated) {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Ceifa das Almas Perdidas: Nenhuma alma comum derrotada recentemente para ressuscitar!` });
+        this.playerMana += manaCost;
+        this.skillCooldowns[skillId] = 0;
+        bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+        return;
+      }
+
+      this.summonedAlly = { ...this.lastCommonEnemyDefeated };
+      this.summonedAllyTimer = 10000;
+      this.summonedAllyAttackCooldown = 1500;
+      this.lastCommonEnemyDefeated = null;
+
+      if (this.scene && typeof this.scene.animateHealEffect === 'function') {
+        this.scene.animateHealEffect();
+      }
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Você usou Ceifa das Almas Perdidas! O espírito de ${this.summonedAlly.name} foi ressuscitado para lutar ao seu lado por 10s!` });
+      return;
+    }
+
     if (skillId === 'heal' || skillId === 'holy_light' || skillId === 'ultimate_cleric') {
       // Restaura 30% do HP máximo, mais 5% a cada nível adicional. A ultimate cura 100% da vida máxima.
       const healAmount = skillId === 'ultimate_cleric' ? this.playerMaxHP : Math.floor(this.playerMaxHP * (0.30 + (skillLvl - 1) * 0.05));
@@ -1483,6 +1707,9 @@ export class CombatFSM {
     } else if (skillClass === 'warrior') {
       primaryStatVal = this.playerFinalStats.strength;
       damageType = 'físico';
+    } else if (skillClass === 'necromancer') {
+      primaryStatVal = this.playerFinalStats.magic;
+      damageType = 'sombrio';
     }
 
     const ascensionCount = this.characterData.ascensionCount || 0;
@@ -1516,7 +1743,11 @@ export class CombatFSM {
 
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
-    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus));
+    let luckMult = 1.0;
+    if (this.characterData && this.characterData.classId === 'necromancer') {
+      luckMult = 1 + (this.playerFinalStats.luck * 0.001);
+    }
+    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
@@ -1536,6 +1767,17 @@ export class CombatFSM {
     }
 
     this.damageEnemy(dmg, true);
+
+    // Cura do Toque da Morte (Necromante)
+    if (skillId === 'death_touch') {
+      const drainHeal = Math.floor((this.playerMaxHP - this.playerHP) * (0.20 + 0.05 * skillLvl));
+      if (drainHeal > 0 && this.playerHP > 0) {
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainHeal);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, `+${drainHeal} (Dreno)`, '#10b981');
+        }
+      }
+    }
 
     // Determina os efeitos visuais e sonoros na cena dependendo da habilidade específica
     if (skillId === 'frostbolt') {
@@ -1680,6 +1922,34 @@ export class CombatFSM {
         value: poisonDmg
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[TOXINA]', '#c084fc');
+    } else if (skillId === 'bone_shield') {
+      this.playerEffects.push({
+        id: 'bone_shield',
+        name: 'Escudo Ósseo',
+        duration: 6000,
+        tickTimer: 0,
+        value: levelMultiplier
+      });
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, '[ESCUDO ÓSSEO]', '#7c3aed');
+    } else if (skillId === 'soul_siphon') {
+      this.enemyEffects.push({
+        id: 'soul_siphon',
+        name: 'Sifão de Almas',
+        duration: 3000,
+        tickTimer: 0,
+        value: 0
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[SIFÃO DE ALMAS]', '#a855f7');
+    } else if (skillId === 'skeleton_army') {
+      const skeletonDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 1.20 * levelMultiplier * 3.0));
+      this.enemyEffects.push({
+        id: 'poison',
+        name: 'Exército de Esqueletos',
+        duration: 8000,
+        tickTimer: 1000,
+        value: skeletonDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[EXÉRCITO DE ESQUELETOS]', '#7c3aed');
     } else if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '¡MISERICÓRDIA!', '#ef4444');
     }

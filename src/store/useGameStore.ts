@@ -118,6 +118,14 @@ export const CLASS_CONFIGS: Record<string, {
     growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0, touch: 1.5, touchCritChance: 0.3, touchCritDamage: 2.0, robotClicks: 0 },
     initialSkills: ['stab'],
     primaryStat: 'dexterity'
+  },
+  necromancer: {
+    name: 'Necromante',
+    description: 'Mestre da morte que drena a vida dos vivos e comanda lacaios sombrios das profundezas.',
+    baseStats: { strength: 5, magic: 15, dexterity: 6, constitution: 10, luck: 12, touch: 10, touchCritChance: 6, touchCritDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 0.8, magic: 3.2, dexterity: 0.8, constitution: 1.8, luck: 1.5, touch: 1.5, touchCritChance: 0.15, touchCritDamage: 1.2, robotClicks: 0 },
+    initialSkills: ['death_touch'],
+    primaryStat: 'magic'
   }
 };
 
@@ -177,7 +185,14 @@ export const SKILL_BASE_MULTIPLIERS: Record<string, number> = {
   ultimate_ranger: 11.0,
   ultimate_paladin: 10.0,
   ultimate_cleric: 9.0,
-  ultimate_rogue: 14.0
+  ultimate_rogue: 14.0,
+  ultimate_necromancer: 13.0,
+
+  // Necromancer
+  death_touch: 1.6,
+  bone_shield: 1.5,
+  soul_siphon: 3.2,
+  skeleton_army: 1.2
 };
 
 // Catálogo estático de Habilidades (Árvore de Habilidades por Classe)
@@ -249,6 +264,15 @@ export const SKILLS_CATALOG: Record<string, {
   death_blossom: { name: 'Florescer Letal', description: 'Redemoinho de cortes causando 450% de Destreza.', cost: 3, maxLevel: 5, dependencies: ['backstab'], type: 'active', requiredLevel: 11, classId: 'rogue' },
   ultimate_rogue: { name: 'Lâmina da Aniquilação', description: 'Surge das sombras desferindo um corte letal instantâneo que causa 1400% de Destreza. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['death_blossom'], type: 'active', requiredLevel: 15, classId: 'rogue', isUltimate: true, cooldown: 50000, manaCost: 50 },
 
+  // Necromante (Necromancer)
+  death_touch: { name: 'Toque da Morte', description: 'Causa 160% de dano mágico e cura o herói através da mecânica de Cura de Drenagem.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'necromancer' },
+  bone_shield: { name: 'Escudo Ósseo', description: 'Reduz o damage recebido em 20% por 6 segundos. Ao expirar, causa 150% de dano de Constituição.', cost: 1, maxLevel: 5, dependencies: ['death_touch'], type: 'active', requiredLevel: 3, classId: 'necromancer' },
+  cold_blood: { name: 'Sangue Frio', description: 'Aumento passivo de +5 em Magia e +2 em Sorte por nível na árvore.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5, luck: 2 }, requiredLevel: 5, classId: 'necromancer' },
+  soul_siphon: { name: 'Sifão de Almas', description: 'Causa 320% de dano mágico. Se o inimigo morrer sob o efeito, restaura 20% da mana total.', cost: 2, maxLevel: 5, dependencies: ['bone_shield'], type: 'active', requiredLevel: 7, classId: 'necromancer' },
+  grave_echoes: { name: 'Ecos da Tumba', description: 'Aumento passivo permanente de +5 em Constituição por nível na árvore.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 9, classId: 'necromancer' },
+  skeleton_army: { name: 'Exército de Esqueletos', description: 'Conjura servos que atacam continuamente causando 120% de dano por segundo por 8 segundos.', cost: 3, maxLevel: 5, dependencies: ['soul_siphon'], type: 'active', requiredLevel: 11, classId: 'necromancer' },
+  ultimate_necromancer: { name: 'Ceifa das Almas Perdidas', description: 'Causa 1300% de dano mágico e ressuscita o último monstro morto como lacaio por 10s. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['skeleton_army'], type: 'active', requiredLevel: 15, classId: 'necromancer', isUltimate: true, cooldown: 60000, manaCost: 75 },
+
   // Comum
   heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
 };
@@ -286,6 +310,7 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
   if (classId === 'paladin') return getLevel('warrior') >= 10;
   if (classId === 'cleric') return getLevel('mage') >= 10;
   if (classId === 'rogue') return getLevel('ranger') >= 10;
+  if (classId === 'necromancer') return getLevel('cleric') >= 10 && getLevel('rogue') >= 10;
   return false;
 };
 
@@ -385,7 +410,7 @@ interface GameState {
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
   // Loja e Consumíveis (v3.0.0)
-  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3'): { success: boolean; message: string };
+  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
@@ -469,6 +494,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     lastCompletedDailyChallenge: '',
     activeDailyChallenge: false,
     runStartTime: Date.now(),
+    purgatoryCompleted: false,
   };
 };
 
@@ -772,7 +798,8 @@ export const useGameStore = create<GameState>((set) => ({
     const upgrades = state.character.prestigeUpgrades || {};
     const maxed = baseKeys.every(key => (upgrades[key] || 0) >= 10);
 
-    if (!maxed || (state.character.prestigePoints || 0) < cost) return state;
+    const purgatoryCompleted = state.character.purgatoryCompleted || false;
+    if (!maxed || (state.character.prestigePoints || 0) < cost || !purgatoryCompleted) return state;
 
     const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;
     const newBaseStats = { ...config.baseStats };
@@ -971,13 +998,26 @@ export const useGameStore = create<GameState>((set) => ({
     const isPandemoniumUnlocked = state.character.pandemoniumUnlocked;
     let nextStage = state.character.currentStage + 1;
     let activePandemonium = state.character.activePandemonium || false;
+    let purgatoryCompleted = state.character.purgatoryCompleted || false;
+
+    // Se o jogador derrotou o chefe da Fase 30 (vencendo o Purgatório)
+    if (state.character.currentStage === 30) {
+      if (!purgatoryCompleted) {
+        purgatoryCompleted = true;
+        setTimeout(() => {
+          bridge.emit(GameEvent.LOG_EMITTED, { 
+            message: `🎉 PARABÉNS! Você derrotou o Guardião dos Cacos e completou o Purgatório! O Modo Pandemônio agora está disponível para ser desbloqueado no Painel de Prestígio!` 
+          });
+        }, 1000);
+      }
+    }
 
     if (isPandemoniumUnlocked) {
-      if (nextStage >= 21) {
+      if (nextStage >= 31) {
         activePandemonium = true;
       }
     } else {
-      nextStage = Math.min(20, nextStage);
+      nextStage = Math.min(30, nextStage);
     }
 
     // Processamento de recordes pessoais de fase e tempo
@@ -1017,7 +1057,8 @@ export const useGameStore = create<GameState>((set) => ({
       currentStage: nextStage,
       enemiesDefeatedInStage: 0,
       highestStageReached: Math.max(state.character.highestStageReached, nextStage),
-      activePandemonium: activePandemonium
+      activePandemonium: activePandemonium,
+      purgatoryCompleted: purgatoryCompleted
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1706,9 +1747,10 @@ export const useGameStore = create<GameState>((set) => ({
     set((state) => {
       const costs = {
         chest_legendary: 500,
-        chest_ancestral: 3000, // Ajustado de 1000 para 3000
-        boost_touch: 1000,     // Ajustado de 500 para 1000
-        boost_touch_x3: 5000   // Novo boost de toque x3
+        chest_ancestral: 3000,
+        boost_touch: 1000,
+        boost_touch_x3: 5000,
+        relic_chest: 8000
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
@@ -1724,7 +1766,8 @@ export const useGameStore = create<GameState>((set) => ({
         chest_legendary: 'Baú Lendário',
         chest_ancestral: 'Baú Ancestral',
         boost_touch: 'Boost de Toque',
-        boost_touch_x3: 'Boost de Toque x3'
+        boost_touch_x3: 'Boost de Toque x3',
+        relic_chest: 'Baú de Relíquias'
       };
       const name = names[type];
 
@@ -1768,6 +1811,18 @@ export const useGameStore = create<GameState>((set) => ({
 
       // Copia o inventário e remove o consumível
       const nextInventory = state.character.inventory.filter(i => i.id !== itemId);
+
+      if (item.consumableType === 'relic_chest') {
+        useRelicStore.getState().addFragments(3);
+        
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Baú de Relíquias aberto! +3 Fragmentos de Alma Instável no Altar de Relíquias.' };
+        return { character: updated };
+      }
 
       if (item.consumableType === 'unstable_soul_fragment') {
         useRelicStore.getState().addFragments(1);
@@ -1828,7 +1883,8 @@ export const useGameStore = create<GameState>((set) => ({
           ranger: 'Set do Rastreador das Sombras',
           paladin: 'Set do Guardião Divino',
           cleric: 'Set do Sumosacerdote',
-          rogue: 'Set do Assassino Fantasma'
+          rogue: 'Set do Assassino Fantasma',
+          necromancer: 'Set do Arauto da Ceifa'
         };
 
         const ancestralSetNames: Record<string, string> = {
@@ -1837,7 +1893,8 @@ export const useGameStore = create<GameState>((set) => ({
           ranger: 'Set Ancestral do Caçador Estelar',
           paladin: 'Set Ancestral do Sentinela Eterno',
           cleric: 'Set Ancestral do Sábio Divino',
-          rogue: 'Set Ancestral do Ceifador de Almas'
+          rogue: 'Set Ancestral do Ceifador de Almas',
+          necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos'
         };
 
         const slotNames: Record<string, Record<string, string>> = {
@@ -1846,7 +1903,8 @@ export const useGameStore = create<GameState>((set) => ({
           ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
           paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
           cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
-          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' }
+          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
+          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' }
         };
 
         const possibleStatsMap: Record<string, string[]> = {
@@ -1855,7 +1913,8 @@ export const useGameStore = create<GameState>((set) => ({
           ranger: ['dexterity', 'constitution', 'luck'],
           paladin: ['constitution', 'strength', 'luck'],
           cleric: ['magic', 'constitution', 'luck'],
-          rogue: ['dexterity', 'strength', 'luck']
+          rogue: ['dexterity', 'strength', 'luck'],
+          necromancer: ['magic', 'luck', 'constitution']
         };
 
         const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon'> = ['head', 'chest', 'legs', 'gloves', 'weapon'];

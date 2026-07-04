@@ -2819,25 +2819,31 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 className="hover:text-white"
               >
                 ✕
-              </button>
+            </button>
 
-              {(() => {
-                if (selectedUpgradeId === 'alma_pandemonium') {
+            {(() => {
+              if (selectedUpgradeId === 'alma_pandemonium') {
                   const isUnlocked = character.pandemoniumUnlocked;
                   const cost = 100;
-                  const hasPoints = availablePrestigePoints >= cost;
+                  const isPurgatoryDone = character.purgatoryCompleted;
+                  const hasPoints = availablePrestigePoints >= cost && isPurgatoryDone;
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '36rem', margin: '0 auto' }}>
                       <div>
                         <h3 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f87171', textShadow: '0 0 8px rgba(239,68,68,0.5)' }}>
-                          Modo Pandemônio (v3.0.0)
+                          Modo Pandemônio (v4.0.0)
                         </h3>
                         <p style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.5rem', lineHeight: 1.6 }}>
                           {isUnlocked 
-                            ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 21. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
-                            : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 20, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
+                            ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 31. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
+                            : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 31, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
                         </p>
+                        {!isUnlocked && !isPurgatoryDone && (
+                          <p style={{ fontSize: '0.7rem', color: '#fb923c', marginTop: '0.5rem', fontWeight: 500 }}>
+                            ⚠️ Requisito Adicional: Você precisa derrotar o Guardião dos Cacos no final do Purgatório (Fase 30) para poder ativar o Pandemônio.
+                          </p>
+                        )}
                       </div>
                       
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
@@ -2877,7 +2883,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                                 border: hasPoints ? '1px solid #f87171' : undefined
                               }}
                             >
-                              Ativar Modo Pandemônio ({cost} PP)
+                              {isPurgatoryDone ? `Ativar Modo Pandemônio (${cost} PP)` : 'Requer Purgatório'}
                             </button>
                           )}
                         </div>
@@ -3002,35 +3008,42 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 >
                   <p style={{ fontSize: '0.65rem', color: '#cbd5e1', lineHeight: 1.5 }}>
                     {character.pandemoniumUnlocked 
-                      ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 21. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
-                      : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 20, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
+                      ? "O Modo Pandemônio está ativo! Seu progresso de estágio agora é infinito e todos os inimigos e chefes aparecem de forma aleatória a partir do estágio 31. Os atributos dos inimigos escalam com dificuldade 5x inicial. Fazer ascensões mantém seus equipamentos equipados."
+                      : "Desbloqueie o poder supremo da Alma. Ao ativar o Modo Pandemônio por 100 PP, você iniciará uma Ascensão Especial imediatamente. O progresso de fases se tornará infinito a partir da Fase 31, com inimigos aleatórios, dificuldade 5x inicial e seus equipamentos equipados serão mantidos a cada ascensão."}
                   </p>
                   {!character.pandemoniumUnlocked && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-                      <span style={{ fontSize: '0.6rem', color: '#f472b6', fontWeight: 500 }}>
-                        Requer: 100 PP
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const cost = 100;
-                          if (availablePrestigePoints >= cost) {
-                            AudioManager.getInstance().playClick();
-                            useGameStore.getState().unlockPandemonium();
-                            setSelectedUpgradeId('');
-                          }
-                        }}
-                        disabled={availablePrestigePoints < 100}
-                        className={`btn btn-sm ${availablePrestigePoints >= 100 ? 'btn-purple' : 'btn-ghost'}`}
-                        style={{ 
-                          padding: '0.2rem 0.5rem', 
-                          fontSize: '0.6rem',
-                          background: availablePrestigePoints >= 100 ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
-                          border: availablePrestigePoints >= 100 ? '1px solid #f87171' : undefined
-                        }}
-                      >
-                        Ativar (100 PP)
-                      </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                      {!character.purgatoryCompleted && (
+                        <span style={{ fontSize: '0.6rem', color: '#fb923c', fontWeight: 500 }}>
+                          ⚠️ Requer derrotar o Guardião dos Cacos (Fase 30).
+                        </span>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.6rem', color: '#f472b6', fontWeight: 500 }}>
+                          Requer: 100 PP
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const cost = 100;
+                            if (availablePrestigePoints >= cost && character.purgatoryCompleted) {
+                              AudioManager.getInstance().playClick();
+                              useGameStore.getState().unlockPandemonium();
+                              setSelectedUpgradeId('');
+                            }
+                          }}
+                          disabled={availablePrestigePoints < 100 || !character.purgatoryCompleted}
+                          className={`btn btn-sm ${(availablePrestigePoints >= 100 && character.purgatoryCompleted) ? 'btn-purple' : 'btn-ghost'}`}
+                          style={{ 
+                            padding: '0.2rem 0.5rem', 
+                            fontSize: '0.6rem',
+                            background: (availablePrestigePoints >= 100 && character.purgatoryCompleted) ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
+                            border: (availablePrestigePoints >= 100 && character.purgatoryCompleted) ? '1px solid #f87171' : undefined
+                          }}
+                        >
+                          {character.purgatoryCompleted ? 'Ativar (100 PP)' : 'Requer Purgatório'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -3180,6 +3193,7 @@ const GuidePanel: React.FC = () => {
         if (selectedClass === 'paladin') promotionRequirement = 'Requer Guerreiro Nível 10';
         if (selectedClass === 'cleric') promotionRequirement = 'Requer Mago Nível 10';
         if (selectedClass === 'rogue') promotionRequirement = 'Requer Arqueiro Nível 10';
+        if (selectedClass === 'necromancer') promotionRequirement = 'Requer Nível 10 em duas classes primárias distintas';
 
         const getPrimaryStatName = (stat: keyof BaseStats): string => {
           switch (stat) {
@@ -3431,10 +3445,28 @@ const GuidePanel: React.FC = () => {
                 <div>
                   <strong className="text-white block font-semibold" style={{ color: '#c084fc' }}>Fases Apocalipse (16 a 20)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
-                    O tier máximo. Tint roxo sinistro e criaturas de poder quase divino. Apenas para os mais ascendidos.
+                    O tier extremo original. Tint roxo sinistro e criaturas de poder quase divino.
                   </p>
                   <code className="text-purple-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
                     Status Apocalipse = Status Base × 4.0 (+300% de HP e Dano)
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold" style={{ color: '#a78bfa' }}>Fases Purgatório (21 a 30)</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    Território dos cristais partidos. Inimigos têm HP e Dano escalados em 4.5x. Requer derrotar o Guardião dos Cacos na Fase 30 para desbloquear o Pandemônio.
+                  </p>
+                  <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Status Purgatório = Status Base × 4.5
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold" style={{ color: '#ec4899' }}>Modo Pandemônio (31+)</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    Dificuldade infinita desbloqueada via Altar da Alma no Prestígio. Monstros e chefes surgem de forma aleatória, com buffs que escalam a cada nível de fase.
+                  </p>
+                  <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Status Pandemônio = Status Base × 5.0 × (1.15 ^ (Fase - 31))
                   </code>
                 </div>
               </div>
@@ -3531,6 +3563,89 @@ const GuidePanel: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Altar de Relíquias de Alma */}
+            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+              <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-widest block">🔮 Altar de Relíquias de Alma</span>
+              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                <p>
+                  As Relíquias são artefatos cósmicos permanentes que fortalecem todos os seus personagens, resistindo inteiramente aos resets de Ascensão. Elas podem ser forjadas e aprimoradas no **Altar de Relíquias** (Aba Ascensão) utilizando **Fragmentos de Alma Instáveis**.
+                </p>
+                <div>
+                  <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
+                    <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
+                    <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 5.000 Ouro para obter instantaneamente 3 fragmentos garantidos ao consumi-lo.</li>
+                  </ul>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Efeitos de Capstone (Nível 5 Máximo):</strong>
+                  <p className="text-gray-400 text-[9px] mt-0.5">
+                    Cada uma das 8 relíquias pode atingir o nível máximo de 5. Ao atingir o ápice, um bônus passivo monumental (Capstone) é ativado permanentemente:
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">1. Luz da Alma Partida (+3% Dano Geral/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de Multiplicador de Dano Crítico global.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">2. Moeda do Ciclo Eterno (+4% Ouro Ganho/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +5% de chance de monstros comuns droparem ouro dobrado.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">3. Símbolo do Aprendizado (+3% Chance de Drop/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de chance de qualquer item dropado ser Raro ou superior.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">4. Gema da Vontade (+4 Força/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de Penetração de Armadura (Aumento de Dano Final).</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">5. Núcleo do Pensamento (+4 Magia/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +15% de Regeneração de Mana ativa e passiva.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">6. Foco da Precisão (+4 Destreza/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +5% de Velocidade de Ataque global.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">7. Brasão da Devoção (+6 Constituição/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: +2% da sua Vida Máxima como escudo protetor no início do combate.</span>
+                    </div>
+                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                      <span className="text-violet-300 font-bold block">8. Olho da Sobrevivência (+4 Sorte/nvl)</span>
+                      <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Classe Avançada: Necromante */}
+            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+              <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">💀 Classe Avançada: Necromante</span>
+              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                <p>
+                  O **Necromante** é uma classe lendária focada no controle de lacaios, dreno de recursos e feitiços sombrios. Ela requer uma dedicação maior para ser liberada e possui mecânicas exclusivas baseadas em Sorte.
+                </p>
+                <div>
+                  <strong className="text-white block font-semibold">Como desbloquear:</strong>
+                  <p className="text-gray-400">Requer atingir simultaneamente o <strong>Nível 10</strong> em pelo menos duas das três classes primárias iniciais (Guerreiro, Mago ou Arqueiro).</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Mecânica de Sorte (Luck):</strong>
+                  <p className="text-gray-400">Diferente das outras classes mágicas, os feitiços do Necromante escalam fortemente com Sorte. Cada ponto de Sorte adicionado ao personagem aumenta o dano de todas as suas habilidades mágicas de Necromancia em <strong>+0.1%</strong> de forma multiplicativa.</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Habilidade Exclusiva - Toque da Morte:</strong>
+                  <p className="text-gray-400 mb-1">A habilidade básica do Necromante causa 160% de dano mágico e cura o personagem drenando a energia do alvo. A cura é baseada no HP faltante do herói:</p>
+                  <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Cura de Drenagem = (HP Máximo - HP Atual) × (20% + 5% por nível da habilidade)
+                  </code>
                 </div>
               </div>
             </div>
