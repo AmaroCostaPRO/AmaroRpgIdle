@@ -315,7 +315,7 @@ export enum CombatState {
 }
 
 export interface StatusEffect {
-  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon';
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army';
   name: string;
   duration: number; // em ms
   tickTimer: number; // em ms
@@ -713,10 +713,17 @@ export class CombatFSM {
       effect.tickTimer -= delta;
       if (effect.tickTimer <= 0) {
         effect.tickTimer = 1000;
-        if (effect.id === 'poison' || effect.id === 'burn') {
+        if (effect.id === 'poison' || effect.id === 'burn' || effect.id === 'skeleton_army') {
           const tickDmg = Math.floor(effect.value);
-          const color = effect.id === 'poison' ? '#22c55e' : '#f97316';
-          const label = effect.id === 'poison' ? 'Veneno' : 'Queima';
+          let color = '#22c55e';
+          let label = 'Veneno';
+          if (effect.id === 'burn') {
+            color = '#f97316';
+            label = 'Queima';
+          } else if (effect.id === 'skeleton_army') {
+            color = '#8b5cf6';
+            label = 'Esqueleto';
+          }
           
           if (this.scene && typeof this.scene.spawnDamageText === 'function') {
             this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
@@ -942,7 +949,9 @@ export class CombatFSM {
 
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
-    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus));
+    const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
+    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult);
     if (this.characterData.testMode) {
       finalTouchDmg *= 5;
     }
@@ -1052,7 +1061,9 @@ export class CombatFSM {
 
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
-    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus));
+    const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
+    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult);
     if (this.characterData.testMode) {
       damage *= 5;
     }
@@ -1305,12 +1316,20 @@ export class CombatFSM {
     const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
     gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus));
 
+    // Capstone da Moeda do Ciclo Eterno (Lvl 5): +5% de chance de monstros normais droparem ouro em dobro
+    const coinRelicLvl = useRelicStore.getState().relics['moeda_ciclo']?.level || 0;
+    let isGoldDoubled = false;
+    if (!isBoss && coinRelicLvl === 5 && Math.random() < 0.05) {
+      gainedGold *= 2;
+      isGoldDoubled = true;
+    }
+
     if (isBoss) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Chefe ${this.currentEnemy.name} derrotado! Você avançou para a Fase ${char.currentStage + 1}, ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
     } else if (this.isElite) {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `👾 ELITE ${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro (Bônus Elite 2x)!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `👾 ELITE ${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro (Bônus Elite 2x)!${isGoldDoubled ? " (🪙 Ouro Duplicado!)" : ""}` });
     } else {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro!${isGoldDoubled ? " (🪙 Ouro Duplicado!)" : ""}` });
     }
 
     useGameStore.getState().addXp(gainedXp);
@@ -1382,6 +1401,13 @@ export class CombatFSM {
         rarity = 'rare';
       }
       
+      // Capstone do Simbolo do Aprendizado (Lvl 5): +10% de chance de Raro ou superior
+      const learningRelicLvl = useRelicStore.getState().relics['simbolo_aprendizado']?.level || 0;
+      if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < 0.10) {
+        rarity = Math.random() < 0.20 ? 'legendary' : 'rare';
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Símbolo do Aprendizado: Item comum promovido a [${rarity === 'legendary' ? 'Lendário' : 'Raro'}]!` });
+      }
+
       const stage = char.currentStage;
       const classId = char.classId;
       const ascensionCount = char.ascensionCount || 0;
@@ -1397,11 +1423,13 @@ export class CombatFSM {
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],
+        magic: ['magic', 'constitution', 'luck'], // Opa, corrigindo também a chave "mage" que no código original dizia "mage" mas aqui corrigiremos para necromancer e as outras
         mage: ['magic', 'constitution', 'luck'],
         ranger: ['dexterity', 'constitution', 'luck'],
         paladin: ['constitution', 'strength', 'luck'],
         cleric: ['magic', 'constitution', 'luck'],
-        rogue: ['dexterity', 'strength', 'luck']
+        rogue: ['dexterity', 'strength', 'luck'],
+        necromancer: ['magic', 'luck', 'constitution']
       };
       
       const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
@@ -1420,7 +1448,8 @@ export class CombatFSM {
         ranger: 'Set do Rastreador das Sombras',
         paladin: 'Set do Guardião Divino',
         cleric: 'Set do Sumosacerdote',
-        rogue: 'Set do Assassino Fantasma'
+        rogue: 'Set do Assassino Fantasma',
+        necromancer: 'Set do Arauto da Ceifa'
       };
       
       const ancestralSetNames: Record<string, string> = {
@@ -1429,7 +1458,8 @@ export class CombatFSM {
         ranger: 'Set Ancestral do Caçador Estelar',
         paladin: 'Set Ancestral do Sentinela Eterno',
         cleric: 'Set Ancestral do Sábio Divino',
-        rogue: 'Set Ancestral do Ceifador de Almas'
+        rogue: 'Set Ancestral do Ceifador de Almas',
+        necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos'
       };
 
       const pandemoniumSetNames: Record<string, string> = {
@@ -1438,7 +1468,8 @@ export class CombatFSM {
         ranger: 'Set Pandemoníaco do Franco-Atirador',
         paladin: 'Set Pandemoníaco do Vingador Sagrado',
         cleric: 'Set Pandemoníaco do Sumo-Inquisidor',
-        rogue: 'Set Pandemoníaco do Executor'
+        rogue: 'Set Pandemoníaco do Executor',
+        necromancer: 'Set Pandemoníaco do Devorador de Almas'
       };
       
       const slotNames: Record<string, Record<string, string>> = {
@@ -1447,7 +1478,8 @@ export class CombatFSM {
         ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
         paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
         cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
-        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' }
+        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
+        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' }
       };
       
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -1648,7 +1680,15 @@ export class CombatFSM {
     this.playerMana -= manaCost;
 
     // Registra o tempo de recarga (lê cooldown específico da Ultimate se existir)
-    const cooldownTime = skill.isUltimate ? (skill.cooldown || 60000) : (skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 6000 : (skill.requiredLevel <= 3 ? 10000 : (skill.requiredLevel <= 7 ? 16000 : 24000))));
+    let cooldownTime = skill.isUltimate ? (skill.cooldown || 60000) : (skillId === 'heal' ? 10000 : (skill.requiredLevel <= 1 ? 6000 : (skill.requiredLevel <= 3 ? 10000 : (skill.requiredLevel <= 7 ? 16000 : 24000))));
+    
+    // Capstone de Olho da Sobrevivência (Lvl 5): Reduz o cooldown da habilidade de Cura em 1.5s
+    if (skillId === 'heal') {
+      const sobrevivenciaLvl = useRelicStore.getState().relics['olho_sobrevivencia']?.level || 0;
+      if (sobrevivenciaLvl === 5) {
+        cooldownTime = Math.max(1000, cooldownTime - 1500);
+      }
+    }
     this.skillCooldowns[skillId] = cooldownTime;
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
@@ -1719,14 +1759,16 @@ export class CombatFSM {
     // Chance de Crítico global nas Habilidades
     let isCrit = false;
     let critMultiplier = 1.0;
+    const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
+    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
       if (roll < this.playerFinalStats.touchCritChance) {
         isCrit = true;
-        critMultiplier = this.playerFinalStats.touchCritDamage / 100;
+        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
       }
     }
 
@@ -1747,7 +1789,9 @@ export class CombatFSM {
     if (this.characterData && this.characterData.classId === 'necromancer') {
       luckMult = 1 + (this.playerFinalStats.luck * 0.001);
     }
-    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult);
+    const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
+    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
@@ -1766,7 +1810,13 @@ export class CombatFSM {
       dmg = Math.floor(dmg * 0.75);
     }
 
-    this.damageEnemy(dmg, true);
+    if (skillId === 'skeleton_army') {
+      dmg = 0;
+    }
+
+    if (dmg > 0) {
+      this.damageEnemy(dmg, true);
+    }
 
     // Cura do Toque da Morte (Necromante)
     if (skillId === 'death_touch') {
@@ -1941,9 +1991,9 @@ export class CombatFSM {
       });
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[SIFÃO DE ALMAS]', '#a855f7');
     } else if (skillId === 'skeleton_army') {
-      const skeletonDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 1.20 * levelMultiplier * 3.0));
+      const skeletonDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.40 * levelMultiplier * 3.0 * (1 + relicDmgBonus) * luckMult));
       this.enemyEffects.push({
-        id: 'poison',
+        id: 'skeleton_army',
         name: 'Exército de Esqueletos',
         duration: 8000,
         tickTimer: 1000,
@@ -1954,7 +2004,11 @@ export class CombatFSM {
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '¡MISERICÓRDIA!', '#ef4444');
     }
 
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}${isCrit ? ' (Crítico!)' : ''}.` });
+    if (skillId === 'skeleton_army') {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Você conjurou ${skill.name}! Invocando servos mortos-vivos para atacar o alvo.` });
+    } else {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}${isCrit ? ' (Crítico!)' : ''}.` });
+    }
 
     if (this.enemyHP <= 0) {
       this.handleEnemyDefeat();

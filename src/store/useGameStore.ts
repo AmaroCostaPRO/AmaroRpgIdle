@@ -1010,6 +1010,14 @@ export const useGameStore = create<GameState>((set) => ({
           });
         }, 1000);
       }
+      if (!isPandemoniumUnlocked) {
+        nextStage = 21;
+        setTimeout(() => {
+          bridge.emit(GameEvent.LOG_EMITTED, { 
+            message: `🔄 O Purgatório foi reiniciado! Você retorna à Fase 21 para continuar coletando fragmentos.` 
+          });
+        }, 1500);
+      }
     }
 
     if (isPandemoniumUnlocked) {
@@ -1017,7 +1025,9 @@ export const useGameStore = create<GameState>((set) => ({
         activePandemonium = true;
       }
     } else {
-      nextStage = Math.min(30, nextStage);
+      if (nextStage > 30) {
+        nextStage = 30;
+      }
     }
 
     // Processamento de recordes pessoais de fase e tempo

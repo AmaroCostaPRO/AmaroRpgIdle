@@ -50,7 +50,7 @@ Cada classe existente e futura representa uma faceta psicológica e existencial 
 | **Paladino** | O Eco da Devoção | A fusão da Vontade e do Instinto para proteger os outros cacos (Evolução do Guerreiro). |
 | **Clérigo** | O Eco da Compaixão | A fusão do Pensamento e da Vontade, entendendo que para durar é preciso curar (Evolução do Mago). |
 | **Ladrão** | O Eco da Sobrevivência | O Instinto de preservação puro, que enxerga brechas e oportunidades no caos (Evolução do Arqueiro). |
-| **Necromante** *(v4.0.0)* | O Eco da Reivindicação | A fusão do Pensamento e da Precisão, dominando o próprio vazio para reerguer os mortos (Classe Avançada). |
+| **Necromante** *(v4.0.0)* | O Eco da Reivindicação | A fusão da Compaixão e da Sobrevivência, distorcendo o ciclo de cura e vida para dominar os mortos (Classe Avançada). |
 | **Avatar** *(v5.0.0)* | A Alma Unificada | O caco que transcendeu e uniu todas as facetas em uma forma integrada (Classe de Prestígio Suprema). |
 
 Esta relação justifica narrativamente a regra de que classes avançadas exigem Nível 10 em classes primárias: a evolução de poder acompanha a fusão de diferentes Ecos da Alma-Mundo.
@@ -176,7 +176,7 @@ O vazio entre os cacos da Alma-Mundo finalmente ganha um nome: o **Purgatório**
 | **Olho da Sobrevivência** | $+4$ Sorte | Reduz o cooldown da habilidade de Cura em 1.5s |
 
 ### 4.4 Nova Classe Secundária: Necromante (`Necromancer`)
-*   **Requisito de Desbloqueio**: Requer **Nível 10 simultâneo** em **duas classes primárias diferentes** (ex.: Mago E Arqueiro), representando narrativamente a fusão de dois Ecos da Alma-Mundo.
+*   **Requisito de Desbloqueio**: Requer **Nível 10 simultâneo** nas classes **Clérigo e Ladrão**, representando narrativamente a fusão de dois Ecos da Alma-Mundo (Compaixão e Sobrevivência).
 *   **Atributo Principal**: Magia | **Atributo Secundário**: Sorte (Primeira classe a usar Sorte para escala de dano secundário).
 *   **Fantasia de Combate (Drenagem e Inversão)**: Em oposição ao Clérigo, o Necromante drena a energia dos monstros para o herói e ressuscita temporariamente o último monstro derrotado como aliado por 10 segundos na Ultimate.
 *   **Habilidade Passiva Única**: O dano das habilidades do Necromante aumenta em $+0.1\%$ para cada $1$ ponto de Sorte.

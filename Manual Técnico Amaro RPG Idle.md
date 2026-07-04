@@ -807,7 +807,44 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 3.6.0 (Atual)
+### Versão 4.0.0 (Atual)
+*   **🌌 O Purgatório e as Relíquias (Major Update)**:
+    *   **Território do Purgatório (Fases 21–30)**: Adicionado um novo bloco intermediário fixo de 10 fases temáticas de cristais partidos. Os inimigos possuem HP e Dano escalados em $4.5\times$ sobre a base do Apocalipse.
+    *   **Chefe da Fase 30 ("Guardião dos Cacos")**: Primeiro chefe com combate de duas fases. Na Fase 2 (abaixo de 50% HP), o chefe entra em estado de Fúria Arcana (+50% velocidade de ataque, textura cristalina brilhante e conjuração contínua de relâmpagos).
+    *   **Progresso Bloqueado**: Concluir o Purgatório derrotando o Guardião dos Cacos é o novo requisito mandatório para desbloquear o Modo Pandemônio. O avanço de fases é pausado e travado na Fase 30 até a ativação do ritual de alma.
+    *   **Nova Classe Avançada: Necromante**:
+        *   *Desbloqueio*: Requer **Clérigo Nível 10 + Ladrão Nível 10** (as duas classes avançadas, independente de save). O progresso de nível máximo por classe é rastreado globalmente via `medieval_idle_global_class_levels` no localStorage.
+        *   *Atributos*: Dano principal escala com Magia; dano secundário e bônus escalam com Sorte (aumenta o dano de habilidades em $+0.1\%$ para cada 1 ponto de Sorte).
+        *   *Habilidades*:
+            1. *Toque da Morte* (Nvl. 1): Causa 160% de dano mágico e drena vida do inimigo com a fórmula: $\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$.
+            2. *Escudo Ósseo* (Nvl. 3): Reduz o dano recebido em 20% por 6 segundos e explode causando 150% de dano de Constituição ao expirar.
+            3. *Sangue Frio* (Nvl. 5): +5 Magia e +2 Sorte por nível de habilidade (Passiva).
+            4. *Sifão de Almas* (Nvl. 7): Causa 320% de dano mágico e regenera 20% da mana se o alvo expirar sob o efeito.
+            5. *Ecos da Tumba* (Nvl. 9): +5 Constituição por nível de habilidade (Passiva).
+            6. *Exército de Esqueletos* (Nvl. 11): Conjura dois servos que desferem 120% de dano por segundo por 8 segundos.
+            7. *Ceifa das Almas Perdidas* (Nvl. 15 - Ultimate): Causa 1300% de dano mágico e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
+    *   **Expansão de Relíquias (8 Relíquias, Nível Máximo 5)**:
+        *   Total de relíquias aumentado para 8, com novo limite máximo de nível 5. Atingir o nível máximo (5) destrava uma habilidade passiva única (Capstone):
+            1. *Luz da Alma Partida*: +3% Dano Geral por nível | Capstone: +10% Multiplicador de Dano Crítico.
+            2. *Moeda do Ciclo Eterno*: +4% Ouro Ganho por nível | Capstone: +5% de chance de monstros comuns derrubarem ouro em dobro.
+            3. *Símbolo do Aprendizado*: +3% Chance de Drop por nível | Capstone: +10% de chance de o item dropado ser Raro ou superior.
+            4. *Gema da Vontade*: +4 Força por nível | Capstone: +10% de penetração de armadura.
+            5. *Núcleo do Pensamento*: +4 Magia por nível | Capstone: +15% de Regeneração de Mana.
+            6. *Foco da Precisão*: +4 Destreza por nível | Capstone: +5% de Velocidade de Ataque.
+            7. *Brasão da Devoção*: +6 Constituição por nível | Capstone: +2% do HP máximo como barreira de escudo no início do combate.
+            8. *Olho da Sobrevivência*: +4 Sorte por nível | Capstone: Reduz o cooldown da habilidade de Cura em 1.5 segundos.
+    *   **Filtro da Forja contra Consumíveis**: Corrigido bug crítico de fusão acidental. Consumíveis (baús, boosters e fragmentos) foram estritamente filtrados fora da lista da Forja.
+    *   **Economia e Loja**:
+        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 8.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
+        *   *Desafio Diário*: Recompensa de Fragmentos de Alma Instável duplicada (2x) para compensar os drops adicionais obtidos de chefes normais de fases.
+
+### Versão 3.7.0
+*   **🏛️ Altar de Relíquias (Protótipo)**:
+    *   Implementação do sistema básico de Relíquias e da nova moeda de *Fragmentos de Alma Instável*, obtida com **5% de chance** ao derrotar o **chefe de qualquer fase da campanha** (16º inimigo de cada estágio) e como recompensa dos desafios diários.
+    *   Forja de relíquias a um custo de 10 Fragmentos por tentativa no Altar de Alma.
+    *   Lançamento das 3 relíquias iniciais limitadas ao nível 3 (*Luz da Alma Partida*, *Moeda do Ciclo Eterno* e *Símbolo do Aprendizado*).
+
+### Versão 3.6.0
 *   **🔮 Painel de Prestígio e Trilha da Ascensão**:
     *   **Abas de Prestígio**: O painel `PrestigeTreePanel` foi refatorado para abrigar duas sub-abas: **Árvore de Almas** (Upgrades clássicos com PP e Esfera do Pandemônio) e a nova **Trilha da Ascensão** (Desafios Diários e Recordes).
     *   **Desafio Diário (Fase Espelho)**:
@@ -909,51 +946,6 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
         *   Novos atributos de clique e combate adicionados por nível de ascensão: $+5$ de Dano de Toque, $+0.1\%$ de Chance de Crítico de Toque, $+1\%$ de Dano Crítico de Toque e $+0.5\%$ de Esquiva.
     *   **Integração FSM de Combate**: Os novos bônus de ascensão foram acoplados nos cálculos de dano de toque, chance e multiplicador crítico do `StatEngine` e na chance de esquiva defensiva do jogador no `CombatFSM.ts`, atualizando dinamicamente a HUD.
 
-### Versão 4.0.0
-*   **🌌 O Purgatório e as Relíquias (Major Update)**:
-    *   **Território do Purgatório (Fases 21–30)**: Adicionado um novo bloco intermediário fixo de 10 fases temáticas de cristais partidos. Os inimigos possuem HP e Dano escalados em $4.5\times$ sobre a base do Apocalipse.
-    *   **Chefe da Fase 30 ("Guardião dos Cacos")**: Primeiro chefe com combate de duas fases. Na Fase 2 (abaixo de 50% HP), o chefe entra em estado de Fúria Arcana (+50% velocidade de ataque, textura cristalina brilhante e conjuração contínua de relâmpagos).
-    *   **Progresso Bloqueado**: Concluir o Purgatório derrotando o Guardião dos Cacos é o novo requisito mandatório para desbloquear o Modo Pandemônio. O avanço de fases é pausado e travado na Fase 30 até a ativação do ritual de alma.
-    *   **Nova Classe Avançada: Necromante**:
-        *   *Desbloqueio*: Requer **Clérigo Nível 10 + Ladrão Nível 10** (as duas classes avançadas, independente de save). O progresso de nível máximo por classe é rastreado globalmente via `medieval_idle_global_class_levels` no localStorage.
-        *   *Atributos*: Dano principal escala com Magia; dano secundário e bônus escalam com Sorte (aumenta o dano de habilidades em $+0.1\%$ para cada 1 ponto de Sorte).
-        *   *Habilidades*:
-            1. *Toque da Morte* (Nvl. 1): Causa 160% de dano mágico e drena vida do inimigo com a fórmula: $\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$.
-            2. *Escudo Ósseo* (Nvl. 3): Reduz o dano recebido em 20% por 6 segundos e explode causando 150% de dano de Constituição ao expirar.
-            3. *Sangue Frio* (Nvl. 5): +5 Magia e +2 Sorte por nível de habilidade (Passiva).
-            4. *Sifão de Almas* (Nvl. 7): Causa 320% de dano mágico e regenera 20% da mana se o alvo expirar sob o efeito.
-            5. *Ecos da Tumba* (Nvl. 9): +5 Constituição por nível de habilidade (Passiva).
-            6. *Exército de Esqueletos* (Nvl. 11): Conjura dois servos que desferem 120% de dano por segundo por 8 segundos.
-            7. *Ceifa das Almas Perdidas* (Nvl. 15 - Ultimate): Causa 1300% de dano mágico e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
-    *   **Expansão de Relíquias (8 Relíquias, Nível Máximo 5)**:
-        *   Total de relíquias aumentado para 8, com novo limite máximo de nível 5. Atingir o nível máximo (5) destrava uma habilidade passiva única (Capstone):
-            1. *Luz da Alma Partida*: +3% Dano Geral por nível | Capstone: +10% Multiplicador de Dano Crítico.
-            2. *Moeda do Ciclo Eterno*: +4% Ouro Ganho por nível | Capstone: +5% de chance de monstros comuns derrubarem ouro em dobro.
-            3. *Símbolo do Aprendizado*: +3% Chance de Drop por nível | Capstone: +10% de chance de o item dropado ser Raro ou superior.
-            4. *Gema da Vontade*: +4 Força por nível | Capstone: +10% de penetração de armadura.
-            5. *Núcleo do Pensamento*: +4 Magia por nível | Capstone: +15% de Regeneração de Mana.
-            6. *Foco da Precisão*: +4 Destreza por nível | Capstone: +5% de Velocidade de Ataque.
-            7. *Brasão da Devoção*: +6 Constituição por nível | Capstone: +2% do HP máximo como barreira de escudo no início do combate.
-            8. *Olho da Sobrevivência*: +4 Sorte por nível | Capstone: Reduz o cooldown da habilidade de Cura em 1.5 segundos.
-    *   **Filtro da Forja contra Consumíveis**: Corrigido bug crítico de fusão acidental. Consumíveis (baús, boosters e fragmentos) foram estritamente filtrados fora da lista da Forja.
-    *   **Economia e Loja**:
-        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 8.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
-        *   *Desafio Diário*: Recompensa de Fragmentos de Alma Instável duplicada (2x) para compensar os drops adicionais obtidos de chefes normais de fases.
-
-### Versão 3.7.0
-*   **🏛️ Altar de Relíquias (Protótipo)**:
-    *   Implementação do sistema básico de Relíquias e da nova moeda de *Fragmentos de Alma Instável*, obtida com **5% de chance** ao derrotar o **chefe de qualquer fase da campanha** (16º inimigo de cada estágio) e como recompensa dos desafios diários.
-    *   Forja de relíquias a um custo de 10 Fragmentos por tentativa no Altar de Alma.
-    *   Lançamento das 3 relíquias iniciais limitadas ao nível 3 (*Luz da Alma Partida*, *Moeda do Ciclo Eterno* e *Símbolo do Aprendizado*).
-
-### Versão 3.6.0
-*   **🌌 Trilha da Ascensão e Recordes Pessoais**:
-    *   **Fases Espelho (Desafios Diários)**: Fase única por dia com modificadores ambientais baseada em semente gerada localmente.
-    *   **Recordes locais**: Persistência do progresso local (maior fase obtida, PP total e tempo de speedrun).
-
-### Versão 3.5.0
-*   **👾 Elites do Vazio**:
-    *   Adição de monstros de elite (spawn de 8% em Inferno+) com atributos elevados (3x) e afixos únicos (Blindado, Regenerador, Vampírico, Enfurecido e Volátil) que dropam itens de alta qualidade garantidos.
 
 ### Versão 3.0.0
 *   **💀 Modo Pandemônio (Dificuldade Extrema e Progresso Infinito)**:
