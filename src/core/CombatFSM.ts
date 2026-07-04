@@ -1312,7 +1312,7 @@ export class CombatFSM {
       gainedGold *= 2.0;
     }
     
-    const luckBonus = 1 + ((this.playerFinalStats.luck || 0) * 0.01);
+    const luckBonus = 1 + Math.sqrt(this.playerFinalStats.luck || 0) * 0.1;
     const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
     gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus));
 

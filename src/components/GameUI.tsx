@@ -2111,7 +2111,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
   const xp = character.xp;
   const totalXp = 50 * level * (level - 1) + xp;
   // Multiplicado por 1.5 para alinhar com a triplicação no store
-  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 1.5);
+  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
   const ascensionCount = character.ascensionCount || 0;
   const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
   const isProgressReqMet = ascensionCount === 0 
@@ -3347,7 +3347,7 @@ const GuidePanel: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-amber-300 font-bold">Multiplicador de Ouro:</span>
-                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Bônus = 1.0 + (Sorte / 100)</code>
+                      <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Bônus = 1.0 + (√Sorte / 10)</code>
                     </div>
                     <div>
                       <span className="text-emerald-300 font-bold">Chance e Dano Crítico de Toque:</span>
@@ -3496,7 +3496,7 @@ const GuidePanel: React.FC = () => {
                     </li>
                     <li>
                       <span className="text-gray-400">Fórmula de PP obtido:</span>
-                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.85) * 1.5)</code>
+                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
                       <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
                     </li>
                     <li>

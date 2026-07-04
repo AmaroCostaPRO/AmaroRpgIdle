@@ -642,7 +642,7 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
 A XP total acumulada pelo personagem desde o nível 1 é calculada por:
 $$\text{XP Total} = 50 \times \text{Nível} \times (\text{Nível} - 1) + \text{XP Atual na Barra}$$
 O ganho de Pontos de Prestígio (PP) na ascensão é determinado por:
-$$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.85} \rfloor \times 1.5 \rfloor$$
+$$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.45} \rfloor \times 1.5 \rfloor$$
 
 ### C. Catálogo de Upgrades de Prestígio Permanente
 Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus permanentes para os atributos iniciais ou mecânicas de toque, aplicando-se de imediato nos resets seguintes:
@@ -699,7 +699,7 @@ Cada inimigo derrotado concede uma quantidade de ouro calculada dinamicamente, e
 ### B. Influência do Atributo Sorte (Luck)
 O atributo de Sorte (`Luck`) do herói atua como um multiplicador direto de ganho de ouro e também influencia o desempenho em combate ativamente através do clique:
 *   **Ganho de Ouro**:
-    $$\text{Bônus de Sorte} = 1 + \frac{\text{Sorte Final}}{100}$$
+    $$\text{Bônus de Sorte} = 1 + \frac{\sqrt{\text{Sorte Final}}}{10}$$
     $$\text{Ouro Final Recebido} = \lfloor \text{Ouro Inicial} \times \text{Bônus de Sorte} \rfloor$$
 *   **Performance de Combate**:
     *   **Chance de Crítico (Global)**: Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico (anteriormente restrito ao Toque, agora aplicável globalmente a ataques e habilidades):

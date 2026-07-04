@@ -382,6 +382,14 @@ const App: React.FC = () => {
                         Adquira o <i>Baú de Relíquias</i> por 8.000 Ouro para obter 3 Fragmentos de Alma Instável. Ajustado filtro da Forja para impedir fusão acidental de itens consumíveis.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb923c', fontSize: '0.72rem' }}>
+                        ⚖️ Rebalanceamento Econômico & de Progressão
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ajustado o bônus de ouro obtido pela Sorte para uma curva de raiz quadrada (<code>1.0 + √Sorte / 10</code>) para controlar a hiperinflação no endgame. A curva de ganho de Pontos de Prestígio (PP) na Ascensão foi atenuada (expoente reduzido de 0.85 para 0.45) para estender o desafio no final do jogo.
+                      </div>
+                    </div>
                   </div>
                 </div>
 

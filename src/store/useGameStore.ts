@@ -811,7 +811,7 @@ export const useGameStore = create<GameState>((set) => ({
     const level = state.character.level;
     const xp = state.character.xp;
     const totalXp = 50 * level * (level - 1) + xp;
-    const pointsEarned = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.85)) * 1.5);
+    const pointsEarned = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
 
     if (pointsEarned <= 0) return state;
     

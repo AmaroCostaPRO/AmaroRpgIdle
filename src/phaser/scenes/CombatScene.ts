@@ -48,6 +48,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('paladin_sprite', 'assets/paladin_sprite.png');
     this.load.image('cleric_sprite', 'assets/cleric_sprite.png');
     this.load.image('rogue_sprite', 'assets/rogue_sprite.png');
+    this.load.image('necromancer_sprite', 'assets/necromancer_sprite.png');
 
     // Inimigos - Fase 1 (Floresta)
     this.load.image('enemy_goblin', 'assets/enemy_goblin.png');
@@ -149,6 +150,7 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('paladin_sprite', 'paladin_transparent');
     this.makeTextureTransparent('cleric_sprite', 'cleric_transparent');
     this.makeTextureTransparent('rogue_sprite', 'rogue_transparent');
+    this.makeTextureTransparent('necromancer_sprite', 'necromancer_transparent');
 
     this.makeTextureTransparent('enemy_orc', 'enemy_orc_transparent');
     this.makeTextureTransparent('enemy_goblin', 'enemy_goblin_transparent');
@@ -196,6 +198,7 @@ export class CombatScene extends Phaser.Scene {
     else if (classId === 'paladin') playerTexture = 'paladin_transparent';
     else if (classId === 'cleric') playerTexture = 'cleric_transparent';
     else if (classId === 'rogue') playerTexture = 'rogue_transparent';
+    else if (classId === 'necromancer') playerTexture = 'necromancer_transparent';
 
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
@@ -495,14 +498,7 @@ export class CombatScene extends Phaser.Scene {
       const currentBgScale = baseBgScale * ZOOM_FACTOR;
       this.background.setTileScale(currentBgScale, currentBgScale);
       
-      // Ajuste fino do Y para posicionar o chão um pouco mais para baixo no Purgatório
-      if (textureKey === 'purgatory_background') {
-        // Aumentar ligeiramente o offset vertical faz a imagem de fundo subir, 
-        // deslocando o chão em pixels para baixo em relação aos sprites dos heróis.
-        this.background.tilePositionY = 1024 - (600 / currentBgScale) + 40;
-      } else {
-        this.background.tilePositionY = 1024 - (600 / currentBgScale);
-      }
+      this.background.tilePositionY = 1024 - (600 / currentBgScale);
     }
 
     // Aplicar tint de acordo com a dificuldade
@@ -678,7 +674,7 @@ export class CombatScene extends Phaser.Scene {
     const roundedX = Math.round(x);
     const roundedY = Math.round(y) + 65; // Posiciona o dano 65 pixels mais para baixo do Y original
     const dmgText = this.add.text(roundedX, roundedY, text, {
-      fontSize: '28px', // Fonte aumentada de 18px para 22px
+      fontSize: '28px', // Fonte aumentada de 18px para 28px
       color: color,
       fontStyle: 'bold',
       fontFamily: 'monospace',
