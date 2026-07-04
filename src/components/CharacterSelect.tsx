@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameStore, CLASS_CONFIGS, isClassUnlocked } from '../store/useGameStore';
+import { useGameStore, CLASS_CONFIGS, isClassUnlocked, getGlobalClassLevels } from '../store/useGameStore';
 import { BaseStats } from '../core/types';
 import { AudioManager } from '../core/AudioManager';
 
@@ -46,7 +46,11 @@ export const CharacterSelect: React.FC = () => {
     paladin: '🛡',
     cleric: '✝',
     rogue: '🗡',
+    necromancer: '💀',
   };
+
+  // Levels globais (histórico de todas as runs)
+  const globalLevels = getGlobalClassLevels();
 
   return (
     <div className="panel animate-slideUp class-select-panel" style={{ minHeight: '550px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', position: 'relative' }}>
@@ -72,12 +76,18 @@ export const CharacterSelect: React.FC = () => {
               if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 10';
               if (classId === 'cleric') requirementText = 'Req: Mago Nvl 10';
               if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 10';
+              if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 10';
 
+              // Para classes com 1 pré-requisito
               let parentClass = '';
               if (classId === 'paladin') parentClass = 'warrior';
               if (classId === 'cleric') parentClass = 'mage';
               if (classId === 'rogue') parentClass = 'ranger';
-              const currentParentLevel = parentClass ? (classLevels[parentClass] || 1) : 0;
+              const getEffectiveLevel = (id: string) => Math.max(classLevels[id] || 0, globalLevels[id] || 0);
+              const currentParentLevel = parentClass ? getEffectiveLevel(parentClass) : 0;
+              // Para Necromante (2 pré-requisitos)
+              const clericLevel = classId === 'necromancer' ? getEffectiveLevel('cleric') : 0;
+              const rogueLevel = classId === 'necromancer' ? getEffectiveLevel('rogue') : 0;
 
               return (
                 <button
@@ -116,7 +126,13 @@ export const CharacterSelect: React.FC = () => {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
                         <span style={{ fontSize: '0.5rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
-                        <span className="font-mono" style={{ fontSize: '0.45rem', color: '#64748b' }}>Progresso: {currentParentLevel}/10</span>
+                        {classId === 'necromancer' ? (
+                          <>
+                            <span className="font-mono" style={{ fontSize: '0.42rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevel, 10)}/10 | Ladrão: {Math.min(rogueLevel, 10)}/10</span>
+                          </>
+                        ) : (
+                          <span className="font-mono" style={{ fontSize: '0.45rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 10)}/10</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -153,12 +169,16 @@ export const CharacterSelect: React.FC = () => {
                 if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 10';
                 if (classId === 'cleric') requirementText = 'Req: Mago Nvl 10';
                 if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 10';
+                if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 10';
 
                 let parentClass = '';
                 if (classId === 'paladin') parentClass = 'warrior';
                 if (classId === 'cleric') parentClass = 'mage';
                 if (classId === 'rogue') parentClass = 'ranger';
-                const currentParentLevel = parentClass ? (classLevels[parentClass] || 1) : 0;
+                const getEffectiveLevelM = (id: string) => Math.max(classLevels[id] || 0, globalLevels[id] || 0);
+                const currentParentLevel = parentClass ? getEffectiveLevelM(parentClass) : 0;
+                const clericLevelM = classId === 'necromancer' ? getEffectiveLevelM('cleric') : 0;
+                const rogueLevelM = classId === 'necromancer' ? getEffectiveLevelM('rogue') : 0;
 
                 return (
                   <button
@@ -201,7 +221,11 @@ export const CharacterSelect: React.FC = () => {
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
                           <span style={{ fontSize: '0.62rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
-                          <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {currentParentLevel}/10</span>
+                          {classId === 'necromancer' ? (
+                            <span className="font-mono" style={{ fontSize: '0.52rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevelM, 10)}/10 | Ladrão: {Math.min(rogueLevelM, 10)}/10</span>
+                          ) : (
+                            <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 10)}/10</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -246,6 +270,27 @@ export const CharacterSelect: React.FC = () => {
                     <span style={{ color: '#94a3b8' }}>Atributo Principal: </span>
                     <strong className="font-heading" style={{ color: 'var(--gold-400)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{getPrimaryStatName(config.primaryStat)}</strong>
                   </div>
+                  {!unlocked && (() => {
+                    const getEL = (id: string) => Math.max(classLevels[id] || 0, globalLevels[id] || 0);
+                    const reqMap: Record<string, string> = {
+                      paladin: 'Req: Guerreiro Nvl 10',
+                      cleric: 'Req: Mago Nvl 10',
+                      rogue: 'Req: Arqueiro Nvl 10',
+                      necromancer: 'Req: Clérigo + Ladrão Nvl 10',
+                    };
+                    const reqText = reqMap[selectedClass] || '';
+                    let progressText = '';
+                    if (selectedClass === 'paladin') progressText = `Guerreiro: ${Math.min(getEL('warrior'), 10)}/10`;
+                    if (selectedClass === 'cleric') progressText = `Mago: ${Math.min(getEL('mage'), 10)}/10`;
+                    if (selectedClass === 'rogue') progressText = `Arqueiro: ${Math.min(getEL('ranger'), 10)}/10`;
+                    if (selectedClass === 'necromancer') progressText = `Clérigo: ${Math.min(getEL('cleric'), 10)}/10 | Ladrão: ${Math.min(getEL('rogue'), 10)}/10`;
+                    return (
+                      <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(248, 113, 113, 0.08)', border: '1px solid rgba(248, 113, 113, 0.2)', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ fontSize: '0.65rem', color: '#f87171', fontWeight: 600, marginBottom: '0.2rem' }}>{reqText}</div>
+                        <div className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b' }}>{progressText}</div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Bloco de status (embaixo) */}
@@ -256,6 +301,7 @@ export const CharacterSelect: React.FC = () => {
                     { label: 'Magia (Mag)', value: config.baseStats.magic },
                     { label: 'Destreza (Dex)', value: config.baseStats.dexterity },
                     { label: 'Constituição (Con)', value: config.baseStats.constitution },
+                    { label: 'Sorte (Lck)', value: config.baseStats.luck },
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem' }}>
                       <span style={{ color: '#94a3b8' }}>{label}</span>
