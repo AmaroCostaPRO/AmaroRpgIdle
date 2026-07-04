@@ -26,9 +26,9 @@ export class CombatScene extends Phaser.Scene {
   private accumulatedTime: number = 0;
 
   public readonly PLAYER_START_X = 200;
-  public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
+  public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
   public readonly ENEMY_START_X = 900;
-  public readonly ENEMY_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (125 * ZOOM_FACTOR) / 2);
+  public readonly ENEMY_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
 
   constructor() {
     super('CombatScene');
@@ -199,7 +199,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
-    this.playerBody.setDisplaySize(125 * ZOOM_FACTOR, 125 * ZOOM_FACTOR);
+    this.playerBody.setDisplaySize(165 * ZOOM_FACTOR, 165 * ZOOM_FACTOR);
     this.playerBody.setFlipX(false);
 
     // Inicializar FSM de combate antes de criar os inimigos para pegar informações corretas
@@ -233,6 +233,7 @@ export class CombatScene extends Phaser.Scene {
       fontFamily: 'monospace',
       stroke: '#000000',
       strokeThickness: 5,
+      align: 'center',
       padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
@@ -332,7 +333,8 @@ export class CombatScene extends Phaser.Scene {
       if (this.enemyStatusText && this.enemyBody && this.enemyLevelText) {
         const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
         this.enemyStatusText.x = isMoving ? this.enemyBody.x : 600;
-        this.enemyStatusText.y = this.enemyLevelText.y - 18 * ZOOM_FACTOR;
+        const isElite = this.enemyLevelText.text.includes('\n');
+        this.enemyStatusText.y = this.enemyLevelText.y - (isElite ? 35 : 20) * ZOOM_FACTOR;
 
         // Determina qual texto de status exibir baseado nos efeitos ativos
         const effects = this.fsm.enemyEffects;
@@ -416,7 +418,7 @@ export class CombatScene extends Phaser.Scene {
       if (this.fsm.enemyHP > 0 && this.enemyBody) {
         // Pulsação suave de tamanho para Elites
         const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_');
-        let baseSize = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+        let baseSize = (isBoss ? 215 : 165) * ZOOM_FACTOR;
         if (this.fsm.isElite && this.fsm.getCurrentState() !== CombatState.DEAD) {
           const pulseScale = 1.15 + Math.sin(this.accumulatedTime * 0.005) * 0.03;
           this.enemyBody.setDisplaySize(baseSize * pulseScale, baseSize * pulseScale);
@@ -674,9 +676,9 @@ export class CombatScene extends Phaser.Scene {
 
   public spawnDamageText(x: number, y: number, text: string, color: string): void {
     const roundedX = Math.round(x);
-    const roundedY = Math.round(y);
+    const roundedY = Math.round(y) + 65; // Posiciona o dano 65 pixels mais para baixo do Y original
     const dmgText = this.add.text(roundedX, roundedY, text, {
-      fontSize: '18px',
+      fontSize: '28px', // Fonte aumentada de 18px para 22px
       color: color,
       fontStyle: 'bold',
       fontFamily: 'monospace',
@@ -687,9 +689,9 @@ export class CombatScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: dmgText,
-      y: roundedY - 50,
+      y: roundedY - 60, // Sobe 60 pixels
       alpha: 0,
-      duration: 800,
+      duration: 1500, // Demora 1.5s para sumir (antes 800ms)
       onComplete: () => {
         dmgText.destroy();
       }
@@ -698,11 +700,11 @@ export class CombatScene extends Phaser.Scene {
 
   public spawnTouchEffect(isCrit: boolean, damage: number, clickX?: number, clickY?: number): void {
     const targetX = Math.round(clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40)));
-    const targetY = Math.round(clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40)));
+    const targetY = Math.round(clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40))) + 65; // Posiciona 65 pixels mais para baixo
 
     const color = isCrit ? '#facc15' : '#38bdf8';
     const text = isCrit ? `💥 ${damage}!` : `${damage}`;
-    const fontSize = isCrit ? '52px' : '36px';
+    const fontSize = isCrit ? '60px' : '42px'; // Fontes aumentadas (antes 52px / 36px)
 
     const dmgText = this.add.text(targetX, targetY, text, {
       fontSize: fontSize,
@@ -720,17 +722,17 @@ export class CombatScene extends Phaser.Scene {
 
     const textTween = this.tweens.add({
       targets: dmgText,
-      y: targetY - 90,
+      y: targetY - 100, // Sobe 100 pixels
       scale: isCrit ? 1.5 : 1.2,
       alpha: 0,
-      duration: 750,
+      duration: 1400, // Demora 1.4s para sumir (antes 750ms)
       onComplete: () => {
         dmgText.destroy();
       }
     });
     textTween.setTimeScale(scaleFactor);
 
-    const clickCircle = this.add.circle(targetX, targetY, 5, isCrit ? 0xfacc15 : 0x38bdf8, 0.8);
+    const clickCircle = this.add.circle(targetX, targetY - 65, 5, isCrit ? 0xfacc15 : 0x38bdf8, 0.8);
     const circleTween = this.tweens.add({
       targets: clickCircle,
       radius: isCrit ? 50 : 32,
@@ -762,7 +764,7 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
       
       const isBoss = enemyType.id.startsWith('boss_');
-      let size = (isBoss ? 165 : 125) * ZOOM_FACTOR;
+      let size = (isBoss ? 215 : 165) * ZOOM_FACTOR;
       if (this.fsm.isElite) {
         size *= 1.15; // 15% de aumento de tamanho para Elites
       }
@@ -779,11 +781,10 @@ export class CombatScene extends Phaser.Scene {
       const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === ENEMIES_PER_STAGE || enemyType.id.startsWith('boss_');
       let enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
       if (this.fsm.isElite) {
-        const afixLabel = this.fsm.eliteAfix ? ` [Elite ${this.fsm.eliteAfix.toUpperCase()}]` : ' [Elite]';
-        enemyName = `${enemyType.name}${afixLabel}`;
+        const afixLabel = this.fsm.eliteAfix ? `ELITE ${this.fsm.eliteAfix.toUpperCase()}` : 'ELITE';
+        enemyName = `${afixLabel}\n${enemyType.name}`;
       }
-      const level = this.fsm.enemyLevel;
-      this.enemyLevelText.setText(`${enemyName} (Lv. ${level})`);
+      this.enemyLevelText.setText(enemyName);
       
       if (this.fsm.isElite) {
         this.enemyLevelText.setColor('#e2e8f0'); // Prateado metálico para nome de Elites
@@ -791,7 +792,7 @@ export class CombatScene extends Phaser.Scene {
         this.enemyLevelText.setColor(enemyType.color);
       }
       
-      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 30 * ZOOM_FACTOR;
+      this.enemyLevelText.y = this.enemyBody.y - (this.enemyBody.displayHeight / 2) - 35 * ZOOM_FACTOR;
     }
 
     this.tweens.add({
