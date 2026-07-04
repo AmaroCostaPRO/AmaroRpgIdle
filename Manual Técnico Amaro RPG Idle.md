@@ -937,7 +937,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
             8. *Olho da Sobrevivência*: +4 Sorte por nível | Capstone: Reduz o cooldown da habilidade de Cura em 1.5 segundos.
     *   **Filtro da Forja contra Consumíveis**: Corrigido bug crítico de fusão acidental. Consumíveis (baús, boosters e fragmentos) foram estritamente filtrados fora da lista da Forja.
     *   **Economia e Loja**:
-        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 5.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
+        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 8.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
         *   *Desafio Diário*: Recompensa de Fragmentos de Alma Instável duplicada (2x) para compensar os drops adicionais obtidos de chefes normais de fases.
 
 ### Versão 3.7.0

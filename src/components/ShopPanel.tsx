@@ -6,7 +6,7 @@ export const ShopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buyConsumable = useGameStore((state) => state.buyConsumable);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | null>(null);
+  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | null>(null);
 
   const shopItems = [
     {
@@ -46,16 +46,27 @@ export const ShopPanel: React.FC = () => {
       id: 'boost_touch_x3' as const,
       name: 'Boost de Toque x3 (Frenesi)',
       description: 'Consumível que ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.',
-      cost: 5000, // Preço de 5000 para a versão x3
+      cost: 5000,
       icon: '⚡⚡⚡',
       color: '#38bdf8',
       bgColor: 'rgba(56, 189, 248, 0.08)',
       borderColor: 'rgba(56, 189, 248, 0.3)',
       badge: 'Boost x3'
+    },
+    {
+      id: 'relic_chest' as const,
+      name: 'Baú de Relíquias',
+      description: 'Contém 3 Fragmentos de Alma Instável para uso no Altar de Relíquias. Forje e aprimore suas relíquias mais rapidamente.',
+      cost: 8000,
+      icon: '💜🏺💜',
+      color: '#c084fc',
+      bgColor: 'rgba(192, 132, 252, 0.08)',
+      borderColor: 'rgba(192, 132, 252, 0.3)',
+      badge: 'Relíquias'
     }
   ];
 
-  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3') => {
+  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest') => {
     AudioManager.getInstance().playCoin();
     const result = buyConsumable(itemId);
     
@@ -127,7 +138,7 @@ export const ShopPanel: React.FC = () => {
                 fontSize: '0.5rem',
                 fontWeight: 700,
                 color: item.color,
-                background: item.id === 'chest_legendary' ? 'rgba(245, 158, 11, 0.15)' : item.id === 'chest_ancestral' ? 'rgba(167, 139, 250, 0.15)' : item.id === 'boost_touch_x3' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                background: item.bgColor,
                 padding: '0.15rem 0.4rem',
                 borderRadius: '4px',
                 textTransform: 'uppercase',

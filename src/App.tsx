@@ -379,7 +379,7 @@ const App: React.FC = () => {
                         🪙 Novos itens na Loja & Ajustes na Forja
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Adquira o <i>Baú de Relíquias</i> por 5.000 Ouro para obter fragmentos rapidamente. Ajustado filtro da Forja para impedir fusão acidental de itens consumíveis.
+                        Adquira o <i>Baú de Relíquias</i> por 8.000 Ouro para obter 3 Fragmentos de Alma Instável. Ajustado filtro da Forja para impedir fusão acidental de itens consumíveis.
                       </div>
                     </div>
                   </div>

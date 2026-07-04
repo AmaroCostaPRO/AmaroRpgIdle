@@ -1277,8 +1277,11 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               >
                 <span style={{ fontSize: '1.2rem' }}>
                   {item.slot === 'consumable' ? (
-                    item.consumableType === 'boost_touch' ? '⚡' : 
-                    item.consumableType === 'chest_ancestral' ? '🔮' : '🎁'
+                    item.consumableType === 'boost_touch' ? '⚡' :
+                    item.consumableType === 'boost_touch_x3' ? '⚡⚡⚡' :
+                    item.consumableType === 'chest_ancestral' ? '🔮' :
+                    item.consumableType === 'relic_chest' ? '💜' :
+                    item.consumableType === 'unstable_soul_fragment' ? '🔮' : '🎁'
                   ) : (
                     slotIcons[item.slot]
                   )}
@@ -4308,8 +4311,11 @@ export default function GameUI() {
                       <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito do Consumível</span>
                       <div style={{ fontSize: '0.65rem', color: '#22d3ee', marginTop: '0.2rem', lineHeight: 1.4 }}>
                         {selectedItem.consumableType === 'boost_touch' && '🔥 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.'}
+                        {selectedItem.consumableType === 'boost_touch_x3' && '⚡⚡⚡ Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.'}
                         {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
                         {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
+                        {selectedItem.consumableType === 'relic_chest' && '💜 Ao abrir, concede +3 Fragmentos de Alma Instável diretamente no seu Altar de Relíquias.'}
+                        {selectedItem.consumableType === 'unstable_soul_fragment' && '🔮 Fragmento de Alma absorvido no Altar de Relíquias: +1 Fragmento.'}
                       </div>
                     </>
                   ) : (
