@@ -942,7 +942,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 
 ### Versão 3.7.0
 *   **🏛️ Altar de Relíquias (Protótipo)**:
-    *   Implementação do sistema básico de Relíquias e da nova moeda de *Fragmentos de Alma Instável*, obtida com 5% de chance ao derrotar chefes de fases e nos desafios diários.
+    *   Implementação do sistema básico de Relíquias e da nova moeda de *Fragmentos de Alma Instável*, obtida com **5% de chance** ao derrotar o **chefe de qualquer fase da campanha** (16º inimigo de cada estágio) e como recompensa dos desafios diários.
     *   Forja de relíquias a um custo de 10 Fragmentos por tentativa no Altar de Alma.
     *   Lançamento das 3 relíquias iniciais limitadas ao nível 3 (*Luz da Alma Partida*, *Moeda do Ciclo Eterno* e *Símbolo do Aprendizado*).
 

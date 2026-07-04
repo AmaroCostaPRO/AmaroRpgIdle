@@ -160,7 +160,7 @@ O vazio entre os cacos da Alma-Mundo finalmente ganha um nome: o **Purgatório**
 
 ### 4.3 Expansão do Sistema de Relíquias (Versão Completa)
 *   **Total de Relíquias**: Expansão de 3 para **8 Relíquias** totais, com o Nível Máximo de cada uma elevado de 3 para **5**.
-*   **Drops de Fragmentos**: Além do Desafio Diário, Fragmentos de Alma Instável agora também dropam de chefes de fases normais da campanha (múltiplos de 5), tornando o sistema viável para quem não faz os desafios diários.
+*   **Drops de Fragmentos**: Além do Desafio Diário, Fragmentos de Alma Instável também dropam com **5% de chance** ao derrotar o **Chefe de qualquer fase da campanha** (o 16º inimigo de cada estágio), tornando o sistema viável para quem não faz os desafios diários.
 *   **Nova Interface Dedicada**: Criação de uma aba dedicada "Relíquias" no menu principal (substituindo o acesso apenas pela árvore de prestígio/Altar de Alma), com grade visual informativa e estatísticas de progresso parecidas com a aba de Bestiário.
 *   **Efeito Capstone (Nível 5)**: Além dos atributos lineares normais dos níveis 1 a 4, atingir o nível máximo (5) em uma relíquia concede uma passiva única e poderosa:
 
