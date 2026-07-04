@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
@@ -3898,6 +3898,201 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
   );
 };
 
+const OptionsPanel: React.FC = () => {
+  const sfxEnabled = useGameStore((state) => state.sfxEnabled);
+  const bgmEnabled = useGameStore((state) => state.bgmEnabled);
+  const consoleEnabled = useGameStore((state) => state.consoleEnabled);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+  const autoSellCommon = useGameStore((state) => state.autoSellCommon);
+  const autoSellRare = useGameStore((state) => state.autoSellRare);
+  const disableRobotTap = useGameStore((state) => state.disableRobotTap);
+
+  const toggleSfx = useGameStore((state) => state.toggleSfx);
+  const toggleBgm = useGameStore((state) => state.toggleBgm);
+  const toggleConsole = useGameStore((state) => state.toggleConsole);
+  const toggleAbbreviateNumbers = useGameStore((state) => state.toggleAbbreviateNumbers);
+  const toggleAutoSellCommon = useGameStore((state) => state.toggleAutoSellCommon);
+  const toggleAutoSellRare = useGameStore((state) => state.toggleAutoSellRare);
+  const toggleDisableRobotTap = useGameStore((state) => state.toggleDisableRobotTap);
+
+  const playClick = () => AudioManager.getInstance().playClick();
+
+  return (
+    <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
+        <h2 className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Opções do Jogo</h2>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        
+        {/* Seção de Áudio */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Configurações de Áudio</span>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => {
+                toggleBgm();
+                playClick();
+              }}
+              style={{
+                flex: 1,
+                background: bgmEnabled ? 'rgba(139, 92, 246, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+                color: bgmEnabled ? '#c084fc' : '#f87171',
+                border: bgmEnabled ? '1px solid rgba(139, 92, 246, 0.35)' : '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '0.5rem',
+                borderRadius: '6px',
+                fontSize: '0.65rem',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s ease',
+                fontWeight: 'bold'
+              }}
+            >
+              <span>🎵</span> Música: {bgmEnabled ? 'LIGADA' : 'DESLIGADA'}
+            </button>
+            <button
+              onClick={() => {
+                toggleSfx();
+                setTimeout(() => playClick(), 30);
+              }}
+              style={{
+                flex: 1,
+                background: sfxEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+                color: sfxEnabled ? '#34d399' : '#f87171',
+                border: sfxEnabled ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '0.5rem',
+                borderRadius: '6px',
+                fontSize: '0.65rem',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s ease',
+                fontWeight: 'bold'
+              }}
+            >
+              <span>🔊</span> Efeitos Sonoros: {sfxEnabled ? 'LIGADOS' : 'DESLIGADOS'}
+            </button>
+          </div>
+        </div>
+
+        {/* Seção de Visual & Interface */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visual & Interface</span>
+          
+          {/* Toggle Console de Combate */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Console de Combate</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Exibe o log de combate em tempo real abaixo das barras de status.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleConsole();
+                playClick();
+              }}
+              className={`btn btn-sm ${consoleEnabled ? 'btn-success' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {consoleEnabled ? 'Mostrar' : 'Esconder'}
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--border-dim)', margin: '0.2rem 0' }} />
+
+          {/* Toggle Formatação de Números */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Abreviar Números Grandes</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Exibe números formatados como 10K, 1.5M em vez de 10000 ou 1500000.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleAbbreviateNumbers();
+                playClick();
+              }}
+              className={`btn btn-sm ${abbreviateNumbers ? 'btn-success' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {abbreviateNumbers ? 'Ativo' : 'Inativo'}
+            </button>
+          </div>
+        </div>
+
+        {/* Seção de Automação & QoL */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Automação & QoL</span>
+
+          {/* Auto-venda Comuns */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Auto-venda: Equipamentos Comuns</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Vende instantaneamente itens comuns dropados por ouro.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleAutoSellCommon();
+                playClick();
+              }}
+              className={`btn btn-sm ${autoSellCommon ? 'btn-success' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {autoSellCommon ? 'Ativo' : 'Inativo'}
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--border-dim)', margin: '0.2rem 0' }} />
+
+          {/* Auto-venda Raros */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Auto-venda: Equipamentos Raros</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Vende instantaneamente itens raros dropados por ouro.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleAutoSellRare();
+                playClick();
+              }}
+              className={`btn btn-sm ${autoSellRare ? 'btn-success' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {autoSellRare ? 'Ativo' : 'Inativo'}
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--border-dim)', margin: '0.2rem 0' }} />
+
+          {/* Desativar Robô Assistente */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Desativar Robô Assistente</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Desativa a IA de toques automáticos (Frenesi) no combate sidescrolling.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleDisableRobotTap();
+                playClick();
+              }}
+              className={`btn btn-sm ${disableRobotTap ? 'btn-danger' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {disableRobotTap ? 'Desativado' : 'Ativo'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export default function GameUI() {
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
@@ -3906,7 +4101,7 @@ export default function GameUI() {
   const useConsumable = useGameStore((state) => state.useConsumable);
   const sellItem = useGameStore((state) => state.sellItem);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
@@ -4005,6 +4200,7 @@ export default function GameUI() {
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
     { id: 'guide' as const, label: 'Guia', icon: '▤' },
     { id: 'saves' as const, label: 'Saves', icon: '💾' },
+    { id: 'options' as const, label: 'Opções', icon: '⚙️' },
   ];
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab);
@@ -4022,59 +4218,10 @@ export default function GameUI() {
           <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
           <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
             <span>🪙</span>
-            <span>{(character.gold || 0).toLocaleString()} Ouro</span>
+            <span>{formatNumber(character.gold || 0, useGameStore.getState().abbreviateNumbers)} Ouro</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Controles rápidos de Áudio */}
-          <button
-            onClick={() => {
-              toggleBgm();
-              AudioManager.getInstance().playClick();
-            }}
-            style={{
-              background: bgmEnabled ? 'rgba(139, 92, 246, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-              color: bgmEnabled ? 'var(--gold-400)' : '#f87171',
-              border: bgmEnabled ? '1px solid rgba(139, 92, 246, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
-              padding: '0.2rem 0.4rem',
-              borderRadius: '4px',
-              fontSize: '0.55rem',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              transition: 'all 0.2s ease'
-            }}
-            title="Alternar Música"
-          >
-            🎵 {bgmEnabled ? 'Música' : 'Mudo'}
-          </button>
-          <button
-            onClick={() => {
-              toggleSfx();
-              setTimeout(() => AudioManager.getInstance().playClick(), 30);
-            }}
-            style={{
-              background: sfxEnabled ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-              color: sfxEnabled ? '#34d399' : '#f87171',
-              border: sfxEnabled ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
-              padding: '0.2rem 0.4rem',
-              borderRadius: '4px',
-              fontSize: '0.55rem',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              transition: 'all 0.2s ease',
-              marginRight: '0.5rem'
-            }}
-            title="Alternar Efeitos"
-          >
-            🔊 {sfxEnabled ? 'Sons' : 'Mudo'}
-          </button>
-          
           {showExitConfirm ? (
             <button
               onClick={() => {
@@ -4244,6 +4391,7 @@ export default function GameUI() {
           {activeTab === 'guide' && <GuidePanel />}
           {activeTab === 'forge' && <ForgeView />}
           {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
+          {activeTab === 'options' && <OptionsPanel />}
         </div>
 
         {/* Modais de Equipamento e Bestiário agora posicionados de forma absoluta no wrapper relativo */}
@@ -4424,7 +4572,7 @@ export default function GameUI() {
                         gap: '0.25rem'
                       }}
                     >
-                      <span>🪙 Vender por {calculateItemSellValue(selectedItem).toLocaleString()} Ouro</span>
+                      <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), useGameStore.getState().abbreviateNumbers)} Ouro</span>
                     </button>
                   )}
                 </div>

@@ -44,6 +44,29 @@ export const calculateItemSellValue = (item: EquipmentItem): number => {
   return Math.floor(finalValue);
 };
 
+export const formatNumber = (num: number, abbreviate: boolean = false): string => {
+  if (!abbreviate || num < 1000) {
+    return Math.floor(num).toLocaleString();
+  }
+
+  const suffixes = [
+    { value: 1e12, suffix: 'T' },
+    { value: 1e9, suffix: 'B' },
+    { value: 1e6, suffix: 'M' },
+    { value: 1e3, suffix: 'K' }
+  ];
+
+  for (const item of suffixes) {
+    if (num >= item.value) {
+      const formatted = (num / item.value).toFixed(1);
+      return formatted.endsWith('.0') 
+        ? `${Math.floor(num / item.value)}${item.suffix}` 
+        : `${formatted}${item.suffix}`;
+    }
+  }
+  return Math.floor(num).toLocaleString();
+};
+
 // Configurações de Atributos e Crescimento para cada Classe
 export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
   const skill = SKILLS_CATALOG[skillId];
@@ -359,12 +382,20 @@ interface GameState {
   sfxVolume: number;
   bgmVolume: number;
   consoleEnabled: boolean;
+  abbreviateNumbers: boolean;
+  autoSellCommon: boolean;
+  autoSellRare: boolean;
+  disableRobotTap: boolean;
   currentSlot: number | null;
   toggleSfx(): void;
   toggleBgm(): void;
   setSfxVolume(vol: number): void;
   setBgmVolume(vol: number): void;
   toggleConsole(): void;
+  toggleAbbreviateNumbers(): void;
+  toggleAutoSellCommon(): void;
+  toggleAutoSellRare(): void;
+  toggleDisableRobotTap(): void;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
@@ -563,12 +594,80 @@ export const useGameStore = create<GameState>((set) => ({
     }
   })(),
 
+  abbreviateNumbers: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_abbreviate_numbers');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
+  autoSellCommon: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_auto_sell_common');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
+  autoSellRare: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_auto_sell_rare');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
+  disableRobotTap: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_disable_robot_tap');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
   toggleConsole: () => set((state) => {
     const val = !state.consoleEnabled;
     try {
       localStorage.setItem('rpg_console_enabled', String(val));
     } catch (e) {}
     return { consoleEnabled: val };
+  }),
+
+  toggleAbbreviateNumbers: () => set((state) => {
+    const val = !state.abbreviateNumbers;
+    try {
+      localStorage.setItem('rpg_abbreviate_numbers', String(val));
+    } catch (e) {}
+    return { abbreviateNumbers: val };
+  }),
+
+  toggleAutoSellCommon: () => set((state) => {
+    const val = !state.autoSellCommon;
+    try {
+      localStorage.setItem('rpg_auto_sell_common', String(val));
+    } catch (e) {}
+    return { autoSellCommon: val };
+  }),
+
+  toggleAutoSellRare: () => set((state) => {
+    const val = !state.autoSellRare;
+    try {
+      localStorage.setItem('rpg_auto_sell_rare', String(val));
+    } catch (e) {}
+    return { autoSellRare: val };
+  }),
+
+  toggleDisableRobotTap: () => set((state) => {
+    const val = !state.disableRobotTap;
+    try {
+      localStorage.setItem('rpg_disable_robot_tap', String(val));
+    } catch (e) {}
+    return { disableRobotTap: val };
   }),
 
   toggleSfx: () => set((state) => {
@@ -1535,7 +1634,25 @@ export const useGameStore = create<GameState>((set) => ({
 
   addItemToInventory: (item) => {
     let success = false;
+    let autoSold = false;
+    let goldEarned = 0;
+
     set((state) => {
+      const isCommonAutoSell = item.rarity === 'common' && state.autoSellCommon;
+      const isRareAutoSell = item.rarity === 'rare' && state.autoSellRare;
+
+      if (isCommonAutoSell || isRareAutoSell) {
+        success = true;
+        autoSold = true;
+        goldEarned = calculateItemSellValue(item);
+        const updated = {
+          ...state.character,
+          gold: (state.character.gold || 0) + goldEarned
+        };
+        saveToLocalStorage(updated);
+        return { character: updated };
+      }
+
       if (state.character.inventory.length < state.character.inventorySlots) {
         success = true;
         const updated = {
@@ -1547,6 +1664,13 @@ export const useGameStore = create<GameState>((set) => ({
       }
       return state;
     });
+
+    if (autoSold && goldEarned > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { 
+        message: `[Auto-Venda] [${item.name}] foi vendido automaticamente por +${goldEarned} Ouro!` 
+      });
+    }
+
     return success;
   },
 

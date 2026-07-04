@@ -1,6 +1,6 @@
 import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem } from './types';
 import { bridge } from '../bridge/GameBridge';
-import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
 import { StatEngine } from './StatEngine';
 
@@ -611,7 +611,7 @@ export class CombatFSM {
           if (this.scene && typeof this.scene.spawnDamageText === 'function') {
             this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, `-${summonDmg} (${this.summonedAlly.name})`, '#a855f7');
           }
-          bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Seu servo ${this.summonedAlly.name} atacou o inimigo e causou ${summonDmg} de dano!` });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Seu servo ${this.summonedAlly.name} atacou o inimigo e causou ${formatNumber(summonDmg, useGameStore.getState().abbreviateNumbers)} de dano!` });
         }
       }
     }
@@ -648,9 +648,9 @@ export class CombatFSM {
         }
       }
     }
-
+    
     // Atualização de Cliques do Robô Assistente
-    if (this.playerFinalStats.robotClicks > 0 && this.enemyHP > 0) {
+    if (this.playerFinalStats.robotClicks > 0 && this.enemyHP > 0 && !useGameStore.getState().disableRobotTap) {
       this.robotTapTimer += delta;
       const tapInterval = 1000 / this.playerFinalStats.robotClicks;
       if (this.robotTapTimer >= tapInterval) {
@@ -660,7 +660,7 @@ export class CombatFSM {
     }
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
-    
+
     // Lentidão e atordoamento afetam a recarga do ataque do inimigo
     const isEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
     if (this.enemyAttackCooldown > 0 && !isEnemyStunned) {
@@ -689,7 +689,7 @@ export class CombatFSM {
           if (this.scene && typeof this.scene.spawnDamageText === 'function') {
             this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${poisonDmg} (Veneno)`, '#10b981');
           }
-          bridge.emit(GameEvent.LOG_EMITTED, { message: `🤢 O Veneno Rastejante causou ${poisonDmg} de dano contínuo a você.` });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🤢 O Veneno Rastejante causou ${formatNumber(poisonDmg, useGameStore.getState().abbreviateNumbers)} de dano contínuo a você.` });
           if (this.playerHP <= 0) {
             this.handlePlayerDefeat();
           }
@@ -728,7 +728,7 @@ export class CombatFSM {
           if (this.scene && typeof this.scene.spawnDamageText === 'function') {
             this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
           }
-          bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${tickDmg} de dano por ${label}.` });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${formatNumber(tickDmg, useGameStore.getState().abbreviateNumbers)} de dano por ${label}.` });
 
           this.damageEnemy(tickDmg, false);
           if (this.enemyHP <= 0) {
@@ -1074,7 +1074,7 @@ export class CombatFSM {
     this.scene.animatePlayerAttack();
     this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}-${damage}`, isCrit ? '#ef4444' : '#f59e0b');
 
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${damage} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
 
     this.damageEnemy(damage, true);
   }
@@ -1157,7 +1157,7 @@ export class CombatFSM {
     this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damage}`, '#ef4444');
 
     const enemyLabel = this.isElite ? `ELITE ${this.currentEnemy.name}` : this.currentEnemy.name;
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} causou ${damage} de dano a você.` });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano a você.` });
 
     // Vampírico: cura a si mesmo em 10% do dano causado
     if (this.isElite && this.eliteAfix === 'vampirico') {
@@ -2007,7 +2007,7 @@ export class CombatFSM {
     if (skillId === 'skeleton_army') {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Você conjurou ${skill.name}! Invocando servos mortos-vivos para atacar o alvo.` });
     } else {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${dmg}${isCrit ? ' (Crítico!)' : ''}.` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${formatNumber(dmg, useGameStore.getState().abbreviateNumbers)}${isCrit ? ' (Crítico!)' : ''}.` });
     }
 
     if (this.enemyHP <= 0) {
