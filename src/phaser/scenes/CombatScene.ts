@@ -27,6 +27,9 @@ export class CombatScene extends Phaser.Scene {
   private unsubscribeFrenzyBoost?: () => void;
   private currentBgTexture: string = 'background';
   private accumulatedTime: number = 0;
+  private skeletonMinion!: Phaser.GameObjects.Image;
+  private lastSkeletonTickTimer: number = 1000;
+  private isSkeletonAttacking: boolean = false;
 
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
@@ -86,6 +89,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('enemy_glass_shard', 'assets/enemy_glass_shard.png');
     this.load.image('enemy_mirror_illusion', 'assets/enemy_mirror_illusion.png');
     this.load.image('enemy_shadow_reflection', 'assets/enemy_shadow_reflection.png');
+    this.load.image('skeleton_minion', 'assets/skeleton_minion.png');
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
@@ -181,6 +185,7 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_glass_shard', 'enemy_glass_shard_transparent');
     this.makeTextureTransparent('enemy_mirror_illusion', 'enemy_mirror_illusion_transparent');
     this.makeTextureTransparent('enemy_shadow_reflection', 'enemy_shadow_reflection_transparent');
+    this.makeTextureTransparent('skeleton_minion', 'skeleton_minion_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -215,6 +220,13 @@ export class CombatScene extends Phaser.Scene {
     // Inimigo usando a textura do tipo de inimigo ativo
     this.enemyBody = this.add.image(this.ENEMY_START_X, this.ENEMY_START_Y, this.fsm.currentEnemy.texture + '_transparent');
     
+    // Minion esqueleto do Exército de Esqueletos (Necromante)
+    this.skeletonMinion = this.add.image(0, 0, 'skeleton_minion_transparent');
+    this.skeletonMinion.setDisplaySize(110 * ZOOM_FACTOR, 110 * ZOOM_FACTOR); // um pouco menor que os 165 do Necromante
+    this.skeletonMinion.setFlipX(false); // virado para a direita por padrão
+    this.skeletonMinion.setVisible(false);
+    this.skeletonMinion.setDepth(this.enemyBody.depth + 1); // na frente do inimigo
+
     // Atualiza o target do FSM
     this.fsm['target'] = this.enemyBody;
 
@@ -518,6 +530,50 @@ export class CombatScene extends Phaser.Scene {
           this.playerBody.setTint(0xfef08a); // Tint dourado brilhante se consagrado
         } else {
           this.playerBody.clearTint();
+        }
+      }
+
+      // Controle do minion de esqueleto do Necromante (habilidade skeleton_army)
+      const skeletonEffect = this.fsm.enemyEffects.find(e => e.id === 'skeleton_army');
+      if (skeletonEffect && this.skeletonMinion) {
+        if (!this.skeletonMinion.visible) {
+          this.tweens.killTweensOf(this.skeletonMinion);
+          this.skeletonMinion.setVisible(true);
+          this.skeletonMinion.setAlpha(0);
+          this.tweens.add({
+            targets: this.skeletonMinion,
+            alpha: 1,
+            duration: 300
+          });
+          this.lastSkeletonTickTimer = skeletonEffect.tickTimer;
+        }
+
+        // Posiciona em frente ao inimigo (um pouco à esquerda, virado para a direita)
+        const targetX = this.enemyBody.x - 90 * ZOOM_FACTOR;
+        const targetY = this.enemyBody.y + 15 * ZOOM_FACTOR; // Levemente abaixo para parecer apoiado no chão
+        
+        if (!this.isSkeletonAttacking) {
+          this.skeletonMinion.x = targetX;
+          this.skeletonMinion.y = targetY;
+        }
+
+        // Detecta o reset do tickTimer para saber que houve um tick de dano do exército
+        if (skeletonEffect.tickTimer > this.lastSkeletonTickTimer) {
+          this.animateSkeletonAttack();
+        }
+        this.lastSkeletonTickTimer = skeletonEffect.tickTimer;
+      } else if (this.skeletonMinion && this.skeletonMinion.visible && !this.isSkeletonAttacking) {
+        // Se a habilidade expirou, desfaz suavemente
+        const isTweening = this.tweens.isTweening(this.skeletonMinion);
+        if (!isTweening && this.skeletonMinion.alpha > 0) {
+          this.tweens.add({
+            targets: this.skeletonMinion,
+            alpha: 0,
+            duration: 250,
+            onComplete: () => {
+              this.skeletonMinion.setVisible(false);
+            }
+          });
         }
       }
     }
@@ -939,6 +995,45 @@ export class CombatScene extends Phaser.Scene {
       targets: this.playerBody,
       alpha: { from: 0, to: 1 },
       duration: 300
+    });
+  }
+
+  public animateSkeletonAttack(): void {
+    if (!this.skeletonMinion) return;
+    this.isSkeletonAttacking = true;
+
+    AudioManager.getInstance().playSlash();
+
+    const targetX = this.enemyBody.x - 90 * ZOOM_FACTOR;
+
+    // Movimento rápido em direção ao inimigo (direita) para simular o ataque físico
+    this.tweens.add({
+      targets: this.skeletonMinion,
+      x: targetX + 30 * ZOOM_FACTOR,
+      duration: 100,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.isSkeletonAttacking = false;
+        // Restaura a posição padrão do minion em relação ao inimigo
+        this.skeletonMinion.x = this.enemyBody.x - 90 * ZOOM_FACTOR;
+      }
+    });
+
+    // Cria um pequeno efeito visual roxo (corte mágico de sombras) no inimigo
+    const slashSize = 35 * ZOOM_FACTOR;
+    const slash = this.add.line(
+      this.enemyBody.x, this.enemyBody.y,
+      -slashSize, -slashSize, slashSize, slashSize,
+      0x8b5cf6, 1.0 // Cor roxa sombria
+    );
+    slash.setLineWidth(4 * ZOOM_FACTOR);
+
+    this.tweens.add({
+      targets: slash,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => slash.destroy()
     });
   }
 
