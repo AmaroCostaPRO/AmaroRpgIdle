@@ -2441,7 +2441,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       ? '✨ Todas as Relíquias no Nível Máximo' 
                       : unstableSoulFragments < 10 
                         ? 'Requer 10 Fragmentos'
-                        : '🔮 Canalizar Alma (10 Fragmentos)'
+                        : '🔮 Canalizar Alma'
                     }
                   </button>
 
@@ -4005,7 +4005,7 @@ const OptionsPanel: React.FC = () => {
                 fontWeight: 'bold'
               }}
             >
-              <span>🎵</span> Música: {bgmEnabled ? 'LIGADA' : 'DESLIGADA'}
+              <span>🎵</span> Música: {bgmEnabled ? 'On' : 'Off'}
             </button>
             <button
               onClick={() => {
@@ -4030,7 +4030,7 @@ const OptionsPanel: React.FC = () => {
                 fontWeight: 'bold'
               }}
             >
-              <span>🔊</span> Efeitos Sonoros: {sfxEnabled ? 'LIGADOS' : 'DESLIGADOS'}
+              <span>🔊</span> Efeitos Sonoros: {sfxEnabled ? 'On' : 'Off'}
             </button>
           </div>
         </div>
@@ -4053,7 +4053,7 @@ const OptionsPanel: React.FC = () => {
               className={`btn btn-sm ${consoleEnabled ? 'btn-success' : 'btn-secondary'}`}
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
-              {consoleEnabled ? 'Mostrar' : 'Esconder'}
+              {consoleEnabled ? 'On' : 'Off'}
             </button>
           </div>
 
@@ -4073,7 +4073,7 @@ const OptionsPanel: React.FC = () => {
               className={`btn btn-sm ${abbreviateNumbers ? 'btn-success' : 'btn-secondary'}`}
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
-              {abbreviateNumbers ? 'Ativo' : 'Inativo'}
+              {abbreviateNumbers ? 'On' : 'Off'}
             </button>
           </div>
         </div>
@@ -4096,7 +4096,7 @@ const OptionsPanel: React.FC = () => {
               className={`btn btn-sm ${autoSellCommon ? 'btn-success' : 'btn-secondary'}`}
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
-              {autoSellCommon ? 'Ativo' : 'Inativo'}
+              {autoSellCommon ? 'On' : 'Off'}
             </button>
           </div>
 
@@ -4116,7 +4116,7 @@ const OptionsPanel: React.FC = () => {
               className={`btn btn-sm ${autoSellRare ? 'btn-success' : 'btn-secondary'}`}
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
-              {autoSellRare ? 'Ativo' : 'Inativo'}
+              {autoSellRare ? 'On' : 'Off'}
             </button>
           </div>
 
@@ -4136,7 +4136,7 @@ const OptionsPanel: React.FC = () => {
               className={`btn btn-sm ${disableRobotTap ? 'btn-danger' : 'btn-secondary'}`}
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
-              {disableRobotTap ? 'Desativado' : 'Ativo'}
+              {disableRobotTap ? 'On' : 'Off'}
             </button>
           </div>
         </div>
@@ -4160,9 +4160,16 @@ export default function GameUI() {
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
   const loreContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (character.introLoreShown === false) {
@@ -4474,7 +4481,7 @@ export default function GameUI() {
       {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Conteúdo Dinâmico com rolagem */}
-        <div className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <div ref={scrollContainerRef} className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {activeTab === 'combat' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <GameHUD />

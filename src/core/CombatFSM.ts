@@ -1004,7 +1004,7 @@ export class CombatFSM {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.enemyHP <= 0) return;
     
     // Throttling: limite de 20 cliques por segundo (50ms por clique)
     const now = Date.now();
@@ -1037,7 +1037,7 @@ export class CombatFSM {
     // Impede a execução de toques caso o jogo esteja pausado
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.enemyHP <= 0) return;
 
     const dpsPassivo = this.getPassiveDPS();
     const effectiveTouch = this.playerFinalStats.touch * 0.5;
@@ -1315,7 +1315,7 @@ export class CombatFSM {
   }
 
   private damageEnemy(amount: number, isDirect: boolean): void {
-    if (amount <= 0 || this.enemyHP <= 0) return;
+    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
     this.enemyHP = Math.max(0, this.enemyHP - amount);
 
     // Aplicar afixo diário Escudo de Espinhos (reflete 15% de dano direto recebido)
@@ -1813,7 +1813,7 @@ export class CombatFSM {
     // Impede o uso de habilidades caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
 
     const skill = SKILLS_CATALOG[skillId];
     if (!skill) return;
@@ -2181,7 +2181,7 @@ export class CombatFSM {
   }
 
   private runAutoCastAI(): void {
-    if (this.currentState === CombatState.DEAD) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
     const char = this.characterData;
     const isAutoCastUnlocked = char && ((char.ascensionCount || 0) >= 1 || (char.highestStageReached || 0) > 5 || (char.currentStage || 0) > 5);
     if (!char || !isAutoCastUnlocked || !char.autoCastEnabled) return;

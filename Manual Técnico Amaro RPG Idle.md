@@ -893,7 +893,8 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   **Modo de Combate Estático**: Transição completa do fluxo de sidescrolling dinâmico para combates estáticos centralizados na Torre Infinita.
     *   **Background e Grounding Exclusivos**: Inclusão do asset dedicado `tower_background.png` com alinhamento grounded calibrado no solo vertical em $Y = 532.5$, eliminando inconsistências físicas e o efeito visual de "torre dupla".
     *   **Mecânica de Fade-Out/Fade-In**: Implementação de transições de fade-out e fade-in de tela para avanço de andares. O herói corre em direção ao próximo desafio e ressurge na posição inicial aguardando a aproximação do oponente.
-    *   **Correções de Animação e HUD**: Ajuste para sincronizar o nome e a vida dos heróis em movimento, ocultação imediata do nome do inimigo abatido e correção da orientação do sprite ao retornar para as fases regulares da campanha após derrotas na Torre.
+    *   **Correções de Animação e HUD**: Ajuste para sincronizar o nome e a vida dos heróis em movimento, ocultação imediata do nome do inimigo abatido, correção da orientação do sprite ao retornar para as fases normais após derrotas na Torre e renderização do andar atual da Torre (`TORRE INFINITA - Andar X`) no painel de progresso do topo da tela.
+    *   **Prevenção de Dano Prematuro**: Restrição de estados no motor de combate (`CombatFSM.ts`), bloqueando ataques básicos, toques automáticos, ativações de frenesi, e conjuração de habilidades ativas (via auto-cast ou manualmente) enquanto o herói ou o inimigo estiverem em transição ou aproximação (estados `MOVING` e `TRANSITION`).
 
 ### Versão 4.0.0
 *   **🌌 O Purgatório e as Relíquias (Major Update)**:

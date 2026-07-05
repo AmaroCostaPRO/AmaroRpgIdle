@@ -416,26 +416,39 @@ export class CombatScene extends Phaser.Scene {
       }
 
       if (this.stageText) {
-        const char = this.fsm.characterData;
-        if (char) {
-          const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
-          // Labels e cores por dificuldade
-          const modeLabel = char.currentStage >= 31 ? 'PANDEMÔNIO'
-            : (char.currentStage >= 21 && char.currentStage <= 30) ? 'PURGATÓRIO'
-            : char.currentStage >= 16 ? 'APOCALIPSE'
-            : char.currentStage >= 11 ? 'INFERNO'
-            : char.currentStage >= 6 ? 'PESADELO' : 'FASE';
-          const modeColor = char.currentStage >= 31 ? '#f43f5e'
-            : (char.currentStage >= 21 && char.currentStage <= 30) ? '#d8b4fe'
-            : char.currentStage >= 16 ? '#c084fc'
-            : char.currentStage >= 11 ? '#fb923c'
-            : char.currentStage >= 6 ? '#f43f5e' : '#f59e0b';
-          if (isBoss) {
-            this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
-            this.stageText.setColor(char.currentStage >= 31 ? '#f43f5e' : char.currentStage >= 21 ? '#d8b4fe' : '#c084fc');
+        const isTowerActive = useTowerStore.getState().towerActive;
+        if (isTowerActive) {
+          const currentFloor = useTowerStore.getState().currentFloor;
+          const isTowerBoss = currentFloor % 5 === 0;
+          if (isTowerBoss) {
+            this.stageText.setText(`TORRE INFINITA - Andar ${currentFloor} (CHEFE)`);
+            this.stageText.setColor('#c084fc'); // Roxo brilhante
           } else {
-            this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/${ENEMIES_PER_STAGE}`);
-            this.stageText.setColor(modeColor);
+            this.stageText.setText(`TORRE INFINITA - Andar ${currentFloor}`);
+            this.stageText.setColor('#d8b4fe'); // Lilás claro
+          }
+        } else {
+          const char = this.fsm.characterData;
+          if (char) {
+            const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
+            // Labels e cores por dificuldade
+            const modeLabel = char.currentStage >= 31 ? 'PANDEMÔNIO'
+              : (char.currentStage >= 21 && char.currentStage <= 30) ? 'PURGATÓRIO'
+              : char.currentStage >= 16 ? 'APOCALIPSE'
+              : char.currentStage >= 11 ? 'INFERNO'
+              : char.currentStage >= 6 ? 'PESADELO' : 'FASE';
+            const modeColor = char.currentStage >= 31 ? '#f43f5e'
+              : (char.currentStage >= 21 && char.currentStage <= 30) ? '#d8b4fe'
+              : char.currentStage >= 16 ? '#c084fc'
+              : char.currentStage >= 11 ? '#fb923c'
+              : char.currentStage >= 6 ? '#f43f5e' : '#f59e0b';
+            if (isBoss) {
+              this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
+              this.stageText.setColor(char.currentStage >= 31 ? '#f43f5e' : char.currentStage >= 21 ? '#d8b4fe' : '#c084fc');
+            } else {
+              this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/${ENEMIES_PER_STAGE}`);
+              this.stageText.setColor(modeColor);
+            }
           }
         }
       }
