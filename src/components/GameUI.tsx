@@ -690,9 +690,10 @@ const AttributePanel: React.FC = () => {
   const upgradeAttribute = useGameStore((state) => state.upgradeAttribute);
   const availablePoints = character.attributePoints;
   const xpNeeded = character.level * 100;
+  const [multiplier, setMultiplier] = useState<1 | 10 | 100>(1);
 
   const handleUpgradeAttribute = (attr: string) => {
-    upgradeAttribute(attr as keyof BaseStats);
+    upgradeAttribute(attr as keyof BaseStats, multiplier);
   };
 
   const getAttrName = (attr: string): string => {
@@ -753,7 +754,19 @@ const AttributePanel: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="section-title" style={{ marginBottom: '0.75rem' }}>Atributos Primários</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 calc(0.75rem + 1px)' }}>
+        <h2 className="section-title" style={{ margin: 0, border: 'none', paddingBottom: 0 }}>Atributos Primários</h2>
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            setMultiplier((prev) => (prev === 1 ? 10 : prev === 10 ? 100 : 1));
+          }}
+          className="btn btn-sm btn-gold"
+          style={{ minWidth: '3rem' }}
+        >
+          x{multiplier}
+        </button>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {Object.keys(character.baseStats)
           .filter((attr) => ['strength', 'magic', 'dexterity', 'constitution', 'luck', 'touch'].includes(attr))
@@ -770,7 +783,7 @@ const AttributePanel: React.FC = () => {
                 className={`btn btn-sm ${availablePoints > 0 ? 'btn-gold' : 'btn-ghost'}`}
                 style={{ minWidth: '3rem' }}
               >
-                +1
+                +{multiplier}
               </button>
             </div>
           ))}
@@ -1713,7 +1726,7 @@ const SkillsTreePanel: React.FC = () => {
                     <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>
                       {getSkillMaxLevel(id, character.currentStage) === 0 
                         ? 'Bloq' 
-                        : `Lv ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
+                        : `Lv ${currentLevel}/${getSkillMaxLevel(id, character.currentStage) === Infinity ? '∞' : getSkillMaxLevel(id, character.currentStage)}`
                       }
                     </span>
                   </div>
@@ -1831,7 +1844,7 @@ const SkillsTreePanel: React.FC = () => {
                   <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                     {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0 
                       ? 'Bloqueado (Requer Dificuldade Inferno)'
-                      : `Nível: ${character.skillLevels[selectedSkillId] || 0} / ${getSkillMaxLevel(selectedSkillId, character.currentStage)}`
+                      : `Nível: ${character.skillLevels[selectedSkillId] || 0} / ${getSkillMaxLevel(selectedSkillId, character.currentStage) === Infinity ? '∞' : getSkillMaxLevel(selectedSkillId, character.currentStage)}`
                     }
                   </span>
                   <span className="font-heading" style={{ fontSize: '0.65rem', color: 'var(--gold-400)', fontWeight: 600 }}>Requer Level {selectedSkill.requiredLevel}</span>
@@ -1940,7 +1953,7 @@ const SkillsTreePanel: React.FC = () => {
                         ? 'Requer Dificuldade Inferno'
                         : isLocked 
                           ? `Requer Lvl ${skill.requiredLevel}${skill.dependencies.length > 0 ? ` + ${SKILLS_CATALOG[skill.dependencies[0]]?.name}` : ''}`
-                          : `Nível ${currentLevel}/${getSkillMaxLevel(id, character.currentStage)}`
+                          : `Nível ${currentLevel}/${getSkillMaxLevel(id, character.currentStage) === Infinity ? '∞' : getSkillMaxLevel(id, character.currentStage)}`
                       }
                     </span>
                   </div>

@@ -78,6 +78,9 @@ export const getSkillMaxLevel = (skillId: string, currentStage: number): number 
   }
 
   if (currentStage >= 21) {
+    if (skill.type === 'passive') {
+      return Infinity;
+    }
     return Math.max(skill.maxLevel, 15);
   }
   if (currentStage >= 11) {
@@ -401,7 +404,7 @@ interface GameState {
   setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
   addXp(amount: number): void;
-  upgradeAttribute(stat: keyof BaseStats): void;
+  upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
   updateLevel(level: number, xp: number): void;
   incrementPrestigePoints(points: number): void;
@@ -772,14 +775,15 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
-  upgradeAttribute: (stat) => set((state) => {
-    if (state.character.attributePoints <= 0) return state;
+  upgradeAttribute: (stat, amount = 1) => set((state) => {
+    const pointsToUse = Math.min(state.character.attributePoints, amount);
+    if (pointsToUse <= 0) return state;
     const updated = {
       ...state.character,
-      attributePoints: state.character.attributePoints - 1,
+      attributePoints: state.character.attributePoints - pointsToUse,
       baseStats: {
         ...state.character.baseStats,
-        [stat]: state.character.baseStats[stat] + 1
+        [stat]: state.character.baseStats[stat] + pointsToUse
       }
     };
     saveToLocalStorage(updated);
