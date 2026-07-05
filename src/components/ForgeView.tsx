@@ -183,8 +183,7 @@ export const ForgeView: React.FC = () => {
   const previewStats = getMergedStatsPreview();
 
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+    <div className="w-full flex flex-col gap-6 relative forge-view-root">
       
       {/* PAINEL PRINCIPAL DA FORJA */}
       <div className="panel flex-1 flex flex-col min-h-[480px]">
@@ -468,7 +467,6 @@ export const ForgeView: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
     </div>
 
       {/* MODAL DE SELEÇÃO DE ITENS DO INVENTÁRIO */}
