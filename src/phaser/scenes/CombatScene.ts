@@ -550,7 +550,8 @@ export class CombatScene extends Phaser.Scene {
 
         // Posiciona em frente ao inimigo (um pouco à esquerda, virado para a direita)
         const targetX = this.enemyBody.x - 90 * ZOOM_FACTOR;
-        const targetY = this.enemyBody.y + 15 * ZOOM_FACTOR; // Levemente abaixo para parecer apoiado no chão
+        // Fixa a altura do esqueleto na mesma linha do solo (chão) que o jogador
+        const targetY = (600 - 50 * ZOOM_FACTOR) - (110 * ZOOM_FACTOR) / 2;
         
         if (!this.isSkeletonAttacking) {
           this.skeletonMinion.x = targetX;
