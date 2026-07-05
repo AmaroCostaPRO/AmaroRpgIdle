@@ -104,6 +104,19 @@ const GameHUD: React.FC = () => {
   const logRef = useRef<HTMLDivElement>(null);
   const [isConsoleExpanded, setIsConsoleExpanded] = useState(false);
   const consoleEnabled = useGameStore((state) => state.consoleEnabled);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+
+  const lastHp = useRef({ current: 0, max: 0 });
+  const lastMana = useRef({ current: 0, max: 0 });
+
+  useEffect(() => {
+    if (hpTextRef.current && lastHp.current.max > 0) {
+      hpTextRef.current.innerText = `${formatNumber(lastHp.current.current, abbreviateNumbers)} / ${formatNumber(lastHp.current.max, abbreviateNumbers)}`;
+    }
+    if (manaTextRef.current && lastMana.current.max > 0) {
+      manaTextRef.current.innerText = `${formatNumber(lastMana.current.current, abbreviateNumbers)} / ${formatNumber(lastMana.current.max, abbreviateNumbers)}`;
+    }
+  }, [abbreviateNumbers]);
 
   // Detecta se está em viewport mobile (≤840px) para aplicar o toggle do console
   const [isMobile, setIsMobile] = useState(() => 
@@ -123,15 +136,23 @@ const GameHUD: React.FC = () => {
   useEffect(() => {
     bridge.registerDomUpdate('player_hp', (pct, current, max) => {
       if (hpBarRef.current) hpBarRef.current.style.width = `${pct}%`;
-      if (hpTextRef.current && current !== undefined && max !== undefined) {
-        hpTextRef.current.innerText = `${current} / ${max}`;
+      if (current !== undefined && max !== undefined) {
+        lastHp.current = { current, max };
+        if (hpTextRef.current) {
+          const abbrev = useGameStore.getState().abbreviateNumbers;
+          hpTextRef.current.innerText = `${formatNumber(current, abbrev)} / ${formatNumber(max, abbrev)}`;
+        }
       }
     });
 
     bridge.registerDomUpdate('player_mana', (pct, current, max) => {
       if (manaBarRef.current) manaBarRef.current.style.width = `${pct}%`;
-      if (manaTextRef.current && current !== undefined && max !== undefined) {
-        manaTextRef.current.innerText = `${current} / ${max}`;
+      if (current !== undefined && max !== undefined) {
+        lastMana.current = { current, max };
+        if (manaTextRef.current) {
+          const abbrev = useGameStore.getState().abbreviateNumbers;
+          manaTextRef.current.innerText = `${formatNumber(current, abbrev)} / ${formatNumber(max, abbrev)}`;
+        }
       }
     });
 
@@ -4113,6 +4134,7 @@ export default function GameUI() {
   const discardItem = useGameStore((state) => state.discardItem);
   const useConsumable = useGameStore((state) => state.useConsumable);
   const sellItem = useGameStore((state) => state.sellItem);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
 
   const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
@@ -4231,7 +4253,7 @@ export default function GameUI() {
           <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
           <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
             <span>🪙</span>
-            <span>{formatNumber(character.gold || 0, useGameStore.getState().abbreviateNumbers)} Ouro</span>
+            <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -4585,7 +4607,7 @@ export default function GameUI() {
                         gap: '0.25rem'
                       }}
                     >
-                      <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), useGameStore.getState().abbreviateNumbers)} Ouro</span>
+                      <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), abbreviateNumbers)} Ouro</span>
                     </button>
                   )}
                 </div>

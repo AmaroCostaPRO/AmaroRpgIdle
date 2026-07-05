@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent, ENEMIES_PER_STAGE } from '../../core/types';
-import { useGameStore, CLASS_CONFIGS } from '../../store/useGameStore';
+import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 
 export const ZOOM_FACTOR = 1.35;
@@ -218,7 +218,7 @@ export class CombatScene extends Phaser.Scene {
     const classConfig = useGameStore.getState().character;
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
-    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 80 * ZOOM_FACTOR, friendlyName, { 
+    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 105 * ZOOM_FACTOR, friendlyName, { 
       fontSize: '19px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
@@ -367,7 +367,7 @@ export class CombatScene extends Phaser.Scene {
       // Atualiza posição do texto de status do jogador
       if (this.playerStatusText && this.playerBody) {
         this.playerStatusText.x = this.PLAYER_START_X;
-        this.playerStatusText.y = this.PLAYER_START_Y - (125 * ZOOM_FACTOR / 2) - 38 * ZOOM_FACTOR;
+        this.playerStatusText.y = this.PLAYER_START_Y - 125 * ZOOM_FACTOR;
 
         const pEffects = this.fsm.playerEffects;
         if (pEffects.some(e => e.id === 'consecration')) {
@@ -539,7 +539,7 @@ export class CombatScene extends Phaser.Scene {
       const barHeight = 7 * ZOOM_FACTOR;
       // Posiciona de forma estática baseada no PLAYER_START_X / Y para não oscilar/tremer no ataque/caminhada
       const x = this.PLAYER_START_X - barWidth / 2;
-      const y = this.PLAYER_START_Y - (125 * ZOOM_FACTOR) / 2 - 5 * ZOOM_FACTOR; // Posição estática segura abaixo do nome
+      const y = this.PLAYER_START_Y - 85 * ZOOM_FACTOR; // Posição estática segura abaixo do nome
 
       // Fundo preto translúcido da barra
       this.playerHPBar.fillStyle(0x000000, 0.7);
@@ -673,7 +673,17 @@ export class CombatScene extends Phaser.Scene {
   public spawnDamageText(x: number, y: number, text: string, color: string): void {
     const roundedX = Math.round(x);
     const roundedY = Math.round(y) + 65; // Posiciona o dano 65 pixels mais para baixo do Y original
-    const dmgText = this.add.text(roundedX, roundedY, text, {
+    
+    // Abreviar números no texto se a opção estiver ativa
+    const useAbbrev = useGameStore.getState().abbreviateNumbers;
+    let formattedText = text;
+    if (useAbbrev) {
+      formattedText = text.replace(/\d+/g, (match) => {
+        return formatNumber(parseInt(match, 10), true);
+      });
+    }
+
+    const dmgText = this.add.text(roundedX, roundedY, formattedText, {
       fontSize: '28px', // Fonte aumentada de 18px para 28px
       color: color,
       fontStyle: 'bold',
@@ -698,8 +708,10 @@ export class CombatScene extends Phaser.Scene {
     const targetX = Math.round(clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40)));
     const targetY = Math.round(clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40))) + 65; // Posiciona 65 pixels mais para baixo
 
+    const useAbbrev = useGameStore.getState().abbreviateNumbers;
+    const formattedDamage = formatNumber(damage, useAbbrev);
     const color = isCrit ? '#facc15' : '#38bdf8';
-    const text = isCrit ? `💥 ${damage}!` : `${damage}`;
+    const text = isCrit ? `💥 ${formattedDamage}!` : `${formattedDamage}`;
     const fontSize = isCrit ? '60px' : '42px'; // Fontes aumentadas (antes 52px / 36px)
 
     const dmgText = this.add.text(targetX, targetY, text, {
