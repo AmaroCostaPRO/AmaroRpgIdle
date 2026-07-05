@@ -3782,7 +3782,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
           </span>
         </div>
         <p style={{ fontSize: '0.52rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-          Cada monstro com 100+ abates concede <strong className="text-white">+1% de Dano Geral</strong>. 
+          Cada monstro com 100+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong>. 
           Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong>.
           Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +50% de Dano).
         </p>
@@ -3802,7 +3802,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
               {phase.enemies.map((enemy) => {
                 const kills = killCount[enemy.id] || 0;
                 const isBoss = enemy.id.startsWith('boss_');
-                const reqKills = 100;
+                const reqKills = isBoss ? 50 : 100;
                 const isUnlocked = kills >= reqKills;
                 const isHovered = hoveredEnemyId === enemy.id;
 
@@ -4351,21 +4351,20 @@ export default function GameUI() {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex(prev => Math.max(0, prev - 1));
+            setDesktopStartIndex(prev => (prev === 0 ? tabs.length - 5 : prev - 1));
           }}
-          disabled={desktopStartIndex === 0}
           className="tab-carousel-arrow-btn"
           style={{
             background: 'var(--surface-glass)',
             border: '1px solid var(--border-subtle)',
-            color: desktopStartIndex === 0 ? '#475569' : 'var(--gold-400)',
+            color: 'var(--gold-400)',
             borderRadius: 'var(--radius-md)',
             width: '2.2rem',
             height: '2.2rem',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: desktopStartIndex === 0 ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: 'var(--shadow-button)',
             fontSize: '0.75rem',
@@ -4396,21 +4395,20 @@ export default function GameUI() {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex(prev => Math.min(tabs.length - 5, prev + 1));
+            setDesktopStartIndex(prev => (prev >= tabs.length - 5 ? 0 : prev + 1));
           }}
-          disabled={desktopStartIndex >= tabs.length - 5}
           className="tab-carousel-arrow-btn"
           style={{
             background: 'var(--surface-glass)',
             border: '1px solid var(--border-subtle)',
-            color: desktopStartIndex >= tabs.length - 5 ? '#475569' : 'var(--gold-400)',
+            color: 'var(--gold-400)',
             borderRadius: 'var(--radius-md)',
             width: '2.2rem',
             height: '2.2rem',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: desktopStartIndex >= tabs.length - 5 ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
             transition: 'all 0.2s ease',
             boxShadow: 'var(--shadow-button)',
             fontSize: '0.75rem',
