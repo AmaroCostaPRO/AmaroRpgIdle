@@ -2,6 +2,7 @@ import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem } fro
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
+import { useTowerStore } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
 
 
@@ -311,6 +312,7 @@ export enum CombatState {
   MOVING = 'MOVING',
   ATTACKING = 'ATTACKING',
   CASTING = 'CASTING',
+  TRANSITION = 'TRANSITION',
   DEAD = 'DEAD'
 }
 
@@ -350,6 +352,7 @@ export class CombatFSM {
   private autoCastTimer: number = 0;
 
   private storeUnsubscribe?: () => void;
+  private unsubscribeStartCombat?: () => void;
   private lastEmitHP: number = -1;
   private lastEmitMaxHP: number = -1;
   private lastEmitMana: number = -1;
@@ -413,11 +416,49 @@ export class CombatFSM {
     this.target = initialTarget;
     
     const char = useGameStore.getState().character;
-    this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+    const isTower = useTowerStore.getState().towerActive;
+    if (isTower) {
+      this.setupEnemyForLevel(useTowerStore.getState().currentFloor, 0);
+    } else {
+      this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+    }
     this.updateStatsFromStore();
 
     this.storeUnsubscribe = useGameStore.subscribe(() => {
       this.updateStatsFromStore();
+    });
+
+    this.unsubscribeStartCombat = bridge.subscribe(GameEvent.START_COMBAT, (payload) => {
+      const activeTower = useTowerStore.getState().towerActive;
+      if (activeTower) {
+        const floor = useTowerStore.getState().currentFloor;
+        this.enemyLevel = floor;
+        this.setupEnemyForLevel(floor, 0);
+        this.playerHP = this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.skillCooldowns = {};
+        this.currentState = CombatState.IDLE;
+        
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        }
+      } else {
+        const activeChar = useGameStore.getState().character;
+        this.enemyLevel = activeChar.currentStage;
+        this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
+        const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.skillCooldowns = {};
+        this.currentState = CombatState.IDLE;
+
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        }
+      }
+      bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: {} });
     });
   }
 
@@ -425,6 +466,10 @@ export class CombatFSM {
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe();
       this.storeUnsubscribe = undefined;
+    }
+    if (this.unsubscribeStartCombat) {
+      this.unsubscribeStartCombat();
+      this.unsubscribeStartCombat = undefined;
     }
   }
 
@@ -435,7 +480,62 @@ export class CombatFSM {
     this.crystalGuardianSecondPhase = false; // Reset da flag da segunda fase
     this.summonedAlly = null;
     this.summonedAllyTimer = 0;
+
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
+    const isTower = useTowerStore.getState().towerActive;
+
+    if (isTower) {
+      const floor = useTowerStore.getState().currentFloor;
+      this.enemyLevel = floor;
+      const isTowerBoss = floor % 5 === 0;
+      
+      // Geração determinística baseada na seed semanal e no andar da torre
+      const weeklySeed = useTowerStore.getState().weeklySeed || 1;
+      const randSin = (s: number) => {
+        const x = Math.sin(s) * 10000;
+        return x - Math.floor(x);
+      };
+      const lookupSeed = weeklySeed * 37 + floor;
+      const randVal = randSin(lookupSeed);
+
+      if (isTowerBoss) {
+        const bosses = ENEMY_TYPES.filter(e => e.id.startsWith('boss_'));
+        const idx = Math.floor(randVal * bosses.length);
+        this.currentEnemy = bosses[idx];
+      } else {
+        const commons = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_'));
+        const idx = Math.floor(randVal * commons.length);
+        this.currentEnemy = commons[idx];
+      }
+
+      // Escala de dificuldade e vida da torre (exponencial suave)
+      const difficultyScale = Math.pow(1.14, floor - 1);
+      this.enemyMaxHP = Math.floor((150 + (floor * 40)) * difficultyScale * this.currentEnemy.hpMultiplier);
+      
+      if (isTowerBoss) {
+        this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+      }
+      this.enemyHP = this.enemyMaxHP;
+
+      this.isElite = false;
+      this.eliteAfix = undefined;
+      
+      if (!isTowerBoss && floor >= 5) {
+        const eliteChance = Math.min(0.35, 0.08 + (floor - 5) * 0.01);
+        const lcgEliteVal = randSin(lookupSeed + 999);
+        if (lcgEliteVal < eliteChance) {
+          this.isElite = true;
+          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador'] as const;
+          const afixIdx = Math.floor(randSin(lookupSeed + 888) * afixos.length);
+          this.eliteAfix = afixos[afixIdx];
+          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+          this.enemyHP = this.enemyMaxHP;
+        }
+      }
+
+      console.log(`[CombatFSM-Torre] Spawned ${this.currentEnemy.name} (Andar ${floor}). MaxHP: ${this.enemyMaxHP}, Elite: ${this.isElite}`);
+      return;
+    }
 
     // Multiplicador de HP/Dano por dificuldade:
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 18.0× | Pandemônio (31+): 22.0×
@@ -562,30 +662,44 @@ export class CombatFSM {
     }
     this.playerMana = Math.min(this.playerMana, this.playerMaxMana);
 
-    // Reinicia ou ajusta inimigo se mudou de fase/prestígio
-    const hasPrestigeReset = char.level === 1 && char.xp === 0;
-    if (this.enemyLevel !== char.currentStage || hasPrestigeReset) {
-      this.enemyLevel = char.currentStage;
-      this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
-      const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
-      if (devocaoLvl === 5) {
-        this.playerHP = Math.floor(this.playerMaxHP * 1.02);
-      } else {
-        this.playerHP = this.playerMaxHP;
+    const isTower = useTowerStore.getState().towerActive;
+    if (isTower) {
+      const currentFloor = useTowerStore.getState().currentFloor;
+      if (this.enemyLevel !== currentFloor) {
+        this.enemyLevel = currentFloor;
+        this.setupEnemyForLevel(currentFloor, 0);
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+        }
       }
-      this.playerMana = this.playerMaxMana;
-      this.currentState = CombatState.IDLE;
-      this.skillCooldowns = {};
-      
-      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
-        this.scene.respawnEnemyAt(900, this.currentEnemy);
-        this.scene.respawnPlayer();
+      this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
+      this.playerMana = Math.min(this.playerMana, this.playerMaxMana);
+    } else {
+      // Reinicia ou ajusta inimigo se mudou de fase/prestígio
+      const hasPrestigeReset = char.level === 1 && char.xp === 0;
+      if (this.enemyLevel !== char.currentStage || hasPrestigeReset) {
+        this.enemyLevel = char.currentStage;
+        this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+        const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+        if (devocaoLvl === 5) {
+          this.playerHP = Math.floor(this.playerMaxHP * 1.02);
+        } else {
+          this.playerHP = this.playerMaxHP;
+        }
+        this.playerMana = this.playerMaxMana;
+        this.currentState = CombatState.IDLE;
+        this.skillCooldowns = {};
+        
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        }
       }
     }
   }
 
   public update(delta: number): void {
-    if (this.currentState === CombatState.DEAD) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION) return;
 
     // Processamento do servo ressuscitado (Necromancia)
     if (this.summonedAlly && this.summonedAllyTimer > 0) {
@@ -1098,21 +1212,30 @@ export class CombatFSM {
 
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
 
-    // Multiplicador de dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
-    const dmgBoost = this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
-    
-    // Escala exponencial de dano baseado no estágio (ajustada para 1.25x por fase)
-    const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
-
     // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
     const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
     const weaknessMultiplier = weaknessEffect ? (1 - weaknessEffect.value) : 1.0;
 
     // Constituição reduz o dano recebido em 0.05% por ponto (Redução Máxima de 95%)
     const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
-    
-    let damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
+
+    const isTower = useTowerStore.getState().towerActive;
+    let damage = 0;
+
+    if (isTower) {
+      const floor = useTowerStore.getState().currentFloor;
+      const dmgScale = Math.pow(1.10, floor - 1);
+      damage = Math.floor((10 + floor * 3.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * weaknessMultiplier * constitutionReduction);
+    } else {
+      // Multiplicador de dano por dificuldade:
+      // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
+      const dmgBoost = this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
+      
+      // Escala exponencial de dano baseado no estágio (ajustada para 1.25x por fase)
+      const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
+      
+      damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
+    }
     
     // Inimigos Elite causam 3.0x de dano base
     if (this.isElite) {
@@ -1567,6 +1690,29 @@ export class CombatFSM {
       return;
     }
 
+    const isTower = useTowerStore.getState().towerActive;
+
+    if (isTower) {
+      this.currentState = CombatState.TRANSITION;
+      this.enemyHP = 0;
+
+      this.scene.animateTowerTransition(() => {
+        useTowerStore.getState().advanceTowerFloor();
+        const nextFloor = useTowerStore.getState().currentFloor;
+        this.setupEnemyForLevel(nextFloor, 0);
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+
+        const isTowerBoss = nextFloor % 5 === 0;
+        const enemyName = isTowerBoss ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+        bridge.emit(GameEvent.LOG_EMITTED, { 
+          message: `Um ${this.isElite ? 'ELITE ' : ''}${enemyName} apareceu no horizonte (Andar ${nextFloor})!` 
+        });
+
+        this.currentState = CombatState.IDLE;
+      });
+      return;
+    }
+
     if (isBoss) {
       useGameStore.getState().advanceStage();
     } else {
@@ -1597,6 +1743,25 @@ export class CombatFSM {
     this.scene.animatePlayerDeath();
 
     const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+
+    const isTower = useTowerStore.getState().towerActive;
+    if (isTower) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu no Andar ${useTowerStore.getState().currentFloor} da Torre!` });
+      useTowerStore.getState().exitTower(false);
+
+      setTimeout(() => {
+        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.currentState = CombatState.IDLE;
+
+        const char = useGameStore.getState().character;
+        this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+        this.scene.respawnPlayer();
+      }, 3000);
+      return;
+    }
 
     if (this.characterData.activeDailyChallenge) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu ao Desafio Diário e retornou à sua jornada normal.` });

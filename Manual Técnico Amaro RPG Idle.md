@@ -699,7 +699,28 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 
 ---
 
-## 10. Sistema de Salvamento e Carregamento
+## 10. A Torre Infinita
+
+O modo **Torre Infinita** (v4.1.0) consiste em uma arena de desafios verticais com batalhas estáticas e progressão de andares por transições fluidas de tela.
+
+### A. Renderização Estática e Alinhamento do Cenário
+*   **Asset Exclusivo:** O cenário utiliza a imagem estática `tower_background.png` (resolução base de $800 \times 600$ adaptada dinamicamente para o canvas de $1024 \times 1024$), retratando o interior de uma torre de pedra com escadarias ao fundo.
+*   **Ausência de Sidescrolling:** Como se trata de uma escalada de andares, a rolagem de tela lateral (parallax) utilizada nas fases normais é desativada por completo neste modo.
+*   **Grounding Preciso:** Para garantir a correta aderência visual de heróis e inimigos sobre o chão de pedra da Torre, o nível vertical do solo foi calibrado e fixado na coordenada exata $Y = 532.5$, eliminando offsets manuais e inconsistências visuais na física de gravidade da arena.
+
+### B. Fluxo de Combate e Transições de Andar
+*   **Posicionamento Inicial:** O personagem do jogador inicia parado diretamente no centro esquerdo da arena (coordenada $X = 180$), aguardando a entrada do inimigo.
+*   **Chegada do Inimigo:** O monstro surge caminhando a partir do canto direito da tela até alcançar sua coordenada final de combate ($X = 600$). A inteligência artificial de combate e o relógio de habilidades permanecem congelados e só iniciam as ações de agressão quando o inimigo atinge sua posição final.
+*   **Avanço e Fade-Out/Fade-In:** Ao derrotar o oponente, o monstro é removido imediatamente da HUD para evitar informações fantasmas, e o herói corre em direção ao canto direito da tela. É disparada uma transição suave e rápida de fade-out e fade-in no canvas do Phaser (com duração calibrada para não sobrecarregar as animações).
+*   **Reset de Posição:** Durante a opacidade máxima do fade-out (tela preta), o herói é transportado de volta para a sua coordenada inicial ($X = 180$) no estado parado (`idle`), dando a percepção de que ele subiu para o próximo andar e está aguardando a chegada do próximo inimigo assim que o fade-in é concluído.
+*   **Retorno em Caso de Derrota:** Se o herói for derrotado, a simulação o transporta de volta para as fases normais da campanha. Para corrigir o bug visual no qual o personagem aparecia virado de costas (devido à transição abrupta de morte), a engine força o reset imediato do sprite e da animação de morte para a orientação padrão voltada à direita.
+
+### C. Acompanhamento Dinâmico da HUD de Combate
+*   As barras flutuantes de vida (HP) e os nomes do jogador e do inimigo são calculados e renderizados de forma dinâmica baseada no bounding box do sprite, permitindo que a vida e o nome acompanhem suavemente o herói enquanto ele corre pela arena ao final de cada andar.
+
+---
+
+## 11. Sistema de Salvamento e Carregamento
 
 A persistência do jogo é robusta, segura e segmentada em slots de uso livre.
 
@@ -716,7 +737,7 @@ Para permitir o compartilhamento de arquivos de salvamento entre dispositivos, o
 
 ---
 
-## 11. Economia e Sistema de Ouro (Gold)
+## 12. Economia e Sistema de Ouro (Gold)
 
 O ouro é a principal moeda de troca e progresso econômico no jogo, obtido através de vitórias contra monstros no ciclo de combate e utilizado nas fusões de equipamentos.
 
@@ -769,7 +790,7 @@ Para otimizar o gerenciamento do inventário de 30 slots, o jogador pode realiza
 
 ---
 
-## 12. Altar de Forja Mística
+## 13. Altar de Forja Mística
 
 O sistema de Forja permite combinar dois equipamentos compatíveis do inventário para criar itens de raridade **Mística** (Roxa/Lilás) mais poderosos.
 
@@ -831,7 +852,7 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 ---
 
-## 13. Loja e Sistema de Consumíveis
+## 14. Loja e Sistema de Consumíveis
 
 A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adquirir equipamentos poderosos e impulsionar a progressão de combate através de recursos consumíveis temporários e instantâneos.
 
@@ -863,11 +884,18 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 ---
 
-## 14. Histórico de Updates e Otimizações de Engenharia
+## 15. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.0.0 (Atual)
+### Versão 4.1.0 (Atual)
+*   **🏰 O Desafio da Torre Infinita**:
+    *   **Modo de Combate Estático**: Transição completa do fluxo de sidescrolling dinâmico para combates estáticos centralizados na Torre Infinita.
+    *   **Background e Grounding Exclusivos**: Inclusão do asset dedicado `tower_background.png` com alinhamento grounded calibrado no solo vertical em $Y = 532.5$, eliminando inconsistências físicas e o efeito visual de "torre dupla".
+    *   **Mecânica de Fade-Out/Fade-In**: Implementação de transições de fade-out e fade-in de tela para avanço de andares. O herói corre em direção ao próximo desafio e ressurge na posição inicial aguardando a aproximação do oponente.
+    *   **Correções de Animação e HUD**: Ajuste para sincronizar o nome e a vida dos heróis em movimento, ocultação imediata do nome do inimigo abatido e correção da orientação do sprite ao retornar para as fases regulares da campanha após derrotas na Torre.
+
+### Versão 4.0.0
 *   **🌌 O Purgatório e as Relíquias (Major Update)**:
     *   **Território do Purgatório (Fases 21–30)**: Adicionado um novo bloco intermediário fixo de 10 fases temáticas de cristais partidos. Os inimigos possuem HP e Dano escalados em $4.5\times$ sobre a base do Apocalipse.
     *   **Chefe da Fase 30 ("Guardião dos Cacos")**: Primeiro chefe com combate de duas fases. Na Fase 2 (abaixo de 50% HP), o chefe entra em estado de Fúria Arcana (+50% velocidade de ataque, textura cristalina brilhante e conjuração contínua de relâmpagos).
@@ -1153,7 +1181,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 
 ---
 
-## 15. Modo de Teste (God Mode / Cheat de Desenvolvimento)
+## 16. Modo de Teste (God Mode / Cheat de Desenvolvimento)
 
 Esta seção documenta o **Modo de Teste (Multiplicador 5x)** implementado especificamente para testes internos e validação ágil de conteúdos de fim de jogo (*endgame*). Por se tratar de um recurso de trapaça temporário que **não deve constar na versão final do jogo**, todas as intervenções de código foram mapeadas abaixo para facilitar sua remoção completa no futuro.
 

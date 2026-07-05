@@ -10,6 +10,7 @@ import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
+import { TowerPanel } from './TowerPanel';
 
 export const DAILY_MODIFIERS = [
   {
@@ -3686,6 +3687,24 @@ const GuidePanel: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* A Torre Infinita */}
+            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+              <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🏰 A Torre Infinita</span>
+              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                <p>
+                  A **Torre Infinita** é uma arena de desafios verticais onde o jogador testa seus limites contra hordas intermináveis de inimigos e chefes. Ao contrário da campanha, a Torre oferece batalhas estáticas, sem progressão lateral (sidescrolling), focando na superação rápida de andares.
+                </p>
+                <div>
+                  <strong className="text-white block font-semibold">Funcionamento e Fluxo:</strong>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-gray-400">Combates Estáticos:</span> O jogador aguarda em sua posição de batalha no centro da arena enquanto o inimigo entra caminhando. O combate inicia assim que ambos estão posicionados.</li>
+                    <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
+                    <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         );
       })()}
@@ -4136,7 +4155,7 @@ export default function GameUI() {
   const sellItem = useGameStore((state) => state.sellItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
@@ -4233,6 +4252,7 @@ export default function GameUI() {
     { id: 'skills' as const, label: 'Habilidades', icon: '★' },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️' },
+    { id: 'tower' as const, label: 'Torre', icon: '🏰' },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
     { id: 'shop' as const, label: 'Loja', icon: '🛒' },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
@@ -4461,6 +4481,7 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
+          {activeTab === 'tower' && <TowerPanel />}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}
           {activeTab === 'equipment' && (

@@ -3,6 +3,7 @@ import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent, ENEMIES_PER_STAGE } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
+import { useTowerStore } from '../../store/useTowerStore';
 import { AudioManager } from '../../core/AudioManager';
 
 export const ZOOM_FACTOR = 1.35;
@@ -12,6 +13,8 @@ export class CombatScene extends Phaser.Scene {
   private background!: Phaser.GameObjects.TileSprite;
   private playerBody!: Phaser.GameObjects.Image;
   private enemyBody!: Phaser.GameObjects.Image;
+  private playerNameText!: Phaser.GameObjects.Text;
+  private playerTitleText!: Phaser.GameObjects.Text;
   private enemyLevelText!: Phaser.GameObjects.Text;
   private enemyStatusText!: Phaser.GameObjects.Text;
   private playerStatusText!: Phaser.GameObjects.Text;
@@ -37,6 +40,7 @@ export class CombatScene extends Phaser.Scene {
   preload(): void {
     // Carrega os assets originais e as novas texturas de classe
     this.load.image('background', 'assets/medieval_background.png');
+    this.load.image('tower_background', 'assets/tower_background.png');
     this.load.image('desert_background', 'assets/desert_background.png');
     this.load.image('snow_background', 'assets/snow_background.png');
     this.load.image('cemetery_background', 'assets/cemetery_background.png');
@@ -218,7 +222,7 @@ export class CombatScene extends Phaser.Scene {
     const classConfig = useGameStore.getState().character;
     const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
-    this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 105 * ZOOM_FACTOR, friendlyName, { 
+    this.playerNameText = this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 105 * ZOOM_FACTOR, friendlyName, { 
       fontSize: '19px', 
       color: '#60a5fa', 
       fontStyle: 'bold', 
@@ -226,6 +230,17 @@ export class CombatScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 5,
       padding: { left: 10, right: 10, top: 5, bottom: 5 }
+    }).setOrigin(0.5);
+
+    const selectedTitle = useTowerStore.getState().selectedTitle;
+    this.playerTitleText = this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 128 * ZOOM_FACTOR, selectedTitle ? `👑 ${selectedTitle}` : '', { 
+      fontSize: '18px', 
+      color: '#e9d5ff', 
+      fontStyle: 'bold', 
+      fontFamily: 'monospace',
+      stroke: '#000000',
+      strokeThickness: 5,
+      padding: { left: 8, right: 8, top: 3, bottom: 3 }
     }).setOrigin(0.5);
 
     // Inicializa o texto vazio; a posição correta, cor e conteúdo serão atribuídos imediatamente pela chamada do respawnEnemyAt abaixo
@@ -327,9 +342,25 @@ export class CombatScene extends Phaser.Scene {
 
       this.fsm.update(delta * speedMultiplier);
 
+      if (this.playerNameText && this.playerBody) {
+        const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
+        this.playerNameText.x = isTransition ? this.playerBody.x : this.PLAYER_START_X;
+        this.playerNameText.y = this.PLAYER_START_Y - 105 * ZOOM_FACTOR;
+      }
+
+      if (this.playerTitleText && this.playerBody) {
+        const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
+        const selectedTitle = useTowerStore.getState().selectedTitle;
+        this.playerTitleText.setText(selectedTitle ? `👑 ${selectedTitle}` : '');
+        this.playerTitleText.x = isTransition ? this.playerBody.x : this.PLAYER_START_X;
+        this.playerTitleText.y = this.PLAYER_START_Y - 128 * ZOOM_FACTOR;
+      }
+
       if (this.enemyLevelText && this.enemyBody) {
         const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
         this.enemyLevelText.x = isMoving ? this.enemyBody.x : 600;
+        const enemyAlpha = this.fsm.enemyHP <= 0 ? this.enemyBody.alpha : 1;
+        this.enemyLevelText.setAlpha(enemyAlpha);
       }
 
       // Atualiza posição do texto de status do inimigo
@@ -338,6 +369,8 @@ export class CombatScene extends Phaser.Scene {
         this.enemyStatusText.x = isMoving ? this.enemyBody.x : 600;
         const isElite = this.enemyLevelText.text.includes('\n');
         this.enemyStatusText.y = this.enemyLevelText.y - (isElite ? 35 : 20) * ZOOM_FACTOR;
+        const enemyAlpha = this.fsm.enemyHP <= 0 ? this.enemyBody.alpha : 1;
+        this.enemyStatusText.setAlpha(enemyAlpha);
 
         // Determina qual texto de status exibir baseado nos efeitos ativos
         const effects = this.fsm.enemyEffects;
@@ -366,8 +399,12 @@ export class CombatScene extends Phaser.Scene {
 
       // Atualiza posição do texto de status do jogador
       if (this.playerStatusText && this.playerBody) {
-        this.playerStatusText.x = this.PLAYER_START_X;
-        this.playerStatusText.y = this.PLAYER_START_Y - 125 * ZOOM_FACTOR;
+        const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
+        this.playerStatusText.x = isTransition ? this.playerBody.x : this.PLAYER_START_X;
+        const selectedTitle = useTowerStore.getState().selectedTitle;
+        this.playerStatusText.y = selectedTitle 
+          ? this.PLAYER_START_Y - 148 * ZOOM_FACTOR 
+          : this.PLAYER_START_Y - 125 * ZOOM_FACTOR;
 
         const pEffects = this.fsm.playerEffects;
         if (pEffects.some(e => e.id === 'consecration')) {
@@ -411,7 +448,8 @@ export class CombatScene extends Phaser.Scene {
       this.drawPlayerHPBar();
       this.drawXPBar();
 
-      if (this.fsm.getCurrentState() === CombatState.MOVING) {
+      const isTowerActive = useTowerStore.getState().towerActive;
+      if (this.fsm.getCurrentState() === CombatState.MOVING && !isTowerActive) {
         this.playerBody.y = this.PLAYER_START_Y + Math.sin(this.accumulatedTime * 0.015) * 4;
       } else {
         this.playerBody.y = this.PLAYER_START_Y;
@@ -473,6 +511,23 @@ export class CombatScene extends Phaser.Scene {
   }
 
   private updateBackgroundForStage(): void {
+    const isTower = useTowerStore.getState().towerActive;
+    if (isTower) {
+      if (this.currentBgTexture !== 'tower_background') {
+        console.log(`[CombatScene] Atualizando background para: tower_background`);
+        this.background.setTexture('tower_background');
+        this.currentBgTexture = 'tower_background';
+        // Exibe a imagem de 1024x1024 inteira adaptada exatamente para os 800x600 do canvas,
+        // eliminando qualquer corte vertical, zoom dinâmico da campanha ou repetições.
+        this.background.setTileScale(800 / 1024, 600 / 1024);
+        this.background.tilePositionY = 0;
+        this.background.tilePositionX = 0;
+        this.background.clearTint();
+        if (this.enemyBody) this.enemyBody.clearTint();
+      }
+      return;
+    }
+
     const char = useGameStore.getState().character;
     if (!char) return;
 
@@ -537,8 +592,12 @@ export class CombatScene extends Phaser.Scene {
     if (this.fsm.playerHP > 0 && this.playerBody.alpha > 0.1) {
       const barWidth = 70 * ZOOM_FACTOR;
       const barHeight = 7 * ZOOM_FACTOR;
-      // Posiciona de forma estática baseada no PLAYER_START_X / Y para não oscilar/tremer no ataque/caminhada
-      const x = this.PLAYER_START_X - barWidth / 2;
+      
+      // Se estiver na transição da torre, acompanha o corpo. Senão fica fixo
+      const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
+      const targetX = isTransition ? this.playerBody.x : this.PLAYER_START_X;
+      
+      const x = targetX - barWidth / 2;
       const y = this.PLAYER_START_Y - 85 * ZOOM_FACTOR; // Posição estática segura abaixo do nome
 
       // Fundo preto translúcido da barra
@@ -634,8 +693,11 @@ export class CombatScene extends Phaser.Scene {
   public getEnemyY(): number { return this.enemyBody.y; }
 
   public scrollWorld(delta: number): void {
-   const scrollSpeed = 0.22; 
-    this.background.tilePositionX += scrollSpeed * delta;
+    const isTower = useTowerStore.getState().towerActive;
+    if (!isTower) {
+      const scrollSpeed = 0.22; 
+      this.background.tilePositionX += scrollSpeed * delta;
+    }
     
     // O inimigo se aproxima
     const approachSpeed = 0.18;
@@ -753,6 +815,37 @@ export class CombatScene extends Phaser.Scene {
     circleTween.setTimeScale(scaleFactor);
   }
 
+  public animateTowerTransition(onTransitionHalf: () => void): void {
+    // 1. Tocar efeito de derrota e fazer o monstro desaparecer
+    this.animateEnemyDeath();
+
+    // 2. Fazer o fade out da câmera começar aos 800ms e durar 600ms
+    this.time.delayedCall(800, () => {
+      this.cameras.main.fadeOut(600, 0, 0, 0);
+    });
+
+    // 3. Fazer o jogador correr para a direita (avançar) de forma mais gradual
+    this.tweens.add({
+      targets: this.playerBody,
+      x: this.PLAYER_START_X + 250 * ZOOM_FACTOR,
+      duration: 1400,
+      ease: 'Power1.easeIn',
+      onComplete: () => {
+        // Garante que matamos qualquer tween residual no playerBody
+        this.tweens.killTweensOf(this.playerBody);
+        
+        // Reposiciona o jogador de volta na posição inicial sob a tela preta
+        this.playerBody.x = this.PLAYER_START_X;
+
+        // Executa a lógica de troca de andar na FSM
+        onTransitionHalf();
+
+        // Faz fade in da câmera de volta com duração de 600ms
+        this.cameras.main.fadeIn(600, 0, 0, 0);
+      }
+    });
+  }
+
   public animateEnemyDeath(): void {
     const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_') || false;
     AudioManager.getInstance().playEnemyDefeat(isBoss);
@@ -769,6 +862,7 @@ export class CombatScene extends Phaser.Scene {
 
   public respawnEnemyAt(startX: number, enemyType: any): void {
     if (this.enemyBody) {
+      this.tweens.killTweensOf(this.enemyBody);
       this.enemyBody.setTexture(enemyType.texture + '_transparent');
       
       const isBoss = enemyType.id.startsWith('boss_');
@@ -822,6 +916,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public respawnPlayer(): void {
+    this.tweens.killTweensOf(this.playerBody);
     this.playerBody.setPosition(this.PLAYER_START_X, this.PLAYER_START_Y);
     this.playerBody.angle = 0;
     this.playerBody.setAlpha(1);
