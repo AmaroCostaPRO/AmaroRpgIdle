@@ -2265,7 +2265,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 </div>
 
                 <p style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
-                  Enfronte a Fase Espelho com modificadores únicos que mudam diariamente à meia-noite (horário local).
+                  Enfrente a Fase Espelho com modificadores únicos que mudam diariamente à meia-noite (horário local).
                 </p>
 
                 {/* Fase Espelho & Modificador */}
@@ -2475,6 +2475,11 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                   if (relic.id === 'luz_alma') icon = '⚔️';
                   if (relic.id === 'moeda_ciclo') icon = '🪙';
                   if (relic.id === 'simbolo_aprendizado') icon = '📚';
+                  if (relic.id === 'gema_vontade') icon = '💎';
+                  if (relic.id === 'nucleo_pensamento') icon = '🧠';
+                  if (relic.id === 'foco_precisao') icon = '🎯';
+                  if (relic.id === 'brasao_devoacao') icon = '🛡️';
+                  if (relic.id === 'olho_sobrevivencia') icon = '👁️';
 
                   return (
                     <div
@@ -2546,12 +2551,20 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.15rem' }}>
                           <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
-                            Bônus Atual: <strong style={{ color: isLocked ? '#64748b' : '#34d399' }}>+{relic.level * 3}%</strong>
+                            Bônus Atual: <strong style={{ color: isLocked ? '#64748b' : '#34d399' }}>
+                              {(() => {
+                                const val = relic.level * relic.bonusValuePerLevel;
+                                if (['luz_alma', 'moeda_ciclo', 'simbolo_aprendizado'].includes(relic.id)) {
+                                  return `+${Math.round(val * 100)}%`;
+                                }
+                                return `+${val}`;
+                              })()}
+                            </strong>
                           </span>
                           
                           {/* Progresso visual (estrelas/bolinhas) */}
                           <div style={{ display: 'flex', gap: '0.2rem' }}>
-                            {[1, 2, 3].map((star) => {
+                            {Array.from({ length: relic.maxLevel || 5 }, (_, i) => i + 1).map((star) => {
                               const active = relic.level >= star;
                               return (
                                 <span
