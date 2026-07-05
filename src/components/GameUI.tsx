@@ -2439,7 +2439,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     {isAllMaxed 
                       ? '✨ Todas as Relíquias no Nível Máximo' 
                       : unstableSoulFragments < 10 
-                        ? `Requer 10 Fragmentos (Você tem ${unstableSoulFragments})`
+                        ? 'Requer 10 Fragmentos'
                         : '🔮 Canalizar Alma (10 Fragmentos)'
                     }
                   </button>
