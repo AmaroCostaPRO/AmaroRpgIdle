@@ -2298,7 +2298,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       <span style={{ fontSize: '0.8rem' }}>🌀</span>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Fragmento de Alma</span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: '#c084fc' }}>+1 Instável</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: '#c084fc' }}>+2 Instáveis</span>
                       </div>
                     </div>
                   </div>

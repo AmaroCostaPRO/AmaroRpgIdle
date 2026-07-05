@@ -835,7 +835,7 @@ Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumu
 *   **Boost de Toque (Touch Booster)**: Custa $1.000$ Ouro.
 *   **Baú de Equipamento Ancestral**: Custa $3.000$ Ouro.
 *   **Boost de Toque x3 (Touch Booster x3)**: Custa $5.000$ Ouro.
-*   **Baú de Relíquias (Relic Chest)**: Custa $8.000$ Ouro.
+*   **Baú de Relíquias (Relic Chest)**: Custa $50.000$ Ouro.
 
 ### B. Funcionamento dos Consumíveis
 Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao inventário geral de equipamentos (com propriedade `slot: 'consumable'`), ocupando um slot livre. A compra é bloqueada caso o inventário do jogador esteja completamente cheio ($30$ itens).
@@ -889,7 +889,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
             8. *Olho da Sobrevivência*: +4 Sorte por nível | Capstone: Reduz o cooldown da habilidade de Cura em 1.5 segundos.
     *   **Filtro da Forja contra Consumíveis**: Corrigido bug crítico de fusão acidental. Consumíveis (baús, boosters e fragmentos) foram estritamente filtrados fora da lista da Forja.
     *   **Economia e Loja**:
-        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 8.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
+        *   *Baú de Relíquias*: Adicionado à Loja de Ouro (custando 50.000 de ouro), garantindo 3 Fragmentos de Alma Instável ao ser consumido.
         *   *Desafio Diário*: Recompensa de Fragmentos de Alma Instável duplicada (2x) para compensar os drops adicionais obtidos de chefes normais de fases.
 
 ### Versão 3.7.0

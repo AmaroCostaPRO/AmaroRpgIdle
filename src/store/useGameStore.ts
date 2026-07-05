@@ -1271,27 +1271,35 @@ export const useGameStore = create<GameState>((set) => ({
 
     const rewardGold = 1000 * challengeStage;
     
-    // Cria o item consumível Fragmento de Alma Instável
-    const soulFragmentItem: EquipmentItem = {
-      id: `soul_fragment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      name: 'Fragmento de Alma Instável',
-      slot: 'consumable',
-      rarity: 'epic',
-      classId: state.character.classId,
-      spriteName: 'unstable_soul_fragment',
-      consumableType: 'unstable_soul_fragment',
-      stage: challengeStage,
-      stats: {}
-    };
-
-    // Adiciona o item ao inventário
+    // Adiciona até 2 itens de Fragmento de Alma Instável ao inventário
     const inventory = [...state.character.inventory];
+    let addedCount = 0;
+    
+    for (let i = 0; i < 2; i++) {
+      if (inventory.length < state.character.inventorySlots) {
+        const soulFragmentItem: EquipmentItem = {
+          id: `soul_fragment-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
+          name: 'Fragmento de Alma Instável',
+          slot: 'consumable',
+          rarity: 'epic',
+          classId: state.character.classId,
+          spriteName: 'unstable_soul_fragment',
+          consumableType: 'unstable_soul_fragment',
+          stage: challengeStage,
+          stats: {}
+        };
+        inventory.push(soulFragmentItem);
+        addedCount++;
+      }
+    }
+
     let addedMsg = '';
-    if (inventory.length < state.character.inventorySlots) {
-      inventory.push(soulFragmentItem);
-      addedMsg = ` e recebeu [${soulFragmentItem.name}] em seu inventário!`;
+    if (addedCount === 2) {
+      addedMsg = ` e recebeu [2x Fragmento de Alma Instável] em seu inventário!`;
+    } else if (addedCount === 1) {
+      addedMsg = ` e recebeu [1x Fragmento de Alma Instável] em seu inventário (o outro foi perdido pois o inventário encheu)!`;
     } else {
-      addedMsg = `, mas seu inventário estava cheio para receber o [${soulFragmentItem.name}]!`;
+      addedMsg = `, mas seu inventário estava cheio para receber os fragmentos!`;
     }
 
     const updated = {
@@ -1888,7 +1896,7 @@ export const useGameStore = create<GameState>((set) => ({
         chest_ancestral: 3000,
         boost_touch: 1000,
         boost_touch_x3: 5000,
-        relic_chest: 8000
+        relic_chest: 50000
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
