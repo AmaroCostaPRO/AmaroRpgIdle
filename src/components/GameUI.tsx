@@ -4141,6 +4141,9 @@ export default function GameUI() {
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
   const loreContainerRef = useRef<HTMLDivElement>(null);
+  
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
     if (character.introLoreShown === false) {
@@ -4245,8 +4248,65 @@ export default function GameUI() {
     tabs[0]                // Combate no final
   ];
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth > 840) return;
+
+    const target = e.target as HTMLElement;
+    // Ignora swipes em inputs de range (sliders), na árvore de talentos/prestígio ou no carrossel de abas móvel
+    if (
+      target.closest('input[type="range"]') || 
+      target.closest('.tree-container') || 
+      target.closest('.tabs-container-mobile')
+    ) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartX.current;
+    const diffY = touch.clientY - touchStartY.current;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    const thresholdX = 60; // pixels mínimos de deslocamento horizontal
+
+    // O movimento precisa ser predominantemente horizontal e maior que o limiar
+    if (Math.abs(diffX) > thresholdX && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      if (diffX < 0) {
+        // Swipe para a esquerda (próxima aba à direita)
+        AudioManager.getInstance().playClick();
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.id === prev);
+          const nextIdx = (idx + 1) % tabs.length;
+          return tabs[nextIdx].id;
+        });
+      } else {
+        // Swipe para a direita (aba anterior à esquerda)
+        AudioManager.getInstance().playClick();
+        setActiveTab((prev) => {
+          const idx = tabs.findIndex((t) => t.id === prev);
+          const prevIdx = (idx - 1 + tabs.length) % tabs.length;
+          return tabs[prevIdx].id;
+        });
+      }
+    }
+  };
+
   return (
-    <div className="game-ui-root" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}>
+    <div 
+      className="game-ui-root" 
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}
+    >
       {/* Cabeçalho do Painel com Botão Sair */}
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

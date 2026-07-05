@@ -108,6 +108,12 @@ A aba **Opções** centraliza recursos voltados a personalizar a experiência de
     *   **Auto-venda de Equipamentos Raros**: Se habilitado, qualquer equipamento de raridade **Raro** dropado por monstros é vendido instantaneamente no momento do drop por ouro, otimizando o fluxo de esvaziamento do inventário.
     *   **Desativar Robô Assistente**: Permite desativar as ações de clique automático geradas pelo upgrade permanente de prestígio "Robô Assistente", permitindo que jogadores testem o desempenho puro de sua classe sem a interferência da automação ou joguem de forma estritamente ativa.
 
+### F. Navegação por Gestos (Mobile Swipe)
+Para melhorar a experiência de usabilidade em dispositivos móveis, foi adicionado suporte a gestos de arrastar (*swipe*) horizontal no painel de interface principal (`game-ui-root`):
+*   **Swipe para a Esquerda**: Avança para a próxima aba à direita (ex.: de *Combate* para *Atributos*).
+*   **Swipe para a Direita**: Retorna para a aba anterior à esquerda (ex.: de *Atributos* para *Combate*).
+*   **Trava de Segurança e Prevenção de Conflitos**: O sistema detecta se o gesto é predominantemente horizontal (variação horizontal pelo menos 1.5 vezes maior que a vertical) para não conflitar com a rolagem vertical de listas e tabelas. Adicionalmente, gestos iniciados em elementos interativos com arrasto próprio (como sliders de configuração e a árvore de habilidades rolável horizontalmente `.tree-container`) são ignorados automaticamente para preservar a jogabilidade e usabilidade nativas.
+
 ---
 
 ## 4. Sistema de Classes e Maestria
