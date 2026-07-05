@@ -112,14 +112,14 @@ A aba **Opções** centraliza recursos voltados a personalizar a experiência de
 
 ## 4. Sistema de Classes e Maestria
 
-O jogo possui seis classes distintas: três classes primárias disponíveis desde o início e três classes secundárias avançadas desbloqueadas através do progresso.
+O jogo possui sete classes distintas: três classes primárias disponíveis desde o início, três classes secundárias avançadas desbloqueadas através do progresso de classe, e uma classe avançada especial de endgame.
 
-### A. Desbloqueio de Classes Secundárias (Roguelite)
-As classes secundárias requerem dedicação a uma classe primária específica e são desbloqueadas quando o jogador alcança pelo menos o **Nível 10** na classe base. 
-Este progresso de classe é persistido globalmente através da chave `medieval_idle_global_class_levels` no armazenamento local do navegador. Quando o jogador realiza resets, ascensões ou cria novos jogos em slots alternativos, a permissão das classes avançadas é mantida.
-*   **Paladino (`Paladin`)**: Requer Guerreiro (`Warrior`) Nível $\ge 10$.
-*   **Clérigo (`Cleric`)**: Requer Mago (`Mage`) Nível $\ge 10$.
-*   **Ladrão (`Rogue`)**: Requer Arqueiro (`Ranger`) Nível $\ge 10$.
+### A. Desbloqueio de Classes Secundárias e Especiais (Roguelite)
+As classes avançadas secundárias requerem dedicação a uma classe primária específica e são desbloqueadas quando o jogador alcança pelo menos o **Nível 50** na classe base correspondente. O progresso de classe é persistido globalmente através da chave `medieval_idle_global_class_levels` no armazenamento local do navegador. Quando o jogador realiza resets, ascensões ou cria novos jogos em slots alternativos, a permissão das classes avançadas é mantida.
+*   **Paladino (`Paladin`)**: Requer Guerreiro (`Warrior`) Nível $\ge 50$.
+*   **Clérigo (`Cleric`)**: Requer Mago (`Mage`) Nível $\ge 50$.
+*   **Ladrão (`Rogue`)**: Requer Arqueiro (`Ranger`) Nível $\ge 50$.
+*   **Necromante (`Necromancer`)**: Requer as duas classes secundárias avançadas, **Clérigo Nível 50 e Ladrão Nível 50**, independentemente do slot de salvamento ativo.
 
 ### B. Atributos Iniciais e Taxas de Crescimento
 Cada classe possui uma distribuição distinta de atributos base e ganha bônus diferentes automaticamente a cada passagem de nível (*Level Up*), conforme detalhado na tabela abaixo:
@@ -132,6 +132,7 @@ Cada classe possui uma distribuição distinta de atributos base e ganha bônus 
 | **Paladino** | Protetor sagrado de altíssimo HP cuja força escala com defesa. | Constituição | 10 / +1.5 | 6 / +1.0 | 5 / +0.5 | 16 / +3.0 | 5 / +0.5 |
 | **Clérigo** | Mestre sagrado especializado em curas massivas e expor inimigos. | Magia | 7 / +1.0 | 13 / +2.5 | 5 / +0.5 | 11 / +2.0 | 6 / +0.6 |
 | **Ladrão** | Assassino ágil de acertos críticos com foco em venenos e força. | Destreza | 8 / +1.5 | 3 / +0.5 | 16 / +3.0 | 8 / +1.0 | 10 / +1.0 |
+| **Necromante** | Mestre da morte que drena os vivos e comanda lacaios profanos. | Magia | 5 / +0.8 | 15 / +3.2 | 6 / +0.8 | 10 / +1.8 | 12 / +1.5 |
 
 ### C. Fórmulas de Atributos Derivados (Balanceamento de Utilidade)
 Para garantir um combate equilibrado e incentivar a distribuição diversificada de pontos, o jogo aplica um sistema de **escalonamento dinâmico**. Atributos que servem como fonte primária de dano para uma classe concedem bônus reduzidos aos status secundários (como HP Máximo ou regenerações), enquanto as demais classes se beneficiam de uma escala amplificada nesses mesmos atributos.
@@ -149,7 +150,7 @@ A Vida Máxima, a Regeneração de HP e a resistência a danos escalam a partir 
 
 #### 2. Mana Máxima e Regeneração
 A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
-*   **Classes Primárias de Magia (Mago, Clérigo)**:
+*   **Classes Primárias de Magia (Mago, Clérigo, Necromante)**:
     *   Mana Máxima ganha por ponto de Magia: $6\text{ Mana}$ (previne mana infinita e uso descontrolado de auto-cast)
     *   Regeneração de Mana ganha por ponto de Magia: $0.02\text{ Mana/s}$
 *   **Outras Classes (Guerreiro, Arqueiro, Paladino, Ladrão)**:
@@ -175,6 +176,7 @@ O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados
     Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
 *   **Dano Crítico de Toque**:
     Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
+*   **Multiplicador Especial do Necromante**: O Necromante possui um bônus que faz com que o dano de suas habilidades de combate aumente em $+0.1\%$ para cada 1 ponto de Sorte.
 
 #### 5. Penetração de Armadura e Dano Geral (Força)
 Além dos modificadores de classe e bônus secundários em ataques físicos, o atributo **Força** concede um aumento passivo global de dano:
@@ -335,6 +337,10 @@ As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada
     *   *Dano*: Causa $1400\%$ de dano físico baseado em Destreza.
     *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $50.000$ ms (50s)
     *   *Efeito Visual*: Animação de corte sombrio em X na cor vermelha com desfoque de movimento, tremor e partículas de sombras.
+7.  **Necromante**: *Ceifa das Almas Perdidas* (`ultimate_necromancer`)
+    *   *Dano*: Causa $1300\%$ de dano mágico baseado em Magia e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
+    *   *Custo de Mana*: $75$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Efeito Visual*: Foice gigante que corta a tela com explosão de névoa escura e invoca um monstro lacaio.
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
 Os custos de mana e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
@@ -469,6 +475,26 @@ Escala suas habilidades de ataque com **Destreza** (`dexterity`).
 *   **Florescer Letal** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
     *   *Mecânica*: Redemoinho de adagas que causa $450\%$ de dano físico base (até $720\%$ no nível 5).
     *   *Efeito Visual*: Múltiplos cortes físicos vermelhos cruzados em alta velocidade no corpo do monstro, seguidos de grande explosão de poeira e forte tremor.
+
+#### 💀 Necromante (Necromancer)
+Escala suas habilidades de ataque com **Magia** (`magic`) e bônus de dano com **Sorte** (`luck`).
+*   **Toque da Morte** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+    *   *Mecânica*: Causa $160\%$ de dano mágico base. Cura o herói através da mecânica de Cura de Drenagem:
+        $$\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$$
+    *   *Efeito Visual*: Dreno de energia verde/sombria do inimigo em direção ao herói.
+*   **Escudo Ósseo** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+    *   *Mecânica*: Reduz o dano recebido em 20% por 6 segundos. Ao expirar, causa 150% de dano baseado na Constituição do personagem.
+    *   *Efeito Visual*: Órgãos/ossos giratórios que envolvem o herói e explodem ao final.
+*   **Sangue Frio** (Passiva, Nível Requerido: 5):
+    *   *Mecânica*: Aumento passivo de $+5$ em Magia e $+2$ em Sorte por nível da habilidade comprado (até $+25$ de Magia e $+10$ de Sorte no nível 5).
+*   **Sifão de Almas** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+    *   *Mecânica*: Causa $320\%$ de dano mágico base. Se o inimigo morrer sob o efeito, restaura 20% da mana total do personagem.
+    *   *Efeito Visual*: Feixe de almas que viaja do monstro para o jogador.
+*   **Ecos da Tumba** (Passiva, Nível Requerido: 9):
+    *   *Mecânica*: Aumento passivo permanente de $+5$ em Constituição por nível da habilidade (até $+25$ de Constituição no nível 5).
+*   **Exército de Esqueletos** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+    *   *Mecânica*: Conjura servos que atacam continuamente causando $120\%$ de dano por segundo por 8 segundos.
+    *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo.
 
 ---
 
@@ -657,9 +683,11 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 *   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+2$ cliques por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 
 ### D. Ativação Especial do Modo Pandemônio
-*   **Requisito de Desbloqueio (Altar de Alma)**: O jogador precisa primeiro atingir o nível máximo (nível 10) nos 5 atributos permanentes de prestígio (Força Divina, Mente Arcana, Foco Ágil, Vigor Eterno e Bênção da Sorte).
-*   **Custo e Ativação**: Ao satisfazer o requisito, a esfera central "Alma" na árvore de prestígio torna-se interativa. O desbloqueio permanente do Modo Pandemônio exige o pagamento de **100 Pontos de Prestígio (PP)**.
-*   **Mecânica de Campanha e Loop Infinito**: O jogador avança normalmente pelas 20 fases da campanha padrão. Ao derrotar o chefe da Fase 20 (Arquidemônio das Ruínas na dificuldade Apocalipse) com o Modo Pandemônio ativado, o jogo entra em um **Loop Infinito (Fase 21+)**.
+*   **Requisito de Desbloqueio (Altar de Alma)**:
+    1.  **Vencer o Purgatório (Fase 30)**: O jogador precisa completar o Purgatório derrotando o chefe da Fase 30 ("Guardião dos Cacos"). Sem o Modo Pandemônio desbloqueado, o progresso fica travado na Fase 30 (o jogador retorna para a Fase 21 ao vencer o estágio para continuar coletando recursos).
+    2.  **Atributos de Prestígio**: O jogador precisa atingir o nível máximo (nível 10) nos 5 atributos permanentes de prestígio (Força Divina, Mente Arcana, Foco Ágil, Vigor Eterno e Bênção da Sorte).
+*   **Custo e Ativação**: Ao satisfazer todos os requisitos, a esfera central "Alma" na árvore de prestígio torna-se interativa. O desbloqueio permanente do Modo Pandemônio exige o pagamento de **100 Pontos de Prestígio (PP)**, executando uma Ascensão especial imediata.
+*   **Mecânica de Campanha e Loop Infinito**: Com o Modo Pandemônio desbloqueado, o jogador avança pelas 20 fases normais e depois pelas 10 fases do Purgatório (Fases 21 a 30). Ao derrotar o Guardião dos Cacos na Fase 30, o bloqueio é quebrado e o jogo entra no **Loop Infinito do Pandemônio (Fase 31+)**.
 *   **Dificuldade e Recompensas no Pandemônio**: A partir da fase 21, o HP e Dano dos inimigos recebem um multiplicador de **5.0x** sobre a base escalonada (aumentando continuamente a cada estágio infinito). Os inimigos comuns e chefes são gerados aleatoriamente em todas as rodadas. Os drops de equipamentos no Modo Pandemônio possuem status **7.0x superiores** e recebem o prefixo "Pandemoníaco(a)".
 *   **Retenção de Itens Equipados**: Estando com o Modo Pandemônio desbloqueado, todas as ascensões futuras do herói preservam as peças de armadura e armas equipadas ativamente nos slots de equipamento (`Cabeça`, `Torso`, `Pernas`, `Mãos` e `Arma`), destruindo apenas as sobras guardadas no inventário de 30 slots. Isso permite que o jogador reinicie rodadas rapidamente utilizando os bônus de seus melhores equipamentos.
 
@@ -803,20 +831,21 @@ A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adqui
 
 ### A. Estrutura de Custos e Economia
 Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumulado pelo personagem no decorrer das batalhas.
-*   **Boost de Toque (Touch Booster)**: Custa $1.000$ Ouro.
 *   **Baú de Equipamento Lendário**: Custa $500$ Ouro.
+*   **Boost de Toque (Touch Booster)**: Custa $1.000$ Ouro.
 *   **Baú de Equipamento Ancestral**: Custa $3.000$ Ouro.
 *   **Boost de Toque x3 (Touch Booster x3)**: Custa $5.000$ Ouro.
+*   **Baú de Relíquias (Relic Chest)**: Custa $8.000$ Ouro.
 
 ### B. Funcionamento dos Consumíveis
 Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao inventário geral de equipamentos (com propriedade `slot: 'consumable'`), ocupando um slot livre. A compra é bloqueada caso o inventário do jogador esteja completamente cheio ($30$ itens).
 
-#### 1. Baús de Equipamento (Lendário e Ancestral)
-*   **Geração de Itens**: Ao abrir o baú, ele é consumido e removido do inventário, gerando aleatoriamente de **1 a 3 equipamentos** de classe correspondente à classe ativa do personagem.
-*   **Raridade e Sets**: 
+#### 1. Baús de Equipamento e Relíquias (Lendário, Ancestral e Relíquia)
+*   **Baús de Equipamentos (Lendário e Ancestral)**: Ao serem abertos, são consumidos e geram aleatoriamente de **1 a 3 equipamentos** de classe correspondente à classe ativa do personagem.
     *   *Baú Lendário*: Sorteia peças de raridade **Lendária** do conjunto padrão correspondente à classe atual.
     *   *Baú Ancestral*: Sorteia peças de raridade **Ancestral** (Set Ancestral pós-ascensão) correspondentes à classe ativa.
-*   **Validação de Espaço**: Para abrir o baú, o sistema valida se há espaço suficiente no inventário para acomodar os novos equipamentos (até 3 slots livres). Caso contrário, a abertura é cancelada impedindo a perda de itens por falta de slots.
+    *   *Validação de Espaço*: Para abrir o baú, o sistema valida se há espaço suficiente no inventário para acomodar os novos equipamentos (até 3 slots livres). Caso contrário, a abertura é cancelada impedindo a perda de itens por falta de slots.
+*   **Baú de Relíquias (Relic Chest)**: Ao ser aberto, é consumido e concede instantaneamente **3 Fragmentos de Alma Instável** (usados no Altar de Relíquias para forjar e evoluir relíquias), exigindo apenas 1 slot livre no inventário (o slot do próprio baú ao ser liberado).
 
 #### 2. Boost de Toque (Frenesi de 1 minuto ou 3 minutos)
 *   **Efeito**: Ao ativar o booster de toque normal (`boost_touch`) ou a versão aprimorada (`boost_touch_x3`), o item correspondente é removido do inventário e emite um evento especial de ativação via `GameBridge` (`ACTIVATE_FRENZY_BOOST`) contendo a respectiva duração.
@@ -838,7 +867,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   **Chefe da Fase 30 ("Guardião dos Cacos")**: Primeiro chefe com combate de duas fases. Na Fase 2 (abaixo de 50% HP), o chefe entra em estado de Fúria Arcana (+50% velocidade de ataque, textura cristalina brilhante e conjuração contínua de relâmpagos).
     *   **Progresso Bloqueado**: Concluir o Purgatório derrotando o Guardião dos Cacos é o novo requisito mandatório para desbloquear o Modo Pandemônio. O avanço de fases é pausado e travado na Fase 30 até a ativação do ritual de alma.
     *   **Nova Classe Avançada: Necromante**:
-        *   *Desbloqueio*: Requer **Clérigo Nível 10 + Ladrão Nível 10** (as duas classes avançadas, independente de save). O progresso de nível máximo por classe é rastreado globalmente via `medieval_idle_global_class_levels` no localStorage.
+        *   *Desbloqueio*: Requer **Clérigo Nível 50 + Ladrão Nível 50** (as duas classes avançadas, independente de save). O progresso de nível máximo por classe é rastreado globalmente via `medieval_idle_global_class_levels` no localStorage.
         *   *Atributos*: Dano principal escala com Magia; dano secundário e bônus escalam com Sorte (aumenta o dano de habilidades em $+0.1\%$ para cada 1 ponto de Sorte).
         *   *Habilidades*:
             1. *Toque da Morte* (Nvl. 1): Causa 160% de dano mágico e drena vida do inimigo com a fórmula: $\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$.

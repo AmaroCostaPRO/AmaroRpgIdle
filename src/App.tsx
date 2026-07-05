@@ -355,7 +355,7 @@ const App: React.FC = () => {
                         💀 Classe Avançada: Necromante
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Desbloqueie ao atingir <strong>Nível 10 com o Clérigo e o Ladrão</strong> (rastreado globalmente entre saves). Use o dreno de HP de <i>Toque da Morte</i> e tire vantagem do escalonamento de dano mágico baseado em Sorte.
+                        Desbloqueie ao atingir <strong>Nível 50 com o Clérigo e o Ladrão</strong> (rastreado globalmente entre saves). Use o dreno de HP de <i>Toque da Morte</i> e tire vantagem do escalonamento de dano mágico baseado em Sorte.
                       </div>
                     </div>
                     <div>

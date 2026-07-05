@@ -73,10 +73,10 @@ export const CharacterSelect: React.FC = () => {
               const isSelected = selectedClass === classId;
 
               let requirementText = '';
-              if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 10';
-              if (classId === 'cleric') requirementText = 'Req: Mago Nvl 10';
-              if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 10';
-              if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 10';
+              if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 50';
+              if (classId === 'cleric') requirementText = 'Req: Mago Nvl 50';
+              if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 50';
+              if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 50';
 
               // Para classes com 1 pré-requisito
               let parentClass = '';
@@ -128,10 +128,10 @@ export const CharacterSelect: React.FC = () => {
                         <span style={{ fontSize: '0.5rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
                         {classId === 'necromancer' ? (
                           <>
-                            <span className="font-mono" style={{ fontSize: '0.42rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevel, 10)}/10 | Ladrão: {Math.min(rogueLevel, 10)}/10</span>
+                            <span className="font-mono" style={{ fontSize: '0.42rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevel, 50)}/50 | Ladrão: {Math.min(rogueLevel, 50)}/50</span>
                           </>
                         ) : (
-                          <span className="font-mono" style={{ fontSize: '0.45rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 10)}/10</span>
+                          <span className="font-mono" style={{ fontSize: '0.45rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 50)}/50</span>
                         )}
                       </div>
                     )}
@@ -166,10 +166,10 @@ export const CharacterSelect: React.FC = () => {
                 const isSelected = selectedClass === classId;
 
                 let requirementText = '';
-                if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 10';
-                if (classId === 'cleric') requirementText = 'Req: Mago Nvl 10';
-                if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 10';
-                if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 10';
+                if (classId === 'paladin') requirementText = 'Req: Guerreiro Nvl 50';
+                if (classId === 'cleric') requirementText = 'Req: Mago Nvl 50';
+                if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 50';
+                if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 50';
 
                 let parentClass = '';
                 if (classId === 'paladin') parentClass = 'warrior';
@@ -222,9 +222,9 @@ export const CharacterSelect: React.FC = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
                           <span style={{ fontSize: '0.62rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
                           {classId === 'necromancer' ? (
-                            <span className="font-mono" style={{ fontSize: '0.52rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevelM, 10)}/10 | Ladrão: {Math.min(rogueLevelM, 10)}/10</span>
+                            <span className="font-mono" style={{ fontSize: '0.52rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevelM, 50)}/50 | Ladrão: {Math.min(rogueLevelM, 50)}/50</span>
                           ) : (
-                            <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 10)}/10</span>
+                            <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 50)}/50</span>
                           )}
                         </div>
                       )}
@@ -273,17 +273,17 @@ export const CharacterSelect: React.FC = () => {
                   {!unlocked && (() => {
                     const getEL = (id: string) => Math.max(classLevels[id] || 0, globalLevels[id] || 0);
                     const reqMap: Record<string, string> = {
-                      paladin: 'Req: Guerreiro Nvl 10',
-                      cleric: 'Req: Mago Nvl 10',
-                      rogue: 'Req: Arqueiro Nvl 10',
-                      necromancer: 'Req: Clérigo + Ladrão Nvl 10',
+                      paladin: 'Req: Guerreiro Nvl 50',
+                      cleric: 'Req: Mago Nvl 50',
+                      rogue: 'Req: Arqueiro Nvl 50',
+                      necromancer: 'Req: Clérigo + Ladrão Nvl 50',
                     };
                     const reqText = reqMap[selectedClass] || '';
                     let progressText = '';
-                    if (selectedClass === 'paladin') progressText = `Guerreiro: ${Math.min(getEL('warrior'), 10)}/10`;
-                    if (selectedClass === 'cleric') progressText = `Mago: ${Math.min(getEL('mage'), 10)}/10`;
-                    if (selectedClass === 'rogue') progressText = `Arqueiro: ${Math.min(getEL('ranger'), 10)}/10`;
-                    if (selectedClass === 'necromancer') progressText = `Clérigo: ${Math.min(getEL('cleric'), 10)}/10 | Ladrão: ${Math.min(getEL('rogue'), 10)}/10`;
+                    if (selectedClass === 'paladin') progressText = `Guerreiro: ${Math.min(getEL('warrior'), 50)}/50`;
+                    if (selectedClass === 'cleric') progressText = `Mago: ${Math.min(getEL('mage'), 50)}/50`;
+                    if (selectedClass === 'rogue') progressText = `Arqueiro: ${Math.min(getEL('ranger'), 50)}/50`;
+                    if (selectedClass === 'necromancer') progressText = `Clérigo: ${Math.min(getEL('cleric'), 50)}/50 | Ladrão: ${Math.min(getEL('rogue'), 50)}/50`;
                     return (
                       <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(248, 113, 113, 0.08)', border: '1px solid rgba(248, 113, 113, 0.2)', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ fontSize: '0.65rem', color: '#f87171', fontWeight: 600, marginBottom: '0.2rem' }}>{reqText}</div>

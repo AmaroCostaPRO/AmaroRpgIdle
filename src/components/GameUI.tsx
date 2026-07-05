@@ -3206,10 +3206,10 @@ const GuidePanel: React.FC = () => {
         );
 
         let promotionRequirement = 'Inicialmente Desbloqueado';
-        if (selectedClass === 'paladin') promotionRequirement = 'Requer Guerreiro Nível 10';
-        if (selectedClass === 'cleric') promotionRequirement = 'Requer Mago Nível 10';
-        if (selectedClass === 'rogue') promotionRequirement = 'Requer Arqueiro Nível 10';
-        if (selectedClass === 'necromancer') promotionRequirement = 'Requer Clérigo Nível 10 + Ladrão Nível 10';
+        if (selectedClass === 'paladin') promotionRequirement = 'Requer Guerreiro Nível 50';
+        if (selectedClass === 'cleric') promotionRequirement = 'Requer Mago Nível 50';
+        if (selectedClass === 'rogue') promotionRequirement = 'Requer Arqueiro Nível 50';
+        if (selectedClass === 'necromancer') promotionRequirement = 'Requer Clérigo Nível 50 + Ladrão Nível 50';
 
         const getPrimaryStatName = (stat: keyof BaseStats): string => {
           switch (stat) {
@@ -3650,7 +3650,7 @@ const GuidePanel: React.FC = () => {
                 </p>
                 <div>
                   <strong className="text-white block font-semibold">Como desbloquear:</strong>
-                  <p className="text-gray-400">Requer atingir o <strong>Nível 10</strong> simultaneamente com o <strong>Clérigo</strong> e o <strong>Ladrão</strong> (as duas classes avançadas). O progresso é rastreado globalmente — não é necessário ter ambas no mesmo save.</p>
+                  <p className="text-gray-400">Requer atingir o <strong>Nível 50</strong> simultaneamente com o <strong>Clérigo</strong> e o <strong>Ladrão</strong> (as duas classes avançadas). O progresso é rastreado globalmente — não é necessário ter ambas no mesmo save.</p>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold">Mecânica de Sorte (Luck):</strong>

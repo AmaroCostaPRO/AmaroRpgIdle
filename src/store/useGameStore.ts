@@ -333,10 +333,10 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
   const globalClassLevels = getGlobalClassLevels();
   const getLevel = (id: string) => Math.max(classLevels[id] || 0, globalClassLevels[id] || 0);
 
-  if (classId === 'paladin') return getLevel('warrior') >= 10;
-  if (classId === 'cleric') return getLevel('mage') >= 10;
-  if (classId === 'rogue') return getLevel('ranger') >= 10;
-  if (classId === 'necromancer') return getLevel('cleric') >= 10 && getLevel('rogue') >= 10;
+  if (classId === 'paladin') return getLevel('warrior') >= 50;
+  if (classId === 'cleric') return getLevel('mage') >= 50;
+  if (classId === 'rogue') return getLevel('ranger') >= 50;
+  if (classId === 'necromancer') return getLevel('cleric') >= 50 && getLevel('rogue') >= 50;
   return false;
 };
 
