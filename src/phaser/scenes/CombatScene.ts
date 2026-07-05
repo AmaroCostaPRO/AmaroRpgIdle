@@ -694,8 +694,9 @@ export class CombatScene extends Phaser.Scene {
     this.xpBar.strokeRect(x, y, barWidth, barHeight);
 
     // Atualizar o texto informativo centralizado
-    const formattedXp = xp.toLocaleString();
-    const formattedNeeded = xpNeeded.toLocaleString();
+    const useAbbrev = useGameStore.getState().abbreviateNumbers;
+    const formattedXp = formatNumber(xp, useAbbrev);
+    const formattedNeeded = formatNumber(xpNeeded, useAbbrev);
     const pctString = (xpPct * 100).toFixed(1);
     this.xpText.setText(`Nv. ${level} • XP: ${formattedXp} / ${formattedNeeded} (${pctString}%)`);
   }

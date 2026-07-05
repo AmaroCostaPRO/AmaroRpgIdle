@@ -710,6 +710,7 @@ const ActiveSkillsPanel: React.FC = () => {
 const AttributePanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const upgradeAttribute = useGameStore((state) => state.upgradeAttribute);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const availablePoints = character.attributePoints;
   const xpNeeded = character.level * 100;
   const [multiplier, setMultiplier] = useState<1 | 10 | 100>(1);
@@ -769,7 +770,7 @@ const AttributePanel: React.FC = () => {
           <span className="font-heading" style={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>
             {CLASS_CONFIGS[character.classId]?.name || character.classId} (Lv. {character.level})
           </span>
-          <span className="font-mono" style={{ color: '#94a3b8', fontSize: '0.65rem' }}>{character.xp} / {xpNeeded} XP</span>
+          <span className="font-mono" style={{ color: '#94a3b8', fontSize: '0.65rem' }}>{formatNumber(character.xp, abbreviateNumbers)} / {formatNumber(xpNeeded, abbreviateNumbers)} XP</span>
         </div>
         <div className="progress-track progress-xp" style={{ height: '0.5rem' }}>
           <div className="progress-fill" style={{ width: `${Math.min(100, (character.xp / xpNeeded) * 100)}%`, background: 'linear-gradient(90deg, var(--xp-from), var(--xp-to))', boxShadow: '0 0 8px var(--xp-glow)' }} />

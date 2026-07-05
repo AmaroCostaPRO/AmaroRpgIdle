@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore, formatNumber } from '../store/useGameStore';
 import { EquipmentItem, BaseStats } from '../core/types';
 
 export const ForgeView: React.FC = () => {
-  const { character, reforgeItems } = useGameStore();
+  const { character, reforgeItems, abbreviateNumbers } = useGameStore();
   const [slot1, setSlot1] = useState<EquipmentItem | null>(null);
   const [slot2, setSlot2] = useState<EquipmentItem | null>(null);
   const [activeSelectionSlot, setActiveSelectionSlot] = useState<1 | 2 | null>(null);
@@ -201,7 +201,7 @@ export const ForgeView: React.FC = () => {
             <h2 className="text-lg font-bold text-gray-100">Grande Forja Arcana</h2>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-            <span className="text-yellow-400 font-semibold">🪙 {(character.gold || 0).toLocaleString()}</span>
+            <span className="text-yellow-400 font-semibold">🪙 {formatNumber(character.gold || 0, abbreviateNumbers)}</span>
             <span className="text-xs text-yellow-500/80 font-medium">Ouro</span>
           </div>
         </div>
@@ -336,7 +336,7 @@ export const ForgeView: React.FC = () => {
                 <div className="flex justify-between w-full text-sm mb-3">
                   <span className="text-gray-400">Custo da Forja:</span>
                   <span className={`font-bold ${character.gold >= reforgeState.cost ? 'text-yellow-400' : 'text-red-500'}`}>
-                    🪙 {reforgeState.cost.toLocaleString()} Ouro
+                    🪙 {formatNumber(reforgeState.cost, abbreviateNumbers)} Ouro
                   </span>
                 </div>
                 

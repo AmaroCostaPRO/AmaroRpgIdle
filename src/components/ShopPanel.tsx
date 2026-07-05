@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore, formatNumber } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
 
 export const ShopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buyConsumable = useGameStore((state) => state.buyConsumable);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | null>(null);
 
@@ -88,7 +89,7 @@ export const ShopPanel: React.FC = () => {
         </div>
         <div className="font-mono" style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.18)' }}>
           <span>🪙</span>
-          <span>{(character.gold || 0).toLocaleString()} Ouro</span>
+          <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
         </div>
       </div>
 
@@ -173,7 +174,7 @@ export const ShopPanel: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 'bold', color: '#fbbf24' }}>
                   <span>🪙</span>
-                  <span>{item.cost} Ouro</span>
+                  <span>{formatNumber(item.cost, abbreviateNumbers)} Ouro</span>
                 </div>
 
                 <button
