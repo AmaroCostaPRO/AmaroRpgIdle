@@ -242,7 +242,10 @@ graph LR
     *   5 peças: $+35$ Destreza *(Total acumulado: +50 Dex, +20 Str)*
 
 *   **Sets Ancestrais (Pós-Ascensão)**:
-    Estes conjuntos são liberados apenas após a primeira ascensão do personagem e garantem bônus de atributos extremamente superiores:
+    Estes conjuntos são liberados apenas após a primeira ascensão do personagem e garantem bônus de atributos extremamente superiores, além de mecânicas únicas de toque e combate:
+    *   **Bônus Especiais de Conjunto**:
+        *   **3 peças**: Multiplicador de dano de toque duplicado ($2.0\times$ Touch Damage).
+        *   **5 peças**: $+15\%$ de Dano Final Global.
     *   **Set Ancestral do Conquistador (`warrior`)**:
         *   2 peças: $+80$ Força
         *   3 peças: $+100$ Constituição, $+50$ Sorte
@@ -269,7 +272,10 @@ graph LR
         *   5 peças: $+200$ Destreza *(Total acumulado: +280 Destreza, +100 For, +50 Sorte)*
 
 *   **Sets Pandemoníacos (Exclusivos do Modo Pandemônio)**:
-    Estes conjuntos de tier supremo são obtidos apenas derrotando inimigos na dificuldade Pandemônio (Fase 21+) e possuem atributos extraordinários:
+    Estes conjuntos de tier supremo são obtidos apenas derrotando inimigos na dificuldade Pandemônio (Fase 21+) e possuem atributos extraordinários, além de mecânicas de sobrevivência e agressividade:
+    *   **Bônus Especiais de Conjunto**:
+        *   **3 peças**: $+5\%$ de Roubo de Vida (Lifesteal) baseado em todo o dano direto infligido.
+        *   **5 peças**: $+25\%$ de Dano Final Global e $+10\%$ de Vida Máxima.
     *   **Set Pandemoníaco do Destruidor (`warrior`)**:
         *   2 peças: $+250$ Força
         *   3 peças: $+300$ Constituição, $+150$ Sorte
@@ -296,7 +302,10 @@ graph LR
         *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Força, +150 Sorte)*
 
 *   **Sets Celestiais (Tier Supremo - Pós-Purgatório Fase 30)**:
-    Estes conjuntos representam a progressão máxima de endgame e são liberados após vencer o Guardião dos Cacos duas ou mais vezes no Purgatório:
+    Estes conjuntos representam a progressão máxima de endgame e são liberados após vencer o Guardião dos Cacos duas ou mais vezes no Purgatório. Possuem atributos celestiais e impulsionam ao extremo a velocidade e automação:
+    *   **Bônus Especiais de Conjunto**:
+        *   **3 peças**: $+2$ cliques por segundo adicionais gerados pelo Robô Assistente.
+        *   **5 peças**: $+40\%$ de Dano Final Global, $+20\%$ de Vida Máxima e $+10\%$ de Velocidade de Ataque (Attack Speed).
     *   **Set Celestial do Semideus (`warrior`)**:
         *   2 peças: $+160$ Força
         *   3 peças: $+200$ Constituição, $+100$ Sorte

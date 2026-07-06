@@ -10,6 +10,11 @@ export interface BaseStats {
   touchCritChance: number;
   touchCritDamage: number;
   robotClicks: number;
+  lifesteal?: number;
+  touchDamageMult?: number;
+  damageMultiplierPct?: number;
+  maxHpPct?: number;
+  attackSpeedPct?: number;
 }
 
 export interface EquipmentItem {

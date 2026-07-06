@@ -281,7 +281,12 @@ export class StatEngine {
       touch: character.baseStats.touch || 0,
       touchCritChance: character.baseStats.touchCritChance || 0,
       touchCritDamage: character.baseStats.touchCritDamage || 0,
-      robotClicks: character.baseStats.robotClicks || 0
+      robotClicks: character.baseStats.robotClicks || 0,
+      lifesteal: 0,
+      touchDamageMult: 1,
+      damageMultiplierPct: 0,
+      maxHpPct: 0,
+      attackSpeedPct: 0
     };
 
     // 1. Somar atributos diretos dos equipamentos equipados
@@ -328,6 +333,46 @@ export class StatEngine {
           }
         }
       });
+
+      // Contabilizar peças por categoria para aplicar os novos bônus especiais de 3 e 5 peças
+      let ancestralCount = 0;
+      let pandemoniumCount = 0;
+      let celestialCount = 0;
+
+      Object.entries(setCounts).forEach(([setName, count]) => {
+        if (setName.startsWith('Set Ancestral')) {
+          ancestralCount += count;
+        } else if (setName.startsWith('Set Pandemoníaco')) {
+          pandemoniumCount += count;
+        } else if (setName.startsWith('Set Celestial')) {
+          celestialCount += count;
+        }
+      });
+
+      // Aplicar os novos bônus especiais de categoria
+      if (ancestralCount >= 3) {
+        finalStats.touchDamageMult = (finalStats.touchDamageMult || 1) * 2;
+      }
+      if (ancestralCount >= 5) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.15;
+      }
+
+      if (pandemoniumCount >= 3) {
+        finalStats.lifesteal = (finalStats.lifesteal || 0) + 0.05;
+      }
+      if (pandemoniumCount >= 5) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.25;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.10;
+      }
+
+      if (celestialCount >= 3) {
+        finalStats.robotClicks = (finalStats.robotClicks || 0) + 2;
+      }
+      if (celestialCount >= 5) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.40;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.20;
+        finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + 0.10;
+      }
     }
 
     // 2.5. Somar atributos das relíquias

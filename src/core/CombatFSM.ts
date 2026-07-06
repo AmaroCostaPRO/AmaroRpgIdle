@@ -380,7 +380,8 @@ export class CombatFSM {
     // Se constituição é o atributo primário (Paladino), escala menos: 8 HP por ponto
     // Se NÃO é o atributo primário (outras classes), escala mais: 18 HP por ponto
     const hpPerCon = (classId === 'paladin') ? 8 : 18;
-    return Math.floor(constitution * hpPerCon * hpBoost);
+    const setHpMultiplier = 1 + (this.playerFinalStats?.maxHpPct || 0);
+    return Math.floor(constitution * hpPerCon * hpBoost * setHpMultiplier);
   }
 
   private calculatePlayerMaxMana(magic: number, manaBoost: number, classId: string): number {
@@ -408,7 +409,8 @@ export class CombatFSM {
     // Se destreza é o atributo primário (Arqueiro, Ladrão), usa um multiplicador menor baseado na raiz quadrada
     // Se NÃO é o atributo primário (outras classes), o multiplicador de raiz quadrada é maior para compensar a falta de destreza base
     const factor = (classId === 'ranger' || classId === 'rogue') ? 0.15 : 0.40;
-    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost;
+    const setSpeedMultiplier = 1 + (this.playerFinalStats?.attackSpeedPct || 0);
+    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier;
   }
 
   constructor(scene: any, initialTarget?: any) {
@@ -1065,7 +1067,9 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
-    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult);
+    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
+    let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       finalTouchDmg *= 5;
     }
@@ -1177,7 +1181,8 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
-    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult);
+    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
     }
@@ -1345,6 +1350,17 @@ export class CombatFSM {
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
         if (this.scene && typeof this.scene.spawnDamageText === 'function') {
           this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount} (Dreno)`, '#10b981');
+        }
+      }
+    }
+
+    // Roubo de Vida (Lifesteal) do Set Pandemônio (3 peças)
+    if (isDirect && this.playerFinalStats && this.playerFinalStats.lifesteal && this.playerFinalStats.lifesteal > 0 && this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
+      const drainAmount = Math.floor(amount * this.playerFinalStats.lifesteal);
+      if (drainAmount > 0) {
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount} (Roubo de Vida)`, '#10b981');
         }
       }
     }
@@ -2016,7 +2032,8 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
-    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult);
+    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {

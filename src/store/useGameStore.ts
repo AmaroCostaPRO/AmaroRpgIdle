@@ -765,7 +765,7 @@ export const useGameStore = create<GameState>((set) => ({
       
       // Aplica crescimento de atributos base
       (Object.keys(stats) as Array<keyof BaseStats>).forEach((key) => {
-        stats[key] = Math.round(stats[key] + state.character.growthRates[key]);
+        stats[key] = Math.round((stats[key] || 0) + (state.character.growthRates[key] || 0));
       });
       console.log(`[Store] LEVEL UP! Novo Level: ${newLevel}. +5 atributos, +1 skill point.`);
     }
@@ -847,7 +847,7 @@ export const useGameStore = create<GameState>((set) => ({
       attributePoints: state.character.attributePoints - pointsToUse,
       baseStats: {
         ...state.character.baseStats,
-        [stat]: state.character.baseStats[stat] + pointsToUse
+        [stat]: (state.character.baseStats[stat] || 0) + pointsToUse
       }
     };
     saveToLocalStorage(updated);

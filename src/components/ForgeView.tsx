@@ -21,7 +21,12 @@ export const ForgeView: React.FC = () => {
     touch: 'Poder do Toque',
     touchCritChance: 'Chance de Crítico',
     touchCritDamage: 'Dano Crítico',
-    robotClicks: 'Cliques do Robô'
+    robotClicks: 'Cliques do Robô',
+    lifesteal: 'Roubo de Vida',
+    touchDamageMult: 'Mult. Dano de Toque',
+    damageMultiplierPct: 'Dano Global',
+    maxHpPct: 'Vida Máxima Pct.',
+    attackSpeedPct: 'Velocidade de Ataque'
   };
 
   const slotLabels: Record<string, string> = {

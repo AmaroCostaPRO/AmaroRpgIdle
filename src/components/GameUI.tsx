@@ -1181,15 +1181,31 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   const isAnyBonusActive = count >= 2;
                   const isAncestral = setName.startsWith('Set Ancestral');
                   const isPandemonium = setName.startsWith('Set Pandemoníaco');
-                  const bonusText2 = isPandemonium ? '(2) +250 Atrib.' : (isAncestral ? '(2) +80 Atrib.' : '(2) +15 Atrib.');
-                  const bonusText3 = isPandemonium ? '(3) +300 Con/For +150 Sorte' : (isAncestral ? '(3) +100 Con/For +50 Sorte' : '(3) +20 Con/For');
-                  const bonusText5 = isPandemonium ? '(5) +600 Atrib.' : (isAncestral ? '(5) +200 Atrib.' : '(5) +35 Atrib.');
+                  const isCelestial = setName.startsWith('Set Celestial');
+                  
+                  let bonusText2 = '(2) +15 Atrib.';
+                  let bonusText3 = '(3) +20 Con/For';
+                  let bonusText5 = '(5) +35 Atrib.';
 
-                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : '');
-                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : 'var(--gold-400)');
-                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : 'rgba(16,185,129,0.15)');
-                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : '#34d399');
-                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(16,185,129,0.3)');
+                  if (isPandemonium) {
+                    bonusText2 = '(2) +250 Atrib.';
+                    bonusText3 = '(3) +300 Con/For +150 Sorte e +5% Roubo de Vida';
+                    bonusText5 = '(5) +600 Atrib., +25% Dano e +10% HP';
+                  } else if (isAncestral) {
+                    bonusText2 = '(2) +80 Atrib.';
+                    bonusText3 = '(3) +100 Con/For +50 Sorte e Dano de Toque x2';
+                    bonusText5 = '(5) +200 Atrib. e +15% Dano';
+                  } else if (isCelestial) {
+                    bonusText2 = '(2) +160 Atrib.';
+                    bonusText3 = '(3) +200 Con/For +100 Sorte e +2 Cliques do Robô';
+                    bonusText5 = '(5) +400 Atrib., +40% Dano, +20% HP e +10% Vel. Atq.';
+                  }
+
+                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : ''));
+                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : (isCelestial ? '#38bdf8' : 'var(--gold-400)'));
+                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : (isCelestial ? 'rgba(56,189,248,0.15)' : 'rgba(245,158,11,0.1)'));
+                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : (isCelestial ? '#38bdf8' : 'var(--gold-400)'));
+                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : (isCelestial ? '1px solid rgba(56,189,248,0.3)' : '1px solid rgba(245,158,11,0.2)'));
 
                   return (
                     <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
@@ -1355,6 +1371,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
               const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
               const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
+              const isCelestial = !!(item.setName && item.setName.startsWith('Set Celestial'));
               const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
               const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
 
@@ -1373,6 +1390,10 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 } else if (isPandemoniumMystic) {
                   itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
                 }
+              } else if (isCelestial) {
+                itemBorder = '2px dashed #38bdf8';
+                itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
+                itemBg = 'rgba(56, 189, 248, 0.15)';
               }
 
               return (
@@ -1585,6 +1606,7 @@ const EquipmentSlot: React.FC<{
 }> = ({ slot, item, onClick, icons, labels, getRarityColor, getRarityBg }) => {
   const isAncestral = !!(item && item.setName && item.setName.startsWith('Set Ancestral'));
   const isPandemonium = !!(item && item.setName && item.setName.startsWith('Set Pandemoníaco'));
+  const isCelestial = !!(item && item.setName && item.setName.startsWith('Set Celestial'));
   const isPandemoniumMystic = isPandemonium && item?.rarity === 'mystic';
   const isPandemoniumBase = isPandemonium && item?.rarity !== 'mystic';
 
@@ -1604,6 +1626,10 @@ const EquipmentSlot: React.FC<{
       } else if (isPandemoniumMystic) {
         itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
       }
+    } else if (isCelestial) {
+      itemBorder = '2px dashed #38bdf8';
+      itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
+      itemBg = 'rgba(56, 189, 248, 0.15)';
     }
   }
 
@@ -3313,9 +3339,9 @@ const GuidePanel: React.FC = () => {
   const isWarriorUnlocked = getLevel('warrior') >= 1;
   const isMageUnlocked = getLevel('mage') >= 1;
   const isRangerUnlocked = getLevel('ranger') >= 1;
-  const isPaladinUnlocked = getLevel('paladin') >= 50;
-  const isClericUnlocked = getLevel('cleric') >= 50;
-  const isRogueUnlocked = getLevel('rogue') >= 50;
+  const isPaladinUnlocked = getLevel('warrior') >= 50;
+  const isClericUnlocked = getLevel('mage') >= 50;
+  const isRogueUnlocked = getLevel('ranger') >= 50;
   const isNecromancerUnlocked = getLevel('necromancer') >= 1;
 
   const killCount = character.killCount || {};
@@ -4937,9 +4963,10 @@ export default function GameUI() {
                 {selectedItem.setName && (() => {
                   const setAncestral = selectedItem.setName.startsWith('Set Ancestral');
                   const setPandemonium = selectedItem.setName.startsWith('Set Pandemoníaco');
-                  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : 'var(--gold-400)');
-                  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none');
-                  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : 'Conjunto: ');
+                  const setCelestial = selectedItem.setName.startsWith('Set Celestial');
+                  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : 'var(--gold-400)'));
+                  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : 'none'));
+                  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : 'Conjunto: '));
                   return (
                     <div style={{ 
                       fontSize: '0.6rem', 
@@ -5076,6 +5103,7 @@ export default function GameUI() {
               const item = character.equipment[selectedSlot]!;
               const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
               const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
+              const isCelestial = !!(item.setName && item.setName.startsWith('Set Celestial'));
               const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
               const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
 
@@ -5094,6 +5122,10 @@ export default function GameUI() {
                 } else if (isPandemoniumMystic) {
                   itemNameColor = '#8b5cf6'; // Violeta escuro
                 }
+              } else if (isCelestial) {
+                itemBorder = '2px dashed #38bdf8';
+                itemNameColor = '#38bdf8';
+                itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
               }
 
               return (
@@ -5135,9 +5167,10 @@ export default function GameUI() {
                   {item.setName && (() => {
                     const setAncestral = item.setName.startsWith('Set Ancestral');
                     const setPandemonium = item.setName.startsWith('Set Pandemoníaco');
-                    const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : 'var(--gold-400)');
-                    const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : 'none');
-                    const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : 'Conjunto: ');
+                    const setCelestial = item.setName.startsWith('Set Celestial');
+                    const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : 'var(--gold-400)'));
+                    const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : 'none'));
+                    const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : 'Conjunto: '));
                     return (
                       <div style={{ 
                         fontSize: '0.6rem', 
