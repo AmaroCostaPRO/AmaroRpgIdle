@@ -448,7 +448,7 @@ interface GameState {
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
   // Loja e Consumíveis (v3.0.0)
-  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest'): { success: boolean; message: string };
+  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
@@ -2076,12 +2076,31 @@ export const useGameStore = create<GameState>((set) => ({
         chest_ancestral: 3000,
         boost_touch: 1000,
         boost_touch_x3: 5000,
-        relic_chest: 50000
+        relic_chest: 50000,
+        inventory_slot: 100000
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
         result = { success: false, message: `Ouro insuficiente. Requer ${cost} Ouro.` };
         return state;
+      }
+
+      if (type === 'inventory_slot') {
+        const currentSlots = state.character.inventorySlots || 30;
+        if (currentSlots >= 100) {
+          result = { success: false, message: 'Capacidade máxima de inventário atingida (100 espaços).' };
+          return state;
+        }
+
+        const updated = {
+          ...state.character,
+          gold: (state.character.gold || 0) - cost,
+          inventorySlots: currentSlots + 1
+        };
+
+        saveToLocalStorage(updated);
+        result = { success: true, message: `Espaço no inventário aumentado para ${currentSlots + 1}!` };
+        return { character: updated };
       }
 
       const isEquipmentChest = type === 'chest_legendary' || type === 'chest_ancestral';
@@ -2103,7 +2122,8 @@ export const useGameStore = create<GameState>((set) => ({
         chest_ancestral: 'Baú Ancestral',
         boost_touch: 'Boost de Toque',
         boost_touch_x3: 'Boost de Toque x3',
-        relic_chest: 'Baú de Relíquias'
+        relic_chest: 'Baú de Relíquias',
+        inventory_slot: 'Espaço no Inventário'
       };
       const name = names[type];
 
@@ -2115,7 +2135,7 @@ export const useGameStore = create<GameState>((set) => ({
         stats: {},
         classId: state.character.classId,
         spriteName: type,
-        consumableType: type
+        consumableType: type as any
       };
 
       const updated = {

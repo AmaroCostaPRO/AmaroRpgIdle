@@ -338,19 +338,50 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v4.3.0 — Notificações & Primeiras Páginas do Codex!
+              🔔 Atualização v4.4.0 — Expansão de Inventário e Balanceamentos!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização traz o novo sistema de notificações: toasts de progressão na base da tela para marcos como desbloqueio de classes, conclusão do Bestiário e Ascensão disponível, além de toasts de drops de itens valiosos no canto superior direito da arena. Também marca o início do Codex de Lendas — o registro histórico da sua jornada como a Alma-Mundo.
+                Esta atualização traz a expansão do limite máximo do inventário de equipamentos para até 100 espaços compráveis na loja, além do rebalanceamento do afixo Escudo de Espinhos e ajustes nas taxas de drop de chaves da Torre Infinita.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v4.4.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#10b981', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 4.4.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🎒 Expansão do Inventário (Até 100 Slots)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Compre upgrades permanentes de espaço no inventário na Loja por 100.000 de Ouro cada, aumentando o limite em +1 até atingir o teto de 100 slots.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f43f5e', fontSize: '0.72rem' }}>
+                        ⚖️ Balanceamento do Escudo de Espinhos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O dano refletido pelo modificador Escudo de Espinhos no Desafio Diário agora é limitado a no máximo 5% do HP Máximo do jogador por hit, prevenindo mortes instantâneas injustas.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a78bfa', fontSize: '0.72rem' }}>
+                        🔑 Ajuste de Drops das Chaves da Torre
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        As chances de drop das Chaves da Torre no modo de combate normal foram reduzidas em 50% (Chefes: 15%, Elites: 7.5%, Comuns: 2.5%) para calibrar a progressão.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v4.3.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#10b981', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 4.3.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 4.3.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>

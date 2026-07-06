@@ -7,7 +7,7 @@ export const ShopPanel: React.FC = () => {
   const buyConsumable = useGameStore((state) => state.buyConsumable);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | null>(null);
+  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | null>(null);
 
   const shopItems = [
     {
@@ -25,7 +25,7 @@ export const ShopPanel: React.FC = () => {
       id: 'chest_ancestral' as const,
       name: 'Baú de Equipamento Ancestral',
       description: 'Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.',
-      cost: 3000, // Ajustado de 1000 para 3000
+      cost: 3000,
       icon: '✨🎁✨',
       color: '#a78bfa',
       bgColor: 'rgba(167, 139, 250, 0.08)',
@@ -36,7 +36,7 @@ export const ShopPanel: React.FC = () => {
       id: 'boost_touch' as const,
       name: 'Boost de Toque (Frenesi)',
       description: 'Consumível que ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.',
-      cost: 1000, // Ajustado de 500 para 1000
+      cost: 1000,
       icon: '⚡',
       color: '#06b6d4',
       bgColor: 'rgba(6, 182, 212, 0.08)',
@@ -64,10 +64,21 @@ export const ShopPanel: React.FC = () => {
       bgColor: 'rgba(192, 132, 252, 0.08)',
       borderColor: 'rgba(192, 132, 252, 0.3)',
       badge: 'Relíquias'
+    },
+    {
+      id: 'inventory_slot' as const,
+      name: 'Espaço no Inventário',
+      description: 'Aumenta permanentemente o limite do seu inventário de equipamentos em +1 slot (Máximo de 100 slots).',
+      cost: 100000,
+      icon: '🎒',
+      color: '#10b981',
+      bgColor: 'rgba(16, 185, 129, 0.08)',
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      badge: `${character.inventorySlots || 30}/100 Slots`
     }
   ];
 
-  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest') => {
+  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot') => {
     AudioManager.getInstance().playCoin();
     const result = buyConsumable(itemId);
     
@@ -85,7 +96,7 @@ export const ShopPanel: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem' }}>
         <div>
           <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>Loja de Suprimentos</h2>
-          <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>Compre baús de equipamentos e boosts temporários usando seu ouro.</p>
+          <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>Compre baús de equipamentos, upgrades de inventário e boosts temporários usando seu ouro.</p>
         </div>
         <div className="font-mono" style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.18)' }}>
           <span>🪙</span>
@@ -112,7 +123,8 @@ export const ShopPanel: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
         {shopItems.map((item) => {
           const canAfford = (character.gold || 0) >= item.cost;
-          const isInvFull = character.inventory.length >= character.inventorySlots;
+          const isInvFull = item.id !== 'inventory_slot' && character.inventory.length >= character.inventorySlots;
+          const isMaxSlots = item.id === 'inventory_slot' && (character.inventorySlots || 30) >= 100;
           
           return (
             <div 
@@ -191,12 +203,12 @@ export const ShopPanel: React.FC = () => {
                       }, 3000);
                     }
                   }}
-                  disabled={!canAfford || isInvFull}
-                  className={`btn btn-sm ${canAfford && !isInvFull ? 'btn-gold' : 'btn-disabled'}`}
+                  disabled={!canAfford || isInvFull || isMaxSlots}
+                  className={`btn btn-sm ${canAfford && !isInvFull && !isMaxSlots ? 'btn-gold' : 'btn-disabled'}`}
                   style={{ 
                     width: '100%',
-                    opacity: (canAfford && !isInvFull) ? 1 : 0.5,
-                    cursor: (canAfford && !isInvFull) ? 'pointer' : 'not-allowed',
+                    opacity: (canAfford && !isInvFull && !isMaxSlots) ? 1 : 0.5,
+                    cursor: (canAfford && !isInvFull && !isMaxSlots) ? 'pointer' : 'not-allowed',
                     background: confirmBuyId === item.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
                     borderColor: confirmBuyId === item.id ? '#10b981' : undefined,
                     color: confirmBuyId === item.id ? '#fff' : undefined,
@@ -206,9 +218,11 @@ export const ShopPanel: React.FC = () => {
                     ? 'Ouro Insuficiente' 
                     : isInvFull 
                       ? 'Inventário Cheio' 
-                      : confirmBuyId === item.id 
-                        ? 'Confirmar?' 
-                        : 'Comprar'}
+                      : isMaxSlots
+                        ? 'Limite Atingido'
+                        : confirmBuyId === item.id 
+                          ? 'Confirmar?' 
+                          : 'Comprar'}
                 </button>
               </div>
             </div>

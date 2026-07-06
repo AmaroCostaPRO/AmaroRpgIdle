@@ -915,7 +915,7 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 ## 14. Loja e Sistema de Consumíveis
 
-A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adquirir equipamentos poderosos e impulsionar a progressão de combate através de recursos consumíveis temporários e instantâneos.
+A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adquirir equipamentos poderosos, expandir seu inventário e impulsionar a progressão de combate através de recursos consumíveis temporários, instantâneos ou permanentes.
 
 ### A. Estrutura de Custos e Economia
 Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumulado pelo personagem no decorrer das batalhas.
@@ -924,18 +924,23 @@ Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumu
 *   **Baú de Equipamento Ancestral**: Custa $3.000$ Ouro.
 *   **Boost de Toque x3 (Touch Booster x3)**: Custa $5.000$ Ouro.
 *   **Baú de Relíquias (Relic Chest)**: Custa $50.000$ Ouro.
+*   **Espaço no Inventário (Inventory Slot Upgrade)**: Custa $100.000$ Ouro.
 
-### B. Funcionamento dos Consumíveis
-Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao inventário geral de equipamentos (com propriedade `slot: 'consumable'`), ocupando um slot livre. A compra é bloqueada caso o inventário do jogador esteja completamente cheio ($30$ itens).
+### B. Funcionamento dos Consumíveis e Upgrades
+Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com seu tipo de efeito (físico ou de melhoria direta):
 
-#### 1. Baús de Equipamento e Relíquias (Lendário, Ancestral e Relíquia)
-*   **Baús de Equipamentos (Lendário e Ancestral)**: Ao serem abertos, são consumidos e geram aleatoriamente de **1 a 3 equipamentos** de classe correspondente à classe ativa do personagem.
+#### 1. Upgrades Diretos (Espaço no Inventário)
+*   **Espaço no Inventário**: Ao ser comprado, o efeito é consumido instantaneamente de forma permanente. Ele adiciona $+1$ slot de capacidade máxima ao inventário de equipamentos do personagem (`inventorySlots`), sem gerar um item físico.
+*   **Limitação**: O inventário inicial conta com $30$ slots base. Compras na loja podem adicionar até $+70$ slots adicionais, com um limite máximo final travado em **$100$ slots**. O botão de compra é desabilitado e sinaliza "Limite Atingido" ao alcançar essa capacidade.
+
+#### 2. Baús de Equipamento e Relíquias (Lendário, Ancestral e Relíquia)
+*   **Baús de Equipamentos (Lendário e Ancestral)**: Ao serem abertos, são consumidos e geram aleatoriamente de **1 a 3 equipamentos** de classe correspondente à classe ativa do personagem. Ocupam um slot físico temporário como consumível até a abertura.
     *   *Baú Lendário*: Sorteia peças de raridade **Lendária** do conjunto padrão correspondente à classe atual.
     *   *Baú Ancestral*: Sorteia peças de raridade **Ancestral** (Set Ancestral pós-ascensão) correspondentes à classe ativa.
     *   *Validação de Espaço*: Para abrir o baú, o sistema valida se há espaço suficiente no inventário para acomodar os novos equipamentos (até 3 slots livres). Caso contrário, a abertura é cancelada impedindo a perda de itens por falta de slots.
 *   **Baú de Relíquias (Relic Chest)**: Ao ser aberto, é consumido e concede instantaneamente **3 Fragmentos de Alma Instável** (usados no Altar de Relíquias para forjar e evoluir relíquias), exigindo apenas 1 slot livre no inventário (o slot do próprio baú ao ser liberado).
 
-#### 2. Boost de Toque (Frenesi de 1 minuto ou 3 minutos)
+#### 3. Boost de Toque (Frenesi de 1 minuto ou 3 minutos)
 *   **Efeito**: Ao ativar o booster de toque normal (`boost_touch`) ou a versão aprimorada (`boost_touch_x3`), o item correspondente é removido do inventário e emite um evento especial de ativação via `GameBridge` (`ACTIVATE_FRENZY_BOOST`) contendo a respectiva duração.
 *   **Integração de Motor**: O evento é ouvido no motor Phaser (`CombatScene.ts`), que aciona o método `activateFrenzyBoost` no `CombatFSM`.
 *   **Mecânica de Combate**: O FSM força o estado de **Frenesi** ativado independentemente do medidor de combos/toques, configurando o tempo restante do Frenesi para a duração especificada:
@@ -949,7 +954,21 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.3.0 (Atual)
+### Versão 4.4.0 (Atual)
+*   **🎒 Expansão de Inventário na Loja**:
+    *   Inclusão de um novo upgrade permanente na Loja de Suprimentos: **Espaço no Inventário**.
+    *   Cada compra consome $100.000$ de Ouro e expande permanentemente em $+1$ o limite de slots do inventário de equipamentos do jogador.
+    *   O limite máximo é travado em **$100$ slots** ($30$ slots padrão de base $+70$ slots comprados).
+*   **⚖️ Reformulação e Balanceamento do Escudo de Espinhos (Desafio Diário)**:
+    *   A fórmula de reflexão do modificador de Desafio Diário *Escudo de Espinhos* foi refatorada. O inimigo ainda reflete $20\%$ de todo o dano causado pelo herói, porém o dano de reflexão sofrido pelo jogador agora é **limitado a no máximo 5% de sua Vida Máxima (Max HP)** por acerto.
+    *   Isso resolve o problema crônico em fases de endgame no qual o herói desferia danos milionários e morria instantaneamente por causa do dano refletido ("hitkill" auto-infligido).
+*   **🔑 Ajuste no Drop de Chaves da Torre**:
+    *   Redução de **50%** nas probabilidades de drop da "Chave da Torre" de monstros na campanha normal de combate para regular o ritmo de subida na Torre Infinita:
+        *   *Chefes (Boss)*: Reduzido de 30% para **15%**.
+        *   *Elites*: Reduzido de 15% para **7.5%**.
+        *   *Monstros Comuns*: Reduzido de 5% para **2.5%**.
+
+### Versão 4.3.0
 *   **🔔 Sistema de Notificações Integrado e Eventos da Ponte**:
     *   **Notificações de Progressão (Bottom UI)**: Criação de um sistema de fila de notificações na parte inferior da interface do usuário (componente `ProgressNotifications.tsx`). Exibe painéis animados (`slideUp`) com bordas coloridas temáticas, ícone representativo e botão "Dispensar" para os seguintes marcos:
         *   *Desbloqueio de Classes*: Disparado quando os requisitos de classe avançada são atingidos (ex: nível 50), emitindo o evento `CLASS_UNLOCKED` e reproduzindo o efeito sonoro de upgrade (`playUpgrade`).
