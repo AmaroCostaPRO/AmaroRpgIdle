@@ -1323,13 +1323,14 @@ export class CombatFSM {
     if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
     this.enemyHP = Math.max(0, this.enemyHP - amount);
 
-    // Aplicar afixo diário Escudo de Espinhos (reflete 15% de dano direto recebido)
+    // Aplicar afixo diário Escudo de Espinhos (reflete 20% de dano direto recebido, limitado a 5% da vida máxima por golpe)
     if (isDirect && this.characterData.activeDailyChallenge && this.playerHP > 0) {
       const today = useGameStore.getState().getTodayYYYYMMDD();
       const seed = parseInt(today, 10);
       const activeModifierIndex = seed % 5;
       if (activeModifierIndex === 1) { // 1: thorns_shield
-        const reflected = Math.floor(amount * 0.15);
+        const reflectedLimit = Math.floor(this.playerMaxHP * 0.05);
+        const reflected = Math.min(Math.floor(amount * 0.20), reflectedLimit);
         if (reflected > 0) {
           this.playerHP = Math.max(0, this.playerHP - reflected);
           this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${reflected} (Refletido)`, '#ef4444');
@@ -1521,7 +1522,7 @@ export class CombatFSM {
     const isTower = useTowerStore.getState().towerActive;
 
     if (!isTower && !isDaily) {
-      const keyDropChance = isBoss ? 0.30 : (this.isElite ? 0.15 : 0.05);
+      const keyDropChance = isBoss ? 0.15 : (this.isElite ? 0.075 : 0.025);
       const finalKeyChance = keyDropChance;
 
       if (Math.random() < finalKeyChance) {

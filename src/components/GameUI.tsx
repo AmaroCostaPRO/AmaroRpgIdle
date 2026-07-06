@@ -21,7 +21,7 @@ export const DAILY_MODIFIERS = [
   },
   {
     name: "⚡ Escudo de Espinhos",
-    description: "Os monstros refletem 20% de todo o dano direto que recebem.",
+    description: "Os monstros refletem 20% do dano direto recebido (limitado a 5% da sua Vida Máxima por golpe).",
     color: "#facc15"
   },
   {
