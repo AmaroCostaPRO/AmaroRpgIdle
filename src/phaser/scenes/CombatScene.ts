@@ -887,12 +887,19 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateTowerTransition(onTransitionHalf: () => void): void {
+    const gameSpeed = useGameStore.getState().gameSpeed;
+    const speedLimit = gameSpeed > 0 ? gameSpeed : 1;
+
     // 1. Tocar efeito de derrota e fazer o monstro desaparecer
     this.animateEnemyDeath();
 
-    // 2. Fazer o fade out da câmera começar aos 800ms e durar 600ms
-    this.time.delayedCall(800, () => {
-      this.cameras.main.fadeOut(600, 0, 0, 0);
+    // 2. Fazer o fade out da câmera começar de forma proporcional à velocidade
+    const fadeOutDelay = Math.round(800 / speedLimit);
+    const fadeOutDuration = Math.round(600 / speedLimit);
+    const fadeInDuration = Math.round(600 / speedLimit);
+
+    this.time.delayedCall(fadeOutDelay, () => {
+      this.cameras.main.fadeOut(fadeOutDuration, 0, 0, 0);
     });
 
     // 3. Fazer o jogador correr para a direita (avançar) de forma mais gradual
@@ -911,8 +918,8 @@ export class CombatScene extends Phaser.Scene {
         // Executa a lógica de troca de andar na FSM
         onTransitionHalf();
 
-        // Faz fade in da câmera de volta com duração de 600ms
-        this.cameras.main.fadeIn(600, 0, 0, 0);
+        // Faz fade in da câmera de volta com a duração escalada
+        this.cameras.main.fadeIn(fadeInDuration, 0, 0, 0);
       }
     });
   }

@@ -1757,14 +1757,18 @@ export class CombatFSM {
       this.currentState = CombatState.IDLE;
       this.enemyHP = 0;
 
-      setTimeout(() => {
-        const nextChar = useGameStore.getState().character;
-        this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
-        this.scene.respawnEnemyAt(900, this.currentEnemy);
+      const gameSpeed = useGameStore.getState().gameSpeed;
+      const speedLimit = gameSpeed > 0 ? gameSpeed : 1;
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.time.delayedCall(1500 / speedLimit, () => {
+          const nextChar = useGameStore.getState().character;
+          this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
 
-        const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
-      }, 1500);
+          const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+        });
+      }
       return;
     }
 
@@ -1804,14 +1808,18 @@ export class CombatFSM {
     this.currentState = CombatState.IDLE;
     this.enemyHP = 0;
 
-    setTimeout(() => {
-      const nextChar = useGameStore.getState().character;
-      this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
-      this.scene.respawnEnemyAt(900, this.currentEnemy);
+    const gameSpeedCamp = useGameStore.getState().gameSpeed;
+    const speedLimitCamp = gameSpeedCamp > 0 ? gameSpeedCamp : 1;
+    if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+      this.scene.time.delayedCall(1500 / speedLimitCamp, () => {
+        const nextChar = useGameStore.getState().character;
+        this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
 
-      const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
-    }, 1500);
+        const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+      });
+    }
   }
 
   private handlePlayerDefeat() {
@@ -1819,23 +1827,27 @@ export class CombatFSM {
     this.scene.animatePlayerDeath();
 
     const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
+    const gameSpeed = useGameStore.getState().gameSpeed;
+    const speedLimit = gameSpeed > 0 ? gameSpeed : 1;
 
     const isTower = useTowerStore.getState().towerActive;
     if (isTower) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu no Andar ${useTowerStore.getState().currentFloor} da Torre!` });
       useTowerStore.getState().exitTower(false);
 
-      setTimeout(() => {
-        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
-        this.playerMana = this.playerMaxMana;
-        this.currentState = CombatState.IDLE;
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.time.delayedCall(3000 / speedLimit, () => {
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+          this.playerMana = this.playerMaxMana;
+          this.currentState = CombatState.IDLE;
 
-        const char = useGameStore.getState().character;
-        this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+          const char = useGameStore.getState().character;
+          this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
 
-        this.scene.respawnEnemyAt(900, this.currentEnemy);
-        this.scene.respawnPlayer();
-      }, 3000);
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        });
+      }
       return;
     }
 
@@ -1843,7 +1855,29 @@ export class CombatFSM {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu ao Desafio Diário e retornou à sua jornada normal.` });
       useGameStore.getState().exitDailyChallenge(false);
 
-      setTimeout(() => {
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.time.delayedCall(3000 / speedLimit, () => {
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+          this.playerMana = this.playerMaxMana;
+          this.currentState = CombatState.IDLE;
+
+          const char = useGameStore.getState().character;
+          this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Você ressuscitou e retornou à sua Fase ${char.currentStage}!` });
+        });
+      }
+      return;
+    }
+
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você foi derrotado! Progresso da fase resetado.` });
+
+    useGameStore.getState().resetStageProgress();
+
+    if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+      this.scene.time.delayedCall(3000 / speedLimit, () => {
         this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.currentState = CombatState.IDLE;
@@ -1853,27 +1887,9 @@ export class CombatFSM {
 
         this.scene.respawnEnemyAt(900, this.currentEnemy);
         this.scene.respawnPlayer();
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `Você ressuscitou e retornou à sua Fase ${char.currentStage}!` });
-      }, 3000);
-      return;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `Você ressuscitou e retornou ao início da Fase ${char.currentStage}!` });
+      });
     }
-
-    bridge.emit(GameEvent.LOG_EMITTED, { message: `Você foi derrotado! Progresso da fase resetado.` });
-
-    useGameStore.getState().resetStageProgress();
-
-    setTimeout(() => {
-      this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
-      this.playerMana = this.playerMaxMana;
-      this.currentState = CombatState.IDLE;
-
-      const char = useGameStore.getState().character;
-      this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
-
-      this.scene.respawnEnemyAt(900, this.currentEnemy);
-      this.scene.respawnPlayer();
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você ressuscitou e retornou ao início da Fase ${char.currentStage}!` });
-    }, 3000);
   }
 
   private getDistanceToTarget(): number {
