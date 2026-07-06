@@ -49,6 +49,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('cemetery_background', 'assets/cemetery_background.png');
     this.load.image('ruins_background', 'assets/ruins_background.png');
     this.load.image('purgatory_background', 'assets/purgatory_background.png');
+    this.load.image('pandemonium_background', 'assets/pandemonium_background.png');
     this.load.image('hero', 'assets/hero_sprite.png');
     this.load.image('mage_sprite', 'assets/mage_sprite.png');
     this.load.image('ranger_sprite', 'assets/ranger_sprite.png');
@@ -604,7 +605,9 @@ export class CombatScene extends Phaser.Scene {
     const stage = char.currentStage;
     let textureKey = 'background'; // Default: Floresta
     
-    if (stage >= 21 && stage <= 30) {
+    if (stage >= 31) {
+      textureKey = 'pandemonium_background';
+    } else if (stage >= 21 && stage <= 30) {
       textureKey = 'purgatory_background';
     } else {
       // Mapeamento de fase para background (ciclos de 1-5)
@@ -628,8 +631,8 @@ export class CombatScene extends Phaser.Scene {
 
     // Aplicar tint de acordo com a dificuldade
     if (stage >= 31) {
-      // Pandemônio: Caótico vermelho/rosa do Vazio
-      this.background.setTint(0x550022);
+      // Pandemônio: Agora possui background sob medida, removemos o tint do fundo para exibir a arte linda gerada
+      this.background.clearTint();
       if (this.enemyBody) this.enemyBody.setTint(0xff88aa);
     } else if (stage >= 21 && stage <= 30) {
       // Purgatório: Sem distorções para preservar a identidade visual cristalina gerada

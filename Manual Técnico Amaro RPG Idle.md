@@ -72,6 +72,14 @@ A interface é construída sobre uma paleta de tons escuros curados, proporciona
     *   **Efeitos e Debuffs**: Debuffs ativos (como `[ATORDADO]` ou `[ENVENENADO]`) são posicionados dinamicamente no topo do título de Elite, garantindo leitura limpa da cena de combate.
     *   **Textos de Dano Flutuante**: O dano e efeitos são renderizados mais abaixo (sobre o corpo do alvo, deslocados $+65\text{px}$ em Y) e demoram mais tempo para sumir ($1.5\text{s}$ no dano de habilidades/ticks e $1.4\text{s}$ no dano de toques), subindo com velocidade reduzida para maior legibilidade.
     *   A base do cenário (*ground*) é travada verticalmente para manter o alinhamento visual durante a movimentação.
+    *   **Cenários e Backgrounds (Mapeamento e Rolagem)**: O cenário de combate é renderizado em `TileSprite` de rolagem horizontal contínua (*sidescrolling*):
+        *   *Mapeamento por Dificuldade/Fase*:
+            *   Fases de Campanha Padrão (ciclo baseado no tema): Floresta (`medieval_background.png`), Deserto (`desert_background.png`), Neve (`snow_background.png`), Cemitério (`cemetery_background.png`) e Ruínas (`ruins_background.png`).
+            *   Fases 21-30 (Purgatório): Cenário de cacos e cristais mágicos (`purgatory_background.png`).
+            *   Fases 31+ (Pandemônio): Cenário vulcânico caótico sob medida de obsidiana e correntes arcanas (`pandemonium_background.png`).
+            *   Modo Torre Infinita: Cenário da torre de tijolos cinza (`tower_background.png`).
+        *   *Alinhamento do Chão*: Para garantir que os pés de heróis e monstros fiquem apoiados de forma natural, a linha de horizonte físico do solo na imagem original de `1024 x 1024` deve ser desenhada a exatamente **9% da borda inferior** (aproximadamente a 90 pixels de altura do rodapé), o que corresponde à altura de Y = 532.5 pixels renderizados no canvas (a 67.5 pixels do limite inferior do jogo).
+        *   *Textura Seamless (Looping)*: A imagem deve possuir emendas perfeitas nas bordas laterais (loop contínuo) para que a rolagem por movimentação ocorra sem cortes.
 2.  **HUD de Status**: Exibe duas barras horizontais (HP e Mana) com preenchimento colorido e contadores absolutos (`Valor Atual / Valor Máximo`), acompanhados da Fase Atual do jogo, progresso do Estágio (monstros eliminados de 15), velocidade da simulação e atalhos de controle de som.
 3.  **Controle de Velocidade e Pausa**: Permite alterar o ritmo da simulação do Phaser ou pausar o jogo completamente (velocidades `⏸`, `1x`, `2x` e `3x`) usando multiplicadores temporais no relógio interno da cena. As velocidades mais rápidas possuem travas de segurança: a velocidade 2x é liberada após a primeira ascensão (`ascensionCount >= 1`), e a velocidade 3x é liberada a partir da quinta ascensão (`ascensionCount >= 5`).
 
@@ -124,6 +132,7 @@ Para garantir a coesão visual e o funcionamento adequado dos efeitos de transpa
     *   A arte deve estar centralizada horizontalmente no canvas da imagem.
 3.  **Fundo da Imagem (Tratamento de Transparência)**:
     *   O fundo deve ser **branco puro sólido (`#FFFFFF`)**, sem nenhum ruído, degradê ou variação de cor.
+    *   **Evitar Branco Puro Interno**: Não use a cor branca pura (`#FFFFFF` ou RGB `255,255,255`) na parte interna do corpo, armaduras, armas, olhos ou dentes dos personagens/monstros. Como a engine remove o branco puro com uma tolerância de 30 para criar a transparência, usar `#FFFFFF` ou tons de off-white excessivamente claros internamente causará furos transparentes no meio do sprite em jogo. Use tons mais escuros, cinzas opacos ou off-white bem marcados (abaixo de 220 nos canais de cor) para as áreas internas de metal e brilhos.
     *   Não são permitidas auras, brilhos coloridos, efeitos de iluminação externa (*outer glow*) ou suavizações com anti-aliasing em tons de cinza na borda externa dos sprites, pois a função `makeTextureTransparent` remove o branco puro. Qualquer ruído causará uma borda branca desagradável ao redor do monstro no jogo.
 4.  **Sombra Sob os Pés (Drop Shadow)**:
     *   Todo combatente deve conter uma **sombra elíptica preta sólida absoluta (`#000000`)** sob os pés/patas.
