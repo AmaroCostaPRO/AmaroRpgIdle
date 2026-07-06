@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as Phaser from 'phaser';
 import { CombatScene } from './phaser/scenes/CombatScene';
 import GameUI from './components/GameUI';
+import { CombatDropToasts } from './components/CombatDropToasts';
 import { MainMenu } from './components/MainMenu';
 import { CharacterSelect } from './components/CharacterSelect';
 import { SavesMenu } from './components/SavesMenu';
@@ -181,6 +182,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
+              <CombatDropToasts />
             </div>
 
             {/* UI Component Container */}
@@ -336,19 +338,89 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔥 Atualização v4.1.0 — A Torre Infinita & Desafios Verticais!
+              🔔 Atualização v4.3.0 — Notificações & Primeiras Páginas do Codex!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz o novo modo Torre Infinita com combates estáticos, sistema de chaves, economia de Fragmentos de Forja para aprimoramento Místico, inventário estruturado em abas para separar consumíveis, transições rápidas de fade e calibração fina de cenário, além de correções de animações e HUD.
+                Esta atualização traz o novo sistema de notificações: toasts de progressão na base da tela para marcos como desbloqueio de classes, conclusão do Bestiário e Ascensão disponível, além de toasts de drops de itens valiosos no canto superior direito da arena. Também marca o início do Codex de Lendas — o registro histórico da sua jornada como a Alma-Mundo.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v4.3.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#10b981', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 4.3.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        🔔 Notificações de Progressão
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Desbloqueio de classes, conclusão de registros do Bestiário e disponibilidade de Ascensão agora aparecem como notificações toast na parte inferior da tela, com animações e sons exclusivos.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>
+                        ⚔️ Toasts de Drops em Combate
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ao dropar uma Chave da Torre ou Fragmento de Alma Instável em combate, um toast surge no canto superior direito da arena — sem interromper o combate ou seus toques na tela.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📖 Codex de Lendas (Protótipo)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Base para o registro histórico da sua jornada. Cada marco desbloqueado (classes, Pandemônio, Ascensões) futuramente revelará fragmentos de lore exclusivos sobre o Ciclo da Alma Partida.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* v4.2.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 4.2.0:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#818cf8', fontSize: '0.72rem' }}>
+                        🌌 Sets Celestiais (Tier Supremo)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Novo tier de equipamentos com multiplicador 6.0×, desbloqueado após derrotar o Guardião dos Cacos pela segunda vez. O equipamento mais poderoso da campanha antes do Pandemônio.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a78bfa', fontSize: '0.72rem' }}>
+                        ⚒️ Forja Mística Expandida (+6 a +8)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O limite da Forja Mística sobe de +5 para +8. Cada nível adicional exige Fragmentos de Forja progressivos (5.000 → 10.000 → 20.000) e Ouro com fórmula exponencial.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#06b6d4', fontSize: '0.72rem' }}>
+                        🔧 Comparação Lado a Lado na Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Novo painel de pré-visualização em 3 colunas mostra em tempo real os dois itens sacrificados e o resultado estimado da fusão, com badges de ganho líquido de atributos em verde.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb923c', fontSize: '0.72rem' }}>
+                        📱 Modal de Seleção Responsivo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O modal de seleção de peças da Forja agora se adapta dinamicamente à altura da tela em qualquer celular, nunca ultrapassando os limites visíveis e mantendo rolagem interna fluida.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v4.1.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#10b981', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 4.1.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 4.1.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0ea5e9', fontSize: '0.72rem' }}>

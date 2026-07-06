@@ -940,7 +940,48 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.2.0 (Atual)
+### Versão 4.3.0 (Atual)
+*   **🔔 Sistema de Notificações Integrado e Eventos da Ponte**:
+    *   **Notificações de Progressão (Bottom UI)**: Criação de um sistema de fila de notificações na parte inferior da interface do usuário (componente `ProgressNotifications.tsx`). Exibe painéis animados (`slideUp`) com bordas coloridas temáticas, ícone representativo e botão "Dispensar" para os seguintes marcos:
+        *   *Desbloqueio de Classes*: Disparado quando os requisitos de classe avançada são atingidos (ex: nível 50), emitindo o evento `CLASS_UNLOCKED` e reproduzindo o efeito sonoro de upgrade (`playUpgrade`).
+        *   *Bestiário Concluído*: Acionado ao bater as metas de eliminação de inimigos comuns (100 abates) ou chefes (50 abates), emitindo `BESTIARY_COMPLETED`, tocando o som de moedas (`playCoin`) e notificando o bônus de $+1\%$ de dano global.
+        *   *Ascensão Disponível*: Notifica o jogador quando as condições mínimas de prestígio/estágio para ascender são atingidas pela primeira vez na rodada, emitindo `ASCENSION_AVAILABLE` e reproduzindo o som `playUpgrade`.
+    *   **Toasts de Combat Drops (Top Right Arena)**: Implementação de notificações compactas no canto superior direito da tela de combate (componente `CombatDropToasts.tsx`). Apresenta animação de entrada lateral direita (`fadeInRight`) e efeito sonoro de obtenção (`playCoin`) ao dropar itens valiosos em combate:
+        *   *Chaves da Torre (`tower_key`)*.
+        *   *Fragmentos de Alma Instável (`unstable_soul_fragment`)*.
+    *   **Acoplamento à Ponte de Eventos (`GameBridge`)**: Registro dos novos eventos `CLASS_UNLOCKED`, `BESTIARY_COMPLETED`, `ASCENSION_AVAILABLE` e `ITEM_DROPPED` no enum global `GameEvent` para sincronizar perfeitamente as ações físicas simuladas e as atualizações do Zustand com os alertas React de UI.
+    *   **Controle de Persistência e Prevenção de Spam**: Adição da flag `ascensionNotified` à estrutura do `Character` e do Zustand para que o alerta de ascensão ocorra estritamente uma única vez por ciclo. O reset da flag ocorre dinamicamente na execução da Ascensão/Prestígio.
+    *   **Interatividade e Usabilidade Mobile**: Configuração do contêiner de notificações com `pointer-events: none` de forma a garantir que os alertas visuais flutuantes não retenham cliques, permitindo ao jogador continuar usando toques na arena do Phaser por baixo dos toasts.
+
+*   **📖 Codex de Lendas — Sub-aba "Crônicas" no Guia**:
+    *   **Implementação**: A aba **Guia** recebeu um sistema de sub-abas (`⚔️ Classes` e `📖 Crônicas`). A sub-aba Crônicas é o **Codex de Lendas** — um registro narrativo de conquistas desbloqueadas com base no progresso real do save.
+    *   **Componente**: Implementado diretamente no `GuidePanel` (`GameUI.tsx`). Consome os campos `character.ascensionCount`, `character.classLevels`, `getGlobalClassLevels()`, `character.killCount`, `character.highestStageReached`, `character.purgatoryCompleted` e `character.pandemoniumUnlocked` via Zustand para determinar o estado de desbloqueio em tempo real.
+    *   **Badge de Progresso**: O botão da sub-aba exibe um badge roxo com o contador `X/11` indicando quantas entradas foram desbloqueadas. A aba Crônicas também inclui uma barra de progresso linear (`linear-gradient`) que reflete a porcentagem de conclusão.
+    *   **Sistema de Dicas (`hint`)**: Entradas bloqueadas exibem uma dica 🔑 com a condição exata de desbloqueio. Para marcos de progresso contínuo (Ascensões, Abates, Fase), a dica inclui o progresso atual do jogador de forma dinâmica (ex: `Alcance a Fase 30 — maior fase atingida: 15/30`).
+    *   **11 Entradas do Codex**:
+
+        | ID | Ícone | Título | Condição de Desbloqueio |
+        | :--- | :---: | :--- | :--- |
+        | `first_breath` | ⚔️ | Primeiro Fôlego | Sempre desbloqueada |
+        | `first_ascension` | 🌀 | O Primeiro Ciclo | Realizar 1ª Ascensão |
+        | `five_ascensions` | 🔁 | Memória Repetida | Realizar 5 Ascensões |
+        | `paladin_unlocked` | 🛡️ | A Armadura da Fé | Guerreiro Nível 50 |
+        | `cleric_unlocked` | ✨ | O Dom da Cura | Mago Nível 50 |
+        | `rogue_unlocked` | 🗡️ | A Lâmina nas Sombras | Arqueiro Nível 50 |
+        | `necromancer_unlocked` | 💀 | O Pactário da Morte | Clérigo Nível 50 + Ladrão Nível 50 |
+        | `purgatory_cleared` | 🔮 | O Guardião Quebrado | Fase 30 concluída (`purgatoryCompleted`) |
+        | `pandemonium_unlocked` | 🌌 | Além do Purgatório | Pandemônio ativado (`pandemoniumUnlocked`) |
+        | `bestiary_hunter` | 📖 | Caçador de Memórias | 500 abates totais |
+        | `stage_30` | 🏔️ | O Topo de Algo | Fase 30 alcançada (`highestStageReached >= 30`) |
+
+    *   **Bônus do Bestiário**: Quando ativo, o painel do Codex exibe a linha `🗡️ Bônus do Bestiário ativo: +N% de Dano Geral` calculada via `StatEngine.calculateBestiaryDamageMultiplier`.
+    *   **Dados técnicos de implementação**:
+        *   `getGlobalClassLevels()` importado de `useGameStore` e adicionado ao import de `GameUI.tsx`.
+        *   Nível de classe verificado como `Math.max(classLevels[id], globalClassLevels[id])` para suporte multi-save.
+        *   Entradas com desbloqueio condicional exibem badge `DESBLOQUEADO` com cor temática da entrada.
+        *   Entradas bloqueadas ficam com `opacity: 0.5` e borda cinza, sem revelar o texto de lore.
+
+### Versão 4.2.0
 *   **🌌 Sets Celestiais e Expansão da Forja (Memórias Celestiais)**:
     *   **Sets Celestiais de Tier Supremo**: Introdução de 7 novos conjuntos temáticos exclusivos de tier Celestial. Estes itens possuem um multiplicador de atributos divino de **$6.0\times$** (superior aos $4.5\times$ dos Sets Ancestrais e $7.0\times$ dos Pandemoníacos).
     *   **Desbloqueio de Drop Progressivo**: Os Sets Celestiais tornam-se elegíveis para drop especial na campanha do Purgatório (com 10% de chance de substituir os drops convencionais) apenas após derrotar o chefe da Fase 30 (`boss_crystal_guardian`) pela segunda vez em diante.

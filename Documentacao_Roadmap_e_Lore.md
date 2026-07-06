@@ -79,7 +79,7 @@ Para manter a imersão sem sobrecarregar a jogabilidade ou exigir novos motores 
    │
    ├──► [v4.1.0] Torre Infinita (Modo semanal vertical sem regeneração de HP/Mana) [IMPLEMENTADO]
    ├──► [v4.2.0] Memórias Celestiais (Sets Celestiais + Extensão de Forja para +8) [IMPLEMENTADO]
-   ├──► [v4.3.0] Codex de Lendas (Protótipo de leitura de Lore de conquistas) [PLANEJADO]
+   ├──► [v4.3.0] Codex de Lendas (Protótipo de Lore + Sistema de Notificações) [IMPLEMENTADO]
    │
 [v5.0.0] Transcendência e o Segundo Ciclo (Major Update) [PLANEJADO]
        ├── Nova Camada de Prestígio (Transcendência e Pontos de Transcendência - PT)
@@ -98,7 +98,7 @@ Para manter a imersão sem sobrecarregar a jogabilidade ou exigir novos motores 
 | **4.0.0** | Grande | O Purgatório e as Relíquias | O vazio entre os cacos ganha um nome e um território. | `[IMPLEMENTADO]` |
 | **4.1.0** | Menor | Torre Infinita | Um teste vertical e isolado da própria Alma. | `[IMPLEMENTADO]` |
 | **4.2.0** | Menor | Sets Celestiais e Refinamento de Forja | Memórias de uma vida ainda não vivida. | `[IMPLEMENTADO]` |
-| **4.3.0** | Menor | Codex de Lendas (prévia) | O jogo começa a registrar a própria história do jogador. | `[PLANEJADO]` |
+| **4.3.0** | Menor | Codex de Lendas (prévia) | Registro da lore de conquistas e sistema de notificações integrados. | `[IMPLEMENTADO]` |
 | **5.0.0** | Grande | Transcendência e o Segundo Ciclo | A Alma-Mundo descobre que já se partiu antes. | `[PLANEJADO]` |
 
 ---
@@ -228,10 +228,28 @@ O vazio entre os cacos da Alma-Mundo finalmente ganha um nome: o **Purgatório**
         $$\text{Custo Místico} = 100 \times 5^{L}\text{ Ouro para } L \ge 5$$
 *   **Polimento de UX da Forja**: Substituição do antigo painel estático de resultado estimado por uma interface de visualização lado a lado. Agora exibe em tempo real o item resultante da fusão comparado diretamente com os dois itens sacrificados no inventário. Também foi corrigida a responsividade do modal de seleção de equipamentos, que agora utiliza posicionamento `fixed` e altura dinâmica baseada na viewport, impedindo transbordamentos e garantindo rolagem fluida em celulares.
 
-### 5.3 Versão 4.3.0 — "Primeiras Páginas do Codex"
-*   **Codex (Protótipo)**:
+### 5.3 Versão 4.3.0 — "Primeiras Páginas do Codex & Sistema de Notificações" `[IMPLEMENTADO]`
+*   **Codex de Lendas (Protótipo)**:
     *   Inserção de uma sub-aba "Codex" no menu de Guia/Crônicas, com o registro cronológico de conquistas locais do jogador (ex.: primeira Ascensão realizada, classe Necromante desbloqueada, Pandemônio ativo).
     *   **Lore Adicional**: Cada conquista desbloqueada revela um curto parágrafo de lore de imersão sobre a história da Alma-Mundo e as vidas passadas do jogador, sem impacto mecânico de atributos para evitar desbalanceamento.
+*   **🔔 Sistema de Notificações de Progressão (Bottom UI)**:
+    *   Criado o componente `ProgressNotifications.tsx`, que exibe uma fila de notificações "toast" na parte inferior da interface do usuário com animação `slideUp`.
+    *   **Eventos cobertos**:
+        *   `CLASS_UNLOCKED`: Disparado quando o herói atinge o nível necessário (ex: Nível 50) para desbloquear uma classe avançada. Exibe nome e ícone da classe com borda roxa e reproduz som `playUpgrade`.
+        *   `BESTIARY_COMPLETED`: Acionado ao completar as metas de eliminação de um inimigo (100 abates comuns ou 50 abates de chefes). Exibe bônus de `+1% Dano Geral` ativo e reproduz `playCoin`.
+        *   `ASCENSION_AVAILABLE`: Notificado **uma única vez por ciclo** (controlado pela flag `ascensionNotified` persistida no `localStorage`) quando as condições mínimas de prestígio e estágio para ascender são atingidas.
+    *   Todas as notificações possuem botão "Dispensar" e não bloqueiam a interatividade da arena (`pointer-events: none` no contêiner pai).
+*   **⚔️ Toasts de Combat Drops (Top Right Arena)**:
+    *   Criado o componente `CombatDropToasts.tsx`, renderizado diretamente sobre a arena de combate no `App.tsx`, exibindo toasts compactos com animação `fadeInRight` e som `playCoin` ao dropar:
+        *   **Chaves da Torre** (`tower_key`).
+        *   **Fragmentos de Alma Instável** (`unstable_soul_fragment`).
+*   **🌉 Novos Eventos na Ponte de Eventos (`GameBridge`)**:
+    *   Registrados no enum `GameEvent` em `core/types.ts`:
+        *   `CLASS_UNLOCKED` — emitido em `useGameStore.ts > addXp()`.
+        *   `BESTIARY_COMPLETED` — emitido em `useGameStore.ts > registerEnemyKill()`.
+        *   `ASCENSION_AVAILABLE` — emitido em `useGameStore.ts > addXp()` e `advanceStage()`.
+        *   `ITEM_DROPPED` — emitido em `CombatFSM.ts` ao adicionar Chave da Torre ou Fragmento de Alma Instável ao inventário com sucesso.
+
 
 ---
 

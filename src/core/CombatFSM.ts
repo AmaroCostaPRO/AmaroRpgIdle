@@ -1492,6 +1492,7 @@ export class CombatFSM {
         bridge.emit(GameEvent.LOG_EMITTED, { 
           message: `✨ Você encontrou um [${soulFragmentItem.name}] raro ao derrotar o Chefe!` 
         });
+        bridge.emit(GameEvent.ITEM_DROPPED, { item: soulFragmentItem });
       } else {
         bridge.emit(GameEvent.LOG_EMITTED, { 
           message: `Um [${soulFragmentItem.name}] caiu do Chefe, mas seu inventário está cheio!` 
@@ -1524,6 +1525,7 @@ export class CombatFSM {
           bridge.emit(GameEvent.LOG_EMITTED, { 
             message: `🔑 Você encontrou uma [${towerKeyItem.name}]!` 
           });
+          bridge.emit(GameEvent.ITEM_DROPPED, { item: towerKeyItem });
         }
       }
     }

@@ -99,6 +99,7 @@ export interface Character {
   runStartTime?: number;
   purgatoryCompleted?: boolean;
   forgeFragments?: number;
+  ascensionNotified?: boolean;
 }
 
 export enum GameEvent {
@@ -119,7 +120,11 @@ export enum GameEvent {
   ARENA_READY = 'ARENA_READY',
   COMBO_STATE_CHANGED = 'COMBO_STATE_CHANGED',
   FRENZY_STATE_CHANGED = 'FRENZY_STATE_CHANGED',
-  RECORD_BROKEN = 'RECORD_BROKEN'
+  RECORD_BROKEN = 'RECORD_BROKEN',
+  CLASS_UNLOCKED = 'CLASS_UNLOCKED',
+  BESTIARY_COMPLETED = 'BESTIARY_COMPLETED',
+  ASCENSION_AVAILABLE = 'ASCENSION_AVAILABLE',
+  ITEM_DROPPED = 'ITEM_DROPPED'
 }
 
 export interface GameEventPayload {

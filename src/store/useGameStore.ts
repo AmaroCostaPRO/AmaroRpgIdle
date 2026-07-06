@@ -534,6 +534,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     runStartTime: Date.now(),
     purgatoryCompleted: false,
     forgeFragments: 0,
+    ascensionNotified: false,
   };
 };
 
@@ -769,11 +770,59 @@ export const useGameStore = create<GameState>((set) => ({
       console.log(`[Store] LEVEL UP! Novo Level: ${newLevel}. +5 atributos, +1 skill point.`);
     }
 
+    // --- VERIFICAÇÃO DE DESBLOQUEIO DE CLASSE ---
+    const oldClassLevels = state.character.classLevels || {};
+    const globalClassLevels = getGlobalClassLevels();
+    const getLevelOld = (id: string) => Math.max(oldClassLevels[id] || 0, globalClassLevels[id] || 0);
+
+    const wasPaladinUnlocked = getLevelOld('warrior') >= 50;
+    const wasClericUnlocked = getLevelOld('mage') >= 50;
+    const wasRogueUnlocked = getLevelOld('ranger') >= 50;
+    const wasNecromancerUnlocked = getLevelOld('cleric') >= 50 && getLevelOld('rogue') >= 50;
+
     // Atualiza maior nível alcançado para esta classe de forma persistente
     const updatedClassLevels = {
       ...state.character.classLevels,
       [state.character.classId]: Math.max(state.character.classLevels[state.character.classId] || 1, newLevel)
     };
+
+    const getLevelNew = (id: string) => Math.max(updatedClassLevels[id] || 0, globalClassLevels[id] || 0);
+
+    const isPaladinUnlockedNow = getLevelNew('warrior') >= 50;
+    const isClericUnlockedNow = getLevelNew('mage') >= 50;
+    const isRogueUnlockedNow = getLevelNew('ranger') >= 50;
+    const isNecromancerUnlockedNow = getLevelNew('cleric') >= 50 && getLevelNew('rogue') >= 50;
+
+    if (!wasPaladinUnlocked && isPaladinUnlockedNow) {
+      setTimeout(() => bridge.emit(GameEvent.CLASS_UNLOCKED, { classId: 'paladin' }), 100);
+    }
+    if (!wasClericUnlocked && isClericUnlockedNow) {
+      setTimeout(() => bridge.emit(GameEvent.CLASS_UNLOCKED, { classId: 'cleric' }), 100);
+    }
+    if (!wasRogueUnlocked && isRogueUnlockedNow) {
+      setTimeout(() => bridge.emit(GameEvent.CLASS_UNLOCKED, { classId: 'rogue' }), 100);
+    }
+    if (!wasNecromancerUnlocked && isNecromancerUnlockedNow) {
+      setTimeout(() => bridge.emit(GameEvent.CLASS_UNLOCKED, { classId: 'necromancer' }), 100);
+    }
+
+    // --- VERIFICAÇÃO DE ASCENSÃO DISPONÍVEL ---
+    const ascensionCount = state.character.ascensionCount || 0;
+    const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
+    
+    // canPrestige com novos dados
+    const newTotalXp = 50 * newLevel * (newLevel - 1) + newXp;
+    const newPrestigeEarned = Math.floor(Math.floor(Math.pow(newTotalXp / 1000, 0.45)) * 1.5);
+    const newIsProgressReqMet = ascensionCount === 0 
+      ? (state.character.highestStageReached >= 6) 
+      : (newLevel >= 5);
+    const isPrestigeAvailableNow = newIsProgressReqMet && newPrestigeEarned >= requiredPP;
+
+    let ascensionNotifiedVal = state.character.ascensionNotified || false;
+    if (!ascensionNotifiedVal && isPrestigeAvailableNow) {
+      ascensionNotifiedVal = true;
+      setTimeout(() => bridge.emit(GameEvent.ASCENSION_AVAILABLE, {}), 100);
+    }
 
     const updated = {
       ...state.character,
@@ -782,7 +831,8 @@ export const useGameStore = create<GameState>((set) => ({
       attributePoints: newPoints,
       skillPoints: newSkillPoints,
       baseStats: stats,
-      classLevels: updatedClassLevels
+      classLevels: updatedClassLevels,
+      ascensionNotified: ascensionNotifiedVal
     };
 
     saveToLocalStorage(updated);
@@ -880,7 +930,8 @@ export const useGameStore = create<GameState>((set) => ({
       inventory: [],
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
-      runStartTime: Date.now()
+      runStartTime: Date.now(),
+      ascensionNotified: false
     };
 
     // Processa os recordes pessoais
@@ -948,6 +999,7 @@ export const useGameStore = create<GameState>((set) => ({
       inventory: [],
       pandemoniumUnlocked: true,
       activePandemonium: false,
+      ascensionNotified: false,
     };
 
     saveToLocalStorage(updated);
@@ -1180,13 +1232,32 @@ export const useGameStore = create<GameState>((set) => ({
       });
     }
 
+    const nextHighest = Math.max(state.character.highestStageReached, nextStage);
+    const level = state.character.level;
+    const xp = state.character.xp;
+    const totalXp = 50 * level * (level - 1) + xp;
+    const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
+    const ascensionCount = state.character.ascensionCount || 0;
+    const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
+    const isProgressReqMet = ascensionCount === 0 
+      ? (nextHighest >= 6) 
+      : (level >= 5);
+    const isPrestigeAvailableNow = isProgressReqMet && prestigeEarnedOnReset >= requiredPP;
+
+    let ascensionNotifiedVal = state.character.ascensionNotified || false;
+    if (!ascensionNotifiedVal && isPrestigeAvailableNow) {
+      ascensionNotifiedVal = true;
+      setTimeout(() => bridge.emit(GameEvent.ASCENSION_AVAILABLE, {}), 100);
+    }
+
     const updated = {
       ...state.character,
       currentStage: nextStage,
       enemiesDefeatedInStage: 0,
-      highestStageReached: Math.max(state.character.highestStageReached, nextStage),
+      highestStageReached: nextHighest,
       activePandemonium: activePandemonium,
-      purgatoryCompleted: purgatoryCompleted
+      purgatoryCompleted: purgatoryCompleted,
+      ascensionNotified: ascensionNotifiedVal
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1367,9 +1438,21 @@ export const useGameStore = create<GameState>((set) => ({
 
   registerEnemyKill: (enemyId) => set((state) => {
     const currentKills = state.character.killCount || {};
+    const prevKills = currentKills[enemyId] || 0;
+    const newKills = prevKills + 1;
+
+    const isBoss = enemyId.startsWith('boss_');
+    const reqKills = isBoss ? 50 : 100;
+
+    if (prevKills < reqKills && newKills >= reqKills) {
+      setTimeout(() => {
+        bridge.emit(GameEvent.BESTIARY_COMPLETED, { enemyId });
+      }, 100);
+    }
+
     const updatedKills = {
       ...currentKills,
-      [enemyId]: (currentKills[enemyId] || 0) + 1
+      [enemyId]: newKills
     };
     const updated = {
       ...state.character,

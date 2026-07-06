@@ -1497,3 +1497,26 @@ body {
   visibility: hidden;
   pointer-events: none;
 }
+
+/* Animações de Notificações */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

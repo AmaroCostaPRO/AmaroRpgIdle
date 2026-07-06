@@ -77,7 +77,7 @@ Essa tabela já justifica narrativamente a regra técnica existente ("classes se
 | **4.0.0** | **Grande** | **O Purgatório e as Relíquias** | O vazio entre os cacos ganha um nome e um território |
 | 4.1.0 | Menor | Torre Infinita | Um teste vertical e isolado da própria Alma |
 | 4.2.0 | Menor | Sets Celestiais e Refinamento de Forja | Memórias de uma vida ainda não vivida |
-| 4.3.0 | Menor | Codex de Lendas (prévia) | O jogo começa a registrar a própria história do jogador |
+| 4.3.0 | Menor | Codex de Lendas e Notificações | Registro da lore de conquistas e sistema de notificações integrados |
 | **5.0.0** | **Grande** | **Transcendência e o Segundo Ciclo** | A Alma-Mundo descobre que já se partiu antes |
 
 ---
@@ -166,11 +166,12 @@ Expansão total do protótipo da 3.7.0:
 - **⚒️ Forja: Nível Místico +6 a +8**: extensão do teto da Forja Mística (antes limitado a +5), com custos crescendo pela mesma fórmula exponencial já estabelecida ($100 \times 5^L$), dando um sumidouro de ouro para jogadores endgame.
 - **🔧 Retrabalho de UX da Forja**: pré-visualização em tempo real do item resultante lado a lado com os dois itens de origem (antes só o painel de "Resultado Estimado").
 
-### Versão 4.3.0 — "Primeiras Páginas do Codex"
-*Objetivo: prévia do sistema de registro histórico que ganha peso total na 5.0.0.*
+### Versão 4.3.0 — "Primeiras Páginas do Codex & Notificações"
+*Objetivo: prévia do sistema de registro histórico que ganha peso total na 5.0.0, aliado a um sistema robusto de notificações e eventos.*
 
 - **📜 Codex de Lendas (protótipo)**: nova sub-aba dentro de Guia/Crônicas que registra automaticamente marcos já existentes (1ª Ascensão, desbloqueio de cada classe secundária, desbloqueio do Pandemônio, conclusão do Purgatório), cada um revelando 1 parágrafo curto de lore adicional.
-- Puramente de leitura nesta versão — sem recompensas mecânicas, preparando o terreno para o Codex completo em 5.0.0.
+- **🔔 Notificações Globais de Progressão (Bottom UI)**: Notifica na base da tela o desbloqueio de classes (`CLASS_UNLOCKED`), conclusão de bestiário (`BESTIARY_COMPLETED`) e disponibilidade de ascensão (`ASCENSION_AVAILABLE`), acoplando som e animações táteis.
+- **⚔️ Toasts de Combat Drops (Top Right Arena)**: Exibe toasts no canto superior direito da arena de combate ao dropar chaves da torre ou fragmentos de alma instável em combate, prevenindo interrupção com cliques e toques na arena do Phaser (`pointer-events: none`).
 
 ---
 
