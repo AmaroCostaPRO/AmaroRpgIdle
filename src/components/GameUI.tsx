@@ -4085,7 +4085,12 @@ const LORE_DATABASE: Record<string, string> = {
   stone_gargoyle: "Uma criatura demoníaca esculpida em pedra que ganha vida nas Ruínas Sombrias, caindo do alto das muralhas sobre suas vítimas.",
   living_armor: "Um conjunto de placas de aço pesado que ganhou senciência por almas aprisionadas nas ruínas, lutando incansavelmente.",
   demon_imp: "Um pequeno demônio alado vindo das profundezas do submundo, ágil e especializado em conjurar pequenas bolas de fogo e caos.",
-  boss_archdemon: "O soberano supremo das Ruínas Sombrias. Um ser titânico que empunha o fogo do inferno e busca consumir a alma de qualquer invasor."
+  boss_archdemon: "O soberano supremo das Ruínas Sombrias. Um ser titânico que empunha o fogo do inferno e busca consumir a alma de qualquer invasor.",
+
+  purgatory_specter: "Uma silhueta distorcida feita de ressentimento e poeira estelar, vagando eternamente pelo purgatório em busca de vingança contra os vivos.",
+  lost_soul: "Uma alma que perdeu seu caminho e sua forma após a quebra do mundo. Seu toque frio drena a energia vital.",
+  crystal_shatterer: "Uma besta cristalina que se alimenta dos fragmentos da Alma-Mundo. Suas garras afiadas podem despedaçar a mais resistente das armaduras.",
+  boss_crystal_guardian: "O terrível protetor das profundezas do purgatório, encarregado de reter os fragmentos perdidos. Ele não permitirá que ninguém cruze o limiar rumo ao Pandemônio."
 };
 
 
@@ -4097,7 +4102,8 @@ const BIOME_NAMES = [
   "Deserto de Ouro",
   "Picos Glaciais",
   "Cemitério Maldito",
-  "Ruínas Sombrias"
+  "Ruínas Sombrias",
+  "Purgatório"
 ];
 
 interface BestiaryPanelProps {
@@ -4115,7 +4121,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
 
   // Agrupar inimigos por Fase (4 por fase)
   const phases = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     const startIdx = i * 4;
     const endIdx = startIdx + 4;
     phases.push({
@@ -4150,9 +4156,9 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
           </span>
         </div>
         <p style={{ fontSize: '0.52rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-          Cada monstro com 100+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong>. 
-          Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong>.
-          Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +50% de Dano).
+          Cada monstro com 100+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong> (Fases 1-5) e <strong className="text-white">+2%</strong> no Purgatório. 
+          Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong> (Fases 1-5) e <strong className="text-white">+7%</strong> no Purgatório. 
+          Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +65% de Dano).
         </p>
       </div>
 
@@ -5206,6 +5212,9 @@ export default function GameUI() {
           (() => {
             const kills = (character.killCount || {})[selectedEnemy.id] || 0;
             const isBoss = selectedEnemy.id.startsWith('boss_');
+            const reqKills = isBoss ? 50 : 100;
+            const isPurgatory = ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian'].includes(selectedEnemy.id);
+            const enemyBonus = isPurgatory ? 2 : 1;
 
             return (
               <div 
@@ -5304,7 +5313,7 @@ export default function GameUI() {
                         {selectedEnemy.name}
                       </h3>
                       <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
-                        Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills} / 100</strong>
+                        Registros de Derrota: <strong className="font-mono text-white" style={{ fontSize: '0.62rem' }}>{kills} / {reqKills}</strong>
                       </span>
                     </div>
                   </div>
@@ -5318,28 +5327,28 @@ export default function GameUI() {
 
                   {/* Bônus do Inimigo no Bestiário */}
                   <div style={{ 
-                    background: kills >= 100 ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255, 255, 255, 0.02)', 
+                    background: kills >= reqKills ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255, 255, 255, 0.02)', 
                     padding: '0.6rem 0.8rem', 
                     borderRadius: 'var(--radius-md)', 
-                    border: kills >= 100 ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
+                    border: kills >= reqKills ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255, 255, 255, 0.05)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.2rem'
                   }}>
-                    <span style={{ fontSize: '0.55rem', fontWeight: 800, color: kills >= 100 ? '#4ade80' : '#94a3b8', textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '0.55rem', fontWeight: 800, color: kills >= reqKills ? '#4ade80' : '#94a3b8', textTransform: 'uppercase' }}>
                       Bônus de Abate
                     </span>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.65rem', color: '#cbd5e1' }}>
-                        {kills >= 100 ? '✓ Registro de 100 Abates Concluído' : 'Progresso de Dano:'}
+                        {kills >= reqKills ? `✓ Registro de ${reqKills} Abates Concluído` : 'Progresso de Dano:'}
                       </span>
-                      <span className="font-mono" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: kills >= 100 ? '#4ade80' : '#a1a1aa' }}>
-                        +1% Dano
+                      <span className="font-mono" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: kills >= reqKills ? '#4ade80' : '#a1a1aa' }}>
+                        +{enemyBonus}% Dano
                       </span>
                     </div>
-                    {kills < 100 && (
+                    {kills < reqKills && (
                       <span style={{ fontSize: '0.5rem', color: '#71717a' }}>
-                        Faltam {100 - kills} abates para ativar este bônus.
+                        Faltam {reqKills - kills} abates para ativar este bônus.
                       </span>
                     )}
                   </div>

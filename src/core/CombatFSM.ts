@@ -97,7 +97,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: 'boss_sand_scorpion',
     name: 'Rei Escorpião de Ouro',
-    texture: 'enemy_scorpion',
+    texture: 'boss_sand_scorpion',
     hpMultiplier: 2.8,
     damageMultiplier: 1.5,
     attackSpeedMultiplier: 0.95,

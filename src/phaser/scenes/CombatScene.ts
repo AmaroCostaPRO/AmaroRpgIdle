@@ -68,6 +68,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('enemy_sand_serpent', 'assets/enemy_sand_serpent.png');
     this.load.image('enemy_desert_bandit', 'assets/enemy_desert_bandit.png');
     this.load.image('enemy_scorpion', 'assets/enemy_scorpion.png');
+    this.load.image('boss_sand_scorpion', 'assets/boss_sand_scorpion.png');
 
     // Inimigos - Fase 3 (Neve)
     this.load.image('enemy_ice_elemental', 'assets/enemy_ice_elemental.png');
@@ -172,6 +173,7 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_sand_serpent', 'enemy_sand_serpent_transparent');
     this.makeTextureTransparent('enemy_desert_bandit', 'enemy_desert_bandit_transparent');
     this.makeTextureTransparent('enemy_scorpion', 'enemy_scorpion_transparent');
+    this.makeTextureTransparent('boss_sand_scorpion', 'boss_sand_scorpion_transparent');
     this.makeTextureTransparent('enemy_ice_elemental', 'enemy_ice_elemental_transparent');
     this.makeTextureTransparent('enemy_yeti', 'enemy_yeti_transparent');
     this.makeTextureTransparent('boss_frost_dragon', 'boss_frost_dragon_transparent');

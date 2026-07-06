@@ -658,7 +658,7 @@ O jogo possui **20 fases de campanha** divididas em **4 tiers de dificuldade** e
 
 ### D. Tabela de Configuração do Bestiário
 
-O jogo possui 20 monstros catalogados de acordo com sua fase e tipo:
+O jogo possui 24 monstros catalogados de acordo com sua fase e tipo:
 
 | Fase | Tipo | ID do Monstro | Nome do Monstro | Textura | Mult. HP | Mult. Dano | Mult. Vel. | XP Concedido |
 | :---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
@@ -682,12 +682,37 @@ O jogo possui 20 monstros catalogados de acordo com sua fase e tipo:
 | **5 / 10**| Normal | `living_armor` | Armadura Possuída | `enemy_living_armor` | 1.50 | 1.25 | 0.85 | 60 |
 | **5 / 10**| Normal | `demon_imp` | Diabrete Menor | `enemy_imp` | 0.90 | 1.35 | 1.30 | 58 |
 | **5 / 10**| **Chefe** | `boss_archdemon` | Arquidemônio das Ruínas | `boss_archdemon` | 3.50 | 1.70 | 0.90 | 300 |
+| **21-30** | Normal | `purgatory_specter` | Espectro do Purgatório | `enemy_shadow_reflection` | 3.80 | 3.20 | 1.20 | 500 |
+| **21-30** | Normal | `lost_soul` | Alma Perdida | `enemy_mirror_illusion` | 4.20 | 2.80 | 1.00 | 550 |
+| **21-30** | Normal | `crystal_shatterer` | Quebrador de Cristais | `enemy_glass_shard` | 4.60 | 3.50 | 0.85 | 600 |
+| **21-30** | **Chefe** | `boss_crystal_guardian` | Guardião dos Cacos | `boss_crystal_guardian` | 8.00 | 4.50 | 1.10 | 2500 |
 
 *Nota: O XP ganho é multiplicado a cada fase pela taxa acelerada de $\text{Fator XP} = 1.35^{\text{Fase} - 1}$ para equilibrar o aumento da barra de nível.*
 
 ---
 
-### E. Fórmulas de Geração de Espólios (Drops)
+### E. Sistema de Bônus de Dano do Bestiário
+
+O Bestiário concede um bônus passivo e permanente de **Dano Geral** ao herói com base na derrota acumulada de monstros comuns e chefes. Para que um monstro seja considerado "concluído" no Bestiário, o jogador deve alcançar a meta de eliminação exigida:
+*   **Monstros Comuns**: 100 abates.
+*   **Chefes (Bosses)**: 50 abates.
+
+O cálculo do multiplicador de dano é efetuado na classe `StatEngine` (através do método `calculateBestiaryDamageMultiplier`) com base nas seguintes regras de acúmulo de bônus:
+1.  **Bônus Individual por Monstro**:
+    *   **Fases 1 a 5** (Floresta, Deserto, Neve, Cemitério, Ruínas): Cada monstro concluído concede **+1% de Dano Geral**.
+    *   **Fase 6** (Purgatório): Cada monstro concluído concede **+2% de Dano Geral**.
+2.  **Bônus por Fase Concluída** (derrotar a quantidade exigida dos 4 monstros correspondentes àquela fase):
+    *   **Fases 1 a 5**: Concluir a fase concede **+2% de Dano Geral adicional**.
+    *   **Fase 6** (Purgatório): Concluir a fase concede **+7% de Dano Geral adicional**.
+3.  **Bônus de Completude do Álbum**:
+    *   Caso todas as 6 fases estejam completamente preenchidas (todos os 24 monstros catalogados e concluídos), o jogador recebe um bônus adicional extra de **+20% de Dano Geral**.
+
+#### Multiplicador Máximo Possível:
+$$\text{Bônus Máximo} = \underbrace{(5 \text{ fases} \times 4 \text{ monstros} \times 1\%)}_{20\%} + \underbrace{(1 \text{ fase} \times 4 \text{ monstros} \times 2\%)}_{8\%} + \underbrace{(5 \text{ fases} \times 2\%)}_{10\%} + \underbrace{(1 \text{ fase} \times 7\%)}_{7\%} + \underbrace{20\%}_{\text{Completude}} = \mathbf{65\% \text{ de Dano Geral}}$$
+
+---
+
+### F. Fórmulas de Geração de Espólios (Drops)
 Sempre que um inimigo é derrotado, há uma chance de gerar um equipamento no inventário do herói. A Sorte (`luck`) do jogador influencia tanto a probabilidade de ocorrer o drop quanto a qualidade da peça gerada.
 
 1.  **Probabilidade de Drop**:
@@ -979,7 +1004,17 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.4.0 (Atual)
+### Versão 4.4.5 (Atual)
+*   **🦂 Sprite do Rei Escorpião de Ouro**:
+    *   Criação e integração do sprite em pixel art exclusivo para o chefe "Rei Escorpião de Ouro" (`boss_sand_scorpion.png`).
+    *   Substituição do antigo mapeamento de textura que causava o reuso do sprite de escorpião comum (`enemy_scorpion.png`) na lógica de spawn do `CombatFSM.ts`.
+    *   Configuração do novo ativo visual no carregamento da cena do Phaser (`CombatScene.ts`) e no sistema de remoção de fundo com transparência alfa baseado em canvas do cliente, garantindo que o boss seja exibido de forma limpa no bestiário e na arena de combate.
+*   **🌋 Background Customizado do Pandemônio (Fases 31+)**:
+    *   Desenvolvimento e integração de um cenário vulcânico único (`pandemonium_background.png`) composto por fluxos de obsidiana e correntes arcanas sob medida.
+    *   Configuração da rolagem contínua lateral (*sidescrolling*) impecável através de emendas de textura sem costuras (*seamless loops*).
+    *   Calibração precisa da linha física de horizonte do solo a exatamente **9% da borda inferior** do ativo (Y = 532.5 pixels no motor Phaser), garantindo o alinhamento anatômico dos pés de personagens e inimigos.
+
+### Versão 4.4.0
 *   **🎒 Expansão de Inventário na Loja**:
     *   Inclusão de um novo upgrade permanente na Loja de Suprimentos: **Espaço no Inventário**.
     *   Cada compra consome $100.000$ de Ouro e expande permanentemente em $+1$ o limite de slots do inventário de equipamentos do jogador.

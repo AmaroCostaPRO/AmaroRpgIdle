@@ -449,9 +449,9 @@ export class StatEngine {
 
   /**
    * Calcula o multiplicador de dano acumulado do bestiário.
-   * +1% por monstro com abates suficientes (100+ abates para monstros normais, 50+ abates para chefes).
-   * +2% adicionais por fase completada (todos os 4 monstros da fase com abates suficientes).
-   * +20% adicionais se todas as 5 fases forem completadas (totalizando +50%).
+   * +1% por monstro com abates suficientes (+2% no Purgatório).
+   * +2% adicionais por fase completada (+7% no Purgatório).
+   * +20% adicionais se todas as 6 fases forem completadas (totalizando +65%).
    */
   static calculateBestiaryDamageMultiplier(killCount: Record<string, number>): number {
     const BESTIARY_PHASES = [
@@ -459,29 +459,33 @@ export class StatEngine {
       ['sand_serpent', 'desert_bandit', 'desert_scorpion', 'boss_sand_scorpion'],
       ['frost_wolf', 'ice_elemental', 'cave_yeti', 'boss_frost_dragon'],
       ['skeleton_warrior', 'decaying_zombie', 'tormented_ghost', 'boss_necromancer'],
-      ['stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon']
+      ['stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon'],
+      ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian']
     ];
 
     let bonusPct = 0;
     let completedPhases = 0;
 
-    BESTIARY_PHASES.forEach((phaseEnemies) => {
+    BESTIARY_PHASES.forEach((phaseEnemies, phaseIndex) => {
       let completedInPhase = 0;
+      const isPurgatory = phaseIndex === 5;
+
       phaseEnemies.forEach((enemyId) => {
         const kills = killCount[enemyId] || 0;
         const requiredKills = enemyId.startsWith('boss_') ? 50 : 100;
         if (kills >= requiredKills) {
-          bonusPct += 1;
+          bonusPct += isPurgatory ? 2 : 1;
           completedInPhase++;
         }
       });
+
       if (completedInPhase === 4) {
-        bonusPct += 2;
+        bonusPct += isPurgatory ? 7 : 2;
         completedPhases++;
       }
     });
 
-    if (completedPhases === 5) {
+    if (completedPhases === 6) {
       bonusPct += 20;
     }
 
