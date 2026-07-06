@@ -341,7 +341,7 @@ const App: React.FC = () => {
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização introduz o novo modo Torre Infinita com combates estáticos, transições rápidas de fade e calibração fina de cenário, além de correções de animações e HUD.
+                Esta atualização introduz o novo modo Torre Infinita com combates estáticos, sistema de chaves, economia de Fragmentos de Forja para aprimoramento Místico, inventário estruturado em abas para separar consumíveis, transições rápidas de fade e calibração fina de cenário, além de correções de animações e HUD.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
@@ -380,6 +380,38 @@ const App: React.FC = () => {
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         Corrigidos bugs de UI fantasma nos inimigos mortos, acompanhamento correto de textos/barras de vida na corrida do herói e ajuste na direção de retorno após mortes na Torre.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f59e0b', fontSize: '0.72rem' }}>
+                        🔑 Chaves da Torre & Drop da Campanha
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Inimigos derrotados na campanha normal agora dropam Chaves da Torre com taxas fixas baseadas no tipo de monstro (sem influência da Sorte). Chaves são guardadas com segurança na aba de consumíveis.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e9d5ff', fontSize: '0.72rem' }}>
+                        🎒 Inventário em Abas (Equipamentos vs. Consumíveis)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova interface com abas de separação para organizar o inventário de forma limpa, mantendo consumíveis (chaves, baús, etc.) organizados à parte, protegidos de vendas rápidas acidentais.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        🛠️ Desmonte de Equipamentos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Equipamentos agora podem ser desmontados no inventário para gerar 1 Fragmento de Forja por peça, oferecendo uma nova fonte sustentável para obter essa moeda.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#06b6d4', fontSize: '0.72rem' }}>
+                        ⚒️ Economia de Fragmentos de Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A Torre Infinita agora recompensa os jogadores com Fragmentos de Forja a cada andar superado. Use a nova moeda junto ao Ouro na Forja para fundir e aprimorar equipamentos Místicos.
                       </div>
                     </div>
                   </div>

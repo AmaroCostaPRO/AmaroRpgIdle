@@ -100,17 +100,18 @@ export const ForgeView: React.FC = () => {
 
   // Verifica se a fusão é possível e calcula custos
   const checkReforgeValidity = () => {
-    if (!slot1 || !slot2) return { valid: false, reason: 'Selecione dois itens.', cost: 0 };
-    if (slot1.slot !== slot2.slot) return { valid: false, reason: 'Os itens devem ser do mesmo slot.', cost: 0 };
-    if (slot1.setName !== slot2.setName) return { valid: false, reason: 'Os itens devem pertencer ao mesmo conjunto (Set).', cost: 0 };
+    if (!slot1 || !slot2) return { valid: false, reason: 'Selecione dois itens.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+    if (slot1.slot !== slot2.slot) return { valid: false, reason: 'Os itens devem ser do mesmo slot.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+    if (slot1.setName !== slot2.setName) return { valid: false, reason: 'Os itens devem pertencer ao mesmo conjunto (Set).', cost: 0, fragmentCost: 0, nextLevel: 1 };
 
     const isBothMystic = slot1.rarity === 'mystic' && slot2.rarity === 'mystic';
     const isBothNormal = slot1.rarity !== 'mystic' && slot2.rarity !== 'mystic';
 
     if (!isBothMystic && !isBothNormal) {
-      return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0 };
+      return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0, fragmentCost: 0, nextLevel: 1 };
     }
     let cost = 500;
+    let fragmentCost = 100;
     let nextLevel = 1;
 
     if (isBothMystic) {
@@ -118,23 +119,31 @@ export const ForgeView: React.FC = () => {
       const lvl2 = slot2.mysticLevel || 1;
 
       if (lvl1 !== lvl2) {
-        return { valid: false, reason: 'Itens Místicos devem ter o mesmo nível para fusão.', cost: 0 };
+        return { valid: false, reason: 'Itens Místicos devem ter o mesmo nível para fusão.', cost: 0, fragmentCost: 0, nextLevel: 1 };
       }
       if (lvl1 >= 5) {
-        return { valid: false, reason: 'O nível máximo de item Místico é +5.', cost: 0 };
+        return { valid: false, reason: 'O nível máximo de item Místico é +5.', cost: 0, fragmentCost: 0, nextLevel: 1 };
       }
 
       nextLevel = lvl1 + 1;
       const costs = [0, 1000, 2500, 12500, 62500];
+      const fragmentCosts = [0, 250, 500, 1000, 2500];
       cost = costs[lvl1] || 500;
+      fragmentCost = fragmentCosts[lvl1] || 250;
     }
 
     const hasGold = (character.gold || 0) >= cost;
+    const hasFragments = (character.forgeFragments || 0) >= fragmentCost;
 
     return {
-      valid: hasGold,
-      reason: hasGold ? '' : `Você precisa de ${cost} Ouro para esta fusão.`,
+      valid: hasGold && hasFragments,
+      reason: !hasGold 
+        ? `Você precisa de ${cost} Ouro para esta fusão.` 
+        : !hasFragments 
+        ? `Você precisa de ${fragmentCost} Fragmentos de Forja para esta fusão.` 
+        : '',
       cost,
+      fragmentCost,
       nextLevel
     };
   };
@@ -200,9 +209,15 @@ export const ForgeView: React.FC = () => {
             <span className="text-xl">⚒️</span>
             <h2 className="text-lg font-bold text-gray-100">Grande Forja Arcana</h2>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-            <span className="text-yellow-400 font-semibold">🪙 {formatNumber(character.gold || 0, abbreviateNumbers)}</span>
-            <span className="text-xs text-yellow-500/80 font-medium">Ouro</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+              <span className="text-yellow-400 font-semibold">🪙 {formatNumber(character.gold || 0, abbreviateNumbers)}</span>
+              <span className="text-xs text-yellow-500/80 font-medium">Ouro</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full">
+              <span className="text-purple-400 font-semibold">💎 {formatNumber(character.forgeFragments || 0, abbreviateNumbers)}</span>
+              <span className="text-xs text-purple-500/80 font-medium">Fragmentos de Forja</span>
+            </div>
           </div>
         </div>
 
@@ -333,11 +348,19 @@ export const ForgeView: React.FC = () => {
           <div className="mt-4 w-full max-w-[340px] flex flex-col items-center">
             {slot1 && slot2 ? (
               <div className="w-full bg-[var(--surface-1)]/80 backdrop-blur-sm border border-[var(--border-subtle)] rounded-lg p-4 flex flex-col items-center">
-                <div className="flex justify-between w-full text-sm mb-3">
-                  <span className="text-gray-400">Custo da Forja:</span>
-                  <span className={`font-bold ${character.gold >= reforgeState.cost ? 'text-yellow-400' : 'text-red-500'}`}>
-                    🪙 {formatNumber(reforgeState.cost, abbreviateNumbers)} Ouro
-                  </span>
+                <div className="flex flex-col gap-2 w-full mb-3">
+                  <div className="flex justify-between w-full text-sm">
+                    <span className="text-gray-400">Custo de Ouro:</span>
+                    <span className={`font-bold ${character.gold >= reforgeState.cost ? 'text-yellow-400' : 'text-red-500'}`}>
+                      🪙 {formatNumber(reforgeState.cost || 0, abbreviateNumbers)} Ouro
+                    </span>
+                  </div>
+                  <div className="flex justify-between w-full text-sm">
+                    <span className="text-gray-400">Custo de Fragmentos:</span>
+                    <span className={`font-bold ${(character.forgeFragments || 0) >= (reforgeState.fragmentCost || 0) ? 'text-purple-400' : 'text-red-500'}`}>
+                      💎 {formatNumber(reforgeState.fragmentCost || 0, abbreviateNumbers)} Fragmentos
+                    </span>
+                  </div>
                 </div>
                 
                 {reforgeState.reason && (

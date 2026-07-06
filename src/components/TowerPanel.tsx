@@ -21,6 +21,10 @@ export const TowerPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
+  const towerKeys = character.inventory.filter(item => 
+    item.slot === 'consumable' && item.consumableType === 'tower_key'
+  ).length;
+
   // Títulos disponíveis e seus andares de desbloqueio
   const titlesConfig = [
     { name: 'Iniciante da Torre', floorRequired: 5, description: 'Desbloqueado ao vencer o Andar 5' },
@@ -180,19 +184,45 @@ export const TowerPanel: React.FC = () => {
           <>
             <button
               onClick={handleStartAttempt}
-              className="btn btn-gold"
+              disabled={towerKeys === 0}
+              className={`btn ${towerKeys > 0 ? 'btn-gold' : 'btn-disabled'}`}
               style={{
                 width: '100%',
-                padding: '0.75rem',
-                fontSize: '0.9rem',
+                padding: '0.6rem 0.75rem',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.25)',
+                background: towerKeys > 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.05)',
+                boxShadow: towerKeys > 0 ? '0 4px 15px rgba(245, 158, 11, 0.25)' : 'none',
                 border: 'none',
+                color: towerKeys > 0 ? '#fff' : '#64748b',
+                cursor: towerKeys > 0 ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.15rem',
+                lineHeight: 1.2
               }}
             >
-              ⚔️ INICIAR SUBIDA DA TORRE
+              <span style={{ fontSize: '0.85rem' }}>⚔️ INICIAR SUBIDA DA TORRE</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, color: towerKeys > 0 ? '#fef08a' : '#64748b', opacity: 0.85 }}>(Consome 1 🔑)</span>
             </button>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.4rem 0.6rem',
+              background: 'rgba(0,0,0,0.15)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-dim)',
+              fontSize: '0.65rem'
+            }}>
+              <span style={{ color: '#94a3b8' }}>Chaves Disponíveis:</span>
+              <span className="font-mono" style={{ fontWeight: 700, color: towerKeys > 0 ? '#34d399' : '#f87171', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                🔑 {towerKeys}
+              </span>
+            </div>
+
             <div style={{
               background: 'rgba(239, 68, 68, 0.08)',
               border: '1px solid rgba(239, 68, 68, 0.2)',

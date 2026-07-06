@@ -940,8 +940,24 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     }
   });
 
+  const [inventoryTab, setInventoryTab] = useState<'equipment' | 'consumable'>('equipment');
   const maxSlots = character.inventorySlots || 30;
-  const inventoryGrid = Array.from({ length: maxSlots }, (_, i) => character.inventory[i] || null);
+  
+  const equipmentItems = character.inventory.filter(item => 
+    item.slot !== 'consumable' || 
+    item.consumableType === 'chest_legendary' || 
+    item.consumableType === 'chest_ancestral'
+  );
+  
+  const consumableItems = character.inventory.filter(item => 
+    item.slot === 'consumable' && 
+    item.consumableType !== 'chest_legendary' && 
+    item.consumableType !== 'chest_ancestral'
+  );
+
+  const inventoryGrid = inventoryTab === 'equipment'
+    ? Array.from({ length: maxSlots }, (_, i) => equipmentItems[i] || null)
+    : consumableItems;
 
   const handleEquip = (item: EquipmentItem) => {
     AudioManager.getInstance().playClick();
@@ -1224,13 +1240,71 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
       {/* Inventário */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem' }}>
-          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', margin: 0 }}>
-            Inventário de Itens
-          </h3>
-          <span className="font-mono" style={{ fontSize: '0.62rem', color: '#cbd5e1' }}>
-            Slots ocupados: {character.inventory.length} / {maxSlots}
-          </span>
+        {/* Abas do Inventário */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--border-dim)', gap: '0.25rem' }}>
+          <button 
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setInventoryTab('equipment');
+            }}
+            style={{
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              background: inventoryTab === 'equipment' ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+              border: 'none',
+              borderBottom: inventoryTab === 'equipment' ? '2px solid var(--gold-400)' : '2px solid transparent',
+              color: inventoryTab === 'equipment' ? 'var(--gold-400)' : '#94a3b8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            ⚔️ Equipamentos
+            <span style={{ 
+              fontSize: '0.55rem', 
+              background: 'rgba(255,255,255,0.06)', 
+              padding: '0.05rem 0.25rem', 
+              borderRadius: '4px',
+              color: inventoryTab === 'equipment' ? 'var(--gold-400)' : '#64748b'
+            }}>
+              {equipmentItems.length}/{maxSlots}
+            </span>
+          </button>
+          
+          <button 
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setInventoryTab('consumable');
+            }}
+            style={{
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              background: inventoryTab === 'consumable' ? 'rgba(168, 85, 247, 0.08)' : 'transparent',
+              border: 'none',
+              borderBottom: inventoryTab === 'consumable' ? '2px solid #a855f7' : '2px solid transparent',
+              color: inventoryTab === 'consumable' ? '#c084fc' : '#94a3b8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            🧪 Consumíveis
+            <span style={{ 
+              fontSize: '0.55rem', 
+              background: 'rgba(255,255,255,0.06)', 
+              padding: '0.05rem 0.25rem', 
+              borderRadius: '4px',
+              color: inventoryTab === 'consumable' ? '#c084fc' : '#64748b'
+            }}>
+              {consumableItems.length}
+            </span>
+          </button>
         </div>
 
         <div style={{ 
@@ -1240,241 +1314,258 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
           background: 'rgba(0,0,0,0.15)',
           padding: '0.75rem',
           borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-dim)'
+          border: '1px solid var(--border-dim)',
+          minHeight: inventoryTab === 'equipment' ? '170px' : 'auto'
         }}>
-          {inventoryGrid.map((item, idx) => {
-            if (!item) {
+          {inventoryTab === 'consumable' && consumableItems.length === 0 ? (
+            <div style={{
+              gridColumn: '1 / -1',
+              padding: '2.5rem 1rem',
+              textAlign: 'center',
+              color: '#64748b',
+              fontSize: '0.65rem',
+              fontStyle: 'italic'
+            }}>
+              Nenhum item consumível no inventário.
+            </div>
+          ) : (
+            inventoryGrid.map((item, idx) => {
+              if (!item) {
+                return (
+                  <div 
+                    key={`empty-${idx}`} 
+                    style={{
+                      aspectRatio: '1',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px dashed rgba(255,255,255,0.06)',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.55rem',
+                      color: '#334155',
+                      userSelect: 'none'
+                    }}
+                  >
+                    {idx + 1}
+                  </div>
+                );
+              }
+
+              const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
+              const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
+              const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
+              const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
+
+              let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
+              let itemShadow = 'none';
+              let itemBg = getRarityBg(item.rarity);
+
+              if (isAncestral) {
+                itemBorder = '2px dashed #a78bfa';
+                itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
+              } else if (isPandemonium) {
+                itemBorder = '2px dashed #10b981';
+                itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
+                if (isPandemoniumBase) {
+                  itemBg = 'rgba(16, 185, 129, 0.15)';
+                } else if (isPandemoniumMystic) {
+                  itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
+                }
+              }
+
               return (
-                <div 
-                  key={`empty-${idx}`} 
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    AudioManager.getInstance().playClick();
+                    setSelectedItem(item);
+                  }}
+                  className="inventory-item-slot"
                   style={{
                     aspectRatio: '1',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px dashed rgba(255,255,255,0.06)',
+                    background: itemBg,
+                    border: itemBorder,
+                    boxShadow: itemShadow,
                     borderRadius: 'var(--radius-md)',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.55rem',
-                    color: '#334155',
-                    userSelect: 'none'
+                    cursor: 'pointer',
+                    position: 'relative',
+                    padding: 0,
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  {idx + 1}
-                </div>
-              );
-            }
-
-            const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
-            const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
-            const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
-            const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
-
-            let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
-            let itemShadow = 'none';
-            let itemBg = getRarityBg(item.rarity);
-
-            if (isAncestral) {
-              itemBorder = '2px dashed #a78bfa';
-              itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
-            } else if (isPandemonium) {
-              itemBorder = '2px dashed #10b981';
-              itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
-              if (isPandemoniumBase) {
-                itemBg = 'rgba(16, 185, 129, 0.15)';
-              } else if (isPandemoniumMystic) {
-                itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
-              }
-            }
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setSelectedItem(item);
-                }}
-                className="inventory-item-slot"
-                style={{
-                  aspectRatio: '1',
-                  background: itemBg,
-                  border: itemBorder,
-                  boxShadow: itemShadow,
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  padding: 0,
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span style={{ fontSize: '1.2rem' }}>
-                  {item.slot === 'consumable' ? (
-                    item.consumableType === 'boost_touch' ? '⚡' :
-                    item.consumableType === 'boost_touch_x3' ? '⚡⚡⚡' :
-                    item.consumableType === 'chest_ancestral' ? '🔮' :
-                    item.consumableType === 'relic_chest' ? '💜' :
-                    item.consumableType === 'unstable_soul_fragment' ? '🔮' : '🎁'
-                  ) : (
-                    slotIcons[item.slot]
+                  <span style={{ fontSize: '1.2rem' }}>
+                    {item.slot === 'consumable' ? (
+                      item.consumableType === 'boost_touch' ? '⚡' :
+                      item.consumableType === 'boost_touch_x3' ? '⚡3' :
+                      item.consumableType === 'chest_ancestral' ? '🔮' :
+                      item.consumableType === 'relic_chest' ? '💜' :
+                      item.consumableType === 'unstable_soul_fragment' ? '🔮' :
+                      item.consumableType === 'tower_key' ? '🔑' : '🎁'
+                    ) : (
+                      slotIcons[item.slot]
+                    )}
+                  </span>
+                  {isAncestral && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '2px', 
+                      right: '2px', 
+                      width: '5px', 
+                      height: '5px', 
+                      borderRadius: '50%', 
+                      background: '#c084fc',
+                      boxShadow: '0 0 6px #c084fc',
+                      animation: 'glow-pulse 1.5s infinite'
+                    }} />
                   )}
-                </span>
-                {isAncestral && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '2px', 
-                    right: '2px', 
-                    width: '5px', 
-                    height: '5px', 
-                    borderRadius: '50%', 
-                    background: '#c084fc',
-                    boxShadow: '0 0 6px #c084fc',
-                    animation: 'glow-pulse 1.5s infinite'
-                  }} />
-                )}
-                {isPandemonium && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '2px', 
-                    right: '2px', 
-                    width: '5px', 
-                    height: '5px', 
-                    borderRadius: '50%', 
-                    background: '#10b981',
-                    boxShadow: '0 0 6px #10b981',
-                    animation: 'glow-pulse 1.5s infinite'
-                  }} />
-                )}
-                {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '2px', 
-                    right: '2px', 
-                    width: '4px', 
-                    height: '4px', 
-                    borderRadius: '50%', 
-                    background: '#f59e0b',
-                    boxShadow: '0 0 4px #f59e0b'
-                  }} />
-                )}
-                {!isPandemonium && item.rarity === 'mystic' && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '2px', 
-                    right: '2px', 
-                    width: '5px', 
-                    height: '5px', 
-                    borderRadius: '50%', 
-                    background: '#d946ef',
-                    boxShadow: '0 0 6px #d946ef',
-                    animation: 'glow-pulse 1.5s infinite'
-                  }} />
-                )}
-                {item.rarity === 'mystic' && item.mysticLevel && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '1px',
-                    left: '1px',
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    lineHeight: 1,
-                    color: '#e879f9',
-                    textShadow: '0 0 4px #a21caf',
-                    pointerEvents: 'none',
-                    userSelect: 'none'
-                  }}>
-                    +{item.mysticLevel}
-                  </div>
-                )}
-              </button>
-            );
-          })}
+                  {isPandemonium && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '2px', 
+                      right: '2px', 
+                      width: '5px', 
+                      height: '5px', 
+                      borderRadius: '50%', 
+                      background: '#10b981',
+                      boxShadow: '0 0 6px #10b981',
+                      animation: 'glow-pulse 1.5s infinite'
+                    }} />
+                  )}
+                  {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '2px', 
+                      right: '2px', 
+                      width: '4px', 
+                      height: '4px', 
+                      borderRadius: '50%', 
+                      background: '#f59e0b',
+                      boxShadow: '0 0 4px #f59e0b'
+                    }} />
+                  )}
+                  {!isPandemonium && item.rarity === 'mystic' && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '2px', 
+                      right: '2px', 
+                      width: '5px', 
+                      height: '5px', 
+                      borderRadius: '50%', 
+                      background: '#d946ef',
+                      boxShadow: '0 0 6px #d946ef',
+                      animation: 'glow-pulse 1.5s infinite'
+                    }} />
+                  )}
+                  {item.rarity === 'mystic' && item.mysticLevel && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '1px',
+                      left: '1px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      color: '#e879f9',
+                      textShadow: '0 0 4px #a21caf',
+                      pointerEvents: 'none',
+                      userSelect: 'none'
+                    }}>
+                      +{item.mysticLevel}
+                    </div>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
 
         {/* Botões de Venda em Lote */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button
-            onClick={() => {
-              if (confirmSellCommon) {
-                AudioManager.getInstance().playCoin();
-                sellAllCommonAndRare();
-                setConfirmSellCommon(false);
-              } else {
-                AudioManager.getInstance().playClick();
-                setConfirmSellCommon(true);
-                // Auto reseta a confirmação após 3 segundos
-                setTimeout(() => {
-                  setConfirmSellCommon(current => current ? false : false);
-                }, 3000);
-              }
-            }}
-            className="btn btn-sm"
-            style={{ 
-              flex: 1, 
-              fontSize: '0.62rem', 
-              padding: '0.45rem 0.5rem',
-              background: confirmSellCommon 
-                ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
-                : 'linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))',
-              border: confirmSellCommon
-                ? '1px solid rgba(16, 185, 129, 0.5)'
-                : '1px solid rgba(168, 85, 247, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              color: confirmSellCommon ? '#34d399' : '#c084fc',
-              cursor: 'pointer',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.25rem',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <span>{confirmSellCommon ? '🪙 Confirmar Venda?' : '🪙 Vender Comuns & Mágicos'}</span>
-          </button>
-          <button
-            onClick={() => {
-              if (confirmSellLegendary) {
-                AudioManager.getInstance().playCoin();
-                sellAllLegendary();
-                setConfirmSellLegendary(false);
-              } else {
-                AudioManager.getInstance().playClick();
-                setConfirmSellLegendary(true);
-                // Auto reseta a confirmação após 3 segundos
-                setTimeout(() => {
-                  setConfirmSellLegendary(current => current ? false : false);
-                }, 3000);
-              }
-            }}
-            className="btn btn-sm"
-            style={{ 
-              flex: 1, 
-              fontSize: '0.62rem', 
-              padding: '0.45rem 0.5rem',
-              background: confirmSellLegendary
-                ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
-                : 'linear-gradient(to right, rgba(245, 158, 11, 0.15), rgba(217, 70, 239, 0.15))',
-              border: confirmSellLegendary
-                ? '1px solid rgba(16, 185, 129, 0.5)'
-                : '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              color: confirmSellLegendary ? '#34d399' : '#fbbf24',
-              cursor: 'pointer',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.25rem',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <span>{confirmSellLegendary ? '🪙 Confirmar Venda?' : '🪙 Vender Lendários'}</span>
-          </button>
-        </div>
+        {inventoryTab === 'equipment' && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => {
+                if (confirmSellCommon) {
+                  AudioManager.getInstance().playCoin();
+                  sellAllCommonAndRare();
+                  setConfirmSellCommon(false);
+                } else {
+                  AudioManager.getInstance().playClick();
+                  setConfirmSellCommon(true);
+                  // Auto reseta a confirmação após 3 segundos
+                  setTimeout(() => {
+                    setConfirmSellCommon(current => current ? false : false);
+                  }, 3000);
+                }
+              }}
+              className="btn btn-sm"
+              style={{ 
+                flex: 1, 
+                fontSize: '0.62rem', 
+                padding: '0.45rem 0.5rem',
+                background: confirmSellCommon 
+                  ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
+                  : 'linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))',
+                border: confirmSellCommon
+                  ? '1px solid rgba(16, 185, 129, 0.5)'
+                  : '1px solid rgba(168, 85, 247, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                color: confirmSellCommon ? '#34d399' : '#c084fc',
+                cursor: 'pointer',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>{confirmSellCommon ? '🪙 Confirmar Venda?' : '🪙 Vender Comuns & Mágicos'}</span>
+            </button>
+            <button
+              onClick={() => {
+                if (confirmSellLegendary) {
+                  AudioManager.getInstance().playCoin();
+                  sellAllLegendary();
+                  setConfirmSellLegendary(false);
+                } else {
+                  AudioManager.getInstance().playClick();
+                  setConfirmSellLegendary(true);
+                  // Auto reseta a confirmação após 3 segundos
+                  setTimeout(() => {
+                    setConfirmSellLegendary(current => current ? false : false);
+                  }, 3000);
+                }
+              }}
+              className="btn btn-sm"
+              style={{ 
+                flex: 1, 
+                fontSize: '0.62rem', 
+                padding: '0.45rem 0.5rem',
+                background: confirmSellLegendary
+                  ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
+                  : 'linear-gradient(to right, rgba(245, 158, 11, 0.15), rgba(217, 70, 239, 0.15))',
+                border: confirmSellLegendary
+                  ? '1px solid rgba(16, 185, 129, 0.5)'
+                  : '1px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                color: confirmSellLegendary ? '#34d399' : '#fbbf24',
+                cursor: 'pointer',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>{confirmSellLegendary ? '🪙 Confirmar Venda?' : '🪙 Vender Lendários'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
     </div>
@@ -4167,7 +4258,12 @@ export default function GameUI() {
   const discardItem = useGameStore((state) => state.discardItem);
   const useConsumable = useGameStore((state) => state.useConsumable);
   const sellItem = useGameStore((state) => state.sellItem);
+  const dismantleItem = useGameStore((state) => state.dismantleItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+
+  const towerKeyCount = character.inventory.filter(item => 
+    item.slot === 'consumable' && item.consumableType === 'tower_key'
+  ).length;
 
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
@@ -4355,6 +4451,10 @@ export default function GameUI() {
           <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
             <span>🪙</span>
             <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
+          </div>
+          <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.18)' }}>
+            <span>🔑</span>
+            <span>{towerKeyCount} Chaves</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -4594,11 +4694,12 @@ export default function GameUI() {
                       <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito do Consumível</span>
                       <div style={{ fontSize: '0.65rem', color: '#22d3ee', marginTop: '0.2rem', lineHeight: 1.4 }}>
                         {selectedItem.consumableType === 'boost_touch' && '🔥 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 1 minuto.'}
-                        {selectedItem.consumableType === 'boost_touch_x3' && '⚡⚡⚡ Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.'}
+                        {selectedItem.consumableType === 'boost_touch_x3' && '⚡3 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.'}
                         {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
                         {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
                         {selectedItem.consumableType === 'relic_chest' && '💜 Ao abrir, concede +3 Fragmentos de Alma Instável diretamente no seu Altar de Relíquias.'}
                         {selectedItem.consumableType === 'unstable_soul_fragment' && '🔮 Fragmento de Alma absorvido no Altar de Relíquias: +1 Fragmento.'}
+                        {selectedItem.consumableType === 'tower_key' && '🔑 Chave de acesso para a Torre Infinita. Consumida ao iniciar uma tentativa de subida a partir do painel da Torre.'}
                       </div>
                     </>
                   ) : (
@@ -4635,21 +4736,23 @@ export default function GameUI() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                   {selectedItem.slot === 'consumable' ? (
-                    <button 
-                      onClick={() => {
-                        AudioManager.getInstance().playClick();
-                        const res = useConsumable(selectedItem.id);
-                        if (res.success) {
-                          setSelectedItem(null);
-                        } else {
-                          alert(res.message);
-                        }
-                      }}
-                      className="btn btn-sm btn-gold" 
-                      style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
-                    >
-                      Usar Item
-                    </button>
+                    selectedItem.consumableType !== 'tower_key' && (
+                      <button 
+                        onClick={() => {
+                          AudioManager.getInstance().playClick();
+                          const res = useConsumable(selectedItem.id);
+                          if (res.success) {
+                            setSelectedItem(null);
+                          } else {
+                            alert(res.message);
+                          }
+                        }}
+                        className="btn btn-sm btn-gold" 
+                        style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
+                      >
+                        Usar Item
+                      </button>
+                    )
                   ) : (
                     <button 
                       onClick={() => {
@@ -4688,27 +4791,51 @@ export default function GameUI() {
                       </button>
                     )
                   ) : (
-                    <button 
-                      onClick={() => {
-                        AudioManager.getInstance().playCoin();
-                        sellItem(selectedItem.id);
-                        setSelectedItem(null);
-                      }}
-                      className="btn btn-sm" 
-                      style={{ 
-                        width: '100%', 
-                        background: 'linear-gradient(to right, #fbbf24, #d97706)', 
-                        borderColor: '#d97706', 
-                        color: '#000',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.25rem'
-                      }}
-                    >
-                      <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), abbreviateNumbers)} Ouro</span>
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => {
+                          AudioManager.getInstance().playCoin();
+                          sellItem(selectedItem.id);
+                          setSelectedItem(null);
+                        }}
+                        className="btn btn-sm" 
+                        style={{ 
+                          width: '100%', 
+                          background: 'linear-gradient(to right, #fbbf24, #d97706)', 
+                          borderColor: '#d97706', 
+                          color: '#000',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), abbreviateNumbers)} Ouro</span>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          AudioManager.getInstance().playClick();
+                          dismantleItem(selectedItem.id);
+                          setSelectedItem(null);
+                        }}
+                        className="btn btn-sm" 
+                        style={{ 
+                          width: '100%', 
+                          background: 'linear-gradient(to right, #a855f7, #7c3aed)', 
+                          borderColor: '#7c3aed', 
+                          color: '#fff',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <span>🛠️ Desmontar</span>
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

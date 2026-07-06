@@ -97,6 +97,36 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
 
     const char = useGameStore.getState().character;
     
+    // Verifica se possui Chave da Torre
+    const keyIndex = char.inventory.findIndex(i => i.consumableType === 'tower_key');
+    if (keyIndex === -1) {
+      bridge.emit(GameEvent.LOG_EMITTED, {
+        message: '❌ Você precisa de uma Chave da Torre para entrar!'
+      });
+      return;
+    }
+
+    // Consome a chave da torre
+    const keyItem = char.inventory[keyIndex];
+    useGameStore.setState((state) => {
+      const updatedInv = state.character.inventory.filter(i => i.id !== keyItem.id);
+      const updatedChar = {
+        ...state.character,
+        inventory: updatedInv
+      };
+      
+      // Salva no localStorage
+      try {
+        localStorage.setItem('medieval_idle_save', JSON.stringify(updatedChar));
+        const currentSlot = localStorage.getItem('medieval_idle_current_slot');
+        if (currentSlot) {
+          localStorage.setItem(`medieval_idle_save_slot_${currentSlot}`, JSON.stringify(updatedChar));
+        }
+      } catch (e) {}
+      
+      return { character: updatedChar };
+    });
+
     // Salva o estágio e progresso do combate atual da campanha
     const savedStage = char.currentStage;
     const savedEnemies = char.enemiesDefeatedInStage;
@@ -109,7 +139,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
     });
 
     bridge.emit(GameEvent.LOG_EMITTED, {
-      message: '⚔️ Você entrou na Torre Infinita! Iniciando subida a partir do Andar 1.'
+      message: '🔑 Você utilizou uma [Chave da Torre] e entrou na Torre Infinita! Iniciando subida a partir do Andar 1.'
     });
 
     // Avisa que o combate precisa recomeçar no modo torre
@@ -155,6 +185,13 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
         });
       }
     }
+
+    // Recompensa de Fragmentos de Forja: ganha sempre ao avançar andares
+    const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5));
+    useGameStore.getState().addForgeFragments(forgeFragmentsReward);
+    bridge.emit(GameEvent.LOG_EMITTED, {
+      message: `💎 Recompensa de Conclusão: +${forgeFragmentsReward} Fragmento(s) de Forja!`
+    });
 
     if (floorCompleted > get().historicalHighestFloor) {
       nextHistoricalHighest = floorCompleted;

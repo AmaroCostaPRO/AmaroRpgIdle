@@ -22,7 +22,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key';
   stage?: number;
 }
 
@@ -98,6 +98,7 @@ export interface Character {
   activeDailyChallenge?: boolean;
   runStartTime?: number;
   purgatoryCompleted?: boolean;
+  forgeFragments?: number;
 }
 
 export enum GameEvent {

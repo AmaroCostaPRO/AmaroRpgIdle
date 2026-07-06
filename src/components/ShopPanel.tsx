@@ -48,7 +48,7 @@ export const ShopPanel: React.FC = () => {
       name: 'Boost de Toque x3 (Frenesi)',
       description: 'Consumível que ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.',
       cost: 5000,
-      icon: '⚡⚡⚡',
+      icon: '⚡3',
       color: '#38bdf8',
       bgColor: 'rgba(56, 189, 248, 0.08)',
       borderColor: 'rgba(56, 189, 248, 0.3)',

@@ -293,6 +293,9 @@ graph LR
         *   2 peças: $+250$ Destreza
         *   3 peças: $+300$ Força, $+150$ Sorte
         *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Força, +150 Sorte)*
+### C. Desmonte de Equipamentos
+*   **Reciclagem e Recompensas**: Para fornecer uma utilidade ecológica aos itens de equipamento sobressalentes acumulados, o jogador pode optar por desmontar qualquer peça diretamente a partir do modal de detalhes do inventário.
+*   **Taxa de Retorno Estritamente Balanceada**: O desmonte de qualquer equipamento de qualquer slot (Cabeça, Peito, Pernas, Luvas, Arma) ou nível de raridade (Comum, Raro, Lendário, Ancestral, Místico) retorna estritamente **1 Fragmento de Forja** (`forgeFragments`). Itens do tipo consumível (como chaves ou baús) não possuem opção de desmonte.
 
 ---
 
@@ -718,6 +721,16 @@ O modo **Torre Infinita** (v4.1.0) consiste em uma arena de desafios verticais c
 ### C. Acompanhamento Dinâmico da HUD de Combate
 *   As barras flutuantes de vida (HP) e os nomes do jogador e do inimigo são calculados e renderizados de forma dinâmica baseada no bounding box do sprite, permitindo que a vida e o nome acompanhem suavemente o herói enquanto ele corre pela arena ao final de cada andar.
 
+### D. Chaves da Torre e Restrições de Entrada
+*   **Consumo Obrigatório**: A entrada no modo Torre Infinita exige e consome 1 **Chave da Torre** (`tower_key`) por tentativa. O botão "INICIAR SUBIDA" no painel da Torre Infinita permanece desabilitado se o herói não possuir nenhuma chave em seu inventário.
+*   **Drop na Campanha**: Chaves da Torre são adquiridas derrotando monstros ao longo da campanha normal (fases 1-30). A taxa de drop é **fixa** dependendo do monstro derrotado: monstros comuns possuem 5% de chance de drop, monstros Elites possuem 15% e Chefes de fase possuem 30% de chance. O drop destas chaves **não** sofre influência da estatística de **Sorte** do herói.
+*   **Proteção no Inventário**: As chaves são armazenadas na aba de Consumíveis do inventário. Por segurança, elas possuem restrição estrita de uso direto: ao tentar consumi-las no inventário, o jogador é impedido e instruído a utilizá-las diretamente no painel da Torre Infinita, evitando desperdícios e erros de uso.
+
+### E. Recompensas: Fragmentos de Forja
+*   **Recompensa de Progresso**: Ao derrotar inimigos e superar andares na Torre Infinita, o jogador é recompensado com uma nova moeda especial chamada **Fragmentos de Forja** (`forgeFragments`).
+*   **Escalonamento**: A quantidade de Fragmentos de Forja concedida cresce progressivamente a cada andar superado, incentivando o avanço vertical e a progressão contínua.
+*   **Exibição na HUD**: O saldo acumulado de Fragmentos de Forja é persistido no save do jogador e exibido dinamicamente no cabeçalho superior do jogo (ao lado do Ouro e das Chaves), provendo feedback visual constante sobre a economia do herói.
+
 ---
 
 ## 11. Sistema de Salvamento e Carregamento
@@ -788,6 +801,12 @@ Para otimizar o gerenciamento do inventário de 30 slots, o jogador pode realiza
 *   **Vender Comuns & Mágicos:** Realiza a venda instantânea de todos os itens do inventário de raridade Comum, Rara e Épica.
 *   **Vender Lendários:** Realiza a venda instantânea de todos os itens do inventário de raridade Lendária (preservando itens Ancestrais e Místicos).
 
+### E. Organização em Abas do Inventário (Equipamentos vs. Consumíveis)
+Para otimizar o espaço visual da interface (especialmente em dispositivos móveis) e garantir a segurança dos recursos mais raros obtidos pelo jogador, o inventário geral foi reestruturado em duas abas principais de navegação:
+1.  **Aba de Equipamentos**: Destinada a abrigar armas, armaduras, manoplas, elmos e perneiras que podem ser equipados ativamente pelo personagem. É nesta aba que estão posicionados os botões de **Venda em Lote** ("Vender Comuns & Mágicos" e "Vender Lendários"), facilitando a limpeza rápida de slots.
+2.  **Aba de Consumíveis**: Destinada a abrigar itens de uso imediato ou moedas em forma de item, como Baús de Equipamentos Lendários/Ancestrais, Baús de Relíquias, Chaves da Torre e Fragmentos de Alma Instável.
+    *   *Proteção contra Vendas*: Todos os itens contidos na aba de Consumíveis são protegidos por travas de sistema contra vendas em massa ou rápidas, prevenindo que o jogador venda acidentalmente moedas raras ou consumíveis de alto valor estratégico adquiridos na Loja ou como recompensas.
+
 ---
 
 ## 13. Altar de Forja Mística
@@ -804,19 +823,19 @@ Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatori
 *   **Nível Místico Máximo**: O nível místico máximo de destino permitido para qualquer item é **+5**.
 
 ### B. Custo de Fusão
-A fusão exige o pagamento de uma taxa em Ouro que aumenta exponencialmente dependendo do nível místico resultante:
-*   **Fusão Inicial** (Gera Místico +1): $500$ Ouro.
+A fusão exige o pagamento de uma taxa combinada de Ouro e **Fragmentos de Forja** que aumenta progressivamente dependendo do nível místico resultante:
+*   **Fusão Inicial** (Gera Místico +1): $500$ Ouro e $100$ Fragmentos de Forja.
 *   **Fusão de Itens Místicos** (Gera Místico $+2$ até $+5$):
-    *   Místico +1 para Místico +2: $1.000$ Ouro.
-    *   Demais fusões: $100 \times 5^L$ Ouro (onde $L$ é o nível de origem).
+    *   Místico +1 para Místico +2: $1.000$ Ouro e $250$ Fragmentos de Forja.
+    *   Demais fusões: Ouro escalado por $100 \times 5^L$ (onde $L$ é o nível de origem) e Fragmentos escalados proporcionalmente.
 
-| Nível de Origem | Nível Resultante | Custo em Ouro |
-| :--- | :--- | :--- |
-| Convencional + Convencional | Místico +1 | $500$ Ouro |
-| Místico +1 + Místico +1 | Místico +2 | $1.000$ Ouro |
-| Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro |
-| Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro |
-| Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro |
+| Nível de Origem | Nível Resultante | Custo em Ouro | Custo em Fragmentos de Forja |
+| :--- | :--- | :--- | :--- |
+| Convencional + Convencional | Místico +1 | $500$ Ouro | $100$ Fragmentos |
+| Místico +1 + Místico +1 | Místico +2 | $1.000$ Ouro | $250$ Fragmentos |
+| Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro | $500$ Fragmentos |
+| Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro | $1.000$ Fragmentos |
+| Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro | $2.500$ Fragmentos |
 
 ### C. Regras de Fusão — Fórmula Assimétrica de Atributos
 Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são combinados no novo item místico seguindo uma **fórmula assimétrica** que recompensa o uso de itens complementares em vez de penalizar o item mais valioso:
@@ -895,6 +914,10 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   **Mecânica de Fade-Out/Fade-In**: Implementação de transições de fade-out e fade-in de tela para avanço de andares. O herói corre em direção ao próximo desafio e ressurge na posição inicial aguardando a aproximação do oponente.
     *   **Correções de Animação e HUD**: Ajuste para sincronizar o nome e a vida dos heróis em movimento, ocultação imediata do nome do inimigo abatido, correção da orientação do sprite ao retornar para as fases normais após derrotas na Torre e renderização do andar atual da Torre (`TORRE INFINITA - Andar X`) no painel de progresso do topo da tela.
     *   **Prevenção de Dano Prematuro**: Restrição de estados no motor de combate (`CombatFSM.ts`), bloqueando ataques básicos, toques automáticos, ativações de frenesi, e conjuração de habilidades ativas (via auto-cast ou manualmente) enquanto o herói ou o inimigo estiverem em transição ou aproximação (estados `MOVING` e `TRANSITION`).
+    *   **🔑 Chaves da Torre & Entrada Controlada**: Introdução do item consumível `tower_key`. Uma chave é exigida e deduzida ao iniciar a subida. O botão de início de combate valida o saldo de chaves. As chaves dropam dos monstros na campanha normal com chance escalada por Sorte. O uso direto de chaves no inventário é bloqueado com mensagem explicativa.
+    *   **🎒 Inventário Organizado em Abas**: Segmentação visual e lógica do inventário entre as abas de "Equipamentos" e "Consumíveis", otimizando a interface móvel e protegendo recursos valiosos e consumíveis (baús, chaves, fragmentos) contra venda rápida ou em lote acidental.
+    *   **⚒️ Nova Economia de Fragmentos de Forja**: Adição dos Fragmentos de Forja como recompensa progressiva por andar na Torre Infinita. Esta nova moeda atua como insumo obrigatório ao lado do Ouro na Grande Forja para permitir a fusão e o aprimoramento de equipamentos Místicos.
+    *   **📊 Indicadores HUD Globais**: Inclusão de contadores persistentes e dinâmicos para chaves da torre e fragmentos de forja no cabeçalho superior global da interface de jogo.
 
 ### Versão 4.0.0
 *   **🌌 O Purgatório e as Relíquias (Major Update)**:

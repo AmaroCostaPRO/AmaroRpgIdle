@@ -403,6 +403,7 @@ interface GameState {
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
+  addForgeFragments(amount: number): void;
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -436,6 +437,7 @@ interface GameState {
   unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon'): void;
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
+  dismantleItem(itemId: string): void;
   sellAllCommonAndRare(): void;
   sellAllLegendary(): void;
   addItemToInventory(item: EquipmentItem): boolean;
@@ -529,6 +531,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     activeDailyChallenge: false,
     runStartTime: Date.now(),
     purgatoryCompleted: false,
+    forgeFragments: 0,
   };
 };
 
@@ -729,6 +732,15 @@ export const useGameStore = create<GameState>((set) => ({
     const updated = {
       ...state.character,
       gold: (state.character.gold || 0) + amount
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  addForgeFragments: (amount) => set((state) => {
+    const updated = {
+      ...state.character,
+      forgeFragments: (state.character.forgeFragments || 0) + amount
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1072,6 +1084,7 @@ export const useGameStore = create<GameState>((set) => ({
             equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
             inventory: char.inventory || defaults.inventory,
             inventorySlots: char.inventorySlots || defaults.inventorySlots,
+            forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
           };
 
           const currentSlotVal = (() => {
@@ -1419,6 +1432,7 @@ export const useGameStore = create<GameState>((set) => ({
             equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
             inventory: char.inventory || defaults.inventory,
             inventorySlots: char.inventorySlots || defaults.inventorySlots,
+            forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
           };
 
           if (merged.classLevels) {
@@ -1476,6 +1490,7 @@ export const useGameStore = create<GameState>((set) => ({
           equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
           inventory: char.inventory || defaults.inventory,
           inventorySlots: char.inventorySlots || defaults.inventorySlots,
+          forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
           lastSaved: new Date().toISOString()
         };
 
@@ -1544,7 +1559,13 @@ export const useGameStore = create<GameState>((set) => ({
     const item = state.character.equipment[slot];
     if (!item) return state;
 
-    if (state.character.inventory.length >= state.character.inventorySlots) {
+    const equipmentCount = state.character.inventory.filter(i => 
+      i.slot !== 'consumable' || 
+      i.consumableType === 'chest_legendary' || 
+      i.consumableType === 'chest_ancestral'
+    ).length;
+
+    if (equipmentCount >= state.character.inventorySlots) {
       return state;
     }
 
@@ -1592,6 +1613,28 @@ export const useGameStore = create<GameState>((set) => ({
     if (goldEarned > 0) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu [${item.name}] por +${goldEarned} Ouro!` });
     }
+
+    return { character: updated };
+  }),
+
+  dismantleItem: (itemId) => set((state) => {
+    const item = state.character.inventory.find(i => i.id === itemId);
+    if (!item) return state;
+
+    if (item.slot === 'consumable') return state;
+
+    const newInventory = state.character.inventory.filter(i => i.id !== itemId);
+    
+    const updated = {
+      ...state.character,
+      forgeFragments: (state.character.forgeFragments || 0) + 1,
+      inventory: newInventory
+    };
+    saveToLocalStorage(updated);
+
+    bridge.emit(GameEvent.LOG_EMITTED, { 
+      message: `🛠️ Você desmontou [${item.name}] e obteve +1 Fragmento de Forja!` 
+    });
 
     return { character: updated };
   }),
@@ -1665,16 +1708,29 @@ export const useGameStore = create<GameState>((set) => ({
         return { character: updated };
       }
 
-      if (state.character.inventory.length < state.character.inventorySlots) {
-        success = true;
-        const updated = {
-          ...state.character,
-          inventory: [...state.character.inventory, item]
-        };
-        saveToLocalStorage(updated);
-        return { character: updated };
+      const isEquipment = item.slot !== 'consumable' || 
+                          item.consumableType === 'chest_legendary' || 
+                          item.consumableType === 'chest_ancestral';
+
+      if (isEquipment) {
+        const equipmentCount = state.character.inventory.filter(i => 
+          i.slot !== 'consumable' || 
+          i.consumableType === 'chest_legendary' || 
+          i.consumableType === 'chest_ancestral'
+        ).length;
+
+        if (equipmentCount >= state.character.inventorySlots) {
+          return state;
+        }
       }
-      return state;
+
+      success = true;
+      const updated = {
+        ...state.character,
+        inventory: [...state.character.inventory, item]
+      };
+      saveToLocalStorage(updated);
+      return { character: updated };
     });
 
     if (autoSold && goldEarned > 0) {
@@ -1720,6 +1776,7 @@ export const useGameStore = create<GameState>((set) => ({
       }
 
       let cost = 500;
+      let fragmentCost = 100;
       let targetMysticLevel = 1;
 
       if (isBothMystic) {
@@ -1737,11 +1794,18 @@ export const useGameStore = create<GameState>((set) => ({
 
         targetMysticLevel = lvl1 + 1;
         const costs = [0, 1000, 2500, 12500, 62500];
+        const fragmentCosts = [0, 250, 500, 1000, 2500];
         cost = costs[lvl1] || 500;
+        fragmentCost = fragmentCosts[lvl1] || 250;
       }
 
       if ((state.character.gold || 0) < cost) {
         result = { success: false, message: `Ouro insuficiente. Requer ${cost} Ouro.` };
+        return state;
+      }
+
+      if ((state.character.forgeFragments || 0) < fragmentCost) {
+        result = { success: false, message: `Fragmentos de Forja insuficientes. Requer ${fragmentCost} Fragmentos.` };
         return state;
       }
 
@@ -1873,6 +1937,7 @@ export const useGameStore = create<GameState>((set) => ({
       const updated = {
         ...state.character,
         gold: (state.character.gold || 0) - cost,
+        forgeFragments: (state.character.forgeFragments || 0) - fragmentCost,
         inventory: [...filteredInventory, newItem]
       };
 
@@ -1903,9 +1968,19 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: `Ouro insuficiente. Requer ${cost} Ouro.` };
         return state;
       }
-      if (state.character.inventory.length >= state.character.inventorySlots) {
-        result = { success: false, message: 'Inventário cheio! Libere espaço antes de comprar.' };
-        return state;
+
+      const isEquipmentChest = type === 'chest_legendary' || type === 'chest_ancestral';
+      if (isEquipmentChest) {
+        const equipmentCount = state.character.inventory.filter(i => 
+          i.slot !== 'consumable' || 
+          i.consumableType === 'chest_legendary' || 
+          i.consumableType === 'chest_ancestral'
+        ).length;
+
+        if (equipmentCount >= state.character.inventorySlots) {
+          result = { success: false, message: 'Inventário de equipamentos cheio! Libere espaço antes de comprar.' };
+          return state;
+        }
       }
 
       const names = {
@@ -2008,15 +2083,24 @@ export const useGameStore = create<GameState>((set) => ({
         return { character: updated };
       }
 
+      if (item.consumableType === 'tower_key') {
+        result = { success: false, message: 'Chaves da Torre Infinita devem ser usadas no painel de Entrada da Torre.' };
+        return state;
+      }
+
       if (item.consumableType === 'chest_legendary' || item.consumableType === 'chest_ancestral') {
         const count = Math.floor(Math.random() * 3) + 1; // 1 a 3 itens
-        const slotsLivres = state.character.inventorySlots - state.character.inventory.length;
         
-        // Como o baú é removido, o ganho líquido de slots ocupados é count - 1.
-        // O limite é verificado comparando se a quantidade de novos itens cabe no espaço
-        // contando com o slot liberado pelo próprio baú.
+        const equipmentCount = state.character.inventory.filter(i => 
+          i.slot !== 'consumable' || 
+          i.consumableType === 'chest_legendary' || 
+          i.consumableType === 'chest_ancestral'
+        ).length;
+
+        const slotsLivres = state.character.inventorySlots - equipmentCount;
+        
         if (slotsLivres + 1 < count) {
-          result = { success: false, message: `Espaço insuficiente no inventário! Libere pelo menos ${count - slotsLivres - 1} slot(s) adicional(is).` };
+          result = { success: false, message: `Espaço insuficiente no inventário! Libere pelo menos ${count - slotsLivres - 1} slot(s) de equipamento adicional(is).` };
           return state;
         }
 

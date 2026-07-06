@@ -1499,6 +1499,35 @@ export class CombatFSM {
       }
     }
 
+    // Lógica de drop da Chave da Torre (apenas na campanha normal, não na torre e nem no desafio diário)
+    const isDaily = char.activeDailyChallenge;
+    const isTower = useTowerStore.getState().towerActive;
+
+    if (!isTower && !isDaily) {
+      const keyDropChance = isBoss ? 0.30 : (this.isElite ? 0.15 : 0.05);
+      const finalKeyChance = keyDropChance;
+
+      if (Math.random() < finalKeyChance) {
+        const towerKeyItem: EquipmentItem = {
+          id: `tower_key-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: 'Chave da Torre',
+          slot: 'consumable',
+          rarity: 'epic',
+          classId: char.classId,
+          spriteName: 'tower_key',
+          consumableType: 'tower_key',
+          stage: char.currentStage,
+          stats: {}
+        };
+        const addedKey = useGameStore.getState().addItemToInventory(towerKeyItem);
+        if (addedKey) {
+          bridge.emit(GameEvent.LOG_EMITTED, { 
+            message: `🔑 Você encontrou uma [${towerKeyItem.name}]!` 
+          });
+        }
+      }
+    }
+
     // === SISTEMA DE DROP DE EQUIPAMENTOS ===
     const luck = this.playerFinalStats.luck || 0;
     const baseDropChance = 0.05;
@@ -1689,8 +1718,6 @@ export class CombatFSM {
       }, 1500);
       return;
     }
-
-    const isTower = useTowerStore.getState().towerActive;
 
     if (isTower) {
       this.currentState = CombatState.TRANSITION;
