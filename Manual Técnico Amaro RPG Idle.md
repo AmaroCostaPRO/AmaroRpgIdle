@@ -114,6 +114,22 @@ Para melhorar a experiência de usabilidade em dispositivos móveis, foi adicion
 *   **Swipe para a Direita**: Retorna para a aba anterior à esquerda (ex.: de *Atributos* para *Combate*).
 *   **Trava de Segurança e Prevenção de Conflitos**: O sistema detecta se o gesto é predominantemente horizontal (variação horizontal pelo menos 1.5 vezes maior que a vertical) para não conflitar com a rolagem vertical de listas e tabelas. Adicionalmente, gestos iniciados em elementos interativos com arrasto próprio (como sliders de configuração e a árvore de habilidades rolável horizontalmente `.tree-container`) são ignorados automaticamente para preservar a jogabilidade e usabilidade nativas.
 
+### G. Padrão Técnico e Visual para Sprites (Ativos Gráficos)
+Para garantir a coesão visual e o funcionamento adequado dos efeitos de transparência dinâmica na engine Phaser, todas as artes de heróis e monstros devem seguir estritamente as especificações abaixo:
+1.  **Estilo Artístico (Pixel Art de Alta Densidade - 512-bit / HD)**:
+    *   Os sprites não devem utilizar pixels excessivamente grandes/rústicos (estilo 8-bit ou 16-bit clássicos) e também não devem ser ilustrações vetoriais completamente lisas.
+    *   Devem adotar um estilo de pixel art moderno e de alta densidade (equivalente a 512-bit ou superior em uma grade 1024x1024), caracterizado por contornos pretos finos e nítidos, pelagens ou superfícies com texturas de micro-pixels feitas à mão, e transições de sombreamento/dithering bem definidas.
+2.  **Dimensões da Imagem**:
+    *   Tamanho padrão de arquivo: `1024 x 1024` pixels.
+    *   A arte deve estar centralizada horizontalmente no canvas da imagem.
+3.  **Fundo da Imagem (Tratamento de Transparência)**:
+    *   O fundo deve ser **branco puro sólido (`#FFFFFF`)**, sem nenhum ruído, degradê ou variação de cor.
+    *   Não são permitidas auras, brilhos coloridos, efeitos de iluminação externa (*outer glow*) ou suavizações com anti-aliasing em tons de cinza na borda externa dos sprites, pois a função `makeTextureTransparent` remove o branco puro. Qualquer ruído causará uma borda branca desagradável ao redor do monstro no jogo.
+4.  **Sombra Sob os Pés (Drop Shadow)**:
+    *   Todo combatente deve conter uma **sombra elíptica preta sólida absoluta (`#000000`)** sob os pés/patas.
+    *   A sombra não deve ter degradês, transparências (*opacidade reduzida*) ou bordas esfumaçadas. Deve ser preta 100% opaca.
+    *   A elipse de sombra deve estar perfeitamente alinhada e em contato direto com a base dos pés do personagem, garantindo que o sprite pareça assentado corretamente no chão do cenário de combate.
+
 ---
 
 ## 4. Sistema de Classes e Maestria
