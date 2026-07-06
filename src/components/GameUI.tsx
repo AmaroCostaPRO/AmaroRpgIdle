@@ -726,7 +726,7 @@ const AttributePanel: React.FC = () => {
       case 'magic': return 'Magia (Dano Mago/Clérigo)';
       case 'dexterity': return 'Destreza (Dano Arqueiro/Ladrão)';
       case 'constitution': return 'Constituição (Dano Paladino)';
-      case 'luck': return 'Sorte (Drop & Raridade de Itens)';
+      case 'luck': return 'Sorte (Dano Necromante & Drop)';
       case 'touch': return 'Toque (Dano de Clique/Tap)';
       default: return attr;
     }
