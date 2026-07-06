@@ -200,10 +200,11 @@ O herói pode encontrar e equipar peças de equipamentos derrubados por monstros
 *   **Raro (`rare`)**: Concede bônus em **2 atributos** distintos. O nome é associado ao conjunto temático da classe ativa (ex: "Peitoral do Senhor da Guerra").
 *   **Lendário (`legendary`)**: Concede bônus em **3 atributos** distintos. Possui multiplicador de escala alto e nome associado ao conjunto temático da classe.
 *   **Ancestral (`ancestral`)**: Concede bônus em **3 atributos** de altíssima escala. Disponível apenas para jogadores que realizaram a primeira Ascensão (`ascensionCount >= 1`), com taxa de drop de 10% sob itens normais, gerando apenas o set temático da classe ativa no momento do combate. Atributos base gerados com multiplicador de escala místico de $4.5\times$ (superior ao $2.5\times$ lendário). Identificado visualmente por uma borda tracejada em tom violeta, brilho místico pulsante e indicador estelar no slot.
+*   **Celestial (`celestial`)**: Equipamento de tier supremo disponível como drop especial na campanha do Purgatório apenas após derrotar o chefe da Fase 30 (`boss_crystal_guardian`) pela segunda vez em diante. Possui 10% de chance de substituir os drops normais. Concede bônus em **3 atributos** de escala divina com multiplicador de atributos de **$6.0\times$**. Os itens deste set recebem um bônus especial de **$2.0\times$** em seu valor de venda por ouro.
 
 O valor final de cada atributo concedido pelo item é calculado com base na Fase atual do combate onde o item caiu:
 $$\text{Atributo do Item} = \max\left(1, \text{round}\left( \text{Fase} \times \text{Multiplicador Raridade} \times \text{Random}(0.8, 1.2) \right)\right)$$
-*Onde o $\text{Multiplicador Raridade}$ é $1.0$ para Comum, $1.5$ para Raro, $2.5$ para Lendário e $4.5$ para Ancestral.*
+*Onde o $\text{Multiplicador Raridade}$ é $1.0$ para Comum, $1.5$ para Raro, $2.5$ para Lendário, $4.5$ para Ancestral e $6.0$ para Celestial.*
 
 ### B. Bônus de Conjunto (Sets)
 Equipar múltiplos itens raros, lendários ou ancestrais pertencentes ao mesmo conjunto de classe ativa libera bônus adicionais de atributos acumulativos a partir de 2, 3 e 5 peças:
@@ -293,6 +294,38 @@ graph LR
         *   2 peças: $+250$ Destreza
         *   3 peças: $+300$ Força, $+150$ Sorte
         *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Força, +150 Sorte)*
+
+*   **Sets Celestiais (Tier Supremo - Pós-Purgatório Fase 30)**:
+    Estes conjuntos representam a progressão máxima de endgame e são liberados após vencer o Guardião dos Cacos duas ou mais vezes no Purgatório:
+    *   **Set Celestial do Semideus (`warrior`)**:
+        *   2 peças: $+160$ Força
+        *   3 peças: $+200$ Constituição, $+100$ Sorte
+        *   5 peças: $+400$ Força *(Total acumulado: +560 Força, +200 Con, +100 Sorte)*
+    *   **Set Celestial do Senhor do Tempo (`mage`)**:
+        *   2 peças: $+160$ Magia
+        *   3 peças: $+200$ Constituição, $+100$ Sorte
+        *   5 peças: $+400$ Magia *(Total acumulado: +560 Magia, +200 Con, +100 Sorte)*
+    *   **Set Celestial do Observador Estelar (`ranger`)**:
+        *   2 peças: $+160$ Destreza
+        *   3 peças: $+200$ Constituição, $+100$ Sorte
+        *   5 peças: $+400$ Destreza *(Total acumulado: +560 Destreza, +200 Con, +100 Sorte)*
+    *   **Set Celestial do Arcanjo (`paladin`)**:
+        *   2 peças: $+160$ Constituição
+        *   3 peças: $+200$ Força, $+100$ Sorte
+        *   5 peças: $+400$ Constituição *(Total acumulado: +560 Constituição, +200 Força, +100 Sorte)*
+    *   **Set Celestial do Serafim (`cleric`)**:
+        *   2 peças: $+160$ Magia
+        *   3 peças: $+200$ Constituição, $+100$ Sorte
+        *   5 peças: $+400$ Magia *(Total acumulado: +560 Magia, +200 Con, +100 Sorte)*
+    *   **Set Celestial do Espectro Astral (`rogue`)**:
+        *   2 peças: $+160$ Destreza
+        *   3 peças: $+200$ Força, $+100$ Sorte
+        *   5 peças: $+400$ Destreza *(Total acumulado: +560 Destreza, +200 Força, +100 Sorte)*
+    *   **Set Celestial do Ceifador de Estrelas (`necromancer`)**:
+        *   2 peças: $+160$ Magia
+        *   3 peças: $+200$ Constituição, $+100$ Sorte
+        *   5 peças: $+400$ Magia *(Total acumulado: +560 Magia, +200 Con, +100 Sorte)*
+
 ### C. Desmonte de Equipamentos
 *   **Reciclagem e Recompensas**: Para fornecer uma utilidade ecológica aos itens de equipamento sobressalentes acumulados, o jogador pode optar por desmontar qualquer peça diretamente a partir do modal de detalhes do inventário.
 *   **Taxa de Retorno Estritamente Balanceada**: O desmonte de qualquer equipamento de qualquer slot (Cabeça, Peito, Pernas, Luvas, Arma) ou nível de raridade (Comum, Raro, Lendário, Ancestral, Místico) retorna estritamente **1 Fragmento de Forja** (`forgeFragments`). Itens do tipo consumível (como chaves ou baús) não possuem opção de desmonte.
@@ -907,7 +940,24 @@ Ao efetuar a compra de qualquer item na Loja, ele é adicionado diretamente ao i
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.1.0 (Atual)
+### Versão 4.2.0 (Atual)
+*   **🌌 Sets Celestiais e Expansão da Forja (Memórias Celestiais)**:
+    *   **Sets Celestiais de Tier Supremo**: Introdução de 7 novos conjuntos temáticos exclusivos de tier Celestial. Estes itens possuem um multiplicador de atributos divino de **$6.0\times$** (superior aos $4.5\times$ dos Sets Ancestrais e $7.0\times$ dos Pandemoníacos).
+    *   **Desbloqueio de Drop Progressivo**: Os Sets Celestiais tornam-se elegíveis para drop especial na campanha do Purgatório (com 10% de chance de substituir os drops convencionais) apenas após derrotar o chefe da Fase 30 (`boss_crystal_guardian`) pela segunda vez em diante.
+    *   **Bônus de Valor de Venda**: Itens pertencentes aos conjuntos Celestiais ganham um bônus de **$2.0\times$** em seu valor de venda por ouro no inventário.
+    *   **Extensão do Refinamento Místico**: Elevação do nível místico máximo de refinamento de **+5** para **+8** na Forja.
+    *   **Nova Curva de Custos Exponencial**: Implementação de nova fórmula de custos para fusões místicas avançadas a partir do nível +5 ($L \ge 5$):
+        $$\text{Custo de Ouro} = 100 \times 5^{L}$$
+    *   **Escalonamento de Fragmentos de Forja**: Ajuste progressivo nos custos de Fragmentos de Forja necessários para os níveis de refinamento avançados:
+        *   Para $+6$ ($L = 5$): $5.000$ Fragmentos.
+        *   Para $+7$ ($L = 6$): $10.000$ Fragmentos.
+        *   Para $+8$ ($L = 7$): $20.000$ Fragmentos.
+    *   **Refatoração do Painel de Comparação da Forja**: Substituição do antigo preview de fusão de lista vertical por uma **visualização reativa lado a lado em 3 colunas**:
+        *   *Coluna 1 (Esquerda)*: Detalhes, raridade e atributos do item de Sacrifício A.
+        *   *Coluna 2 (Centro)*: Resultados estimados da fusão, exibindo o nome final calculado (incluindo o nível místico e sufixos de conjuntos) e badges de comparação na cor verde esmeralda destacando o ganho líquido de atributos em relação ao item base.
+        *   *Coluna 3 (Direita)*: Detalhes, raridade e atributos do item de Sacrifício B.
+
+### Versão 4.1.0
 *   **🏰 O Desafio da Torre Infinita**:
     *   **Modo de Combate Estático**: Transição completa do fluxo de sidescrolling dinâmico para combates estáticos centralizados na Torre Infinita.
     *   **Background e Grounding Exclusivos**: Inclusão do asset dedicado `tower_background.png` com alinhamento grounded calibrado no solo vertical em $Y = 532.5$, eliminando inconsistências físicas e o efeito visual de "torre dupla".

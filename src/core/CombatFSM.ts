@@ -1564,18 +1564,23 @@ export class CombatFSM {
       const classId = char.classId;
       const ascensionCount = char.ascensionCount || 0;
       
-      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop
-      const isPandemoniumDrop = (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
+      // Verificação de desbloqueio celestial (derrotar o Guardião dos Cacos / boss_crystal_guardian pela segunda vez em diante)
+      const crystalGuardianKills = char.killCount?.['boss_crystal_guardian'] || 0;
+      const isCelestialUnlocked = crystalGuardianKills >= 2;
+      const isCelestialDrop = isCelestialUnlocked && Math.random() < 0.10;
+
+      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop (se não for Celestial)
+      const isPandemoniumDrop = !isCelestialDrop && (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
       
-      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Pandemônio)
-      const isAncestralDrop = !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
+      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial e nem Pandemônio)
+      const isAncestralDrop = !isCelestialDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
       
-      // Se for drop do Pandemônio o multiplicador é 7.0; se for Ancestral é 4.5; senão segue o padrão
-      const mult = isPandemoniumDrop ? 7.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0)));
+      // Se for drop Celestial o multiplicador é 6.0; se for Pandemônio é 7.0; se for Ancestral é 4.5; senão segue o padrão
+      const mult = isCelestialDrop ? 6.0 : (isPandemoniumDrop ? 7.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0))));
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],
-        magic: ['magic', 'constitution', 'luck'], // Opa, corrigindo também a chave "mage" que no código original dizia "mage" mas aqui corrigiremos para necromancer e as outras
+        magic: ['magic', 'constitution', 'luck'],
         mage: ['magic', 'constitution', 'luck'],
         ranger: ['dexterity', 'constitution', 'luck'],
         paladin: ['constitution', 'strength', 'luck'],
@@ -1586,7 +1591,7 @@ export class CombatFSM {
       
       const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
       const itemStats: Partial<BaseStats> = {};
-      const numAttributes = isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+      const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
       
       const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
       pickedStats.forEach((statKey) => {
@@ -1623,6 +1628,16 @@ export class CombatFSM {
         rogue: 'Set Pandemoníaco do Executor',
         necromancer: 'Set Pandemoníaco do Devorador de Almas'
       };
+
+      const celestialSetNames: Record<string, string> = {
+        warrior: 'Set Celestial do Semideus',
+        mage: 'Set Celestial do Senhor do Tempo',
+        ranger: 'Set Celestial do Observador Estelar',
+        paladin: 'Set Celestial do Arcanjo',
+        cleric: 'Set Celestial do Serafim',
+        rogue: 'Set Celestial do Espectro Astral',
+        necromancer: 'Set Celestial do Ceifador de Estrelas'
+      };
       
       const slotNames: Record<string, Record<string, string>> = {
         warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
@@ -1638,7 +1653,23 @@ export class CombatFSM {
       let name = '';
       let setName: string | undefined = undefined;
       
-      if (isPandemoniumDrop) {
+      if (isCelestialDrop) {
+        setName = celestialSetNames[classId] || `Set Celestial de ${classId}`;
+        let cleanSetName = setName;
+        if (cleanSetName.startsWith('Set Celestial do ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial do ', '');
+        } else if (cleanSetName.startsWith('Set Celestial de ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+        }
+        let suffix = 'Celestial';
+        if (baseName.endsWith('as')) {
+          suffix = 'Celestiais';
+        } else if (baseName.endsWith('a')) {
+          suffix = 'Celestial';
+        }
+        name = `${baseName} ${suffix} do ${cleanSetName}`;
+        rarity = 'legendary';
+      } else if (isPandemoniumDrop) {
         setName = pandemoniumSetNames[classId] || `Set Pandemoníaco de ${classId}`;
         let cleanSetName = setName;
         if (cleanSetName.startsWith('Set Pandemoníaco do ')) {

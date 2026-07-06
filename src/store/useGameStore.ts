@@ -32,10 +32,12 @@ export const calculateItemSellValue = (item: EquipmentItem): number => {
   const goldScale = Math.pow(1.25, itemStage - 1);
   let finalValue = baseValue * goldScale;
 
-  // Bônus para itens de sets especiais (Ancestral ou Pandemoníaco)
+  // Bônus para itens de sets especiais (Ancestral, Celestial ou Pandemoníaco)
   if (item.setName) {
     if (item.setName.startsWith('Set Pandemoníaco')) {
       finalValue *= 3.0; // Itens Pandemoníacos valem 3x mais
+    } else if (item.setName.startsWith('Set Celestial')) {
+      finalValue *= 2.0; // Itens Celestiais valem 2x mais
     } else if (item.setName.startsWith('Set Ancestral')) {
       finalValue *= 1.5; // Itens Ancestrais valem 1.5x mais
     }
@@ -1787,16 +1789,28 @@ export const useGameStore = create<GameState>((set) => ({
           result = { success: false, message: 'Itens Místicos devem ter o mesmo nível para fusão.' };
           return state;
         }
-        if (lvl1 >= 5) {
-          result = { success: false, message: 'O nível máximo de item Místico é +5.' };
+        if (lvl1 >= 8) {
+          result = { success: false, message: 'O nível máximo de item Místico é +8.' };
           return state;
         }
 
         targetMysticLevel = lvl1 + 1;
-        const costs = [0, 1000, 2500, 12500, 62500];
-        const fragmentCosts = [0, 250, 500, 1000, 2500];
-        cost = costs[lvl1] || 500;
-        fragmentCost = fragmentCosts[lvl1] || 250;
+        if (lvl1 < 5) {
+          const costs = [0, 1000, 2500, 12500, 62500];
+          const fragmentCosts = [0, 250, 500, 1000, 2500];
+          cost = costs[lvl1] || 500;
+          fragmentCost = fragmentCosts[lvl1] || 250;
+        } else {
+          // Fórmula: 100 * 5^L
+          cost = 100 * Math.pow(5, lvl1);
+          // Fragmentos: 5000 para lvl 5 (+6), 10000 para lvl 6 (+7), 20000 para lvl 7 (+8)
+          const extraFragmentCosts: Record<number, number> = {
+            5: 5000,
+            6: 10000,
+            7: 20000
+          };
+          fragmentCost = extraFragmentCosts[lvl1] || 20000;
+        }
       }
 
       if ((state.character.gold || 0) < cost) {
@@ -1862,6 +1876,7 @@ export const useGameStore = create<GameState>((set) => ({
         let cleanSetName = item1.setName;
         const isAncestral = item1.setName.startsWith('Set Ancestral');
         const isPandemonium = item1.setName.startsWith('Set Pandemoníaco');
+        const isCelestial = item1.setName.startsWith('Set Celestial');
         
         if (isAncestral) {
           if (cleanSetName.startsWith('Set Ancestral do ')) {
@@ -1889,6 +1904,23 @@ export const useGameStore = create<GameState>((set) => ({
           // Substitui Mística por Mística Pandemoníaca
           baseName = baseName.replace('Mística', 'Mística Pandemoníaca');
           baseName = baseName.replace('Místico', 'Místico Pandemoníaco');
+          
+          if (item1.setName.includes(' do ')) {
+            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+          } else if (item1.setName.includes(' da ')) {
+            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+          } else {
+            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          }
+        } else if (isCelestial) {
+          if (cleanSetName.startsWith('Set Celestial do ')) {
+            cleanSetName = cleanSetName.replace('Set Celestial do ', '');
+          } else if (cleanSetName.startsWith('Set Celestial de ')) {
+            cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+          }
+          // Substitui Mística por Mística Celestial
+          baseName = baseName.replace('Mística', 'Mística Celestial');
+          baseName = baseName.replace('Místico', 'Místico Celestial');
           
           if (item1.setName.includes(' do ')) {
             newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;

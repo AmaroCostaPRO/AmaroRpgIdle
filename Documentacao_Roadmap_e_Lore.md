@@ -66,19 +66,19 @@ Para manter a imersão sem sobrecarregar a jogabilidade ou exigir novos motores 
 ## 2. Linha do Tempo e Roadmap das Versões
 
 ```
-[v3.7.0] (Atual)
+[v4.2.0] (Atual)
    │
    ├──► [v3.5.0] Elites do Vazio (Monstros com afixos + Lore no Bestiário) [IMPLEMENTADO]
    ├──► [v3.6.0] Trilha da Ascensão (Desafios Diários + Recordes) [IMPLEMENTADO]
    ├──► [v3.7.0] Ecos Instáveis (Sistema básico de Relíquias + useRelicStore) [IMPLEMENTADO]
    │
-[v4.0.0] O Purgatório e as Relíquias (Major Update) [PLANEJADO]
+[v4.0.0] O Purgatório e as Relíquias (Major Update) [IMPLEMENTADO]
    │   ├── Novo Território: Purgatório (Fases 21-30) e Chefe de 2 Fases
    │   ├── Expansão do Sistema de Relíquias (8 Relíquias com habilidades ativas no Nível 5)
    │   └── Nova Classe Secundária: Necromante
    │
-   ├──► [v4.1.0] Torre Infinita (Modo semanal vertical sem regeneração de HP/Mana) [PLANEJADO]
-   ├──► [v4.2.0] Memórias Celestiais (Sets Celestiais + Extensão de Forja para +8) [PLANEJADO]
+   ├──► [v4.1.0] Torre Infinita (Modo semanal vertical sem regeneração de HP/Mana) [IMPLEMENTADO]
+   ├──► [v4.2.0] Memórias Celestiais (Sets Celestiais + Extensão de Forja para +8) [IMPLEMENTADO]
    ├──► [v4.3.0] Codex de Lendas (Protótipo de leitura de Lore de conquistas) [PLANEJADO]
    │
 [v5.0.0] Transcendência e o Segundo Ciclo (Major Update) [PLANEJADO]
@@ -95,9 +95,9 @@ Para manter a imersão sem sobrecarregar a jogabilidade ou exigir novos motores 
 | **3.5.0** | Menor | Elites e Afixos de Monstros | O vazio começa a "aprender" a imitar os heróis. | `[IMPLEMENTADO]` |
 | **3.6.0** | Menor | Desafios Diários e Recordes | O ciclo de Ascensão ganha marcos mensuráveis. | `[IMPLEMENTADO]` |
 | **3.7.0** | Menor | Relíquias (prévia) | Primeiros cacos de Alma "estranhos" começam a cair. | `[IMPLEMENTADO]` |
-| **4.0.0** | Grande | O Purgatório e as Relíquias | O vazio entre os cacos ganha um nome e um território. | `[PLANEJADO]` |
-| **4.1.0** | Menor | Torre Infinita | Um teste vertical e isolado da própria Alma. | `[PLANEJADO]` |
-| **4.2.0** | Menor | Sets Celestiais e Refinamento de Forja | Memórias de uma vida ainda não vivida. | `[PLANEJADO]` |
+| **4.0.0** | Grande | O Purgatório e as Relíquias | O vazio entre os cacos ganha um nome e um território. | `[IMPLEMENTADO]` |
+| **4.1.0** | Menor | Torre Infinita | Um teste vertical e isolado da própria Alma. | `[IMPLEMENTADO]` |
+| **4.2.0** | Menor | Sets Celestiais e Refinamento de Forja | Memórias de uma vida ainda não vivida. | `[IMPLEMENTADO]` |
 | **4.3.0** | Menor | Codex de Lendas (prévia) | O jogo começa a registrar a própria história do jogador. | `[PLANEJADO]` |
 | **5.0.0** | Grande | Transcendência e o Segundo Ciclo | A Alma-Mundo descobre que já se partiu antes. | `[PLANEJADO]` |
 

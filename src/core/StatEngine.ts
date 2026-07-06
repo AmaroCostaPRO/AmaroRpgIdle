@@ -198,6 +198,69 @@ export const SET_BONUSES: Record<string, {
       3: { constitution: 300, luck: 150 },
       5: { magic: 600 }
     }
+  },
+  'Set Celestial do Semideus': {
+    name: 'Set Celestial do Semideus',
+    classId: 'warrior',
+    bonuses: {
+      2: { strength: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { strength: 400 }
+    }
+  },
+  'Set Celestial do Senhor do Tempo': {
+    name: 'Set Celestial do Senhor do Tempo',
+    classId: 'mage',
+    bonuses: {
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
+    }
+  },
+  'Set Celestial do Observador Estelar': {
+    name: 'Set Celestial do Observador Estelar',
+    classId: 'ranger',
+    bonuses: {
+      2: { dexterity: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { dexterity: 400 }
+    }
+  },
+  'Set Celestial do Arcanjo': {
+    name: 'Set Celestial do Arcanjo',
+    classId: 'paladin',
+    bonuses: {
+      2: { constitution: 160 },
+      3: { strength: 200, luck: 100 },
+      5: { constitution: 400 }
+    }
+  },
+  'Set Celestial do Serafim': {
+    name: 'Set Celestial do Serafim',
+    classId: 'cleric',
+    bonuses: {
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
+    }
+  },
+  'Set Celestial do Espectro Astral': {
+    name: 'Set Celestial do Espectro Astral',
+    classId: 'rogue',
+    bonuses: {
+      2: { dexterity: 160 },
+      3: { strength: 200, luck: 100 },
+      5: { dexterity: 400 }
+    }
+  },
+  'Set Celestial do Ceifador de Estrelas': {
+    name: 'Set Celestial do Ceifador de Estrelas',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
+    }
   }
 };
 

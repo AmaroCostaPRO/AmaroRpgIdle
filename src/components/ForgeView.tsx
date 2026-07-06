@@ -121,15 +121,25 @@ export const ForgeView: React.FC = () => {
       if (lvl1 !== lvl2) {
         return { valid: false, reason: 'Itens Místicos devem ter o mesmo nível para fusão.', cost: 0, fragmentCost: 0, nextLevel: 1 };
       }
-      if (lvl1 >= 5) {
-        return { valid: false, reason: 'O nível máximo de item Místico é +5.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+      if (lvl1 >= 8) {
+        return { valid: false, reason: 'O nível máximo de item Místico é +8.', cost: 0, fragmentCost: 0, nextLevel: 1 };
       }
 
       nextLevel = lvl1 + 1;
-      const costs = [0, 1000, 2500, 12500, 62500];
-      const fragmentCosts = [0, 250, 500, 1000, 2500];
-      cost = costs[lvl1] || 500;
-      fragmentCost = fragmentCosts[lvl1] || 250;
+      if (lvl1 < 5) {
+        const costs = [0, 1000, 2500, 12500, 62500];
+        const fragmentCosts = [0, 250, 500, 1000, 2500];
+        cost = costs[lvl1] || 500;
+        fragmentCost = fragmentCosts[lvl1] || 250;
+      } else {
+        cost = 100 * Math.pow(5, lvl1);
+        const extraFragmentCosts: Record<number, number> = {
+          5: 5000,
+          6: 10000,
+          7: 20000
+        };
+        fragmentCost = extraFragmentCosts[lvl1] || 20000;
+      }
     }
 
     const hasGold = (character.gold || 0) >= cost;
@@ -190,6 +200,94 @@ export const ForgeView: React.FC = () => {
   };
 
   const previewStats = getMergedStatsPreview();
+
+  const getMergedItemName = (): string => {
+    if (!slot1) return '';
+    const lvl1 = slot1.mysticLevel || 1;
+    const targetMysticLevel = lvl1 + 1;
+    const slotNamesMap: Record<string, string> = {
+      weapon: 'Arma Mística',
+      head: 'Elmo Místico',
+      chest: 'Armadura Mística',
+      legs: 'Calça Mística',
+      gloves: 'Luva Mística'
+    };
+
+    let baseName = slotNamesMap[slot1.slot] || 'Item Místico';
+    let newName = `${baseName} +${targetMysticLevel}`;
+
+    if (slot1.setName) {
+      let cleanSetName = slot1.setName;
+      const isAncestral = slot1.setName.startsWith('Set Ancestral');
+      const isPandemonium = slot1.setName.startsWith('Set Pandemoníaco');
+      const isCelestial = slot1.setName.startsWith('Set Celestial');
+      
+      if (isAncestral) {
+        if (cleanSetName.startsWith('Set Ancestral do ')) {
+          cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
+        } else if (cleanSetName.startsWith('Set Ancestral de ')) {
+          cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+        }
+        baseName = baseName.replace('Mística', 'Mística Ancestral');
+        baseName = baseName.replace('Místico', 'Místico Ancestral');
+        
+        if (slot1.setName.includes(' do ')) {
+          newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+        } else if (slot1.setName.includes(' da ')) {
+          newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+        } else {
+          newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+        }
+      } else if (isPandemonium) {
+        if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
+        } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+        }
+        baseName = baseName.replace('Mística', 'Mística Pandemoníaca');
+        baseName = baseName.replace('Místico', 'Místico Pandemoníaco');
+        
+        if (slot1.setName.includes(' do ')) {
+          newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+        } else if (slot1.setName.includes(' da ')) {
+          newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+        } else {
+          newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+        }
+      } else if (isCelestial) {
+        if (cleanSetName.startsWith('Set Celestial do ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial do ', '');
+        } else if (cleanSetName.startsWith('Set Celestial de ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+        }
+        baseName = baseName.replace('Mística', 'Mística Celestial');
+        baseName = baseName.replace('Místico', 'Místico Celestial');
+        
+        if (slot1.setName.includes(' do ')) {
+          newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+        } else if (slot1.setName.includes(' da ')) {
+          newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+        } else {
+          newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+        }
+      } else {
+        if (cleanSetName.startsWith('Set do ')) {
+          cleanSetName = cleanSetName.replace('Set do ', '');
+        } else if (cleanSetName.startsWith('Set de ')) {
+          cleanSetName = cleanSetName.replace('Set de ', '');
+        }
+        
+        if (slot1.setName.includes(' do ')) {
+          newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
+        } else if (slot1.setName.includes(' da ')) {
+          newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
+        } else {
+          newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+        }
+      }
+    }
+    return newName;
+  };
 
   return (
     <div className="w-full flex flex-col gap-6 relative forge-view-root">
@@ -390,98 +488,164 @@ export const ForgeView: React.FC = () => {
         </div>
       </div>
 
-      {/* PAINEL LATERAL DE ESTATÍSTICAS E PRÉVIA */}
-      <div className="w-full flex flex-col md:flex-row gap-6">
+      {/* PAINEL DE COMPARAÇÃO DE ESTATÍSTICAS E PRÉVIA */}
+      <div className="w-full flex flex-col gap-6">
         
-        {/* COMPARAÇÃO DE ATRIBUTOS */}
-        <div className="panel w-full md:flex-1 p-4 flex flex-col min-h-[120px] md:h-[280px]">
-          <h3 className="text-sm font-bold text-gray-300 border-b border-[var(--border-subtle)] pb-2 mb-3">Resultado Estimado da Fusão</h3>
-          <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-            {slot1 && slot2 ? (
-              Object.keys(previewStats).map((statKey) => {
-                const key = statKey as keyof BaseStats;
-                const v1 = slot1.stats[key] || 0;
-                const v2 = slot2.stats[key] || 0;
-                const total = previewStats[key] || 0;
-                if (total === 0) return null;
-
-                const exclusivo = v1 === 0 || v2 === 0;
-                const maior = exclusivo ? total : Math.max(v1, v2);
-                const menor = exclusivo ? 0   : Math.min(v1, v2);
-                const menorReduzido = exclusivo ? 0 : Math.ceil(menor * 0.5);
-
-                return (
-                  <div key={key} className="flex flex-col text-xs bg-[var(--surface-2)]/60 border border-[var(--border-subtle)] rounded p-2 gap-1">
-                    <span className="font-semibold text-gray-300">{statLabels[key]}</span>
-
-                    {/* Linha de valores de entrada */}
-                    <div className="flex justify-between items-center text-gray-400">
-                      <span>Item A: <strong className="text-gray-200">+{v1}</strong></span>
-                      <span className="text-gray-600">+</span>
-                      <span>Item B: <strong className="text-gray-200">+{v2}</strong></span>
-                    </div>
-
-                    {/* Breakdown da fórmula */}
-                    {exclusivo ? (
-                      <div className="flex items-center justify-between bg-black/20 rounded px-1.5 py-0.5">
-                        <span className="text-gray-500 text-[10px]">Stat único — preservado integralmente</span>
-                        <span className="text-purple-400 font-bold">➔ +{total}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between bg-black/20 rounded px-1.5 py-0.5 gap-1">
-                        <span className="text-[10px] text-gray-400">
-                          <span className="text-gray-200 font-bold">+{maior}</span>
-                          <span className="text-gray-500"> + </span>
-                          <span className="text-yellow-400/80">ceil({menor}×50%) = +{menorReduzido}</span>
-                        </span>
-                        <span className="text-purple-400 font-bold shrink-0">➔ +{total}</span>
-                      </div>
-                    )}
+        {/* COMPARAÇÃO LADO A LADO */}
+        <div className="panel w-full p-5 flex flex-col min-h-[300px] z-10 bg-[var(--surface-1)]/80 backdrop-blur-md border border-[var(--border-subtle)] rounded-xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-60" />
+          <h3 className="text-md font-bold text-gray-200 border-b border-[var(--border-subtle)] pb-3 mb-4 flex items-center gap-2">
+            <span>⚖️</span> Comparação de Equipamentos e Resultado Estimado
+          </h3>
+          
+          {slot1 && slot2 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+              
+              {/* COLUNA 1: SACRIFÍCIO A */}
+              <div className="flex flex-col bg-[var(--surface-2)]/45 border border-[var(--border-subtle)] rounded-xl p-4 shadow-sm relative overflow-hidden transition-all hover:border-purple-500/20">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-[var(--border-subtle)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-2xl shadow-inner">
+                    {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
                   </div>
-                );
-              })
-            ) : (
-              <div className="h-full flex items-center justify-center text-center text-xs text-gray-500 px-4">
-                Selecione dois itens compatíveis para ver o resultado estimado da fusão.
+                  <div>
+                    <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot1.rarity] }}>{slot1.name}</h4>
+                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wide">Sacrifício A ({rarityNames[slot1.rarity]}{slot1.mysticLevel ? ` +${slot1.mysticLevel}` : ''})</span>
+                  </div>
+                </div>
+                <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                  {Object.keys(slot1.stats).map((statKey) => {
+                    const key = statKey as keyof BaseStats;
+                    const val = slot1.stats[key] || 0;
+                    if (val === 0) return null;
+                    return (
+                      <div key={key} className="flex justify-between text-xs py-1 border-b border-zinc-800/30">
+                        <span className="text-gray-400">{statLabels[key]}</span>
+                        <span className="font-semibold text-gray-200">+{val}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* COLUNA 2: RESULTADO ESTIMADO (CENTRAL, DESTAQUE) */}
+              <div className="flex flex-col bg-gradient-to-b from-[#2e1065]/10 to-[var(--surface-2)]/60 border border-purple-500/40 rounded-xl p-4 shadow-md relative overflow-hidden ring-2 ring-purple-500/10">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent pointer-events-none" />
+                <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-purple-500/25">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border-2 border-[#d946ef] flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(217,70,239,0.3)]">
+                    {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-[#d946ef] truncate max-w-[150px]">
+                      {getMergedItemName()}
+                    </h4>
+                    <span className="text-[9px] text-[#d946ef] font-extrabold uppercase tracking-widest">Previsão de Fusão</span>
+                  </div>
+                </div>
+                <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+                  {Object.keys(previewStats).map((statKey) => {
+                    const key = statKey as keyof BaseStats;
+                    const v1 = slot1.stats[key] || 0;
+                    const v2 = slot2.stats[key] || 0;
+                    const total = previewStats[key] || 0;
+                    if (total === 0) return null;
+
+                    const exclusivo = v1 === 0 || v2 === 0;
+                    const maxSacrifice = Math.max(v1, v2);
+                    const diff = total - maxSacrifice;
+
+                    return (
+                      <div key={key} className="flex justify-between items-center text-xs py-1 border-b border-purple-500/10">
+                        <span className="text-gray-300 font-medium">{statLabels[key]}</span>
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className="text-[#d946ef]">+{total}</span>
+                          {!exclusivo && diff > 0 && (
+                            <span className="text-[9px] px-1 py-0.2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-sm font-semibold">
+                              +{diff}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* COLUNA 3: SACRIFÍCIO B */}
+              <div className="flex flex-col bg-[var(--surface-2)]/45 border border-[var(--border-subtle)] rounded-xl p-4 shadow-sm relative overflow-hidden transition-all hover:border-purple-500/20">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
+                <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-[var(--border-subtle)]">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-2xl shadow-inner">
+                    {slot2.slot === 'weapon' ? '⚔️' : slot2.slot === 'head' ? '🪖' : slot2.slot === 'chest' ? '🛡️' : slot2.slot === 'legs' ? '👖' : '🧤'}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot2.rarity] }}>{slot2.name}</h4>
+                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wide">Sacrifício B ({rarityNames[slot2.rarity]}{slot2.mysticLevel ? ` +${slot2.mysticLevel}` : ''})</span>
+                  </div>
+                </div>
+                <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                  {Object.keys(slot2.stats).map((statKey) => {
+                    const key = statKey as keyof BaseStats;
+                    const val = slot2.stats[key] || 0;
+                    if (val === 0) return null;
+                    return (
+                      <div key={key} className="flex justify-between text-xs py-1 border-b border-zinc-800/30">
+                        <span className="text-gray-400">{statLabels[key]}</span>
+                        <span className="font-semibold text-gray-200">+{val}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-[var(--border-subtle)] rounded-xl bg-[var(--surface-1)]/40 min-h-[220px]">
+              <span className="text-4xl mb-3">⚖️</span>
+              <p className="text-sm font-semibold text-gray-300">Pronto para Comparação</p>
+              <p className="text-xs text-gray-500 max-w-sm mt-1.5">
+                Selecione os dois itens de sacrifício no altar acima para ativar a visualização de comparação lado a lado em tempo real.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* FEEDBACK DO ÚLTIMO ITEM CRIADO */}
         {successItem && (
-          <div className="panel w-full md:flex-1 bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-4 shadow-lg animate-tabFade relative">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex justify-between items-center mb-2">
-              <span className={`text-xs font-bold uppercase tracking-widest ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
-                {isLegendarySuccess ? '⚡ Forja Lendária!' : 'Sucesso'}
+          <div className="panel w-full bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-5 shadow-lg animate-tabFade relative overflow-hidden rounded-xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex justify-between items-center mb-3">
+              <span className={`text-xs font-extrabold uppercase tracking-widest ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
+                {isLegendarySuccess ? '⚡ Forja Lendária!' : 'Equipamento Forjado com Sucesso!'}
               </span>
               <button 
                 onClick={() => { setSuccessItem(null); setIsLegendarySuccess(false); }}
-                className="text-gray-500 hover:text-gray-300 text-xs"
+                className="text-gray-400 hover:text-gray-200 text-xs px-2 py-0.5 bg-zinc-800/50 rounded border border-zinc-700/50 hover:bg-zinc-800 transition-colors"
               >
                 Dispensar
               </button>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-[var(--surface-1)] border border-[#d946ef] flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(217,70,239,0.3)]">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-[var(--surface-1)] border-2 border-[#d946ef] flex items-center justify-center text-3xl shadow-[0_0_12px_rgba(217,70,239,0.4)]">
                 {successItem.slot === 'weapon' ? '⚔️' : successItem.slot === 'head' ? '🪖' : successItem.slot === 'chest' ? '🛡️' : successItem.slot === 'legs' ? '👖' : '🧤'}
               </div>
               <div>
-                <h4 className="text-sm font-extrabold text-[#d946ef]">{successItem.name}</h4>
-                <p className="text-[10px] text-gray-400">Equipamento Místico nível +{successItem.mysticLevel}</p>
+                <h4 className="text-md font-extrabold text-[#d946ef]">{successItem.name}</h4>
+                <p className="text-xs text-gray-400 font-medium">Equipamento Místico nível +{successItem.mysticLevel}</p>
                 {successItem.setName && (
-                  <p className="text-[10px] text-yellow-400/80 mt-0.5">🏅 Conjunto: {successItem.setName}</p>
+                  <p className="text-[11px] text-yellow-400/90 mt-1 flex items-center gap-1">
+                    <span>🏅</span> Conjunto: <strong>{successItem.setName}</strong>
+                  </p>
                 )}
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] space-y-1">
+            <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] grid grid-cols-2 md:grid-cols-5 gap-3">
               {Object.keys(successItem.stats).map((k) => {
                 const key = k as keyof BaseStats;
                 const value = successItem.stats[key];
                 if (!value) return null;
                 return (
-                  <div key={key} className="flex justify-between text-[11px]">
+                  <div key={key} className="flex justify-between items-center text-xs bg-[var(--surface-2)]/40 border border-[var(--border-subtle)] rounded-lg p-2.5">
                     <span className="text-gray-400">{statLabels[key]}</span>
                     <span className="text-purple-400 font-bold">+{value}</span>
                   </div>
@@ -490,7 +654,7 @@ export const ForgeView: React.FC = () => {
             </div>
           </div>
         )}
-    </div>
+      </div>
 
       {/* MODAL DE SELEÇÃO DE ITENS DO INVENTÁRIO */}
       {activeSelectionSlot !== null && (
