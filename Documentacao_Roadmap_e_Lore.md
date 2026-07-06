@@ -226,7 +226,7 @@ O vazio entre os cacos da Alma-Mundo finalmente ganha um nome: o **Purgatório**
     *   **Multiplicador de Atributo**: $6.0\times$ (superior aos $4.5\times$ dos Sets Ancestrais).
     *   **Forja Expandida**: O limite de nível místico na forja aumenta de +5 para **+8**. A curva de custo segue a fórmula:
         $$\text{Custo Místico} = 100 \times 5^{L}\text{ Ouro para } L \ge 5$$
-*   **Polimento de UX da Forja**: Substituição do antigo painel estático de resultado estimado por uma interface de visualização lado a lado. Agora exibe em tempo real o item resultante da fusão comparado diretamente com os dois itens sacrificados no inventário.
+*   **Polimento de UX da Forja**: Substituição do antigo painel estático de resultado estimado por uma interface de visualização lado a lado. Agora exibe em tempo real o item resultante da fusão comparado diretamente com os dois itens sacrificados no inventário. Também foi corrigida a responsividade do modal de seleção de equipamentos, que agora utiliza posicionamento `fixed` e altura dinâmica baseada na viewport, impedindo transbordamentos e garantindo rolagem fluida em celulares.
 
 ### 5.3 Versão 4.3.0 — "Primeiras Páginas do Codex"
 *   **Codex (Protótipo)**:

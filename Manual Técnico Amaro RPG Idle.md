@@ -956,6 +956,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
         *   *Coluna 1 (Esquerda)*: Detalhes, raridade e atributos do item de Sacrifício A.
         *   *Coluna 2 (Centro)*: Resultados estimados da fusão, exibindo o nome final calculado (incluindo o nível místico e sufixos de conjuntos) e badges de comparação na cor verde esmeralda destacando o ganho líquido de atributos em relação ao item base.
         *   *Coluna 3 (Direita)*: Detalhes, raridade e atributos do item de Sacrifício B.
+    *   **Correção de Responsividade do Modal de Seleção**: Ajuste do contêiner de seleção para usar posicionamento fixado (`fixed inset-0 z-50`) e altura dinâmica (`max-h-[80vh] flex flex-col`) com lista redimensionável. Isso garante que o modal permaneça perfeitamente centralizado e visível na viewport em dispositivos móveis, sem ultrapassar os limites físicos do celular e garantindo que a rolagem interna de itens funcione perfeitamente.
 
 ### Versão 4.1.0
 *   **🏰 O Desafio da Torre Infinita**:

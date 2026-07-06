@@ -290,7 +290,7 @@ export const ForgeView: React.FC = () => {
   };
 
   return (
-    <div className="w-full flex flex-col gap-6 relative forge-view-root">
+    <div className="w-full flex flex-col gap-6 forge-view-root">
       
       {/* PAINEL PRINCIPAL DA FORJA */}
       <div className="panel flex-1 flex flex-col min-h-[480px]">
@@ -656,10 +656,9 @@ export const ForgeView: React.FC = () => {
         )}
       </div>
 
-      {/* MODAL DE SELEÇÃO DE ITENS DO INVENTÁRIO */}
       {activeSelectionSlot !== null && (
         <div className="absolute inset-0 bg-[var(--surface-0)]/90 backdrop-blur-md flex items-center justify-center z-20 p-4">
-          <div className="panel w-full max-w-[460px] max-h-[85vh] flex flex-col">
+          <div className="panel w-full max-w-[460px] max-h-[92%] flex flex-col shadow-2xl animate-fadeIn">
             
             <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/80">
               <h3 className="text-md font-bold text-gray-200">
@@ -673,7 +672,7 @@ export const ForgeView: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[400px]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {getEligibleItems().length > 0 ? (
                 getEligibleItems().map((item) => (
                   <div
