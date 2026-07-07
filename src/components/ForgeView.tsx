@@ -350,19 +350,17 @@ export const ForgeView: React.FC = () => {
         />
         
         {/* HUD de Recursos */}
-        <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/60 backdrop-blur-md z-10">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚒️</span>
-            <h2 className="text-lg font-bold text-gray-100">Grande Forja Arcana</h2>
+        <div className="p-3 sm:p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/60 backdrop-blur-md z-10 gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-lg sm:text-xl flex-shrink-0">⚒️</span>
+            <h2 className="text-sm sm:text-base md:text-lg font-bold text-gray-100 truncate whitespace-nowrap">Grande Forja Arcana</h2>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-              <span className="text-yellow-400 font-semibold">🪙 {formatNumber(character.gold || 0, abbreviateNumbers)}</span>
-              <span className="text-xs text-yellow-500/80 font-medium">Ouro</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full whitespace-nowrap">
+              <span className="text-yellow-400 font-semibold text-xs sm:text-sm">🪙 {formatNumber(character.gold || 0, abbreviateNumbers)}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full">
-              <span className="text-purple-400 font-semibold">💎 {formatNumber(character.forgeFragments || 0, abbreviateNumbers)}</span>
-              <span className="text-xs text-purple-500/80 font-medium">Fragmentos de Forja</span>
+            <div className="flex items-center px-2.5 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full whitespace-nowrap">
+              <span className="text-purple-400 font-semibold text-xs sm:text-sm">🔩 {formatNumber(character.forgeFragments || 0, abbreviateNumbers)}</span>
             </div>
           </div>
         </div>
@@ -504,7 +502,7 @@ export const ForgeView: React.FC = () => {
                   <div className="flex justify-between w-full text-sm">
                     <span className="text-gray-400">Custo de Fragmentos:</span>
                     <span className={`font-bold ${(character.forgeFragments || 0) >= (reforgeState.fragmentCost || 0) ? 'text-purple-400' : 'text-red-500'}`}>
-                      💎 {formatNumber(reforgeState.fragmentCost || 0, abbreviateNumbers)} Fragmentos
+                      🔩 {formatNumber(reforgeState.fragmentCost || 0, abbreviateNumbers)} Fragmentos
                     </span>
                   </div>
                 </div>

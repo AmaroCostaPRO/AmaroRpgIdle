@@ -190,7 +190,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
     const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5)) * 4;
     useGameStore.getState().addForgeFragments(forgeFragmentsReward);
     bridge.emit(GameEvent.LOG_EMITTED, {
-      message: `💎 Recompensa de Conclusão: +${forgeFragmentsReward} Fragmento(s) de Forja!`
+      message: `🔩 Recompensa de Conclusão: +${forgeFragmentsReward} Fragmento(s) de Forja!`
     });
 
     if (floorCompleted > get().historicalHighestFloor) {

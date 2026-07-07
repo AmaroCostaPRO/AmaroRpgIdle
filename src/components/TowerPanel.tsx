@@ -240,6 +240,24 @@ export const TowerPanel: React.FC = () => {
                 <strong>Aviso de Sobrevivência:</strong> A vida e mana do seu herói NÃO se recuperam automaticamente entre os andares. Cuide da sua mana e traga habilidades de cura para resistir!
               </div>
             </div>
+
+            <div style={{
+              background: 'rgba(168, 85, 247, 0.08)',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.6rem 0.8rem',
+              fontSize: '0.62rem',
+              color: '#c084fc',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '6px',
+              lineHeight: 1.4
+            }}>
+              <span>🎁</span>
+              <div>
+                <strong>Prêmios da Torre:</strong> Cada andar vencido concede <strong>🔩 Fragmentos de Forja</strong> (escala com o andar). A cada 5 andares concluídos, você ganha adicionalmente <strong>✨ 1 Fragmento de Alma Instável</strong>!
+              </div>
+            </div>
           </>
         ) : (
           <>
