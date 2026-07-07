@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
@@ -4934,6 +4934,226 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
   );
 };
 
+// Limites de atributos por tier de item
+const TIER_LIMITS: Record<string, { base: number; special: Record<string, number> }> = {
+  rustico: {
+    base: 30,
+    special: {
+      damageMultiplierPct: 10,
+      damageReductionPct: 5,
+      lifesteal: 3,
+      attackSpeedPct: 10,
+      maxHpPct: 10
+    }
+  },
+  ancestral: {
+    base: 100,
+    special: {
+      damageMultiplierPct: 25,
+      damageReductionPct: 10,
+      lifesteal: 6,
+      attackSpeedPct: 15,
+      maxHpPct: 20
+    }
+  },
+  pandemonio: {
+    base: 250,
+    special: {
+      damageMultiplierPct: 60,
+      damageReductionPct: 20,
+      lifesteal: 15,
+      attackSpeedPct: 30,
+      maxHpPct: 50
+    }
+  },
+  celestial: {
+    base: 500,
+    special: {
+      damageMultiplierPct: 120,
+      damageReductionPct: 40,
+      lifesteal: 30,
+      attackSpeedPct: 60,
+      maxHpPct: 100
+    }
+  }
+};
+
+// Informações de exibição amigáveis dos atributos
+const STAT_DISPLAY_INFO: Record<string, { label: string; isPct: boolean }> = {
+  strength: { label: '💪 Força', isPct: false },
+  magic: { label: '🔮 Magia', isPct: false },
+  dexterity: { label: '🏹 Destreza', isPct: false },
+  constitution: { label: '❤️ Vigor', isPct: false },
+  luck: { label: '🍀 Sorte', isPct: false },
+  damageMultiplierPct: { label: '⚔️ Dano Extra %', isPct: true },
+  damageReductionPct: { label: '🛡️ Redução Dano %', isPct: true },
+  lifesteal: { label: '🩸 Roubo de Vida %', isPct: true },
+  attackSpeedPct: { label: '⚡ Vel. Ataque %', isPct: true },
+  maxHpPct: { label: '➕ HP Máximo %', isPct: true },
+  maxManaPct: { label: '🧪 Mana Máxima %', isPct: true },
+  dropChancePct: { label: '💎 Chance Drop %', isPct: true },
+  frenzyChancePct: { label: '🔥 Chance Frenesi %', isPct: true }
+};
+
+// Helper para obter nome de item e conjunto reais do jogo
+const getItemNameAndSet = (
+  classId: string,
+  slot: string,
+  tier: 'rustico' | 'ancestral' | 'pandemonio' | 'celestial',
+  misticLvl: number
+) => {
+  const slotNames: Record<string, Record<string, string>> = {
+    warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
+    mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
+    ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet' },
+    paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
+    cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
+    rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
+    necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
+    avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+  };
+
+  const setNames: Record<string, Record<string, string>> = {
+    rustico: {
+      warrior: 'Set do Senhor da Guerra',
+      mage: 'Set do Mestre Arcano',
+      ranger: 'Set do Rastreador das Sombras',
+      paladin: 'Set do Guardião Divino',
+      cleric: 'Set do Sumosacerdote',
+      rogue: 'Set do Assassino Fantasma',
+      necromancer: 'Set do Arauto da Ceifa',
+      avatar: 'Set do Avatar Celestizado'
+    },
+    ancestral: {
+      warrior: 'Set Ancestral do Conquistador',
+      mage: 'Set Ancestral do Arquimago',
+      ranger: 'Set Ancestral do Caçador Estelar',
+      paladin: 'Set Ancestral do Sentinela Eterno',
+      cleric: 'Set Ancestral do Sábio Divino',
+      rogue: 'Set Ancestral do Ceifador de Almas',
+      necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos',
+      avatar: 'Set Ancestral da Totalidade'
+    },
+    pandemonio: {
+      warrior: 'Set Pandemoníaco do Destruidor',
+      mage: 'Set Pandemoníaco do Feiticeiro do Vazio',
+      ranger: 'Set Pandemoníaco do Franco-Atirador',
+      paladin: 'Set Pandemoníaco do Vingador Sagrado',
+      cleric: 'Set Pandemoníaco do Sumo-Inquisidor',
+      rogue: 'Set Pandemoníaco do Executor',
+      necromancer: 'Set Pandemoníaco do Devorador de Almas',
+      avatar: 'Set Pandemoníaco do Eco Supremo'
+    },
+    celestial: {
+      warrior: 'Set Celestial do Semideus',
+      mage: 'Set Celestial do Senhor do Tempo',
+      ranger: 'Set Celestial do Observador Estelar',
+      paladin: 'Set Celestial do Arcanjo',
+      cleric: 'Set Celestial do Serafim',
+      rogue: 'Set Celestial do Espectro Astral',
+      necromancer: 'Set Celestial do Ceifador de Estrelas',
+      avatar: 'Set Celestial do Avatar Supremo'
+    }
+  };
+
+  const baseName = slotNames[classId]?.[slot] || 'Equipamento';
+  const setName = setNames[tier]?.[classId] || '';
+  
+  let cleanSetName = setName;
+  let name = '';
+  
+  if (tier === 'celestial') {
+    if (cleanSetName.startsWith('Set Celestial do ')) {
+      cleanSetName = cleanSetName.replace('Set Celestial do ', '');
+    } else if (cleanSetName.startsWith('Set Celestial de ')) {
+      cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+    } else if (cleanSetName.startsWith('Set Celestial da ')) {
+      cleanSetName = cleanSetName.replace('Set Celestial da ', '');
+    }
+    let suffix = 'Celestial';
+    if (baseName.endsWith('as')) suffix = 'Celestiais';
+    else if (baseName.endsWith('a')) suffix = 'Celestial';
+    let prep = 'do';
+    if (setName.includes(' da ')) prep = 'da';
+    else if (setName.includes(' de ')) prep = 'de';
+    name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+  } else if (tier === 'pandemonio') {
+    if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
+      cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
+    } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
+      cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+    } else if (cleanSetName.startsWith('Set Pandemoníaco da ')) {
+      cleanSetName = cleanSetName.replace('Set Pandemoníaco da ', '');
+    }
+    let suffix = 'Pandemoníaco';
+    if (baseName.endsWith('as')) suffix = 'Pandemoníacas';
+    else if (baseName.endsWith('a')) suffix = 'Pandemoníaca';
+    let prep = 'do';
+    if (setName.includes(' da ')) prep = 'da';
+    else if (setName.includes(' de ')) prep = 'de';
+    name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+  } else if (tier === 'ancestral') {
+    if (cleanSetName.startsWith('Set Ancestral do ')) {
+      cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
+    } else if (cleanSetName.startsWith('Set Ancestral de ')) {
+      cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+    } else if (cleanSetName.startsWith('Set Ancestral da ')) {
+      cleanSetName = cleanSetName.replace('Set Ancestral da ', '');
+    }
+    let suffix = 'Ancestral';
+    if (baseName.endsWith('as')) suffix = 'Ancestrais';
+    else if (baseName.endsWith('a')) suffix = 'Ancestral';
+    let prep = 'do';
+    if (setName.includes(' da ')) prep = 'da';
+    else if (setName.includes(' de ')) prep = 'de';
+    name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+  } else {
+    // rustico
+    if (cleanSetName.startsWith('Set do ')) {
+      cleanSetName = cleanSetName.replace('Set do ', '');
+    } else if (cleanSetName.startsWith('Set de ')) {
+      cleanSetName = cleanSetName.replace('Set de ', '');
+    } else if (cleanSetName.startsWith('Set da ')) {
+      cleanSetName = cleanSetName.replace('Set da ', '');
+    }
+    let prep = 'do';
+    if (setName.includes(' da ')) prep = 'da';
+    else if (setName.includes(' de ')) prep = 'de';
+    name = `${baseName} ${prep} ${cleanSetName}`;
+  }
+
+  if (misticLvl > 0) {
+    name = `${name} +${misticLvl}`;
+  }
+
+  return { name, setName };
+};
+
+// Obter chaves de atributos válidos para o slot e classe do item
+const getValidStatsForSlot = (slot: string, classId: string) => {
+  const mainStat = (classId === 'mage' || classId === 'necromancer' || classId === 'cleric') ? 'magic' :
+                   (classId === 'ranger' || classId === 'rogue') ? 'dexterity' : 'strength';
+                   
+  const statsList: string[] = [];
+  if (classId === 'avatar') {
+    statsList.push('strength', 'magic', 'dexterity');
+  } else {
+    statsList.push(mainStat, 'constitution', 'luck');
+  }
+
+  if (slot === 'weapon') {
+    statsList.push('damageMultiplierPct');
+  } else if (slot === 'necklace') {
+    statsList.push('damageReductionPct', 'lifesteal');
+  } else if (slot === 'gloves') {
+    statsList.push('attackSpeedPct');
+  } else {
+    statsList.push('maxHpPct');
+  }
+
+  return statsList;
+};
+
 const OptionsPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const setCharacter = useGameStore((state) => state.setCharacter);
@@ -4962,6 +5182,72 @@ const OptionsPanel: React.FC = () => {
   const [isUnlocked, setIsUnlocked] = useState(!!(window as any).isDevModeActive);
   const [devTab, setDevTab] = useState<'geral' | 'atributos' | 'equipamentos' | 'prestigio'>('geral');
   const [misticLevelGen, setMisticLevelGen] = useState<number>(8);
+
+  // Estados para Criação de Item Customizado (sistema por tier)
+  const [customItemSlot, setCustomItemSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'>('weapon');
+  const [customItemTier, setCustomItemTier] = useState<'rustico' | 'ancestral' | 'pandemonio' | 'celestial'>('celestial');
+  const [customItemMistic, setCustomItemMistic] = useState<number>(8);
+  const [customStats, setCustomStats] = useState<Record<string, number>>({});
+
+  // Reseta stats ao trocar slot ou tier
+  const handleCustomSlotChange = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace') => {
+    setCustomItemSlot(slot);
+    setCustomStats({});
+  };
+  const handleCustomTierChange = (tier: 'rustico' | 'ancestral' | 'pandemonio' | 'celestial') => {
+    setCustomItemTier(tier);
+    setCustomStats({});
+  };
+
+  const createCustomItem = () => {
+    const tierLimits = TIER_LIMITS[customItemTier];
+    const validStats = getValidStatsForSlot(customItemSlot, character.classId);
+    const pctStats = ['damageMultiplierPct','damageReductionPct','lifesteal','attackSpeedPct','maxHpPct','maxManaPct','dropChancePct','frenzyChancePct'];
+
+    const finalItemStats: Record<string, number> = {};
+    validStats.forEach((key) => {
+      const val = customStats[key] || 0;
+      if (val === 0) return;
+      const isPct = pctStats.includes(key);
+      const maxAllowed = tierLimits.special[key] ?? tierLimits.base;
+      const clamped = Math.min(val, maxAllowed);
+      finalItemStats[key] = isPct ? clamped / 100 : clamped;
+    });
+
+    const { name: finalName, setName } = getItemNameAndSet(character.classId, customItemSlot, customItemTier, customItemMistic);
+    const rarityMap: Record<string, EquipmentItem['rarity']> = {
+      rustico: 'rare',
+      ancestral: 'epic',
+      pandemonio: 'legendary',
+      celestial: customItemMistic > 0 ? 'mystic' : 'legendary'
+    };
+
+    const newItem: EquipmentItem = {
+      id: `custom-${customItemSlot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: finalName,
+      slot: customItemSlot,
+      rarity: customItemMistic > 0 ? 'mystic' : rarityMap[customItemTier],
+      stats: finalItemStats,
+      setName: setName || undefined,
+      classId: character.classId,
+      spriteName: `${character.classId}-${customItemSlot}`,
+      stage: customItemTier === 'celestial' ? 50 : customItemTier === 'pandemonio' ? 31 : customItemTier === 'ancestral' ? 11 : 1,
+      ...(customItemMistic > 0 ? { mysticLevel: customItemMistic } : {})
+    };
+
+    const newEquipment = {
+      ...character.equipment,
+      [customItemSlot]: newItem
+    };
+
+    setCharacter({
+      ...character,
+      equipment: newEquipment
+    });
+
+    playClick();
+    alert(`Item "${finalName}" criado e equipado!\nSet: ${setName || 'nenhum'}`);
+  };
 
   const enableDevMode = () => {
     setIsUnlocked(true);
@@ -6099,6 +6385,112 @@ const OptionsPanel: React.FC = () => {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Criador de Item por Tier */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.5rem', marginTop: '0.1rem' }}>
+                    <span style={{ fontWeight: 'bold', color: '#fbbf24', fontSize: '0.62rem' }}>🔨 Criar Item do Jogo:</span>
+
+                    {/* Linha 1: Peça + Tier + Mística */}
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Peça:</span>
+                        <select
+                          value={customItemSlot}
+                          onChange={(e) => handleCustomSlotChange(e.target.value as any)}
+                          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-dim)', borderRadius: '4px', padding: '0.15rem', color: '#fff', fontSize: '0.55rem', outline: 'none' }}
+                        >
+                          <option value="weapon">⚔️ Arma</option>
+                          <option value="head">🪖 Elmo</option>
+                          <option value="chest">🛡️ Peito</option>
+                          <option value="legs">👖 Pernas</option>
+                          <option value="gloves">🧤 Luvas</option>
+                          <option value="necklace">📿 Colar</option>
+                        </select>
+                      </div>
+
+                      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Tier:</span>
+                        <select
+                          value={customItemTier}
+                          onChange={(e) => handleCustomTierChange(e.target.value as any)}
+                          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-dim)', borderRadius: '4px', padding: '0.15rem', color: '#fff', fontSize: '0.55rem', outline: 'none' }}
+                        >
+                          <option value="rustico">⚒️ Rústico (Fase 1)</option>
+                          <option value="ancestral">✨ Ancestral (Fase 11)</option>
+                          <option value="pandemonio">🔥 Pandemônio (Fase 31)</option>
+                          <option value="celestial">👑 Celestial (Fase 50)</option>
+                        </select>
+                      </div>
+
+                      <div style={{ width: '42px', display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.55rem' }}>+Míst:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="8"
+                          value={customItemMistic}
+                          onChange={(e) => setCustomItemMistic(Math.max(0, Math.min(8, Number(e.target.value) || 0)))}
+                          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-dim)', borderRadius: '4px', padding: '0.15rem', color: '#c084fc', fontSize: '0.58rem', outline: 'none', textAlign: 'center', fontWeight: 'bold' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preview do nome e set */}
+                    {(() => {
+                      const preview = getItemNameAndSet(character.classId, customItemSlot, customItemTier, customItemMistic);
+                      const nameColor = customItemMistic > 0 ? '#c084fc' : customItemTier === 'celestial' ? '#f59e0b' : customItemTier === 'pandemonio' ? '#f87171' : customItemTier === 'ancestral' ? '#a855f7' : '#9ca3af';
+                      return (
+                        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.3rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ color: nameColor, fontSize: '0.58rem', fontWeight: 'bold' }}>
+                            📜 {preview.name}
+                          </div>
+                          {preview.setName && (
+                            <div style={{ color: '#34d399', fontSize: '0.5rem', marginTop: '0.1rem' }}>
+                              Set: {preview.setName}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Atributos filtrados por slot+classe */}
+                    <span style={{ color: '#fbbf24', fontSize: '0.55rem', fontWeight: 'bold' }}>
+                      Atributos (limite: {TIER_LIMITS[customItemTier]?.base} base / especiais indicados):
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.25rem 0.5rem', maxHeight: '120px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)', padding: '0.3rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.02)' }}>
+                      {getValidStatsForSlot(customItemSlot, character.classId).map((statKey) => {
+                        const info = STAT_DISPLAY_INFO[statKey];
+                        const tierLimits = TIER_LIMITS[customItemTier];
+                        const maxVal = tierLimits?.special[statKey] ?? tierLimits?.base ?? 999;
+                        if (!info) return null;
+                        return (
+                          <div key={statKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: '#cbd5e1', fontSize: '0.5rem', flex: 1 }}>{info.label}{info.isPct ? ` (máx ${maxVal}%)` : ` (máx ${maxVal})`}:</span>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              min="0"
+                              max={maxVal}
+                              value={customStats[statKey] || ''}
+                              onChange={(e) => {
+                                const val = Math.min(Number(e.target.value) || 0, maxVal);
+                                setCustomStats({ ...customStats, [statKey]: val });
+                              }}
+                              style={{ width: '48px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '3px', padding: '0.05rem 0.15rem', color: '#fff', fontSize: '0.52rem', outline: 'none', textAlign: 'center' }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={createCustomItem}
+                      className="btn btn-sm btn-gold"
+                      style={{ fontSize: '0.58rem', padding: '0.3rem', color: '#000', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(245, 158, 11, 0.15)' }}
+                    >
+                      ✨ Criar &amp; Equipar Item
+                    </button>
                   </div>
 
                 </div>
