@@ -4935,6 +4935,9 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
 };
 
 const OptionsPanel: React.FC = () => {
+  const character = useGameStore((state) => state.character);
+  const setCharacter = useGameStore((state) => state.setCharacter);
+
   const sfxEnabled = useGameStore((state) => state.sfxEnabled);
   const bgmEnabled = useGameStore((state) => state.bgmEnabled);
   const consoleEnabled = useGameStore((state) => state.consoleEnabled);
@@ -4952,6 +4955,248 @@ const OptionsPanel: React.FC = () => {
   const toggleDisableRobotTap = useGameStore((state) => state.toggleDisableRobotTap);
 
   const playClick = () => AudioManager.getInstance().playClick();
+
+  // Estados da Área de Desenvolvedor (Sandbox)
+  const [showDevInput, setShowDevInput] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [devTab, setDevTab] = useState<'geral' | 'atributos' | 'equipamentos' | 'prestigio'>('geral');
+  const [misticLevelGen, setMisticLevelGen] = useState<number>(8);
+
+  const equipSet = (setType: 'celestial' | 'pandemonium', misticLvl: number) => {
+    const classId = character.classId;
+    
+    const slotNames: Record<string, Record<string, string>> = {
+      warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
+      mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
+      ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet' },
+      paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
+      cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
+      rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
+      necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
+      avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+    };
+
+    const celestialSetNames: Record<string, string> = {
+      warrior: 'Set Celestial do Semideus',
+      mage: 'Set Celestial do Senhor do Tempo',
+      ranger: 'Set Celestial do Observador Estelar',
+      paladin: 'Set Celestial do Arcanjo',
+      cleric: 'Set Celestial do Serafim',
+      rogue: 'Set Celestial do Espectro Astral',
+      necromancer: 'Set Celestial do Ceifador de Estrelas',
+      avatar: 'Set Celestial do Avatar Supremo'
+    };
+
+    const pandemoniumSetNames: Record<string, string> = {
+      warrior: 'Set Pandemoníaco do Destruidor',
+      mage: 'Set Pandemoníaco do Feiticeiro do Vazio',
+      ranger: 'Set Pandemoníaco do Franco-Atirador',
+      paladin: 'Set Pandemoníaco do Vingador Sagrado',
+      cleric: 'Set Pandemoníaco do Sumo-Inquisidor',
+      rogue: 'Set Pandemoníaco do Executor',
+      necromancer: 'Set Pandemoníaco do Devorador de Almas',
+      avatar: 'Set Pandemoníaco do Eco Supremo'
+    };
+
+    const setName = setType === 'celestial' ? celestialSetNames[classId] : pandemoniumSetNames[classId];
+    if (!setName) return;
+
+    const newEquipment: Record<string, any> = {};
+    const slots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'];
+    
+    slots.forEach(slot => {
+      const baseName = slotNames[classId]?.[slot] || 'Equipamento';
+      let cleanSetName = setName;
+      let name = '';
+      
+      if (setType === 'celestial') {
+        if (cleanSetName.startsWith('Set Celestial do ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial do ', '');
+        } else if (cleanSetName.startsWith('Set Celestial de ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+        } else if (cleanSetName.startsWith('Set Celestial da ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial da ', '');
+        }
+        
+        let suffix = 'Celestial';
+        if (baseName.endsWith('as')) {
+          suffix = 'Celestiais';
+        } else if (baseName.endsWith('a')) {
+          suffix = 'Celestial';
+        }
+        
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+      } else {
+        if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
+        } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+        } else if (cleanSetName.startsWith('Set Pandemoníaco da ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco da ', '');
+        }
+        
+        let suffix = 'Pandemoníaco';
+        if (baseName.endsWith('as')) {
+          suffix = 'Pandemoníacas';
+        } else if (baseName.endsWith('a')) {
+          suffix = 'Pandemoníaca';
+        }
+        
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+      }
+
+      if (misticLvl > 0) {
+        name = `${name} +${misticLvl}`;
+      }
+
+      const itemStats: Record<string, number> = {};
+      const mainStat = (classId === 'mage' || classId === 'necromancer' || classId === 'cleric') ? 'magic' :
+                       (classId === 'ranger' || classId === 'rogue') ? 'dexterity' : 'strength';
+
+      if (classId === 'avatar') {
+        itemStats['strength'] = 200;
+        itemStats['magic'] = 200;
+        itemStats['dexterity'] = 200;
+      } else {
+        itemStats[mainStat] = 250;
+        itemStats['constitution'] = 250;
+        itemStats['luck'] = 150;
+      }
+
+      if (slot === 'weapon') {
+        itemStats['damageMultiplierPct'] = 0.60;
+      } else if (slot === 'necklace') {
+        itemStats['damageReductionPct'] = 0.20;
+        itemStats['lifesteal'] = 0.15;
+      } else if (slot === 'gloves') {
+        itemStats['attackSpeedPct'] = 0.30;
+      } else {
+        itemStats['maxHpPct'] = 0.50;
+      }
+
+      newEquipment[slot] = {
+        id: `${classId}-${slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        slot,
+        rarity: misticLvl > 0 ? 'mystic' : 'legendary',
+        stats: itemStats,
+        setName,
+        classId,
+        spriteName: `${classId}-${slot}`,
+        stage: 50,
+        ...(misticLvl > 0 ? { mysticLevel: misticLvl } : {})
+      };
+    });
+
+    const newChar = {
+      ...character,
+      equipment: newEquipment
+    };
+    setCharacter(newChar);
+    playClick();
+  };
+
+  const updateSingleItemMistic = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace', newLvl: number) => {
+    const item = character.equipment[slot];
+    if (!item) return;
+
+    let cleanName = item.name.replace(/\s\+\d+$/, '');
+    let updatedName = cleanName;
+    if (newLvl > 0) {
+      updatedName = `${cleanName} +${newLvl}`;
+    }
+
+    const updatedItem = {
+      ...item,
+      name: updatedName,
+      rarity: newLvl > 0 ? 'mystic' : 'legendary',
+      mysticLevel: newLvl > 0 ? newLvl : undefined
+    };
+
+    if (newLvl === 0) {
+      delete updatedItem.mysticLevel;
+    }
+
+    const newChar = {
+      ...character,
+      equipment: {
+        ...character.equipment,
+        [slot]: updatedItem
+      }
+    };
+    setCharacter(newChar);
+  };
+
+  const set20TowerKeys = () => {
+    const cleanInventory = character.inventory.filter(item => item.consumableType !== 'tower_key');
+    const keysToAdd = Array.from({ length: 20 }, (_, i) => ({
+      id: `tower_key_dev_${Date.now()}_${i}`,
+      name: "Chave da Torre",
+      slot: "consumable" as const,
+      rarity: "consumable" as const,
+      consumableType: "tower_key" as const,
+      stats: {},
+      spriteName: "tower_key",
+      classId: "common"
+    }));
+    setCharacter({
+      ...character,
+      inventory: [...cleanInventory, ...keysToAdd]
+    });
+    playClick();
+  };
+
+  const maxPrestigeUpgrades = () => {
+    const maxUpgrades: Record<string, number> = {};
+    Object.keys(PRESTIGE_UPGRADES_CATALOG).forEach(key => {
+      maxUpgrades[key] = PRESTIGE_UPGRADES_CATALOG[key].maxLevel;
+    });
+    setCharacter({
+      ...character,
+      prestigeUpgrades: maxUpgrades
+    });
+    playClick();
+  };
+
+  const maxTranscendenceUpgrades = () => {
+    const maxUpgrades: Record<string, number> = {};
+    Object.keys(TRANSCENDENCE_UPGRADES_CATALOG).forEach(key => {
+      maxUpgrades[key] = TRANSCENDENCE_UPGRADES_CATALOG[key].maxLevel;
+    });
+    setCharacter({
+      ...character,
+      transcendenceUpgrades: maxUpgrades
+    });
+    playClick();
+  };
+
+  const maxSkills = () => {
+    const skillLevels = { ...character.skillLevels };
+    const classSkills = CLASS_CONFIGS[character.classId]?.initialSkills || [];
+    const unlockedSkills = Array.from(new Set([...character.unlockedSkills, ...classSkills]));
+    unlockedSkills.forEach(skillId => {
+      skillLevels[skillId] = 5;
+    });
+    setCharacter({
+      ...character,
+      unlockedSkills,
+      skillLevels
+    });
+    playClick();
+  };
 
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -5122,6 +5367,797 @@ const OptionsPanel: React.FC = () => {
               {disableRobotTap ? 'On' : 'Off'}
             </button>
           </div>
+        </div>
+
+        {/* Área de Desenvolvedor Secreta (Sandbox) */}
+        <div style={{ marginTop: '0.5rem', borderTop: '1px dashed var(--border-dim)', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', alignItems: 'center' }}>
+          {!isUnlocked ? (
+            <>
+              <span 
+                onClick={() => {
+                  setShowDevInput(!showDevInput);
+                  playClick();
+                }} 
+                style={{ fontSize: '0.6rem', color: '#64748b', cursor: 'pointer', userSelect: 'none', textDecoration: 'underline' }}
+              >
+                {showDevInput ? 'Fechar Modo de Testes' : '⚙️ Painel do Desenvolvedor (Sandbox)'}
+              </span>
+              {showDevInput && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', width: '100%', maxWidth: '250px', justifyContent: 'center' }}>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Digite a senha..."
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0,0,0,0.5)',
+                      border: '1px solid var(--border-dim)',
+                      borderRadius: '4px',
+                      padding: '0.25rem 0.5rem',
+                      color: '#fff',
+                      fontSize: '0.65rem',
+                      outline: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
+                          setIsUnlocked(true);
+                          playClick();
+                        } else {
+                          alert('Senha incorreta!');
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
+                        setIsUnlocked(true);
+                        playClick();
+                      } else {
+                        alert('Senha incorreta!');
+                      }
+                    }}
+                    className="btn btn-sm btn-gold"
+                    style={{ fontSize: '0.6rem', padding: '0.25rem 0.5rem' }}
+                  >
+                    Desbloquear
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{
+              width: '100%',
+              background: 'rgba(15, 15, 20, 0.95)',
+              border: '1px solid rgba(245, 158, 11, 0.45)',
+              borderRadius: '8px',
+              padding: '0.85rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.8), inset 0 0 10px rgba(245, 158, 11, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              {/* Header do Sandbox */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(245, 158, 11, 0.25)', paddingBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ⚡ Painel Sandbox / Editor de Save
+                </span>
+                <button
+                  onClick={() => {
+                    setIsUnlocked(false);
+                    setPassword('');
+                    playClick();
+                  }}
+                  className="btn btn-sm btn-danger"
+                  style={{ fontSize: '0.55rem', padding: '0.1rem 0.4rem' }}
+                >
+                  Bloquear
+                </button>
+              </div>
+
+              {/* Tabs do Painel */}
+              <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.4rem' }}>
+                {(['geral', 'atributos', 'equipamentos', 'prestigio'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setDevTab(tab);
+                      playClick();
+                    }}
+                    style={{
+                      flex: 1,
+                      background: devTab === tab ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                      color: devTab === tab ? '#fbbf24' : '#94a3b8',
+                      border: devTab === tab ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid transparent',
+                      padding: '0.25rem 0.1rem',
+                      borderRadius: '4px',
+                      fontSize: '0.58rem',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      textTransform: 'capitalize',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Conteudo Geral & Progresso */}
+              {devTab === 'geral' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.62rem' }}>
+                  
+                  {/* Linha 1: Classe e Nivel */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Classe Ativa:</span>
+                      <select
+                        value={character.classId}
+                        onChange={(e) => {
+                          setCharacter({ ...character, classId: e.target.value });
+                          playClick();
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="warrior">Guerreiro</option>
+                        <option value="mage">Mago</option>
+                        <option value="ranger">Rastreador</option>
+                        <option value="paladin">Paladino</option>
+                        <option value="cleric">Clérigo</option>
+                        <option value="rogue">Ladino</option>
+                        <option value="necromancer">Necromante</option>
+                        <option value="avatar">Avatar</option>
+                      </select>
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Nível ({character.level}):</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="250"
+                        value={character.level}
+                        onChange={(e) => {
+                          const val = Math.max(1, Math.min(250, Number(e.target.value) || 1));
+                          setCharacter({ ...character, level: val });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Linha 2: Ouro */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Ouro Atual:</span>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <input
+                        type="number"
+                        value={character.gold}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, gold: val });
+                        }}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem 0.4rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          setCharacter({ ...character, gold: Math.max(0, character.gold + 10000000) });
+                          playClick();
+                        }}
+                        className="btn btn-sm btn-secondary"
+                        style={{ fontSize: '0.55rem', padding: '0.2rem 0.4rem' }}
+                      >
+                        +10M
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCharacter({ ...character, gold: 999999999 });
+                          playClick();
+                        }}
+                        className="btn btn-sm btn-gold"
+                        style={{ fontSize: '0.55rem', padding: '0.2rem 0.4rem', color: '#000', fontWeight: 'bold' }}
+                      >
+                        Max
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Linha 3: Fragmentos de Forja e Chaves */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Fragmentos Forja (🔩):</span>
+                      <div style={{ display: 'flex', gap: '0.2rem' }}>
+                        <input
+                          type="number"
+                          value={character.forgeFragments || 0}
+                          onChange={(e) => {
+                            const val = Math.max(0, Number(e.target.value) || 0);
+                            setCharacter({ ...character, forgeFragments: val });
+                          }}
+                          style={{
+                            width: '55px',
+                            background: 'rgba(0,0,0,0.5)',
+                            border: '1px solid var(--border-dim)',
+                            borderRadius: '4px',
+                            padding: '0.2rem',
+                            color: '#fff',
+                            fontSize: '0.62rem',
+                            outline: 'none',
+                            textAlign: 'center'
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            setCharacter({ ...character, forgeFragments: Math.max(0, (character.forgeFragments || 0) + 100) });
+                            playClick();
+                          }}
+                          className="btn btn-sm btn-secondary"
+                          style={{ fontSize: '0.52rem', padding: '0.1rem 0.25rem', flex: 1 }}
+                        >
+                          +100
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCharacter({ ...character, forgeFragments: 999 });
+                            playClick();
+                          }}
+                          className="btn btn-sm btn-gold"
+                          style={{ fontSize: '0.52rem', padding: '0.1rem 0.25rem', color: '#000', fontWeight: 'bold' }}
+                        >
+                          999
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem', justifyContent: 'flex-end' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Chaves da Torre (🔑):</span>
+                      <button
+                        onClick={set20TowerKeys}
+                        className="btn btn-sm btn-secondary"
+                        style={{ fontSize: '0.58rem', width: '100%', padding: '0.25rem' }}
+                      >
+                        Setar 20 Chaves
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Linha 4: Fase atual e maxima */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Fase Atual:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={character.currentStage}
+                        onChange={(e) => {
+                          const val = Math.max(1, Math.min(200, Number(e.target.value) || 1));
+                          setCharacter({ ...character, currentStage: val });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Fase Máxima:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={character.highestStageReached}
+                        onChange={(e) => {
+                          const val = Math.max(1, Math.min(200, Number(e.target.value) || 1));
+                          setCharacter({ ...character, highestStageReached: val });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Linha 5: Modos de Jogo */}
+                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.5rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={character.pandemoniumUnlocked || false}
+                        onChange={(e) => {
+                          setCharacter({ ...character, pandemoniumUnlocked: e.target.checked });
+                          playClick();
+                        }}
+                      />
+                      Pandemônio Lib.
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={character.activePandemonium || false}
+                        onChange={(e) => {
+                          setCharacter({ ...character, activePandemonium: e.target.checked });
+                          playClick();
+                        }}
+                      />
+                      Pandemônio Ativo
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={character.purgatoryCompleted || false}
+                        onChange={(e) => {
+                          setCharacter({ ...character, purgatoryCompleted: e.target.checked });
+                          playClick();
+                        }}
+                      />
+                      Purgatório Comp.
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={character.activeEcoterra || false}
+                        onChange={(e) => {
+                          setCharacter({ ...character, activeEcoterra: e.target.checked });
+                          playClick();
+                        }}
+                      />
+                      Ecoterra Ativo
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Conteudo Atributos */}
+              {devTab === 'atributos' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.62rem' }}>
+                  
+                  {/* Grid de Atributos Base */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+                    {(['strength', 'magic', 'dexterity', 'constitution', 'luck'] as Array<keyof BaseStats>).map((stat) => (
+                      <div key={stat} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                        <span style={{ fontWeight: 'bold', color: '#fbbf24', textTransform: 'capitalize' }}>
+                          {stat === 'strength' ? 'Força' : stat === 'magic' ? 'Magia' : stat === 'dexterity' ? 'Destreza' : stat === 'constitution' ? 'Vigor' : 'Sorte'}:
+                        </span>
+                        <input
+                          type="number"
+                          value={character.baseStats[stat]}
+                          onChange={(e) => {
+                            const val = Math.max(0, Number(e.target.value) || 0);
+                            setCharacter({
+                              ...character,
+                              baseStats: {
+                                ...character.baseStats,
+                                [stat]: val
+                              }
+                            });
+                          }}
+                          style={{
+                            background: 'rgba(0,0,0,0.5)',
+                            border: '1px solid var(--border-dim)',
+                            borderRadius: '4px',
+                            padding: '0.15rem',
+                            color: '#fff',
+                            fontSize: '0.62rem',
+                            outline: 'none',
+                            textAlign: 'center'
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Toque e Critico */}
+                  <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.4rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>Dano Toque:</span>
+                      <input
+                        type="number"
+                        value={character.baseStats.touch || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({
+                            ...character,
+                            baseStats: { ...character.baseStats, touch: val }
+                          });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>Chance Crit%:</span>
+                      <input
+                        type="number"
+                        value={character.baseStats.touchCritChance || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({
+                            ...character,
+                            baseStats: { ...character.baseStats, touchCritChance: val }
+                          });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>Dano Crit%:</span>
+                      <input
+                        type="number"
+                        value={character.baseStats.touchCritDamage || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({
+                            ...character,
+                            baseStats: { ...character.baseStats, touchCritDamage: val }
+                          });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Pontos de Atributos e Skill Libres */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Pontos Atributo Livres:</span>
+                      <input
+                        type="number"
+                        value={character.attributePoints}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, attributePoints: val });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>Pontos Habilidade Livres:</span>
+                      <input
+                        type="number"
+                        value={character.skillPoints}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, skillPoints: val });
+                        }}
+                        style={{
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.2rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botões Rápidos */}
+                  <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+                    <button
+                      onClick={maxSkills}
+                      className="btn btn-sm btn-gold"
+                      style={{ flex: 1, fontSize: '0.58rem', padding: '0.3rem', color: '#000', fontWeight: 'bold' }}
+                    >
+                      Maximizar Skills da Classe (+5)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCharacter({
+                          ...character,
+                          baseStats: {
+                            strength: 15,
+                            magic: 10,
+                            dexterity: 10,
+                            constitution: 15,
+                            luck: 5,
+                            touch: 10,
+                            touchCritChance: 5,
+                            touchCritDamage: 150,
+                            robotClicks: 0
+                          },
+                          attributePoints: 2000
+                        });
+                        playClick();
+                      }}
+                      className="btn btn-sm btn-secondary"
+                      style={{ flex: 1, fontSize: '0.58rem', padding: '0.3rem' }}
+                    >
+                      Resetar Atributos (2000 ptos)
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Conteudo Equipamentos */}
+              {devTab === 'equipamentos' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.62rem' }}>
+                  
+                  {/* Seletor de Mística */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.25)', padding: '0.4rem', borderRadius: '6px' }}>
+                    <span style={{ fontWeight: 'bold', color: '#fbbf24' }}>Mística do Set Equipado:</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="8"
+                        value={misticLevelGen}
+                        onChange={(e) => {
+                          setMisticLevelGen(Number(e.target.value));
+                          playClick();
+                        }}
+                        style={{ width: '80px', accentColor: '#fbbf24' }}
+                      />
+                      <span style={{ fontWeight: 'bold', width: '20px', textAlign: 'center', color: '#a78bfa' }}>+{misticLevelGen}</span>
+                    </div>
+                  </div>
+
+                  {/* Botoes rápidos de set completo */}
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => equipSet('celestial', misticLevelGen)}
+                      className="btn btn-sm btn-gold"
+                      style={{ flex: 1, fontSize: '0.58rem', padding: '0.35rem', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+                    >
+                      👑 Equipar Celestial +{misticLevelGen}
+                    </button>
+                    <button
+                      onClick={() => equipSet('pandemonium', misticLevelGen)}
+                      className="btn btn-sm btn-secondary"
+                      style={{ flex: 1, fontSize: '0.58rem', padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', background: 'rgba(220, 38, 38, 0.15)', color: '#f87171', border: '1px solid rgba(220, 38, 38, 0.35)' }}
+                    >
+                      🔥 Equipar Pandemônio +{misticLevelGen}
+                    </button>
+                  </div>
+
+                  {/* Refinador de Equipamento Individual */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '130px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                    <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '0.58rem' }}>Mística de Itens Equipados:</span>
+                    {(['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'] as const).map((slot) => {
+                      const item = character.equipment[slot] as EquipmentItem | null;
+                      const slotLabel = slot === 'head' ? 'Elmo' : slot === 'chest' ? 'Peito' : slot === 'legs' ? 'Pernas' : slot === 'gloves' ? 'Luvas' : slot === 'weapon' ? 'Arma' : 'Colar';
+                      
+                      return (
+                        <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                          <span style={{ color: '#e2e8f0', fontWeight: 500 }}>{slotLabel}:</span>
+                          {item ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                color: item.rarity === 'mystic' ? '#c084fc' : item.rarity === 'legendary' ? '#f59e0b' : '#34d399',
+                                fontSize: '0.58rem',
+                                maxWidth: '100px',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {item.name}
+                              </span>
+                              <div style={{ display: 'flex', gap: '2px' }}>
+                                <button
+                                  onClick={() => {
+                                    const currentLvl = item.mysticLevel || 0;
+                                    if (currentLvl > 0) updateSingleItemMistic(slot, currentLvl - 1);
+                                  }}
+                                  className="btn btn-sm btn-secondary"
+                                  style={{ padding: '0.05rem 0.2rem', fontSize: '0.5rem', minWidth: '15px' }}
+                                >
+                                  -
+                                </button>
+                                <span style={{ fontSize: '0.58rem', minWidth: '20px', textAlign: 'center', color: '#c084fc', fontWeight: 'bold' }}>
+                                  +{item.mysticLevel || 0}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    const currentLvl = item.mysticLevel || 0;
+                                    if (currentLvl < 8) updateSingleItemMistic(slot, currentLvl + 1);
+                                  }}
+                                  className="btn btn-sm btn-secondary"
+                                  style={{ padding: '0.05rem 0.2rem', fontSize: '0.5rem', minWidth: '15px' }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: '0.55rem' }}>Vazio</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                </div>
+              )}
+
+              {/* Conteudo Prestigio & Transcendencia */}
+              {devTab === 'prestigio' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.62rem' }}>
+                  
+                  {/* Linha 1: Prestígio */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                    <span style={{ color: '#fbbf24', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      💫 Prestígio (Upgrade Roguelite)
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.1rem' }}>
+                      <span style={{ color: '#94a3b8' }}>Pontos (PP):</span>
+                      <input
+                        type="number"
+                        value={character.prestigePoints}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, prestigePoints: val });
+                        }}
+                        style={{
+                          flex: 1,
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem 0.3rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        onClick={maxPrestigeUpgrades}
+                        className="btn btn-sm btn-secondary"
+                        style={{ fontSize: '0.55rem', padding: '0.2rem 0.4rem' }}
+                      >
+                        Maximizar Upgrades
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Linha 2: Transcendencia */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                    <span style={{ color: '#a78bfa', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      🌀 Transcendência (Segundo Ciclo)
+                    </span>
+                    
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.1rem' }}>
+                      <span style={{ color: '#94a3b8' }}>Pontos (PT):</span>
+                      <input
+                        type="number"
+                        value={character.transcendencePoints || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, transcendencePoints: val });
+                        }}
+                        style={{
+                          width: '60px',
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+
+                      <span style={{ color: '#94a3b8' }}>Resets:</span>
+                      <input
+                        type="number"
+                        value={character.transcendenceCount || 0}
+                        onChange={(e) => {
+                          const val = Math.max(0, Number(e.target.value) || 0);
+                          setCharacter({ ...character, transcendenceCount: val });
+                        }}
+                        style={{
+                          width: '50px',
+                          background: 'rgba(0,0,0,0.5)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: '4px',
+                          padding: '0.15rem',
+                          color: '#fff',
+                          fontSize: '0.62rem',
+                          outline: 'none',
+                          textAlign: 'center'
+                        }}
+                      />
+
+                      <button
+                        onClick={maxTranscendenceUpgrades}
+                        className="btn btn-sm btn-gold"
+                        style={{ fontSize: '0.55rem', padding: '0.2rem 0.4rem', color: '#000', fontWeight: 'bold', flex: 1 }}
+                      >
+                        Maximizar Upgrades
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
