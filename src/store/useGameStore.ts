@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
+import { StatEngine } from '../core/StatEngine';
 
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
@@ -545,7 +546,7 @@ interface GameState {
 
   // Novos métodos de equipamentos e inventário (v1.1.0)
   equipItem(itemId: string): void;
-  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon'): void;
+  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'): void;
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
   dismantleItem(itemId: string): void;
@@ -632,7 +633,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     autoCastHealPercent: 50,
     autoCastDisabledSkills: [],
     killCount: {},
-    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
     inventory: [],
     inventorySlots: 30,
     pandemoniumUnlocked: false,
@@ -1053,7 +1054,7 @@ export const useGameStore = create<GameState>((set) => ({
       enemiesDefeatedInStage: 0,
       equipment: (state.character.pandemoniumUnlocked) 
         ? state.character.equipment 
-        : { head: null, chest: null, legs: null, gloves: null, weapon: null },
+        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
       inventory: [],
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
@@ -1203,7 +1204,7 @@ export const useGameStore = create<GameState>((set) => ({
       highestStageReached: 1,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
       inventory: [],
       pandemoniumUnlocked: false,
       activePandemonium: false,
@@ -2229,27 +2230,39 @@ export const useGameStore = create<GameState>((set) => ({
         const val1 = item1.stats[key] || 0;
         const val2 = item2.stats[key] || 0;
 
+        const isDecimal = [
+          'damageMultiplierPct',
+          'maxHpPct',
+          'maxManaPct',
+          'attackSpeedPct',
+          'lifesteal',
+          'touchDamageMult',
+          'dropChancePct',
+          'damageReductionPct',
+          'frenzyChancePct'
+        ].includes(key);
+
         if (isLegendaryForge) {
-          // Forja Lendária: soma total com bônus de +50%
-          mergedStats[key] = Math.ceil((val1 + val2) * 1.5);
+          const raw = (val1 + val2) * 1.5;
+          mergedStats[key] = isDecimal ? Math.round(raw * 1000) / 1000 : Math.ceil(raw);
         } else if (val1 === 0 || val2 === 0) {
-          // Stat exclusivo de um item: preservado integralmente
           mergedStats[key] = val1 + val2;
         } else {
-          // Ambos têm o stat: maior preservado 100%, menor com redução de 50%
           const maior = Math.max(val1, val2);
           const menor = Math.min(val1, val2);
-          mergedStats[key] = maior + Math.ceil(menor * 0.5);
+          const rawBonus = isDecimal ? (menor * 0.5) : Math.ceil(menor * 0.5);
+          const raw = maior + rawBonus;
+          mergedStats[key] = isDecimal ? Math.round(raw * 1000) / 1000 : raw;
         }
       });
 
-      // Mapeamento dos nomes de slots traduzidos
       const slotNamesMap: Record<string, string> = {
         weapon: 'Arma Mística',
         head: 'Elmo Místico',
         chest: 'Armadura Mística',
         legs: 'Calça Mística',
-        gloves: 'Luva Mística'
+        gloves: 'Luva Mística',
+        necklace: 'Colar Místico'
       };
 
       let baseName = slotNamesMap[item1.slot] || 'Item Místico';
@@ -2704,14 +2717,14 @@ export const useGameStore = create<GameState>((set) => ({
         };
 
         const slotNames: Record<string, Record<string, string>> = {
-          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
-          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
-          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
-          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
-          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' },
-          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas' }
+          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
+          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
+          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar' },
+          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
+          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
+          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
+          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
+          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
         };
 
         const possibleStatsMap: Record<string, string[]> = {
@@ -2725,7 +2738,7 @@ export const useGameStore = create<GameState>((set) => ({
           avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
         };
 
-        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon'> = ['head', 'chest', 'legs', 'gloves', 'weapon'];
+        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'> = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'];
         const newItems: EquipmentItem[] = [];
 
         for (let i = 0; i < count; i++) {
@@ -2774,15 +2787,19 @@ export const useGameStore = create<GameState>((set) => ({
             mult = 4.5;
           }
 
-          const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
-          const itemStats: Partial<BaseStats> = {};
-          const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos
+          let itemStats: Partial<BaseStats> = {};
+          if (slot === 'necklace') {
+            itemStats = StatEngine.generateNecklaceStats(stage, mult, 'legendary');
+          } else {
+            const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
+            const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos
 
-          const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
-          pickedStats.forEach((statKey) => {
-            const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
-            itemStats[statKey as keyof BaseStats] = val;
-          });
+            const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+            pickedStats.forEach((statKey) => {
+              const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
+              itemStats[statKey as keyof BaseStats] = val;
+            });
+          }
 
           newItems.push({
             id: `${classId}-${slot}-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,

@@ -875,6 +875,7 @@ const slotLabels: Record<string, string> = {
   legs: 'Pernas',
   gloves: 'Luvas',
   weapon: 'Arma',
+  necklace: 'Colar',
   consumable: 'Consumível'
 };
 
@@ -884,6 +885,7 @@ const slotIcons: Record<string, string> = {
   legs: '👖',
   gloves: '🧤',
   weapon: '⚔️',
+  necklace: '📿',
   consumable: '📦'
 };
 
@@ -896,14 +898,48 @@ const statLabels: Record<string, string> = {
   touch: 'Poder do Toque',
   touchCritChance: 'Chance de Crítico',
   touchCritDamage: 'Dano Crítico',
-  robotClicks: 'Cliques do Robô'
+  robotClicks: 'Cliques do Robô',
+  lifesteal: 'Roubo de Vida',
+  touchDamageMult: 'Multiplicador de Toque',
+  damageMultiplierPct: 'Bônus de Dano',
+  maxHpPct: 'Bônus de HP',
+  attackSpeedPct: 'Velocidade de Ataque',
+  maxManaPct: 'Bônus de Mana',
+  dropChancePct: 'Chance de Drop',
+  damageReductionPct: 'Redução de Dano',
+  frenzyChancePct: 'Chance de Frenesi'
+};
+
+const isPercentStat = (stat: string) => {
+  return [
+    'lifesteal', 
+    'damageReductionPct', 
+    'frenzyChancePct', 
+    'dropChancePct', 
+    'maxHpPct', 
+    'maxManaPct', 
+    'attackSpeedPct', 
+    'damageMultiplierPct',
+    'touchDamageMult',
+    'touchCritChance',
+    'touchCritDamage'
+  ].includes(stat);
+};
+
+const formatStatValue = (stat: string, val: number) => {
+  if (isPercentStat(stat)) {
+    const pct = val * 100;
+    const rounded = Number(pct.toFixed(2));
+    return `+${rounded}%`;
+  }
+  return `+${val}`;
 };
 
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
-  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null;
-  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null) => void;
+  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null;
+  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null) => void;
   showDiscardConfirm: boolean;
   setShowDiscardConfirm: (show: boolean) => void;
 }
@@ -966,7 +1002,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     setSelectedItem(null);
   };
 
-  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon') => {
+  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace') => {
     AudioManager.getInstance().playClick();
     unequipItem(slot);
     setSelectedSlot(null);
@@ -1010,6 +1046,19 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 slot="head" 
                 item={character.equipment.head} 
                 onClick={() => character.equipment.head && setSelectedSlot('head')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Colar */}
+            <div style={{ gridRow: '1', gridColumn: '3' }}>
+              <EquipmentSlot 
+                slot="necklace" 
+                item={character.equipment.necklace} 
+                onClick={() => character.equipment.necklace && setSelectedSlot('necklace')}
                 icons={slotIcons}
                 labels={slotLabels}
                 getRarityColor={getRarityColor}
@@ -1596,7 +1645,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
 // Componente auxiliar para renderizar cada slot de equipamento
 const EquipmentSlot: React.FC<{
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace';
   item: EquipmentItem | null;
   onClick: () => void;
   icons: Record<string, string>;
@@ -5139,7 +5188,7 @@ export default function GameUI() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [selectedEnemy, setSelectedEnemy] = useState<any | null>(null);
 
@@ -5541,7 +5590,7 @@ export default function GameUI() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
                         {Object.entries(selectedItem.stats).map(([stat, val]) => (
                           <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                            +{val} {statLabels[stat] || stat}
+                            {formatStatValue(stat, val)} {statLabels[stat] || stat}
                           </span>
                         ))}
                       </div>
@@ -5747,7 +5796,7 @@ export default function GameUI() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
                       {Object.entries(item.stats).map(([stat, val]) => (
                         <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                          +{val} {statLabels[stat] || stat}
+                          {formatStatValue(stat, val)} {statLabels[stat] || stat}
                         </span>
                       ))}
                     </div>

@@ -384,6 +384,14 @@ const App: React.FC = () => {
                         Ative o Espelho da Ecoterra no painel correspondente para enfrentar monstros fortalecidos (+30% HP, +20% Velocidade de Ataque) nas fases 1 a 20 e coletar Essência de Transcendência sob as penalidades ambientais arcanas.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        📿 Novo Equipamento: Colar Místico e Ajuste de Recompensas da Torre
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Introduzido o slot de Colar, posicionado no topo direito do painel de equipamentos. Ele fornece de 1 a 3 passivos utilitários aleatórios (como redução de dano físico e de explosões, chance de frenesi no clique, roubo de vida e chance de drop). O colar possui uma taxa de drop fixa de 5% (independente da Sorte), e funciona como peça de conjunto de set, permitindo ativar até dois bônus de 3 peças distintos simultaneamente! Além disso, a quantidade de Fragmentos de Forja dropados ao avançar andares na Torre Infinita foi quadruplicada para facilitar o reforge místico, e a Grande Forja Arcana foi aprimorada para dar suporte a fusões de colar com prévias de atributos e formatação percentual precisa.
+                      </div>
+                    </div>
                   </div>
                 </div>
 

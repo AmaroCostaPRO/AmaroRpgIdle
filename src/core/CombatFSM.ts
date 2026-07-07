@@ -1044,7 +1044,13 @@ export class CombatFSM {
 
     if (this.isFrenzyActive) return;
 
-    this.frenzyEnergy = Math.min(100, this.frenzyEnergy + 1);
+    const frenzyChance = this.playerFinalStats.frenzyChancePct || 0;
+    if (Math.random() < frenzyChance) {
+      this.frenzyEnergy = 100;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚡ Sorte do Colar: Frenesi ativado instantaneamente!` });
+    } else {
+      this.frenzyEnergy = Math.min(100, this.frenzyEnergy + 1);
+    }
     this.comboCount++;
     this.comboTimer = 0;
 
@@ -1300,6 +1306,11 @@ export class CombatFSM {
       damage = Math.floor(damage * 0.80);
     }
 
+    // Redução de dano adicional do Colar (damageReductionPct)
+    if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
+      damage = Math.floor(damage * (1 - this.playerFinalStats.damageReductionPct));
+    }
+
     this.scene.animateEnemyAttack();
 
     // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
@@ -1488,6 +1499,9 @@ export class CombatFSM {
     if (this.isElite && this.eliteAfix === 'volatil') {
       const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
       volatileDamage = Math.floor(this.playerMaxHP * 0.20 * constitutionReduction);
+      if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
+        volatileDamage = Math.floor(volatileDamage * (1 - this.playerFinalStats.damageReductionPct));
+      }
       this.playerHP = Math.max(0, this.playerHP - volatileDamage);
     }
 
@@ -1632,12 +1646,24 @@ export class CombatFSM {
     const baseDropChance = 0.05;
     // Elites e Chefes têm 100% de chance de drop de equipamento
     const relicDropBonus = useRelicStore.getState().getRelicEffectBonus('simbolo_aprendizado');
-    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus);
+    const dropPctBonus = this.playerFinalStats.dropChancePct || 0;
+    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus + dropPctBonus);
     
+    const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace')[] = [];
+
+    // Colar: drop fixo de 5%, sem influência da Sorte.
+    if (Math.random() < 0.05) {
+      slotsToDrop.push('necklace');
+    }
+
+    // Equipamentos normais: usam a chance padrão (sem o colar)
     if (Math.random() < dropChance) {
-      const slots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
-      const slot = slots[Math.floor(Math.random() * slots.length)];
-      
+      const normalSlots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
+      const slot = normalSlots[Math.floor(Math.random() * normalSlots.length)];
+      slotsToDrop.push(slot);
+    }
+
+    for (const slot of slotsToDrop) {
       const rareWeight = Math.min(600, 250 + luck * 5);
       const legendaryWeight = Math.min(300, 50 + luck * 2);
       const commonWeight = Math.max(100, 700 - (rareWeight - 250) - (legendaryWeight - 50));
@@ -1689,15 +1715,19 @@ export class CombatFSM {
         avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
       };
       
-      const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
-      const itemStats: Partial<BaseStats> = {};
-      const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+      let itemStats: Partial<BaseStats> = {};
       
-      const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
-      pickedStats.forEach((statKey) => {
-        const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
-        itemStats[statKey as keyof BaseStats] = val;
-      });
+      if (slot === 'necklace') {
+        itemStats = StatEngine.generateNecklaceStats(stage, mult, rarity);
+      } else {
+        const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
+        const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+        const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+        pickedStats.forEach((statKey) => {
+          const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
+          itemStats[statKey as keyof BaseStats] = val;
+        });
+      }
       
       const setNames: Record<string, string> = {
         warrior: 'Set do Senhor da Guerra',
@@ -1744,14 +1774,14 @@ export class CombatFSM {
       };
       
       const slotNames: Record<string, Record<string, string>> = {
-        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
-        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas' },
-        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
-        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
-        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' },
-        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas' }
+        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
+        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
+        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar' },
+        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
+        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
+        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
+        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
+        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
       };
       
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';

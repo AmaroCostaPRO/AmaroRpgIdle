@@ -16,12 +16,15 @@ export interface BaseStats {
   maxHpPct?: number;
   attackSpeedPct?: number;
   maxManaPct?: number;
+  dropChancePct?: number;
+  damageReductionPct?: number;
+  frenzyChancePct?: number;
 }
 
 export interface EquipmentItem {
   id: string;
   name: string;
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'consumable';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'consumable';
   classId: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' | 'consumable';
   stats: Partial<BaseStats>;
@@ -93,7 +96,7 @@ export interface Character {
   autoCastDisabledSkills?: string[]; // Habilidades desativadas na conjuração automática
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
-  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon', EquipmentItem | null>;
+  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;
   pandemoniumUnlocked?: boolean;

@@ -2,6 +2,43 @@ import React, { useState } from 'react';
 import { useGameStore, formatNumber } from '../store/useGameStore';
 import { EquipmentItem, BaseStats } from '../core/types';
 
+const isPercentStat = (stat: string) => {
+  return [
+    'lifesteal', 
+    'damageReductionPct', 
+    'frenzyChancePct', 
+    'dropChancePct', 
+    'maxHpPct', 
+    'maxManaPct', 
+    'attackSpeedPct', 
+    'damageMultiplierPct',
+    'touchDamageMult',
+    'touchCritChance',
+    'touchCritDamage'
+  ].includes(stat);
+};
+
+const formatStatValue = (stat: string, val: number) => {
+  if (isPercentStat(stat)) {
+    const pct = val * 100;
+    const rounded = Number(pct.toFixed(2));
+    return `+${rounded}%`;
+  }
+  return `+${val}`;
+};
+
+const getSlotEmoji = (slot: string) => {
+  switch (slot) {
+    case 'weapon': return '⚔️';
+    case 'head': return '🪖';
+    case 'chest': return '🛡️';
+    case 'legs': return '👖';
+    case 'gloves': return '🧤';
+    case 'necklace': return '📿';
+    default: return '❓';
+  }
+};
+
 export const ForgeView: React.FC = () => {
   const { character, reforgeItems, abbreviateNumbers } = useGameStore();
   const [slot1, setSlot1] = useState<EquipmentItem | null>(null);
@@ -27,7 +64,10 @@ export const ForgeView: React.FC = () => {
     damageMultiplierPct: 'Dano Global',
     maxHpPct: 'Vida Máxima Pct.',
     attackSpeedPct: 'Velocidade de Ataque',
-    maxManaPct: 'Mana Máxima Pct.'
+    maxManaPct: 'Mana Máxima Pct.',
+    dropChancePct: 'Chance de Drop',
+    damageReductionPct: 'Redução de Dano',
+    frenzyChancePct: 'Chance de Frenesi'
   };
 
   const slotLabels: Record<string, string> = {
@@ -35,7 +75,8 @@ export const ForgeView: React.FC = () => {
     chest: 'Armadura',
     legs: 'Calça',
     gloves: 'Luvas',
-    weapon: 'Arma'
+    weapon: 'Arma',
+    necklace: 'Colar'
   };
 
   const rarityColors: Record<string, string> = {
@@ -216,7 +257,8 @@ export const ForgeView: React.FC = () => {
       head: 'Elmo Místico',
       chest: 'Armadura Mística',
       legs: 'Calça Mística',
-      gloves: 'Luva Mística'
+      gloves: 'Luva Mística',
+      necklace: 'Colar Místico'
     };
 
     let baseName = slotNamesMap[slot1.slot] || 'Item Místico';
@@ -353,7 +395,7 @@ export const ForgeView: React.FC = () => {
                 {slot1 && slot2 ? (
                   <div className="flex flex-col items-center">
                     <span className="text-3xl text-[#d946ef] drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
-                      {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
+                      {getSlotEmoji(slot1.slot)}
                     </span>
                     <span className="text-[10px] font-extrabold text-[#d946ef] bg-[#d946ef]/10 px-1 rounded mt-1">
                       +{reforgeState.nextLevel}
@@ -383,7 +425,7 @@ export const ForgeView: React.FC = () => {
                     {slot1 ? (
                       <>
                         <span className="text-2xl mt-1">
-                          {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
+                          {getSlotEmoji(slot1.slot)}
                         </span>
                         <span className="text-[9px] font-bold text-gray-400 truncate max-w-[56px] mt-1 px-1">
                           {slot1.name}
@@ -421,7 +463,7 @@ export const ForgeView: React.FC = () => {
                     {slot2 ? (
                       <>
                         <span className="text-2xl mt-1">
-                          {slot2.slot === 'weapon' ? '⚔️' : slot2.slot === 'head' ? '🪖' : slot2.slot === 'chest' ? '🛡️' : slot2.slot === 'legs' ? '👖' : '🧤'}
+                          {getSlotEmoji(slot2.slot)}
                         </span>
                         <span className="text-[9px] font-bold text-gray-400 truncate max-w-[56px] mt-1 px-1">
                           {slot2.name}
@@ -512,7 +554,7 @@ export const ForgeView: React.FC = () => {
                 <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
                 <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-[var(--border-subtle)]">
                   <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-2xl shadow-inner">
-                    {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
+                    {getSlotEmoji(slot1.slot)}
                   </div>
                   <div>
                     <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot1.rarity] }}>{slot1.name}</h4>
@@ -527,7 +569,7 @@ export const ForgeView: React.FC = () => {
                     return (
                       <div key={key} className="flex justify-between text-xs py-1 border-b border-zinc-800/30">
                         <span className="text-gray-400">{statLabels[key]}</span>
-                        <span className="font-semibold text-gray-200">+{val}</span>
+                        <span className="font-semibold text-gray-200">{formatStatValue(key, val)}</span>
                       </div>
                     );
                   })}
@@ -539,7 +581,7 @@ export const ForgeView: React.FC = () => {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent pointer-events-none" />
                 <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-purple-500/25">
                   <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border-2 border-[#d946ef] flex items-center justify-center text-2xl shadow-[0_0_10px_rgba(217,70,239,0.3)]">
-                    {slot1.slot === 'weapon' ? '⚔️' : slot1.slot === 'head' ? '🪖' : slot1.slot === 'chest' ? '🛡️' : slot1.slot === 'legs' ? '👖' : '🧤'}
+                    {getSlotEmoji(slot1.slot)}
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-[#d946ef] truncate max-w-[150px]">
@@ -564,10 +606,10 @@ export const ForgeView: React.FC = () => {
                       <div key={key} className="flex justify-between items-center text-xs py-1 border-b border-purple-500/10">
                         <span className="text-gray-300 font-medium">{statLabels[key]}</span>
                         <div className="flex items-center gap-1.5 font-bold">
-                          <span className="text-[#d946ef]">+{total}</span>
+                          <span className="text-[#d946ef]">{formatStatValue(key, total)}</span>
                           {!exclusivo && diff > 0 && (
                             <span className="text-[9px] px-1 py-0.2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-sm font-semibold">
-                              +{diff}
+                              {formatStatValue(key, diff)}
                             </span>
                           )}
                         </div>
@@ -582,7 +624,7 @@ export const ForgeView: React.FC = () => {
                 <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
                 <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-[var(--border-subtle)]">
                   <div className="w-10 h-10 rounded-lg bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-2xl shadow-inner">
-                    {slot2.slot === 'weapon' ? '⚔️' : slot2.slot === 'head' ? '🪖' : slot2.slot === 'chest' ? '🛡️' : slot2.slot === 'legs' ? '👖' : '🧤'}
+                    {getSlotEmoji(slot2.slot)}
                   </div>
                   <div>
                     <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot2.rarity] }}>{slot2.name}</h4>
@@ -597,7 +639,7 @@ export const ForgeView: React.FC = () => {
                     return (
                       <div key={key} className="flex justify-between text-xs py-1 border-b border-zinc-800/30">
                         <span className="text-gray-400">{statLabels[key]}</span>
-                        <span className="font-semibold text-gray-200">+{val}</span>
+                        <span className="font-semibold text-gray-200">{formatStatValue(key, val)}</span>
                       </div>
                     );
                   })}
@@ -633,7 +675,7 @@ export const ForgeView: React.FC = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-[var(--surface-1)] border-2 border-[#d946ef] flex items-center justify-center text-3xl shadow-[0_0_12px_rgba(217,70,239,0.4)]">
-                {successItem.slot === 'weapon' ? '⚔️' : successItem.slot === 'head' ? '🪖' : successItem.slot === 'chest' ? '🛡️' : successItem.slot === 'legs' ? '👖' : '🧤'}
+                {getSlotEmoji(successItem.slot)}
               </div>
               <div>
                 <h4 className="text-md font-extrabold text-[#d946ef]">{successItem.name}</h4>
@@ -653,7 +695,7 @@ export const ForgeView: React.FC = () => {
                 return (
                   <div key={key} className="flex justify-between items-center text-xs bg-[var(--surface-2)]/40 border border-[var(--border-subtle)] rounded-lg p-2.5">
                     <span className="text-gray-400">{statLabels[key]}</span>
-                    <span className="text-purple-400 font-bold">+{value}</span>
+                    <span className="text-purple-400 font-bold">{formatStatValue(key, value)}</span>
                   </div>
                 );
               })}
@@ -695,7 +737,7 @@ export const ForgeView: React.FC = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-md bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-xl group-hover:border-purple-500/20">
-                        {item.slot === 'weapon' ? '⚔️' : item.slot === 'head' ? '🪖' : item.slot === 'chest' ? '🛡️' : item.slot === 'legs' ? '👖' : '🧤'}
+                        {getSlotEmoji(item.slot)}
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-gray-200" style={{ color: rarityColors[item.rarity] }}>
@@ -711,7 +753,7 @@ export const ForgeView: React.FC = () => {
                         const key = k as keyof BaseStats;
                         return (
                           <div key={key}>
-                            {statLabels[key].split(' ')[0]}: +{item.stats[key]}
+                            {statLabels[key].split(' ')[0]}: {formatStatValue(key, item.stats[key] ?? 0)}
                           </div>
                         );
                       })}

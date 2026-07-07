@@ -322,7 +322,11 @@ export class StatEngine {
       touchDamageMult: 1,
       damageMultiplierPct: 0,
       maxHpPct: 0,
-      attackSpeedPct: 0
+      attackSpeedPct: 0,
+      maxManaPct: 0,
+      dropChancePct: 0,
+      damageReductionPct: 0,
+      frenzyChancePct: 0
     };
 
     // 1. Somar atributos diretos dos equipamentos equipados
@@ -566,6 +570,60 @@ export class StatEngine {
         key
       );
     }
+    return stats;
+  }
+
+  static generateNecklaceStats(stage: number, mult: number, rarity: string): Partial<BaseStats> {
+    const pool: Array<keyof BaseStats> = [
+      'damageMultiplierPct',
+      'maxHpPct',
+      'maxManaPct',
+      'attackSpeedPct',
+      'robotClicks',
+      'lifesteal',
+      'touchDamageMult',
+      'dropChancePct',
+      'damageReductionPct',
+      'frenzyChancePct'
+    ];
+    
+    const numBonuses = rarity === 'common' ? 1 : (rarity === 'rare' ? 2 : 3);
+    const selectedKeys = [...pool].sort(() => 0.5 - Math.random()).slice(0, numBonuses);
+    
+    const stats: Partial<BaseStats> = {};
+    selectedKeys.forEach((key) => {
+      if (key === 'damageMultiplierPct') {
+        const raw = 0.02 * (1 + stage * 0.015) * mult;
+        stats[key] = Math.round(Math.min(0.20, raw) * 100) / 100;
+      } else if (key === 'maxHpPct') {
+        const raw = 0.02 * (1 + stage * 0.015) * mult;
+        stats[key] = Math.round(Math.min(0.20, raw) * 100) / 100;
+      } else if (key === 'maxManaPct') {
+        const raw = 0.02 * (1 + stage * 0.015) * mult;
+        stats[key] = Math.round(Math.min(0.20, raw) * 100) / 100;
+      } else if (key === 'attackSpeedPct') {
+        const raw = 0.01 * (1 + stage * 0.01) * mult;
+        stats[key] = Math.round(Math.min(0.10, raw) * 100) / 100;
+      } else if (key === 'robotClicks') {
+        stats[key] = Math.max(1, Math.min(3, Math.floor(1 + (stage * 0.01) * mult)));
+      } else if (key === 'lifesteal') {
+        const raw = 0.005 * (1 + stage * 0.01) * mult;
+        stats[key] = Math.round(Math.min(0.04, raw) * 1000) / 1000;
+      } else if (key === 'touchDamageMult') {
+        const raw = 0.05 * (1 + stage * 0.02) * mult;
+        stats[key] = Math.round(Math.min(0.50, raw) * 100) / 100;
+      } else if (key === 'dropChancePct') {
+        const raw = 0.01 * (1 + stage * 0.015) * mult;
+        stats[key] = Math.round(Math.min(0.15, raw) * 100) / 100;
+      } else if (key === 'damageReductionPct') {
+        const raw = 0.01 * (1 + stage * 0.01) * mult;
+        stats[key] = Math.round(Math.min(0.12, raw) * 100) / 100;
+      } else if (key === 'frenzyChancePct') {
+        const raw = 0.005 * (1 + stage * 0.005) * mult;
+        stats[key] = Math.round(Math.min(0.03, raw) * 1000) / 1000;
+      }
+    });
+    
     return stats;
   }
 }

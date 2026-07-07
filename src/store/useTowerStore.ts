@@ -186,8 +186,8 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
       }
     }
 
-    // Recompensa de Fragmentos de Forja: ganha sempre ao avançar andares
-    const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5));
+    // Recompensa de Fragmentos de Forja: ganha sempre ao avançar andares (quadruplicado)
+    const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5)) * 4;
     useGameStore.getState().addForgeFragments(forgeFragmentsReward);
     bridge.emit(GameEvent.LOG_EMITTED, {
       message: `💎 Recompensa de Conclusão: +${forgeFragmentsReward} Fragmento(s) de Forja!`
