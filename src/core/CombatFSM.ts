@@ -503,7 +503,7 @@ export class CombatFSM {
       const randVal = randSin(lookupSeed);
 
       if (isTowerBoss) {
-        const bosses = ENEMY_TYPES.filter(e => e.id.startsWith('boss_'));
+        const bosses = ENEMY_TYPES.filter(e => e.id.startsWith('boss_') && e.id !== 'boss_crystal_guardian');
         const idx = Math.floor(randVal * bosses.length);
         this.currentEnemy = bosses[idx];
       } else {
