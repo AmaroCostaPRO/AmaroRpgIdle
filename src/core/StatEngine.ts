@@ -261,6 +261,42 @@ export const SET_BONUSES: Record<string, {
       3: { constitution: 200, luck: 100 },
       5: { magic: 400 }
     }
+  },
+  'Set do Avatar Celestizado': {
+    name: 'Set do Avatar Celestizado',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 10, magic: 10, dexterity: 10 },
+      3: { constitution: 15, luck: 15 },
+      5: { strength: 20, magic: 20, dexterity: 20, constitution: 20, luck: 20 }
+    }
+  },
+  'Set Ancestral da Totalidade': {
+    name: 'Set Ancestral da Totalidade',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 50, magic: 50, dexterity: 50 },
+      3: { constitution: 80, luck: 80 },
+      5: { strength: 120, magic: 120, dexterity: 120, constitution: 120, luck: 120 }
+    }
+  },
+  'Set Pandemoníaco do Eco Supremo': {
+    name: 'Set Pandemoníaco do Eco Supremo',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 150, magic: 150, dexterity: 150 },
+      3: { constitution: 200, luck: 200 },
+      5: { strength: 350, magic: 350, dexterity: 350, constitution: 350, luck: 350 }
+    }
+  },
+  'Set Celestial do Avatar Supremo': {
+    name: 'Set Celestial do Avatar Supremo',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 100, magic: 100, dexterity: 100 },
+      3: { constitution: 150, luck: 150 },
+      5: { strength: 250, magic: 250, dexterity: 250, constitution: 250, luck: 250 }
+    }
   }
 };
 
@@ -399,6 +435,27 @@ export class StatEngine {
     finalStats.touch += ascensionCount * 5;
     finalStats.touchCritChance += ascensionCount * 0.1;
     finalStats.touchCritDamage += ascensionCount * 1.0;
+
+    // 4.5. Aplicar melhorias da Árvore de Transcendência
+    const transUpgrades = character.transcendenceUpgrades || {};
+    
+    // Mana Suprema (mana_suprema): +10% de Max Mana Pct por nível
+    const manaLvl = transUpgrades['mana_suprema'] || 0;
+    if (manaLvl > 0) {
+      finalStats.maxManaPct = (finalStats.maxManaPct || 0) + manaLvl * 10;
+    }
+
+    // Alma do Avatar (alma_avatar): Aumenta os atributos de base em +2% por nível (multiplicativo)
+    const almaLvl = transUpgrades['alma_avatar'] || 0;
+    if (almaLvl > 0) {
+      const multiplier = 1 + almaLvl * 0.02;
+      finalStats.strength = Math.floor(finalStats.strength * multiplier);
+      finalStats.magic = Math.floor(finalStats.magic * multiplier);
+      finalStats.dexterity = Math.floor(finalStats.dexterity * multiplier);
+      finalStats.constitution = Math.floor(finalStats.constitution * multiplier);
+      finalStats.luck = Math.floor(finalStats.luck * multiplier);
+      finalStats.touch = Math.floor(finalStats.touch * multiplier);
+    }
 
     // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)
     if (character.testMode) {

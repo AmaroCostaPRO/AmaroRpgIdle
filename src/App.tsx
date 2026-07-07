@@ -338,19 +338,58 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v4.4.5 — Sprite Único do Rei Escorpião de Ouro e Background do Pandemônio!
+              🔔 Atualização v5.0.0 — Transcendência e o Segundo Ciclo!
             </h3>
             
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Esta atualização traz um sprite exclusivo para o chefe "Rei Escorpião de Ouro" (corrigindo o reuso de textura do escorpião comum), além do novo background temático para a dificuldade Pandemônio (Fase 31+), com emendas perfeitas nas laterais e alinhamento preciso do solo.
+                A v5.0.0 introduz o Segundo Ciclo da Alma Partida com uma nova Aba de Transcendência dedicada, o espelho da Ecoterra, a nova classe transcendental Avatar e a Loja Celestial.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v5.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 5.0.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#06b6d4', fontSize: '0.72rem' }}>
+                        🌌 Aba Dedicada de Transcendência (🌌)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A interface de Transcendência ganhou uma aba própria no menu superior, separada do Altar de Ascensão. Realize o Ritual de Transcendência (requer Modo Pandemônio liberado, alcançar a Fase 50 no Loop Infinito e acumular pelo menos 500 PP Vitalícios).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a78bfa', fontSize: '0.72rem' }}>
+                        🌟 Classe Transcendental: Avatar
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Desbloqueie a classe Avatar através do talento correspondente na árvore de Transcendência ou acumulando 10 Pontos de Transcendência (PT). O Avatar desfere Dano Cósmico escalado com o maior atributo e a ultimate "Coro da Alma Inteira" escala com a soma de todos eles!
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#e0f2fe', fontSize: '0.72rem' }}>
+                        🛒 Nova Loja Celestial
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Use suas Essências de Transcendência (ET) coletadas na Ecoterra na nova Loja Celestial para comprar consumíveis especiais: Elixir Transcendental (+10 Níveis, +50 atributos e +10 pontos de habilidade), Cristal de Forja Eterna (+25 Fragmentos de Forja) e Chaves da Fenda Temporal (+2 Chaves da Torre Infinita).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🍃 Espelho da Ecoterra e Segundo Ciclo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ative o Espelho da Ecoterra no painel correspondente para enfrentar monstros fortalecidos (+30% HP, +20% Velocidade de Ataque) nas fases 1 a 20 e coletar Essência de Transcendência sob as penalidades ambientais arcanas.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v4.4.5 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#10b981', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 4.4.5 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 4.4.5:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>

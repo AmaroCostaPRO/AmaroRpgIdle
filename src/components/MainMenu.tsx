@@ -285,7 +285,7 @@ export const MainMenu: React.FC = () => {
       </div>
  
       <div style={{ position: 'absolute', bottom: '1rem', textAlign: 'center', fontSize: '0.6rem', color: '#475569', zIndex: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, fontFamily: 'var(--font-mono)' }}>
-        v4.3.0 • Amaro Costa
+        v5.0.0 • Amaro Costa
       </div>
     </div>
   );

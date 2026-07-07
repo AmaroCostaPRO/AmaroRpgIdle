@@ -154,6 +154,14 @@ export const CLASS_CONFIGS: Record<string, {
     growthRates: { strength: 0.8, magic: 3.2, dexterity: 0.8, constitution: 1.8, luck: 1.5, touch: 1.5, touchCritChance: 0.15, touchCritDamage: 1.2, robotClicks: 0 },
     initialSkills: ['death_touch'],
     primaryStat: 'magic'
+  },
+  avatar: {
+    name: 'Avatar',
+    description: 'A fusão de todas as energias. Todo o seu dano escala com o maior atributo ativo.',
+    baseStats: { strength: 15, magic: 15, dexterity: 15, constitution: 15, luck: 15, touch: 15, touchCritChance: 10, touchCritDamage: 180, robotClicks: 0 },
+    growthRates: { strength: 2.5, magic: 2.5, dexterity: 2.5, constitution: 2.5, luck: 2.5, touch: 2.5, touchCritChance: 0.25, touchCritDamage: 2.0, robotClicks: 0 },
+    initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar'],
+    primaryStat: 'magic'
   }
 };
 
@@ -168,6 +176,51 @@ export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; descripti
   perm_touch_crit: { name: 'Foco Crítico', description: 'Aumento de +3% na Chance de Crítico por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
   perm_touch_crit_dmg: { name: 'Poder Devastador', description: 'Aumento de +15% no Dano Crítico por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
   perm_robot: { name: 'Robô Assistente', description: 'Invoca um assistente automático que desfere +1 Toque por segundo por nível', stat: 'robotClicks', bonusPerLevel: 1, costPerLevel: 5, maxLevel: 5 }
+};
+
+// Catálogo estático de melhorias de Transcendência
+export const TRANSCENDENCE_UPGRADES_CATALOG: Record<string, {
+  name: string;
+  description: string;
+  costPerLevel: number;
+  maxLevel: number;
+  bonusPerLevel: number;
+}> = {
+  mana_suprema: {
+    name: 'Mana Suprema',
+    description: 'Aumento de +10% de Max Mana Pct por nível (acumulativo)',
+    costPerLevel: 1,
+    maxLevel: 10,
+    bonusPerLevel: 10
+  },
+  dominio_vazio: {
+    name: 'Domínio do Vazio',
+    description: 'Aumento de +5% de Dano contra Elites por nível',
+    costPerLevel: 1,
+    maxLevel: 10,
+    bonusPerLevel: 5
+  },
+  foco_temporal: {
+    name: 'Foco Temporal',
+    description: 'Reduz o tempo de recarga de todas as habilidades em 3% por nível',
+    costPerLevel: 1,
+    maxLevel: 10,
+    bonusPerLevel: 3
+  },
+  alma_avatar: {
+    name: 'Alma do Avatar',
+    description: 'Aumento multiplicativo de atributos base em +2% por nível',
+    costPerLevel: 2,
+    maxLevel: 5,
+    bonusPerLevel: 2
+  },
+  avatar_pleno: {
+    name: 'Avatar Pleno',
+    description: 'Desbloqueia a classe Suprema Avatar (exige nível 5 nos outros upgrades)',
+    costPerLevel: 5,
+    maxLevel: 1,
+    bonusPerLevel: 1
+  }
 };
 
 // Multiplicadores base para as habilidades ativas (conforme a descrição)
@@ -220,7 +273,12 @@ export const SKILL_BASE_MULTIPLIERS: Record<string, number> = {
   death_touch: 1.6,
   bone_shield: 1.5,
   soul_siphon: 3.2,
-  skeleton_army: 1.2
+  skeleton_army: 1.2,
+
+  // Avatar
+  unified_echo: 2.5,
+  prismatic_barrier: 0.3,
+  ultimate_avatar: 5.0
 };
 
 // Catálogo estático de Habilidades (Árvore de Habilidades por Classe)
@@ -301,6 +359,11 @@ export const SKILLS_CATALOG: Record<string, {
   skeleton_army: { name: 'Exército de Esqueletos', description: 'Conjura servos que atacam continuamente causando 120% de dano por segundo por 8 segundos.', cost: 3, maxLevel: 5, dependencies: ['soul_siphon'], type: 'active', requiredLevel: 11, classId: 'necromancer' },
   ultimate_necromancer: { name: 'Ceifa das Almas Perdidas', description: 'Causa 1300% de dano mágico e ressuscita o último monstro morto como lacaio por 10s. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['skeleton_army'], type: 'active', requiredLevel: 15, classId: 'necromancer', isUltimate: true, cooldown: 60000, manaCost: 75 },
 
+  // Avatar
+  unified_echo: { name: 'Eco Unificado', description: 'Causa 250% do maior atributo como dano do tipo elemental do inimigo.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar' },
+  prismatic_barrier: { name: 'Barreira Prismática', description: 'Escuda o jogador em 30% do maior atributo por 5 segundos.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar' },
+  ultimate_avatar: { name: 'Coro da Alma Inteira', description: 'Canaliza o poder de todos os cacos, causando dano imediato de (Str + Mag + Dex + Con + Luk) x 5.0. (Ultimate)', cost: 5, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar', isUltimate: true, cooldown: 60000, manaCost: 100 },
+
   // Comum
   heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
 };
@@ -339,6 +402,47 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
   if (classId === 'cleric') return getLevel('mage') >= 50;
   if (classId === 'rogue') return getLevel('ranger') >= 50;
   if (classId === 'necromancer') return getLevel('cleric') >= 50 && getLevel('rogue') >= 50;
+  if (classId === 'avatar') {
+    try {
+      const state = useGameStore.getState();
+      if (state && state.character) {
+        const hasPleno = state.character.transcendenceUpgrades?.['avatar_pleno'] || 0;
+        const currentPoints = state.character.transcendencePoints || 0;
+        const spentPT = Object.entries(state.character.transcendenceUpgrades || {}).reduce((sum, [upgradeId, lvl]) => {
+          const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
+          const levelVal = lvl as number;
+          if (upgrade && levelVal > 0) {
+            sum += upgrade.costPerLevel * levelVal;
+          }
+          return sum;
+        }, 0);
+        const totalPT = currentPoints + spentPT;
+        if (hasPleno > 0 || totalPT >= 10) return true;
+      }
+    } catch {}
+    try {
+      const activeCharSlot = localStorage.getItem('medieval_idle_current_slot');
+      if (activeCharSlot) {
+        const savedCharRaw = localStorage.getItem(`medieval_idle_save_slot_${activeCharSlot}`);
+        if (savedCharRaw) {
+          const savedChar = JSON.parse(savedCharRaw);
+          const hasPleno = savedChar.transcendenceUpgrades?.['avatar_pleno'] || 0;
+          const currentPoints = savedChar.transcendencePoints || 0;
+          const spentPT = Object.entries(savedChar.transcendenceUpgrades || {}).reduce((sum, [upgradeId, lvl]) => {
+            const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
+            const levelVal = lvl as number;
+            if (upgrade && levelVal > 0) {
+              sum += upgrade.costPerLevel * levelVal;
+            }
+            return sum;
+          }, 0);
+          const totalPT = currentPoints + spentPT;
+          if (hasPleno > 0 || totalPT >= 10) return true;
+        }
+      }
+    } catch {}
+    return false;
+  }
   return false;
 };
 
@@ -406,6 +510,7 @@ interface GameState {
   setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
   addForgeFragments(amount: number): void;
+  addTranscendenceEssence(amount: number): void;
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -414,6 +519,9 @@ interface GameState {
   performPrestige(): void;
   unlockPandemonium(): void;
   upgradePrestigeStat(upgradeId: string): void;
+  performTranscendence(): void;
+  upgradeTranscendenceStat(upgradeId: string): void;
+  resetTranscendenceUpgrades(): void;
   unlockOrUpgradeSkill(skillId: string): void;
   selectClass(classId: string): void;
   startNewGame(classId: string): void;
@@ -424,6 +532,7 @@ interface GameState {
   toggleAutoCast(): void;
   updateAutoCastSettings(healPercent: number, disabledSkills: string[]): void;
   toggleTestMode(): void;
+  toggleEcoterra(): void;
   registerEnemyKill(enemyId: string): void;
   
   // Novos métodos de gerenciamento de save slots
@@ -449,6 +558,7 @@ interface GameState {
 
   // Loja e Consumíveis (v3.0.0)
   buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot'): { success: boolean; message: string };
+  buyTranscendenceConsumable(type: 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
@@ -535,6 +645,13 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     purgatoryCompleted: false,
     forgeFragments: 0,
     ascensionNotified: false,
+    transcendencePoints: 0,
+    transcendenceUpgrades: {},
+    lifetimePrestigePointsAccumulated: 0,
+    transcendenceCount: 0,
+    transcendenceLoreShown: false,
+    activeEcoterra: false,
+    transcendenceEssence: 0,
   };
 };
 
@@ -749,6 +866,15 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  addTranscendenceEssence: (amount) => set((state) => {
+    const updated = {
+      ...state.character,
+      transcendenceEssence: (state.character.transcendenceEssence || 0) + amount
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
   addXp: (amount) => set((state) => {
     let newXp = state.character.xp + amount;
     let newLevel = state.character.level;
@@ -919,6 +1045,7 @@ export const useGameStore = create<GameState>((set) => ({
       unlockedSkills: [...config.initialSkills],
       skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
       prestigePoints: (state.character.prestigePoints || 0) + pointsEarned,
+      lifetimePrestigePointsAccumulated: (state.character.lifetimePrestigePointsAccumulated || 0) + pointsEarned,
       prestigeUpgrades: upgrades,
       ascensionCount: ascensionCount + 1,
       baseStats: newBaseStats,
@@ -1037,6 +1164,119 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  performTranscendence: () => set((state) => {
+    const currentPP = state.character.prestigePoints || 0;
+    const spentPP = Object.entries(state.character.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
+      const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
+      if (upgrade && lvl > 0) {
+        for (let i = 1; i <= lvl; i++) {
+          sum += upgrade.costPerLevel * i;
+        }
+      }
+      return sum;
+    }, 0);
+    const totalPP = Math.max(state.character.lifetimePrestigePointsAccumulated || 0, currentPP + spentPP);
+    const pointsEarned = Math.floor(Math.pow(totalPP / 500, 0.75));
+
+    const isEligible = state.character.pandemoniumUnlocked && state.character.highestStageReached >= 50 && pointsEarned > 0;
+    if (!isEligible) return state;
+
+    const currentClassId = state.character.classId;
+    const config = CLASS_CONFIGS[currentClassId] || CLASS_CONFIGS.warrior;
+
+    console.log(`[Transcendence] Rito de Transcendência realizado! Ganhou ${pointsEarned} PT.`);
+
+    const updatedChar = {
+      ...state.character,
+      level: 1,
+      xp: 0,
+      gold: 0,
+      baseStats: { ...config.baseStats },
+      growthRates: { ...config.growthRates },
+      unlockedSkills: [...config.initialSkills],
+      skillLevels: config.initialSkills.reduce((acc, skill) => ({ ...acc, [skill]: 1 }), {}),
+      prestigePoints: 0,
+      prestigeUpgrades: {},
+      ascensionCount: 0,
+      attributePoints: 5,
+      skillPoints: 1,
+      highestStageReached: 1,
+      currentStage: 1,
+      enemiesDefeatedInStage: 0,
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null },
+      inventory: [],
+      pandemoniumUnlocked: false,
+      activePandemonium: false,
+      purgatoryCompleted: false,
+      runStartTime: Date.now(),
+      ascensionNotified: false,
+      transcendencePoints: (state.character.transcendencePoints || 0) + pointsEarned,
+      lifetimePrestigePointsAccumulated: 0,
+      transcendenceCount: (state.character.transcendenceCount || 0) + 1,
+      transcendenceLoreShown: true
+    };
+
+    saveToLocalStorage(updatedChar);
+    return { character: updatedChar, screen: 'playing' };
+  }),
+
+  upgradeTranscendenceStat: (upgradeId) => set((state) => {
+    const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
+    if (!upgrade) return state;
+
+    const currentUpgrades = state.character.transcendenceUpgrades || {};
+    const currentLvl = currentUpgrades[upgradeId] || 0;
+    if (currentLvl >= upgrade.maxLevel) return state;
+
+    if (upgradeId === 'avatar_pleno') {
+      const otherKeys = ['mana_suprema', 'dominio_vazio', 'foco_temporal', 'alma_avatar'];
+      const allAtLeast5 = otherKeys.every(k => (currentUpgrades[k] || 0) >= 5);
+      if (!allAtLeast5) return state;
+    }
+
+    const cost = upgrade.costPerLevel;
+    if ((state.character.transcendencePoints || 0) < cost) return state;
+
+    const newUpgrades = {
+      ...currentUpgrades,
+      [upgradeId]: currentLvl + 1
+    };
+
+    const updatedChar = {
+      ...state.character,
+      transcendencePoints: (state.character.transcendencePoints || 0) - cost,
+      transcendenceUpgrades: newUpgrades
+    };
+
+    saveToLocalStorage(updatedChar);
+    return { character: updatedChar };
+  }),
+
+  resetTranscendenceUpgrades: () => set((state) => {
+    const currentEssence = state.character.transcendenceEssence || 0;
+    if (currentEssence < 10) return state;
+
+    const currentUpgrades = state.character.transcendenceUpgrades || {};
+    let refundedPT = 0;
+    
+    Object.entries(currentUpgrades).forEach(([upgradeId, lvl]) => {
+      const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
+      if (upgrade && lvl > 0) {
+        refundedPT += upgrade.costPerLevel * lvl;
+      }
+    });
+
+    const updatedChar = {
+      ...state.character,
+      transcendencePoints: (state.character.transcendencePoints || 0) + refundedPT,
+      transcendenceEssence: currentEssence - 10,
+      transcendenceUpgrades: {}
+    };
+
+    saveToLocalStorage(updatedChar);
+    return { character: updatedChar };
+  }),
+
   unlockOrUpgradeSkill: (skillId) => set((state) => {
     const skill = SKILLS_CATALOG[skillId];
     if (!skill) return state;
@@ -1139,6 +1379,26 @@ export const useGameStore = create<GameState>((set) => ({
             inventory: char.inventory || defaults.inventory,
             inventorySlots: char.inventorySlots || defaults.inventorySlots,
             forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
+            transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
+            transcendenceUpgrades: char.transcendenceUpgrades || {},
+            transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
+            transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
+            activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
+            transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            lifetimePrestigePointsAccumulated: (() => {
+              if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
+              const curPP = char.prestigePoints || 0;
+              const spentPP = Object.entries(char.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
+                const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
+                if (upgrade && lvl > 0) {
+                  for (let i = 1; i <= lvl; i++) {
+                    sum += upgrade.costPerLevel * i;
+                  }
+                }
+                return sum;
+              }, 0);
+              return curPP + spentPP;
+            })(),
           };
 
           const currentSlotVal = (() => {
@@ -1304,6 +1564,26 @@ export const useGameStore = create<GameState>((set) => ({
       message: updated.testMode 
         ? '🧪 MODO DE TESTE ATIVADO! (5x Atributos / Dano / XP)' 
         : '🧪 Modo de teste desativado.' 
+    });
+    return { character: updated };
+  }),
+
+  toggleEcoterra: () => set((state) => {
+    if ((state.character.transcendenceCount || 0) < 1) {
+      bridge.emit(GameEvent.LOG_EMITTED, { 
+        message: '🔒 Você precisa transcender pelo menos uma vez para acessar a Ecoterra!' 
+      });
+      return state;
+    }
+    const updated = {
+      ...state.character,
+      activeEcoterra: !state.character.activeEcoterra
+    };
+    saveToLocalStorage(updated);
+    bridge.emit(GameEvent.LOG_EMITTED, { 
+      message: updated.activeEcoterra 
+        ? '🌌 ECOTERRA ATIVADA! O ciclo espelhado está ativo (Fases 1-20 possuem dificuldade elevada e drop de Essência).' 
+        : '🌌 Ecoterra desativada. Retornando ao ciclo normal.' 
     });
     return { character: updated };
   }),
@@ -1518,6 +1798,26 @@ export const useGameStore = create<GameState>((set) => ({
             inventory: char.inventory || defaults.inventory,
             inventorySlots: char.inventorySlots || defaults.inventorySlots,
             forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
+            transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
+            transcendenceUpgrades: char.transcendenceUpgrades || {},
+            transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
+            transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
+            activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
+            transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            lifetimePrestigePointsAccumulated: (() => {
+              if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
+              const curPP = char.prestigePoints || 0;
+              const spentPP = Object.entries(char.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
+                const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
+                if (upgrade && lvl > 0) {
+                  for (let i = 1; i <= lvl; i++) {
+                    sum += upgrade.costPerLevel * i;
+                  }
+                }
+                return sum;
+              }, 0);
+              return curPP + spentPP;
+            })(),
           };
 
           if (merged.classLevels) {
@@ -1966,66 +2266,74 @@ export const useGameStore = create<GameState>((set) => ({
             cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
           } else if (cleanSetName.startsWith('Set Ancestral de ')) {
             cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+          } else if (cleanSetName.startsWith('Set Ancestral da ')) {
+            cleanSetName = cleanSetName.replace('Set Ancestral da ', '');
           }
           // Substitui Mística por Mística Ancestral
           baseName = baseName.replace('Mística', 'Mística Ancestral');
           baseName = baseName.replace('Místico', 'Místico Ancestral');
           
-          if (item1.setName.includes(' do ')) {
-            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
-          } else if (item1.setName.includes(' da ')) {
-            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
-          } else {
-            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          let prep = 'do';
+          if (item1.setName.includes(' da ')) {
+            prep = 'da';
+          } else if (item1.setName.includes(' de ')) {
+            prep = 'de';
           }
+          newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
         } else if (isPandemonium) {
           if (cleanSetName.startsWith('Set Pandemoníaco do ')) {
             cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
           } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
             cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+          } else if (cleanSetName.startsWith('Set Pandemoníaco da ')) {
+            cleanSetName = cleanSetName.replace('Set Pandemoníaco da ', '');
           }
           // Substitui Mística por Mística Pandemoníaca
           baseName = baseName.replace('Mística', 'Mística Pandemoníaca');
           baseName = baseName.replace('Místico', 'Místico Pandemoníaco');
           
-          if (item1.setName.includes(' do ')) {
-            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
-          } else if (item1.setName.includes(' da ')) {
-            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
-          } else {
-            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          let prep = 'do';
+          if (item1.setName.includes(' da ')) {
+            prep = 'da';
+          } else if (item1.setName.includes(' de ')) {
+            prep = 'de';
           }
+          newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
         } else if (isCelestial) {
           if (cleanSetName.startsWith('Set Celestial do ')) {
             cleanSetName = cleanSetName.replace('Set Celestial do ', '');
           } else if (cleanSetName.startsWith('Set Celestial de ')) {
             cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+          } else if (cleanSetName.startsWith('Set Celestial da ')) {
+            cleanSetName = cleanSetName.replace('Set Celestial da ', '');
           }
           // Substitui Mística por Mística Celestial
           baseName = baseName.replace('Mística', 'Mística Celestial');
           baseName = baseName.replace('Místico', 'Místico Celestial');
           
-          if (item1.setName.includes(' do ')) {
-            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
-          } else if (item1.setName.includes(' da ')) {
-            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
-          } else {
-            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          let prep = 'do';
+          if (item1.setName.includes(' da ')) {
+            prep = 'da';
+          } else if (item1.setName.includes(' de ')) {
+            prep = 'de';
           }
+          newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
         } else {
           if (cleanSetName.startsWith('Set do ')) {
             cleanSetName = cleanSetName.replace('Set do ', '');
           } else if (cleanSetName.startsWith('Set de ')) {
             cleanSetName = cleanSetName.replace('Set de ', '');
+          } else if (cleanSetName.startsWith('Set da ')) {
+            cleanSetName = cleanSetName.replace('Set da ', '');
           }
           
-          if (item1.setName.includes(' do ')) {
-            newName = `${baseName} do ${cleanSetName} +${targetMysticLevel}`;
-          } else if (item1.setName.includes(' da ')) {
-            newName = `${baseName} da ${cleanSetName} +${targetMysticLevel}`;
-          } else {
-            newName = `${baseName} de ${cleanSetName} +${targetMysticLevel}`;
+          let prep = 'do';
+          if (item1.setName.includes(' da ')) {
+            prep = 'da';
+          } else if (item1.setName.includes(' de ')) {
+            prep = 'de';
           }
+          newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
         }
       }
 
@@ -2151,6 +2459,57 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
+  buyTranscendenceConsumable: (type) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const costs = {
+        elixir_transcendental: 15,
+        cristal_forja_eterna: 25,
+        chave_fenda_temporal: 20
+      };
+      const cost = costs[type];
+      const currentEssence = state.character.transcendenceEssence || 0;
+      if (currentEssence < cost) {
+        result = { success: false, message: `Essência de Transcendência insuficiente. Requer ${cost} ET.` };
+        return state;
+      }
+
+      if (state.character.inventory.length >= state.character.inventorySlots) {
+        result = { success: false, message: 'Inventário cheio! Libere espaço antes de comprar.' };
+        return state;
+      }
+
+      const names = {
+        elixir_transcendental: 'Elixir Transcendental',
+        cristal_forja_eterna: 'Cristal de Forja Eterna',
+        chave_fenda_temporal: 'Chave da Fenda Temporal'
+      };
+      const name = names[type];
+
+      const newItem: EquipmentItem = {
+        id: `${type}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        slot: 'consumable',
+        rarity: 'consumable',
+        stats: {},
+        classId: state.character.classId,
+        spriteName: type,
+        consumableType: type as any
+      };
+
+      const updated = {
+        ...state.character,
+        transcendenceEssence: currentEssence - cost,
+        inventory: [...state.character.inventory, newItem]
+      };
+
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Compra de [${name}] realizada com sucesso!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
   useConsumable: (itemId) => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     set((state) => {
@@ -2189,6 +2548,86 @@ export const useGameStore = create<GameState>((set) => ({
         };
         saveToLocalStorage(updated);
         result = { success: true, message: 'Fragmento de Alma absorvido! +1 Fragmento no Altar de Alma.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'elixir_transcendental') {
+        const levelsToAdd = 10;
+        const newLevel = state.character.level + levelsToAdd;
+        const newPoints = (state.character.attributePoints || 0) + (levelsToAdd * 5);
+        const newSkillPoints = (state.character.skillPoints || 0) + (levelsToAdd * 1);
+        const stats = { ...state.character.baseStats };
+        
+        for (let i = 0; i < levelsToAdd; i++) {
+          (Object.keys(stats) as Array<keyof BaseStats>).forEach((key) => {
+            stats[key] = Math.round((stats[key] || 0) + (state.character.growthRates[key] || 0));
+          });
+        }
+
+        const updatedClassLevels = {
+          ...state.character.classLevels,
+          [state.character.classId]: Math.max(state.character.classLevels[state.character.classId] || 1, newLevel)
+        };
+
+        const updated = {
+          ...state.character,
+          level: newLevel,
+          attributePoints: newPoints,
+          skillPoints: newSkillPoints,
+          baseStats: stats,
+          classLevels: updatedClassLevels,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: `Elixir Transcendental consumido! Nível aumentado em +10! (+50 Pontos de Atributo, +10 Pontos de Habilidade).` };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'cristal_forja_eterna') {
+        const updated = {
+          ...state.character,
+          forgeFragments: (state.character.forgeFragments || 0) + 25,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Cristal de Forja Eterna consumido! +25 Fragmentos de Forja adicionados.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'chave_fenda_temporal') {
+        const occupancyAfterUse = state.character.inventory.length + 1;
+        if (occupancyAfterUse > state.character.inventorySlots) {
+          result = { success: false, message: 'Inventário cheio! Libere pelo menos 1 slot para usar a Chave da Fenda Temporal.' };
+          return state;
+        }
+
+        const key1: EquipmentItem = {
+          id: `tower_key-${Date.now()}-1`,
+          name: 'Chave da Torre',
+          slot: 'consumable',
+          rarity: 'consumable',
+          stats: {},
+          classId: state.character.classId,
+          spriteName: 'tower_key',
+          consumableType: 'tower_key'
+        };
+        const key2: EquipmentItem = {
+          id: `tower_key-${Date.now()}-2`,
+          name: 'Chave da Torre',
+          slot: 'consumable',
+          rarity: 'consumable',
+          stats: {},
+          classId: state.character.classId,
+          spriteName: 'tower_key',
+          consumableType: 'tower_key'
+        };
+
+        const updated = {
+          ...state.character,
+          inventory: [...nextInventory, key1, key2]
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Chave da Fenda Temporal consumida! +2 Chaves da Torre Infinita adicionadas ao inventário.' };
         return { character: updated };
       }
 
@@ -2249,7 +2688,8 @@ export const useGameStore = create<GameState>((set) => ({
           paladin: 'Set do Guardião Divino',
           cleric: 'Set do Sumosacerdote',
           rogue: 'Set do Assassino Fantasma',
-          necromancer: 'Set do Arauto da Ceifa'
+          necromancer: 'Set do Arauto da Ceifa',
+          avatar: 'Set do Avatar Celestizado'
         };
 
         const ancestralSetNames: Record<string, string> = {
@@ -2259,7 +2699,8 @@ export const useGameStore = create<GameState>((set) => ({
           paladin: 'Set Ancestral do Sentinela Eterno',
           cleric: 'Set Ancestral do Sábio Divino',
           rogue: 'Set Ancestral do Ceifador de Almas',
-          necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos'
+          necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos',
+          avatar: 'Set Ancestral da Totalidade'
         };
 
         const slotNames: Record<string, Record<string, string>> = {
@@ -2269,7 +2710,8 @@ export const useGameStore = create<GameState>((set) => ({
           paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
           cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
           rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' }
+          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' },
+          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas' }
         };
 
         const possibleStatsMap: Record<string, string[]> = {
@@ -2279,7 +2721,8 @@ export const useGameStore = create<GameState>((set) => ({
           paladin: ['constitution', 'strength', 'luck'],
           cleric: ['magic', 'constitution', 'luck'],
           rogue: ['dexterity', 'strength', 'luck'],
-          necromancer: ['magic', 'luck', 'constitution']
+          necromancer: ['magic', 'luck', 'constitution'],
+          avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
         };
 
         const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon'> = ['head', 'chest', 'legs', 'gloves', 'weapon'];
@@ -2295,13 +2738,39 @@ export const useGameStore = create<GameState>((set) => ({
 
           if (item.consumableType === 'chest_legendary') {
             setName = setNames[classId] || `Set do ${classId}`;
-            const cleanSetName = setName.replace('Set do ', '');
-            name = `${baseName} do ${cleanSetName}`;
+            let cleanSetName = setName;
+            if (cleanSetName.startsWith('Set do ')) {
+              cleanSetName = cleanSetName.replace('Set do ', '');
+            } else if (cleanSetName.startsWith('Set de ')) {
+              cleanSetName = cleanSetName.replace('Set de ', '');
+            } else if (cleanSetName.startsWith('Set da ')) {
+              cleanSetName = cleanSetName.replace('Set da ', '');
+            }
+            let prep = 'do';
+            if (setName.includes(' da ')) {
+              prep = 'da';
+            } else if (setName.includes(' de ')) {
+              prep = 'de';
+            }
+            name = `${baseName} ${prep} ${cleanSetName}`;
             mult = 2.5;
           } else {
             setName = ancestralSetNames[classId] || `Set Ancestral de ${classId}`;
-            const cleanSetName = setName.replace('Set Ancestral do ', '').replace('Set Ancestral de ', '');
-            name = `${baseName} Ancestral do ${cleanSetName}`;
+            let cleanSetName = setName;
+            if (cleanSetName.startsWith('Set Ancestral do ')) {
+              cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
+            } else if (cleanSetName.startsWith('Set Ancestral de ')) {
+              cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+            } else if (cleanSetName.startsWith('Set Ancestral da ')) {
+              cleanSetName = cleanSetName.replace('Set Ancestral da ', '');
+            }
+            let prep = 'do';
+            if (setName.includes(' da ')) {
+              prep = 'da';
+            } else if (setName.includes(' de ')) {
+              prep = 'de';
+            }
+            name = `${baseName} Ancestral ${prep} ${cleanSetName}`;
             mult = 4.5;
           }
 

@@ -446,20 +446,23 @@ export class CombatScene extends Phaser.Scene {
           const char = this.fsm.characterData;
           if (char) {
             const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
+            const isEcoterra = char.activeEcoterra && char.currentStage <= 20;
             // Labels e cores por dificuldade
-            const modeLabel = char.currentStage >= 31 ? 'PANDEMÔNIO'
+            const modeLabel = isEcoterra ? 'ECOTERRA'
+              : char.currentStage >= 31 ? 'PANDEMÔNIO'
               : (char.currentStage >= 21 && char.currentStage <= 30) ? 'PURGATÓRIO'
               : char.currentStage >= 16 ? 'APOCALIPSE'
               : char.currentStage >= 11 ? 'INFERNO'
               : char.currentStage >= 6 ? 'PESADELO' : 'FASE';
-            const modeColor = char.currentStage >= 31 ? '#f43f5e'
+            const modeColor = isEcoterra ? '#00e5ff'
+              : char.currentStage >= 31 ? '#f43f5e'
               : (char.currentStage >= 21 && char.currentStage <= 30) ? '#d8b4fe'
               : char.currentStage >= 16 ? '#c084fc'
               : char.currentStage >= 11 ? '#fb923c'
               : char.currentStage >= 6 ? '#f43f5e' : '#f59e0b';
             if (isBoss) {
               this.stageText.setText(`${modeLabel} ${char.currentStage} - CHEFE FINAL`);
-              this.stageText.setColor(char.currentStage >= 31 ? '#f43f5e' : char.currentStage >= 21 ? '#d8b4fe' : '#c084fc');
+              this.stageText.setColor(isEcoterra ? '#00e5ff' : char.currentStage >= 31 ? '#f43f5e' : char.currentStage >= 21 ? '#d8b4fe' : '#c084fc');
             } else {
               this.stageText.setText(`${modeLabel} ${char.currentStage} - Progresso: ${char.enemiesDefeatedInStage}/${ENEMIES_PER_STAGE}`);
               this.stageText.setColor(modeColor);
@@ -631,6 +634,8 @@ export class CombatScene extends Phaser.Scene {
       this.background.tilePositionY = 1024 - (600 / currentBgScale);
     }
 
+    const isEcoterra = char && !isTower && char.activeEcoterra && stage <= 20;
+
     // Aplicar tint de acordo com a dificuldade
     if (stage >= 31) {
       // Pandemônio: Agora possui background sob medida, removemos o tint do fundo para exibir a arte linda gerada
@@ -640,6 +645,10 @@ export class CombatScene extends Phaser.Scene {
       // Purgatório: Sem distorções para preservar a identidade visual cristalina gerada
       this.background.clearTint();
       if (this.enemyBody) this.enemyBody.clearTint();
+    } else if (isEcoterra) {
+      // Ecoterra: Tingimento azul-neon / ciano espectral
+      this.background.setTint(0x00e5ff);
+      if (this.enemyBody) this.enemyBody.setTint(0x80ffff);
     } else if (stage >= 16) {
       // Apocalipse: Roxo sinistro
       this.background.setTint(0x440066);
@@ -775,8 +784,10 @@ export class CombatScene extends Phaser.Scene {
       this.background.tilePositionX += scrollSpeed * delta;
     }
     
-    // O inimigo se aproxima
-    const approachSpeed = 0.18;
+    // O inimigo se aproxima (+20% velocidade na Ecoterra)
+    const char = useGameStore.getState().character;
+    const isEcoterra = char && !isTower && char.activeEcoterra && (char.currentStage || 1) <= 20;
+    const approachSpeed = isEcoterra ? 0.18 * 1.20 : 0.18;
     this.enemyBody.x -= approachSpeed * delta;
   }
 

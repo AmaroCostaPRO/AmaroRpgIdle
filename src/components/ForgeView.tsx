@@ -26,7 +26,8 @@ export const ForgeView: React.FC = () => {
     touchDamageMult: 'Mult. Dano de Toque',
     damageMultiplierPct: 'Dano Global',
     maxHpPct: 'Vida Máxima Pct.',
-    attackSpeedPct: 'Velocidade de Ataque'
+    attackSpeedPct: 'Velocidade de Ataque',
+    maxManaPct: 'Mana Máxima Pct.'
   };
 
   const slotLabels: Record<string, string> = {

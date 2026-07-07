@@ -317,7 +317,7 @@ export enum CombatState {
 }
 
 export interface StatusEffect {
-  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army';
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
   name: string;
   duration: number; // em ms
   tickTimer: number; // em ms
@@ -334,6 +334,7 @@ export class CombatFSM {
   public playerMaxHP: number = 100;
   public playerMana: number = 50;
   public playerMaxMana: number = 50;
+  public playerShield: number = 0;
 
   public enemyHP: number = 100;
   public enemyMaxHP: number = 100;
@@ -478,6 +479,7 @@ export class CombatFSM {
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
     this.enemyEffects = [];
     this.playerEffects = [];
+    this.playerShield = 0;
     this.enemyLevel = stage;
     this.crystalGuardianSecondPhase = false; // Reset da flag da segunda fase
     this.summonedAlly = null;
@@ -638,6 +640,15 @@ export class CombatFSM {
         console.log(`[CombatFSM] ELITE ${this.currentEnemy.name} Spawned! Afixo: ${this.eliteAfix}. MaxHP: ${this.enemyMaxHP}`);
       }
     }
+
+    // Modificadores da Ecoterra (+30% HP)
+    const char = useGameStore.getState().character;
+    const isEcoterra = !isTower && char?.activeEcoterra && stage <= 20;
+    if (isEcoterra) {
+      this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
+      this.enemyHP = this.enemyMaxHP;
+      console.log(`[CombatFSM-Ecoterra] Inimigo fortalecido! MaxHP: ${this.enemyMaxHP}`);
+    }
   }
 
   private updateStatsFromStore() {
@@ -791,6 +802,12 @@ export class CombatFSM {
     const regenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5 ? 1.15 : 1.0;
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * regenPctBoost * (delta / 1000)));
 
+    const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
+    if (isEcoterraActive) {
+      const manaDrain = this.playerMaxMana * 0.015 * (delta / 1000);
+      this.playerMana = Math.max(0, this.playerMana - manaDrain);
+    }
+
     // Processamento do afixo diário Veneno Rastejante (perde 1% do HP máximo a cada 1.5s)
     if (this.characterData.activeDailyChallenge) {
       const today = useGameStore.getState().getTodayYYYYMMDD();
@@ -862,6 +879,12 @@ export class CombatFSM {
       if (this.isElite && this.eliteAfix === 'enfurecido') {
         speedMult *= 1.4;
       }
+      const isTower = useTowerStore.getState().towerActive;
+      const char = useGameStore.getState().character;
+      const isEcoterra = !isTower && char?.activeEcoterra && this.enemyLevel <= 20;
+      if (isEcoterra) {
+        speedMult *= 1.2;
+      }
       this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
       bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo se recuperou do atordoamento e recomeça a preparar seu ataque!` });
     }
@@ -870,6 +893,10 @@ export class CombatFSM {
     this.playerEffects = this.playerEffects.filter(effect => {
       effect.duration -= delta;
       if (effect.duration <= 0) {
+        if (effect.id === 'prismatic_barrier') {
+          this.playerShield = 0;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🛡️ A Barreira Prismática expirou.` });
+        }
         if (effect.id === 'bone_shield') {
           const constVal = this.playerFinalStats.constitution || 0;
           const levelMultiplier = effect.value;
@@ -1141,9 +1168,9 @@ export class CombatFSM {
     let damageType = 'físico';
     let secondaryBoost = 0; // Bônus secundário de Força para outras classes
 
-    if (classId === 'mage' || classId === 'cleric') {
+    if (classId === 'mage' || classId === 'cleric' || classId === 'necromancer') {
       primaryStatVal = this.playerFinalStats.magic;
-      damageType = 'mágico';
+      damageType = classId === 'necromancer' ? 'sombrio' : 'mágico';
       secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
     } else if (classId === 'ranger' || classId === 'rogue') {
       primaryStatVal = this.playerFinalStats.dexterity;
@@ -1153,6 +1180,16 @@ export class CombatFSM {
       primaryStatVal = this.playerFinalStats.constitution;
       damageType = 'sagrado';
       secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
+    } else if (classId === 'avatar') {
+      primaryStatVal = Math.max(
+        this.playerFinalStats.strength || 0,
+        this.playerFinalStats.magic || 0,
+        this.playerFinalStats.dexterity || 0,
+        this.playerFinalStats.constitution || 0,
+        this.playerFinalStats.luck || 0
+      );
+      damageType = 'cósmico';
+      secondaryBoost = 0;
     }
 
     // Inimigo sob status EXPOSTO sofre 20% a mais de dano
@@ -1199,6 +1236,7 @@ export class CombatFSM {
   }
 
   private performEnemyAttack() {
+    const isTower = useTowerStore.getState().towerActive;
     const baseCooldown = 3600 - (this.enemyLevel * 30);
     let speedMult = this.currentEnemy.attackSpeedMultiplier;
     if (this.isElite && this.eliteAfix === 'enfurecido') {
@@ -1215,6 +1253,12 @@ export class CombatFSM {
       }
     }
 
+    // Aplicar bônus de velocidade da Ecoterra (+20% velocidade de ataque)
+    const isEcoterra = !isTower && this.characterData?.activeEcoterra && this.enemyLevel <= 20;
+    if (isEcoterra) {
+      speedMult *= 1.2;
+    }
+
     this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
 
     // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
@@ -1224,7 +1268,6 @@ export class CombatFSM {
     // Constituição reduz o dano recebido em 0.05% por ponto (Redução Máxima de 95%)
     const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
 
-    const isTower = useTowerStore.getState().towerActive;
     let damage = 0;
 
     if (isTower) {
@@ -1281,8 +1324,26 @@ export class CombatFSM {
       return;
     }
 
-    this.playerHP = Math.max(0, this.playerHP - damage);
-    this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damage}`, '#ef4444');
+    let damageToHP = damage;
+    if (this.playerShield > 0) {
+      if (this.playerShield >= damage) {
+        this.playerShield -= damage;
+        damageToHP = 0;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🛡️ Barreira Prismática absorveu todo o dano! (${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} absorvido, Escudo restante: ${formatNumber(this.playerShield, useGameStore.getState().abbreviateNumbers)})` });
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `🛡️ Absorvido`, '#38bdf8');
+      } else {
+        damageToHP = damage - this.playerShield;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🛡️ Barreira Prismática absorveu ${formatNumber(this.playerShield, useGameStore.getState().abbreviateNumbers)} de dano!` });
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `🛡️ -${formatNumber(this.playerShield, useGameStore.getState().abbreviateNumbers)}`, '#38bdf8');
+        this.playerShield = 0;
+        this.playerEffects = this.playerEffects.filter(e => e.id !== 'prismatic_barrier');
+      }
+    }
+
+    if (damageToHP > 0) {
+      this.playerHP = Math.max(0, this.playerHP - damageToHP);
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damageToHP}`, '#ef4444');
+    }
 
     const enemyLabel = this.isElite ? `ELITE ${this.currentEnemy.name}` : this.currentEnemy.name;
     bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano a você.` });
@@ -1321,7 +1382,17 @@ export class CombatFSM {
 
   private damageEnemy(amount: number, isDirect: boolean): void {
     if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
-    this.enemyHP = Math.max(0, this.enemyHP - amount);
+    
+    let finalAmount = amount;
+    if (this.isElite) {
+      const transUpgrades = this.characterData.transcendenceUpgrades || {};
+      const dominioVazioLvl = transUpgrades['dominio_vazio'] || 0;
+      if (dominioVazioLvl > 0) {
+        finalAmount = Math.floor(finalAmount * (1 + dominioVazioLvl * 0.05));
+      }
+    }
+
+    this.enemyHP = Math.max(0, this.enemyHP - finalAmount);
 
     // Aplicar afixo diário Escudo de Espinhos (reflete 20% de dano direto recebido, limitado a 5% da vida máxima por golpe)
     if (isDirect && this.characterData.activeDailyChallenge && this.playerHP > 0) {
@@ -1475,6 +1546,15 @@ export class CombatFSM {
     useGameStore.getState().addXp(gainedXp);
     useGameStore.getState().addGold(gainedGold);
 
+    // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
+    if (!useTowerStore.getState().towerActive && char.activeEcoterra && char.currentStage <= 20) {
+      const essenceAmount = isBoss ? 5 : (this.isElite ? 2 : 1);
+      useGameStore.getState().addTranscendenceEssence(essenceAmount);
+      bridge.emit(GameEvent.LOG_EMITTED, { 
+        message: `🌌 Ecoterra: Você extraiu +${essenceAmount} Essência de Transcendência das cinzas do inimigo!` 
+      });
+    }
+
     // Se houve dano explosivo do afixo Volátil, exibe o texto na tela e loga o dano
     if (volatileDamage > 0) {
       if (this.scene && typeof this.scene.spawnDamageText === 'function') {
@@ -1605,7 +1685,8 @@ export class CombatFSM {
         paladin: ['constitution', 'strength', 'luck'],
         cleric: ['magic', 'constitution', 'luck'],
         rogue: ['dexterity', 'strength', 'luck'],
-        necromancer: ['magic', 'luck', 'constitution']
+        necromancer: ['magic', 'luck', 'constitution'],
+        avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
       };
       
       const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
@@ -1625,7 +1706,8 @@ export class CombatFSM {
         paladin: 'Set do Guardião Divino',
         cleric: 'Set do Sumosacerdote',
         rogue: 'Set do Assassino Fantasma',
-        necromancer: 'Set do Arauto da Ceifa'
+        necromancer: 'Set do Arauto da Ceifa',
+        avatar: 'Set do Avatar Celestizado'
       };
       
       const ancestralSetNames: Record<string, string> = {
@@ -1635,7 +1717,8 @@ export class CombatFSM {
         paladin: 'Set Ancestral do Sentinela Eterno',
         cleric: 'Set Ancestral do Sábio Divino',
         rogue: 'Set Ancestral do Ceifador de Almas',
-        necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos'
+        necromancer: 'Set Ancestral do Senhor dos Ecos Perdidos',
+        avatar: 'Set Ancestral da Totalidade'
       };
 
       const pandemoniumSetNames: Record<string, string> = {
@@ -1645,7 +1728,8 @@ export class CombatFSM {
         paladin: 'Set Pandemoníaco do Vingador Sagrado',
         cleric: 'Set Pandemoníaco do Sumo-Inquisidor',
         rogue: 'Set Pandemoníaco do Executor',
-        necromancer: 'Set Pandemoníaco do Devorador de Almas'
+        necromancer: 'Set Pandemoníaco do Devorador de Almas',
+        avatar: 'Set Pandemoníaco do Eco Supremo'
       };
 
       const celestialSetNames: Record<string, string> = {
@@ -1655,7 +1739,8 @@ export class CombatFSM {
         paladin: 'Set Celestial do Arcanjo',
         cleric: 'Set Celestial do Serafim',
         rogue: 'Set Celestial do Espectro Astral',
-        necromancer: 'Set Celestial do Ceifador de Estrelas'
+        necromancer: 'Set Celestial do Ceifador de Estrelas',
+        avatar: 'Set Celestial do Avatar Supremo'
       };
       
       const slotNames: Record<string, Record<string, string>> = {
@@ -1665,7 +1750,8 @@ export class CombatFSM {
         paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas' },
         cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas' },
         rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas' },
-        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' }
+        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas' },
+        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas' }
       };
       
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -1679,6 +1765,8 @@ export class CombatFSM {
           cleanSetName = cleanSetName.replace('Set Celestial do ', '');
         } else if (cleanSetName.startsWith('Set Celestial de ')) {
           cleanSetName = cleanSetName.replace('Set Celestial de ', '');
+        } else if (cleanSetName.startsWith('Set Celestial da ')) {
+          cleanSetName = cleanSetName.replace('Set Celestial da ', '');
         }
         let suffix = 'Celestial';
         if (baseName.endsWith('as')) {
@@ -1686,7 +1774,13 @@ export class CombatFSM {
         } else if (baseName.endsWith('a')) {
           suffix = 'Celestial';
         }
-        name = `${baseName} ${suffix} do ${cleanSetName}`;
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
         rarity = 'legendary';
       } else if (isPandemoniumDrop) {
         setName = pandemoniumSetNames[classId] || `Set Pandemoníaco de ${classId}`;
@@ -1695,6 +1789,8 @@ export class CombatFSM {
           cleanSetName = cleanSetName.replace('Set Pandemoníaco do ', '');
         } else if (cleanSetName.startsWith('Set Pandemoníaco de ')) {
           cleanSetName = cleanSetName.replace('Set Pandemoníaco de ', '');
+        } else if (cleanSetName.startsWith('Set Pandemoníaco da ')) {
+          cleanSetName = cleanSetName.replace('Set Pandemoníaco da ', '');
         }
         let suffix = 'Pandemoníaco';
         if (baseName.endsWith('as')) {
@@ -1702,17 +1798,49 @@ export class CombatFSM {
         } else if (baseName.endsWith('a')) {
           suffix = 'Pandemoníaca';
         }
-        name = `${baseName} ${suffix} do ${cleanSetName}`;
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
         rarity = 'legendary';
       } else if (isAncestralDrop) {
         setName = ancestralSetNames[classId] || `Set Ancestral de ${classId}`;
-        const cleanSetName = setName.replace('Set Ancestral do ', '');
-        name = `${baseName} Ancestral do ${cleanSetName}`;
-        rarity = 'legendary'; // Os itens do set ancestral herdam visual lendário base
+        let cleanSetName = setName;
+        if (cleanSetName.startsWith('Set Ancestral do ')) {
+          cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
+        } else if (cleanSetName.startsWith('Set Ancestral de ')) {
+          cleanSetName = cleanSetName.replace('Set Ancestral de ', '');
+        } else if (cleanSetName.startsWith('Set Ancestral da ')) {
+          cleanSetName = cleanSetName.replace('Set Ancestral da ', '');
+        }
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} Ancestral ${prep} ${cleanSetName}`;
+        rarity = 'legendary';
       } else if (rarity === 'legendary') {
         setName = setNames[classId];
-        const cleanSetName = setName.replace('Set do ', '');
-        name = `${baseName} do ${cleanSetName}`;
+        let cleanSetName = setName;
+        if (cleanSetName.startsWith('Set do ')) {
+          cleanSetName = cleanSetName.replace('Set do ', '');
+        } else if (cleanSetName.startsWith('Set de ')) {
+          cleanSetName = cleanSetName.replace('Set de ', '');
+        } else if (cleanSetName.startsWith('Set da ')) {
+          cleanSetName = cleanSetName.replace('Set da ', '');
+        }
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} ${prep} ${cleanSetName}`;
       } else {
         name = `${baseName} Rústico`;
       }
@@ -1947,6 +2075,19 @@ export class CombatFSM {
         cooldownTime = Math.max(1000, cooldownTime - 1500);
       }
     }
+
+    // Foco Temporal: reduz tempo de recarga de todas as habilidades em 3% por nível
+    const transUpgrades = this.characterData.transcendenceUpgrades || {};
+    const focoTemporalLvl = transUpgrades['foco_temporal'] || 0;
+    if (focoTemporalLvl > 0) {
+      cooldownTime = Math.max(1000, Math.floor(cooldownTime * (1 - focoTemporalLvl * 0.03)));
+    }
+
+    const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
+    if (isEcoterraActive) {
+      cooldownTime = Math.floor(cooldownTime * 1.15);
+    }
+
     this.skillCooldowns[skillId] = cooldownTime;
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
@@ -1985,6 +2126,32 @@ export class CombatFSM {
       }
     }
 
+    if (skillId === 'prismatic_barrier') {
+      const highestStat = Math.max(
+        this.playerFinalStats.strength || 0,
+        this.playerFinalStats.magic || 0,
+        this.playerFinalStats.dexterity || 0,
+        this.playerFinalStats.constitution || 0,
+        this.playerFinalStats.luck || 0
+      );
+      const shieldVal = Math.floor(highestStat * 0.30 * levelMultiplier);
+      this.playerShield = shieldVal;
+      
+      this.playerEffects = this.playerEffects.filter(e => e.id !== 'prismatic_barrier');
+      this.playerEffects.push({
+        id: 'prismatic_barrier',
+        name: 'Barreira Prismática',
+        duration: 5000,
+        tickTimer: 1000,
+        value: shieldVal
+      });
+
+      this.scene.animateHealEffect();
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `🛡️ +${shieldVal}`, '#38bdf8');
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você usou ${skill.name}! Criou um escudo prismático de ${shieldVal} de absorção por 5s.` });
+      return;
+    }
+
     // Se o inimigo já estiver morto, não causa dano
     if (this.enemyHP <= 0) return;
 
@@ -1993,21 +2160,33 @@ export class CombatFSM {
     let primaryStatVal = this.playerFinalStats.strength;
     let damageType = 'físico';
 
-    if (skillClass === 'mage' || skillClass === 'cleric') {
-      primaryStatVal = this.playerFinalStats.magic;
-      damageType = 'mágico';
-    } else if (skillClass === 'ranger' || skillClass === 'rogue') {
-      primaryStatVal = this.playerFinalStats.dexterity;
-      damageType = 'de perfuração';
-    } else if (skillClass === 'paladin') {
-      primaryStatVal = this.playerFinalStats.constitution;
-      damageType = 'sagrado';
-    } else if (skillClass === 'warrior') {
-      primaryStatVal = this.playerFinalStats.strength;
-      damageType = 'físico';
-    } else if (skillClass === 'necromancer') {
-      primaryStatVal = this.playerFinalStats.magic;
-      damageType = 'sombrio';
+    const isAvatarClass = this.characterData && this.characterData.classId === 'avatar';
+    if (isAvatarClass) {
+      primaryStatVal = Math.max(
+        this.playerFinalStats.strength || 0,
+        this.playerFinalStats.magic || 0,
+        this.playerFinalStats.dexterity || 0,
+        this.playerFinalStats.constitution || 0,
+        this.playerFinalStats.luck || 0
+      );
+      damageType = 'prismático';
+    } else {
+      if (skillClass === 'mage' || skillClass === 'cleric') {
+        primaryStatVal = this.playerFinalStats.magic;
+        damageType = 'mágico';
+      } else if (skillClass === 'ranger' || skillClass === 'rogue') {
+        primaryStatVal = this.playerFinalStats.dexterity;
+        damageType = 'de perfuração';
+      } else if (skillClass === 'paladin') {
+        primaryStatVal = this.playerFinalStats.constitution;
+        damageType = 'sagrado';
+      } else if (skillClass === 'warrior') {
+        primaryStatVal = this.playerFinalStats.strength;
+        damageType = 'físico';
+      } else if (skillClass === 'necromancer') {
+        primaryStatVal = this.playerFinalStats.magic;
+        damageType = 'sombrio';
+      }
     }
 
     const ascensionCount = this.characterData.ascensionCount || 0;
@@ -2036,6 +2215,17 @@ export class CombatFSM {
       // Dano misto: 250% da média de constituição e força escalado por 3x (3.75x cada)
       dmg = Math.floor((this.playerFinalStats.constitution * 3.75 + this.playerFinalStats.strength * 3.75) * levelMultiplier + Math.random() * 5);
       damageType = 'sagrado';
+    } else if (skillId === 'ultimate_avatar') {
+      const sumStats = (
+        (this.playerFinalStats.strength || 0) +
+        (this.playerFinalStats.magic || 0) +
+        (this.playerFinalStats.dexterity || 0) +
+        (this.playerFinalStats.constitution || 0) +
+        (this.playerFinalStats.luck || 0)
+      );
+      const baseMult = 5.0 * 3.0; // 5.0 base x 3.0 scale
+      dmg = Math.floor(sumStats * baseMult * levelMultiplier + Math.random() * 5);
+      damageType = 'prismático';
     } else {
       const baseMult = (SKILL_BASE_MULTIPLIERS[skillId] || 1.0) * 3.0; // Multiplicadores escalados por 3x
       dmg = Math.floor(primaryStatVal * baseMult * levelMultiplier + Math.random() * 5);
@@ -2089,7 +2279,17 @@ export class CombatFSM {
     }
 
     // Determina os efeitos visuais e sonoros na cena dependendo da habilidade específica
-    if (skillId === 'frostbolt') {
+    if (skillId === 'unified_echo') {
+      this.scene.animateSlashEffect();
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}ECO: ${dmg}!`, '#22d3ee');
+    } else if (skillId === 'ultimate_avatar') {
+      if (typeof this.scene.animateLightningEffect === 'function') {
+        this.scene.animateLightningEffect();
+      } else {
+        this.scene.animateFireballEffect();
+      }
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}SUPREMO: ${dmg}!`, '#a78bfa');
+    } else if (skillId === 'frostbolt') {
       if (typeof this.scene.animateFrostboltEffect === 'function') {
         this.scene.animateFrostboltEffect();
       } else {

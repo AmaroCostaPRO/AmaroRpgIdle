@@ -15,6 +15,7 @@ export interface BaseStats {
   damageMultiplierPct?: number;
   maxHpPct?: number;
   attackSpeedPct?: number;
+  maxManaPct?: number;
 }
 
 export interface EquipmentItem {
@@ -27,7 +28,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal';
   stage?: number;
 }
 
@@ -84,7 +85,7 @@ export interface Character {
   attributePoints: number;
   skillPoints: number; // pontos para a árvore de habilidades
   highestStageReached: number;
-  currentStage: number; // Fase ativa do combate (ex: Fase 1)
+  currentStage: number; // Fase active do combate (ex: Fase 1)
   enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 15)
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
@@ -105,6 +106,13 @@ export interface Character {
   purgatoryCompleted?: boolean;
   forgeFragments?: number;
   ascensionNotified?: boolean;
+  transcendencePoints?: number;
+  transcendenceUpgrades?: Record<string, number>;
+  lifetimePrestigePointsAccumulated?: number;
+  transcendenceCount?: number;
+  transcendenceLoreShown?: boolean;
+  activeEcoterra?: boolean;
+  transcendenceEssence?: number;
 }
 
 export enum GameEvent {

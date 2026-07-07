@@ -825,7 +825,78 @@ O modo **Torre Infinita** (v4.1.0) consiste em uma arena de desafios verticais c
 
 ---
 
-## 11. Sistema de Salvamento e Carregamento
+## 11. O Segundo Ciclo: Transcendência, Loja Celestial e a Ecoterra
+
+A atualização **v5.0.0 "Transcendência e o Segundo Ciclo"** introduz mecânicas avançadas de fim de jogo (*endgame*) destinadas a jogadores que superaram o Modo Pandemônio e buscam a evolução suprema de sua alma. Nesta versão, a interface de Transcendência foi completamente desacoplada do Altar de Ascensão e recebeu uma **Aba Dedicada de Navegação** própria, incluindo a nova **Loja Celestial** e a classe transcendental **Avatar**.
+
+### A. Aba de Transcendência Cósmica (Interface Dedicada)
+A mecânica de Transcendência agora é acessada diretamente pelo menu principal através da aba **Transcendência (🌌)**, que se torna visível assim que as condições de desbloqueio são atingidas. Esta aba é subdividida em duas seções de gerenciamento:
+1.  **🌌 Talentos & Ritual**: Concentra o painel do Ritual de Transcendência, a Árvore de Talentos de Transcendência (onde os PT são gastos) e o switch de ativação do espelho da Ecoterra.
+2.  **🛒 Loja Celestial**: Nova loja exclusiva que permite trocar a **Essência de Transcendência (ET)** obtida na Ecoterra por itens consumíveis transcendentais de alto impacto.
+
+### B. Mecânica de Transcendência (Segundo Ciclo de Prestígio)
+*   **Condições de Desbloqueio**: A Transcendência e sua respectiva aba tornam-se disponíveis após o jogador liberar o **Modo Pandemônio**, alcançar a **Fase 50** no Loop Infinito e acumular pelo menos **500 Pontos de Prestígio (PP)** vitalícios (ativos e gastos combinados) na história do personagem para gerar pelo menos 1 PT.
+*   **Reset de Transcendência**: Ao transcender, o jogador redefine seu progresso de fases, atributos de Ascensão normais, equipamentos normais e ouro em troca de **Pontos de Transcendência (PT)** permanentes.
+*   **Árvore de Upgrades de Transcendência**: Os PT obtidos são distribuídos em uma árvore de talentos exclusivos que concedem bônus transcendentais (acessível na sub-aba *Talentos & Ritual*):
+    1.  *Eco Permanente*: Aumento de $+1.5\%$ de todos os atributos globais por nível (sem limite de nível).
+    2.  *Essência Vital*: $+2\%$ HP Máximo e $+2\%$ Mana Máxima por nível.
+    3.  *Forja Infinita*: Aumenta a chance de acionar a "Forja Lendária" em $+1\%$ por nível.
+    4.  *Domínio do Vazio*: Aumenta o dano causado contra Elites do Vazio em $+10\%$ por nível.
+    5.  *Avatar Pleno*: Desbloqueia a classe Suprema Avatar (exige nível 5 nos outros upgrades e um total acumulado de pelo menos 10 PT).
+
+### C. A Zona Espelho: Ecoterra
+*   **Ativação e Acesso**: Após realizar a primeira Transcendência (`transcendenceCount >= 1`), o switch de ativação **Espelho da Ecoterra** é exibido sob a aba *Talentos & Ritual*. Quando ativado, as Fases 1 a 20 da campanha normal são convertidas em suas variantes espectrais da Ecoterra.
+*   **Modificadores e Status dos Inimigos**: Para representar a distorção temporal do ciclo espelhado, todos os monsters gerados na Ecoterra (Fases 1–20) recebem buffs de status significativos:
+    *   **HP Máximo**: Aumentado em **$+30\%$** de forma multiplicativa.
+    *   **Velocidade de Ataque**: Aumentada em **$+20\%$** (reduzindo o tempo de recarga base do oponente).
+*   **Penalidades Ambientais (Instabilidade da Alma)**:
+    Enquanto o herói estiver combatendo na Ecoterra, ele sofre com a instabilidade da fresta temporal:
+    *   *Drenagem de Mana*: Perda contínua de $1.5\%$ da Mana Máxima do jogador por segundo.
+    *   *Erosão Temporal*: O tempo de recarga (cooldown) de todas as habilidades ativas é aumentado em $+15\%$.
+*   **Recompensa: Essência de Transcendência (ET)**:
+    Monstros derrotados na Ecoterra possuem chance de dropar **Essência de Transcendência** (`transcendenceEssence`), um recurso de alta raridade utilizado na Loja Celestial.
+*   **Estética Visual no Phaser**:
+    *   O motor gráfico altera o rótulo de indicação de zona no HUD superior de combate para **"ECOTERRA"**, com uma paleta de cores ciano brilhante (`#00e5ff`).
+    *   A velocidade de rolagem paralaxe do cenário e a tintura dos sprites dos monstros são ajustadas para tons neon-espectrais azulados e cianos para representar a atmosfera etérea da zona espelhada.
+
+### D. A Loja Celestial (Consumíveis de Transcendência)
+A Loja Celestial (acessível na sub-aba *Loja Celestial*) permite ao jogador gastar suas Essências de Transcendência (ET) coletadas nos seguintes consumíveis de elite:
+1.  **Elixir Transcendental (🧪)** [Custo: 15 ET]: Concede instantaneamente +10 Níveis ao personagem ativo, somando +50 Pontos de Atributo e +10 Pontos de Habilidade correspondentes permanentes na rodada corrente.
+2.  **Cristal de Forja Eterna (💎)** [Custo: 25 ET]: Um cristal que, ao ser quebrado, adiciona imediatamente +25 Fragmentos de Forja ao saldo do jogador, acelerando a fabricação e refinamento de equipamentos.
+3.  **Chave da Fenda Temporal (🔑)** [Custo: 20 ET]: Concede imediatamente +2 Chaves da Torre Infinita ao inventário de consumíveis do jogador, permitindo mais entradas no desafio.
+
+### E. Classe Suprema: Avatar
+*   **Desbloqueio**: Desbloqueada de forma definitiva ao ativar o talento *Avatar Pleno* na árvore de Transcendência ou ao acumular um total de **10 Pontos de Transcendência (PT)**.
+*   **Mecânica de Atributo Único**: O Avatar não possui uma escala de atributo principal pré-definida. Todo o seu poder ofensivo e defensivo escala dinamicamente a partir do **Maior Atributo Ativo** no momento do tick de cálculo:
+    $$\text{Atributo Efetivo} = \max(\text{Strength}, \text{Magic}, \text{Dexterity}, \text{Constitution}, \text{Luck})$$
+*   **Habilidades Integradas**:
+    1.  *Eco Unificado* (Ativa): Causa $250\%$ do maior atributo como dano do tipo elemental do inimigo.
+    2.  *Barreira Prismática* (Ativa): Concede um escudo de absorção equivalente a $30\%$ do maior atributo por 5 segundos.
+    3.  *Coro da Alma Inteira* (Ultimate): Reúne a força de todos os cacos de memórias passadas, desferindo dano imediato calculado sobre a soma de todos os atributos primários:
+        $$\text{Dano do Coro} = (\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 5.0$$
+        *Custo: 100 Mana | Cooldown: 60 segundos*
+*   **Conjuntos de Equipamento Especiais**:
+    O Avatar possui quatro conjuntos de equipamentos customizados e integrados ao sistema de bônus do `StatEngine`:
+    *   **Set do Avatar Celestizado (Comum/Raro/Lendário)** [Dropado na Ecoterra]:
+        *   *2 Peças*: $+10$ Força, $+10$ Magia, $+10$ Destreza.
+        *   *3 Peças*: $+15$ Constituição, $+15$ Sorte.
+        *   *5 Peças*: $+20$ em todos os atributos primários (For, Mag, Des, Con, Sor).
+    *   **Set Ancestral da Totalidade (Ancestral)** [Forjado no Altar de Fusão Mística]:
+        *   *2 Peças*: $+50$ Força, $+50$ Magia, $+50$ Destreza.
+        *   *3 Peças*: $+80$ Constituição, $+80$ Sorte.
+        *   *5 Peças*: $+120$ em todos os atributos primários (For, Mag, Des, Con, Sor).
+    *   **Set Pandemoníaco do Eco Supremo (Pandemoníaco)** [Dropado no Modo Pandemônio (Fases 21+)]:
+        *   *2 Peças*: $+150$ Força, $+150$ Magia, $+150$ Destreza.
+        *   *3 Peças*: $+200$ Constituição, $+200$ Sorte.
+        *   *5 Peças*: $+350$ em todos os atributos primários (For, Mag, Des, Con, Sor).
+    *   **Set Celestial do Avatar Supremo (Celestial)** [Dropado do boss Guardião dos Cacos (2ª morte em diante)]:
+        *   *2 Peças*: $+100$ Força, $+100$ Magia, $+100$ Destreza.
+        *   *3 Peças*: $+150$ Constituição, $+150$ Sorte.
+        *   *5 Peças*: $+250$ em todos os atributos primários (For, Mag, Des, Con, Sor).
+
+---
+
+## 12. Sistema de Salvamento e Carregamento
 
 A persistência do jogo é robusta, segura e segmentada em slots de uso livre.
 
@@ -842,7 +913,7 @@ Para permitir o compartilhamento de arquivos de salvamento entre dispositivos, o
 
 ---
 
-## 12. Economia e Sistema de Ouro (Gold)
+## 13. Economia e Sistema de Ouro (Gold)
 
 O ouro é a principal moeda de troca e progresso econômico no jogo, obtido através de vitórias contra monstros no ciclo de combate e utilizado nas fusões de equipamentos.
 
@@ -901,7 +972,7 @@ Para otimizar o espaço visual da interface (especialmente em dispositivos móve
 
 ---
 
-## 13. Altar de Forja Mística
+## 14. Altar de Forja Mística
 
 O sistema de Forja permite combinar dois equipamentos compatíveis do inventário para criar itens de raridade **Mística** (Roxa/Lilás) mais poderosos.
 
@@ -963,7 +1034,7 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 
 ---
 
-## 14. Loja e Sistema de Consumíveis
+## 15. Loja e Sistema de Consumíveis
 
 A Loja de Suprimentos fornece aos jogadores uma mecânica alternativa para adquirir equipamentos poderosos, expandir seu inventário e impulsionar a progressão de combate através de recursos consumíveis temporários, instantâneos ou permanentes.
 
@@ -1000,7 +1071,7 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 ---
 
-## 15. Histórico de Updates e Otimizações de Engenharia
+## 16. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
@@ -1385,7 +1456,7 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 
 ---
 
-## 16. Modo de Teste (God Mode / Cheat de Desenvolvimento)
+## 17. Modo de Teste (God Mode / Cheat de Desenvolvimento)
 
 Esta seção documenta o **Modo de Teste (Multiplicador 5x)** implementado especificamente para testes internos e validação ágil de conteúdos de fim de jogo (*endgame*). Por se tratar de um recurso de trapaça temporário que **não deve constar na versão final do jogo**, todas as intervenções de código foram mapeadas abaixo para facilitar sua remoção completa no futuro.
 
