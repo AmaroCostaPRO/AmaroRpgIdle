@@ -4959,9 +4959,31 @@ const OptionsPanel: React.FC = () => {
   // Estados da Área de Desenvolvedor (Sandbox)
   const [showDevInput, setShowDevInput] = useState(false);
   const [password, setPassword] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(!!(window as any).isDevModeActive);
   const [devTab, setDevTab] = useState<'geral' | 'atributos' | 'equipamentos' | 'prestigio'>('geral');
   const [misticLevelGen, setMisticLevelGen] = useState<number>(8);
+
+  const enableDevMode = () => {
+    setIsUnlocked(true);
+    (window as any).isDevModeActive = true;
+    if (!(window as any).isStorageIntercepted) {
+      (window as any).isStorageIntercepted = true;
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = function(key, value) {
+        if ((window as any).isDevModeActive && (key.startsWith('medieval_idle_') || key === 'global_class_levels')) {
+          console.log('Salvamento interceptado e bloqueado no modo Sandbox:', key);
+          return;
+        }
+        originalSetItem.call(this, key, value);
+      };
+    }
+  };
+
+  useEffect(() => {
+    if ((window as any).isDevModeActive) {
+      enableDevMode();
+    }
+  }, []);
 
   const equipSet = (setType: 'celestial' | 'pandemonium', misticLvl: number) => {
     const classId = character.classId;
@@ -5403,7 +5425,7 @@ const OptionsPanel: React.FC = () => {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
-                          setIsUnlocked(true);
+                          enableDevMode();
                           playClick();
                         } else {
                           alert('Senha incorreta!');
@@ -5414,7 +5436,7 @@ const OptionsPanel: React.FC = () => {
                   <button
                     onClick={() => {
                       if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
-                        setIsUnlocked(true);
+                        enableDevMode();
                         playClick();
                       } else {
                         alert('Senha incorreta!');
@@ -5442,20 +5464,47 @@ const OptionsPanel: React.FC = () => {
             }}>
               {/* Header do Sandbox */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(245, 158, 11, 0.25)', paddingBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  ⚡ Painel Sandbox / Editor de Save
-                </span>
-                <button
-                  onClick={() => {
-                    setIsUnlocked(false);
-                    setPassword('');
-                    playClick();
-                  }}
-                  className="btn btn-sm btn-danger"
-                  style={{ fontSize: '0.55rem', padding: '0.1rem 0.4rem' }}
-                >
-                  Bloquear
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ⚡ Painel Sandbox / Editor de Save
+                  </span>
+                  <span style={{ fontSize: '0.48rem', color: '#f87171', fontWeight: 'bold', textShadow: '0 0 2px rgba(239, 68, 68, 0.2)' }}>
+                    ⚠️ Salvamento automático suspenso (reinicie o jogo para salvar de novo)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <button
+                    onClick={() => {
+                      try {
+                        const dataStr = JSON.stringify(character);
+                        const saveStr = btoa(dataStr);
+                        navigator.clipboard.writeText(saveStr).then(() => {
+                          alert("Save exportado e copiado para a área de transferência!");
+                        }).catch(() => {
+                          prompt("Copie o código do save abaixo:", saveStr);
+                        });
+                      } catch (err) {
+                        alert("Erro ao exportar o save.");
+                      }
+                      playClick();
+                    }}
+                    className="btn btn-sm btn-gold"
+                    style={{ fontSize: '0.55rem', padding: '0.15rem 0.4rem', color: '#000', fontWeight: 'bold' }}
+                  >
+                    💾 Exportar Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsUnlocked(false);
+                      setPassword('');
+                      playClick();
+                    }}
+                    className="btn btn-sm btn-danger"
+                    style={{ fontSize: '0.55rem', padding: '0.15rem 0.4rem' }}
+                  >
+                    Bloquear
+                  </button>
+                </div>
               </div>
 
               {/* Tabs do Painel */}
@@ -5526,10 +5575,9 @@ const OptionsPanel: React.FC = () => {
                       <input
                         type="number"
                         min="1"
-                        max="250"
                         value={character.level}
                         onChange={(e) => {
-                          const val = Math.max(1, Math.min(250, Number(e.target.value) || 1));
+                          const val = Math.max(1, Number(e.target.value) || 1);
                           setCharacter({ ...character, level: val });
                         }}
                         style={{
