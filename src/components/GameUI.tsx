@@ -4943,7 +4943,12 @@ const TIER_LIMITS: Record<string, { base: number; special: Record<string, number
       damageReductionPct: 5,
       lifesteal: 3,
       attackSpeedPct: 10,
-      maxHpPct: 10
+      maxHpPct: 10,
+      maxManaPct: 10,
+      dropChancePct: 10,
+      frenzyChancePct: 5,
+      touchDamageMult: 50,
+      robotClicks: 1
     }
   },
   ancestral: {
@@ -4953,7 +4958,12 @@ const TIER_LIMITS: Record<string, { base: number; special: Record<string, number
       damageReductionPct: 10,
       lifesteal: 6,
       attackSpeedPct: 15,
-      maxHpPct: 20
+      maxHpPct: 20,
+      maxManaPct: 20,
+      dropChancePct: 20,
+      frenzyChancePct: 10,
+      touchDamageMult: 100,
+      robotClicks: 2
     }
   },
   pandemonio: {
@@ -4963,7 +4973,12 @@ const TIER_LIMITS: Record<string, { base: number; special: Record<string, number
       damageReductionPct: 20,
       lifesteal: 15,
       attackSpeedPct: 30,
-      maxHpPct: 50
+      maxHpPct: 50,
+      maxManaPct: 50,
+      dropChancePct: 50,
+      frenzyChancePct: 20,
+      touchDamageMult: 200,
+      robotClicks: 3
     }
   },
   celestial: {
@@ -4973,7 +4988,12 @@ const TIER_LIMITS: Record<string, { base: number; special: Record<string, number
       damageReductionPct: 40,
       lifesteal: 30,
       attackSpeedPct: 60,
-      maxHpPct: 100
+      maxHpPct: 100,
+      maxManaPct: 100,
+      dropChancePct: 100,
+      frenzyChancePct: 30,
+      touchDamageMult: 400,
+      robotClicks: 5
     }
   }
 };
@@ -4983,7 +5003,7 @@ const STAT_DISPLAY_INFO: Record<string, { label: string; isPct: boolean }> = {
   strength: { label: '💪 Força', isPct: false },
   magic: { label: '🔮 Magia', isPct: false },
   dexterity: { label: '🏹 Destreza', isPct: false },
-  constitution: { label: '❤️ Vigor', isPct: false },
+  constitution: { label: '❤️ Constituição', isPct: false },
   luck: { label: '🍀 Sorte', isPct: false },
   damageMultiplierPct: { label: '⚔️ Dano Extra %', isPct: true },
   damageReductionPct: { label: '🛡️ Redução Dano %', isPct: true },
@@ -4992,7 +5012,9 @@ const STAT_DISPLAY_INFO: Record<string, { label: string; isPct: boolean }> = {
   maxHpPct: { label: '➕ HP Máximo %', isPct: true },
   maxManaPct: { label: '🧪 Mana Máxima %', isPct: true },
   dropChancePct: { label: '💎 Chance Drop %', isPct: true },
-  frenzyChancePct: { label: '🔥 Chance Frenesi %', isPct: true }
+  frenzyChancePct: { label: '🔥 Chance Frenesi %', isPct: true },
+  touchDamageMult: { label: '👆 Dano do Toque %', isPct: true },
+  robotClicks: { label: '🤖 Clicks do Robô', isPct: false }
 };
 
 // Helper para obter nome de item e conjunto reais do jogo
@@ -5131,27 +5153,32 @@ const getItemNameAndSet = (
 
 // Obter chaves de atributos válidos para o slot e classe do item
 const getValidStatsForSlot = (slot: string, classId: string) => {
+  if (slot === 'necklace') {
+    return [
+      'damageMultiplierPct',
+      'maxHpPct',
+      'maxManaPct',
+      'attackSpeedPct',
+      'robotClicks',
+      'lifesteal',
+      'touchDamageMult',
+      'dropChancePct',
+      'damageReductionPct',
+      'frenzyChancePct'
+    ];
+  }
+
+  // Atributos básicos aleatórios por classe para os outros slots
+  if (classId === 'warrior') return ['strength', 'constitution', 'luck'];
+  if (classId === 'mage' || classId === 'cleric' || classId === 'necromancer') return ['magic', 'constitution', 'luck'];
+  if (classId === 'ranger') return ['dexterity', 'constitution', 'luck'];
+  if (classId === 'paladin') return ['constitution', 'strength', 'luck'];
+  if (classId === 'rogue') return ['dexterity', 'strength', 'luck'];
+  if (classId === 'avatar') return ['strength', 'magic', 'dexterity', 'constitution', 'luck'];
+
   const mainStat = (classId === 'mage' || classId === 'necromancer' || classId === 'cleric') ? 'magic' :
                    (classId === 'ranger' || classId === 'rogue') ? 'dexterity' : 'strength';
-                   
-  const statsList: string[] = [];
-  if (classId === 'avatar') {
-    statsList.push('strength', 'magic', 'dexterity');
-  } else {
-    statsList.push(mainStat, 'constitution', 'luck');
-  }
-
-  if (slot === 'weapon') {
-    statsList.push('damageMultiplierPct');
-  } else if (slot === 'necklace') {
-    statsList.push('damageReductionPct', 'lifesteal');
-  } else if (slot === 'gloves') {
-    statsList.push('attackSpeedPct');
-  } else {
-    statsList.push('maxHpPct');
-  }
-
-  return statsList;
+  return [mainStat, 'constitution', 'luck'];
 };
 
 const OptionsPanel: React.FC = () => {

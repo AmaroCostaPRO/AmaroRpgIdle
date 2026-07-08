@@ -30,6 +30,32 @@ export class CombatScene extends Phaser.Scene {
   private skeletonMinion!: Phaser.GameObjects.Image;
   private lastSkeletonTickTimer: number = 1000;
   private isSkeletonAttacking: boolean = false;
+  // Controle de tempo de inatividade (catch-up quando volta para a aba)
+  private hiddenAt: number = 0;
+  private readonly handleVisibilityChange = (): void => {
+    if (document.hidden) {
+      this.hiddenAt = Date.now();
+    } else if (this.hiddenAt > 0) {
+      const inactiveMs = Date.now() - this.hiddenAt;
+      this.hiddenAt = 0;
+      // Só simula se ficou inativo por mais de 1 segundo
+      if (inactiveMs > 1000 && this.fsm) {
+        // Limita o catch-up a 10 minutos para não travar o navegador
+        const cappedMs = Math.min(inactiveMs, 600000);
+        const step = 100; // passo de 100ms
+        const steps = Math.floor(cappedMs / step);
+        const isLoreOpen = useGameStore.getState().character.introLoreShown === false;
+        const gameSpeed = isLoreOpen ? 0 : useGameStore.getState().gameSpeed;
+        const speedMult = gameSpeed === 0 ? 0 : (gameSpeed || 1);
+        if (speedMult > 0) {
+          console.log(`[CombatScene] Catch-up: simulando ${steps} passos de ${step}ms (${(cappedMs / 1000).toFixed(1)}s ausente)`);
+          for (let i = 0; i < steps; i++) {
+            this.fsm.update(step * speedMult);
+          }
+        }
+      }
+    }
+  };
 
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
@@ -336,6 +362,9 @@ export class CombatScene extends Phaser.Scene {
         this.fsm.handlePlayerTap(pointer.x, pointer.y);
       }
     });
+
+    // Listener de visibilidade: permite catch-up de combate ao voltar para a aba
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
     // Notifica o React que a arena de combate foi carregada e inicializada com sucesso
     bridge.emit(GameEvent.ARENA_READY, {});
@@ -1257,6 +1286,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     if (this.unsubscribeSkill) {
       this.unsubscribeSkill();
       this.unsubscribeSkill = undefined;
