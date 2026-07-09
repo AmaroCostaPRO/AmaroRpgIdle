@@ -940,9 +940,7 @@ export const useGameStore = create<GameState>((set) => ({
     // canPrestige com novos dados
     const newTotalXp = 50 * newLevel * (newLevel - 1) + newXp;
     const newPrestigeEarned = Math.floor(Math.floor(Math.pow(newTotalXp / 1000, 0.45)) * 1.5);
-    const newIsProgressReqMet = ascensionCount === 0 
-      ? (state.character.highestStageReached >= 6) 
-      : (newLevel >= 5);
+    const newIsProgressReqMet = state.character.highestStageReached >= 6;
     const isPrestigeAvailableNow = newIsProgressReqMet && newPrestigeEarned >= requiredPP;
 
     let ascensionNotifiedVal = state.character.ascensionNotified || false;
@@ -1012,9 +1010,7 @@ export const useGameStore = create<GameState>((set) => ({
     
     // Validar requisito de progresso (Fase 5 completa para a primeira, Nível 5 para as subsequentes)
     const ascensionCount = state.character.ascensionCount || 0;
-    const isProgressReqMet = ascensionCount === 0 
-      ? (state.character.highestStageReached >= 6) 
-      : (level >= 5);
+    const isProgressReqMet = state.character.highestStageReached >= 6;
       
     if (!isProgressReqMet) return state;
     
