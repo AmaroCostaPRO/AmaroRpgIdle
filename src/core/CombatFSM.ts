@@ -543,7 +543,7 @@ export class CombatFSM {
 
     // Multiplicador de HP/Dano por dificuldade:
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 18.0× | Pandemônio (31+): 22.0×
-    const hpBoost = stage >= 31 ? 22.0 : stage >= 21 ? 18.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
+    const hpBoost = stage >= 31 ? 6.0 : stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.50x por fase)
     const difficultyScale = Math.pow(1.50, stage - 1);
