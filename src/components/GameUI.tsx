@@ -6767,25 +6767,25 @@ export default function GameUI() {
     }
   }, [activeTab]);
 
+  const isCitadelUnlocked = character.citadel?.unlocked || (character.ascensionCount || 0) >= 1;
+
   const tabs = [
-    { id: 'combat' as const, label: 'Combate', icon: '⚔' },
-    { id: 'attributes' as const, label: 'Atributos', icon: '◆' },
-    { id: 'skills' as const, label: 'Habilidades', icon: '★' },
-    { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
-    { id: 'forge' as const, label: 'Forja', icon: '⚒️' },
-    { id: 'tower' as const, label: 'Torre', icon: '🏰' },
-    ...(character.citadel?.unlocked ? [
-      { id: 'citadel' as const, label: 'Cidadela', icon: '🌌' }
-    ] : []),
-    { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
+    { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false },
+    { id: 'attributes' as const, label: 'Atributos', icon: '◆', disabled: false },
+    { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
+    { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
+    { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
+    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
+    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: !isCitadelUnlocked },
+    { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
     ...(((character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0) ? [
-      { id: 'transcendence' as const, label: 'Transcendência', icon: '🌌' }
+      { id: 'transcendence' as const, label: 'Transcendência', icon: '🌌', disabled: false }
     ] : []),
-    { id: 'shop' as const, label: 'Loja', icon: '🛒' },
-    { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉' },
-    { id: 'guide' as const, label: 'Guia', icon: '▤' },
-    { id: 'saves' as const, label: 'Saves', icon: '💾' },
-    { id: 'options' as const, label: 'Opções', icon: '⚙️' },
+    { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false },
+    { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉', disabled: false },
+    { id: 'guide' as const, label: 'Guia', icon: '▤', disabled: false },
+    { id: 'saves' as const, label: 'Saves', icon: '💾', disabled: false },
+    { id: 'options' as const, label: 'Opções', icon: '⚙️', disabled: false },
   ];
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab);
@@ -6934,8 +6934,10 @@ export default function GameUI() {
                 AudioManager.getInstance().playClick();
                 setActiveTab(tab.id);
               }}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1 }}
+              disabled={tab.disabled}
+              title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''}`}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
             >
               <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
               {tab.label}
@@ -6985,13 +6987,16 @@ export default function GameUI() {
               <button
                 key={`${tab.id}-${idx}`}
                 onClick={() => {
+                  if (tab.disabled) return;
                   AudioManager.getInstance().playClick();
                   setActiveTab(tab.id);
                 }}
-                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
+                title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
+                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''}`}
                 style={{
                   flex: '0 0 33.333%',
-                  width: '33.333%'
+                  width: '33.333%',
+                  opacity: tab.disabled ? 0.45 : 1
                 }}
               >
                 <span className="carousel-icon">{tab.icon}</span>
@@ -7012,7 +7017,7 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
-          {activeTab === 'citadel' && <CitadelPanel onBackToCombat={() => setActiveTab('combat')} />}
+          {activeTab === 'citadel' && isCitadelUnlocked && <CitadelPanel onBackToCombat={() => setActiveTab('combat')} />}
           {activeTab === 'tower' && <TowerPanel />}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}

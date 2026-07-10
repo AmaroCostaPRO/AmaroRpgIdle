@@ -1153,7 +1153,25 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 5.0.3 (Atual)
+### Versão 5.4.0 "O Despertar Cósmico" (Atual)
+*   **🌫️ Sifão de Essência Cósmica**: Nova construção da Cidadela que mitiga linearmente a drenagem de mana (`1.5%/s → 0%/s`) e a erosão de recarga (`+15% → 0%`) da Ecoterra por nível, culminando na "Sincronia Perfeita" no Nível 5 (ver Seção 18.G).
+*   **🔯 Altar de Sincronia Elemental**: Centraliza o cálculo do "Maior Atributo Ativo" do Avatar em `CombatFSM.getAvatarEffectiveAttribute()` (substituindo dois blocos de código duplicados) e injeta até `+15%` da soma dos atributos secundários no atributo principal ativo no Nível 5.
+*   **🧪 Laboratório de Relíquias Místicas e Superaquecimento de Alma**: Nova mecânica que amplifica em ~2.5× os efeitos Capstone (Nível 5) das 8 relíquias existentes, ao custo de Ouro e Fragmentos de Alma Instável. Adicionada a ação `spendFragments` em `useRelicStore.ts`.
+
+### Versão 5.3.0 "Automação Industrial e Logística da Torre"
+*   **🗼 Torre de Vigia Astral**: Fabrica Chaves da Torre Infinita passivamente (mesmo offline), com taxa de produção e buffer interno escalando por nível (24h→6h por chave; capacidade de 1 a 4 chaves).
+*   **🛠️ Oficina de Automação da Forja**: Converte Ouro e Madeira em Fragmentos de Forja via ordens de serviço passivas de 1h. No Nível 5 ("Mestre Forjador"), ativa o **Desmonte Automatizado**: drops Comuns/Raros "puros" viram Fragmento de Forja direto, sem passar pelo inventário.
+
+### Versão 5.2.0 "O Hub de Expedições e a Moeda do Conhecimento"
+*   **🎖️ Quartel de Expedições**: Aloca classes inativas (já jogadas, exceto a ativa) em missões passivas que geram Madeira, Pedra, Carne e a nova moeda **Insígnias de Estudo**, com bônus de eficiência por grupo de atributo da classe (Força/Destreza/Magia).
+*   **🎓 Academia Militar**: Investe Insígnias de Estudo em 3 pesquisas permanentes e universais (Dano Geral, Vida Máxima, Velocidade de Ataque), injetadas como um novo passo no `StatEngine.calculateFinalStats`, com teto de nível escalando conforme o nível da Academia.
+
+### Versão 5.1.0 "O Despertar da Cidadela e Coleta de Insumos"
+*   **🌌 Liberação da Cidadela Astral**: Nova aba de tela cheia (`CitadelPanel.tsx`) desbloqueada na primeira Ascensão, renderizada como overlay sobre o Canvas do Phaser sem interromper o combate em segundo plano (o Phaser reduz o FPS alvo via `GameEvent.TAB_CHANGED`, mas a `CombatFSM` continua ativa).
+*   **🪵 Três Novos Materiais**: Madeira, Pedra e Carne passam a ser dropados por monstros da campanha (sem influência da Sorte), com mapeamento por tipo de monstro em `ENEMY_TYPES.materialDrops`.
+*   **📦 Depósito (Almoxarifado)**: Protege até 10 equipamentos Comuns/Raros/Épicos/Lendários do reset de inventário da Ascensão (itens Místicos são bloqueados).
+
+### Versão 5.0.3
 *   **⚖️ Correção: Assimetria de Dano no Tier Pandemônio**:
     *   **Problema**: O multiplicador de dificuldade por tier do HP dos inimigos (`hpBoost`) já contemplava corretamente os 6 tiers (incluindo Purgatório ×5.0 e Pandemônio ×6.0 na Fase 31+), mas o multiplicador equivalente de Dano (`dmgBoost`) havia ficado defasado desde a introdução do Purgatório: parava em ×5.0 a partir da Fase 21 e nunca escalava para ×6.0 no Pandemônio, fazendo o HP dos inimigos crescer proporcionalmente mais que o Dano a partir da Fase 31+.
     *   **Correção**: `dmgBoost` em `CombatFSM.ts` agora espelha exatamente os mesmos 6 tiers do `hpBoost`, restaurando a simetria de escalonamento entre HP e Dano em todas as fases.
@@ -1601,3 +1619,95 @@ Para remover completamente este recurso no futuro, remova ou reverta as seguinte
 #### 5. Interface Visual do Jogo (`src/components/GameUI.tsx`)
 *   **Arquivo**: `src/components/GameUI.tsx`
 *   *O que remover*: A marcação TSX do botão switch do Modo de Teste (bloco contendo o comentário `{/* Modo de Teste (Cheat Mode) */}` dentro do componente `ActiveSkillsPanel`).
+
+---
+
+## 18. A Cidadela Astral (v5.1.0 – v5.4.0): Expansão de Gerenciamento de Base
+
+A expansão **"O Despertar da Cidadela"** introduz um módulo completo de gerenciamento de base fora do combate sidescrolling, distribuído em quatro atualizações incrementais (v5.1.0 a v5.4.0). A Cidadela adiciona uma nova camada econômica (materiais, produção passiva e construções evolutivas) que retroalimenta o combate principal, a Torre Infinita, a Forja e o sistema de Relíquias, sem alterar a lógica central desses sistemas.
+
+### A. Arquitetura da Tela Cheia e Comunicação com o Phaser
+A Cidadela é renderizada como um *overlay* React de tela cheia (`src/components/citadel/CitadelPanel.tsx`, `position: fixed; inset: 0; z-index: 100`) sobreposto ao Canvas do Phaser, evitando a destruição e recriação do contexto WebGL (o que causaria *overhead* de recarregamento de texturas). Ao entrar na aba **Cidadela (🌌)** — visível apenas quando `character.citadel.unlocked === true` —, o `GameUI.tsx` emite o evento `GameEvent.TAB_CHANGED` pela `GameBridge`. O `CombatScene.ts` assina esse evento e reduz o custo gráfico (`this.game.loop.targetFps = 15` e suspensão do *scroll* de fundo em `scrollWorld`), mas **não pausa a `CombatFSM`**: o combate, os drops e o ganho de XP/Ouro continuam avançando normalmente em segundo plano, como esperado em um jogo *idle*, restaurando o desempenho total (`targetFps = 60`) ao retornar à aba Combate.
+
+### B. Modelo de Dados (`src/core/types.ts` / `src/store/useGameStore.ts`)
+O estado da Cidadela é serializado dentro do nó do personagem ativo, em dois novos campos opcionais de `Character`:
+```typescript
+interface CitadelBuildingState {
+  level: number;
+  lastTick: number; // Timestamp Unix do último processamento de produção offline
+}
+
+interface CitadelState {
+  unlocked: boolean;
+  commandCenter: CitadelBuildingState;
+  vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
+  expeditions: CitadelBuildingState & { allocatedClassIds: string[] };
+  academy: CitadelBuildingState & { researchDmgLevel: number; researchHpLevel: number; researchSpeedLevel: number };
+  watchTower: CitadelBuildingState & { storedKeys: number };
+  forgeWorkshop: CitadelBuildingState;
+  cosmicSiphon: CitadelBuildingState;
+  synchronyAltar: CitadelBuildingState;
+  relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
+}
+
+// Character passa a incluir:
+materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
+citadel?: CitadelState;
+```
+Todos os campos são opcionais e mesclados com valores padrão (`DEFAULT_CITADEL()`, `DEFAULT_MATERIALS()`) nos três pontos de carregamento de save (`loadSavedGame`, `loadGameFromSlot`, `importSave`), preservando total retrocompatibilidade com saves anteriores à v5.1.0. A produção passiva de todas as estruturas é centralizada na ação `tickCitadelProduction()`, chamada uma vez ao montar `GameUI.tsx` (recuperando o tempo offline via delta de `Date.now()` contra `lastTick`) e repetida a cada 60 segundos enquanto o jogo está aberto.
+
+### C. Desbloqueio e o Centro de Comando (v5.1.0)
+A aba da Cidadela é liberada automaticamente na primeira Ascensão do jogador (`ascensionCount` passa de 0 para 1 dentro de `performPrestige`), iniciando com o **Centro de Comando (Nível 1)** liberado gratuitamente. Três novos materiais passam a ser dropados por monstros da campanha, sem influência da Sorte:
+$$\text{Quantidade Ganha} = \max(1, \lfloor \text{Fase} \times 0.5 \rfloor) \times \text{Multiplicador de Elite } (2.0 \text{ ou } 1.0)$$
+*   **Madeira (`wood`)**: Inimigos de terreno Floresta e Deserto.
+*   **Pedra (`stone`)**: Golens, Gárgulas e Armaduras Possuídas.
+*   **Carne (`meat`)**: Lobos, Serpentes e Escorpiões.
+Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materialDrops?: ('wood'|'stone'|'meat')[]`, permitindo que um mesmo monstro conceda mais de um material simultaneamente.
+
+### D. Depósito / Almoxarifado
+*   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
+*   **Função**: Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de inventário causado pela Ascensão. Itens Místicos (refinados na Forja) são bloqueados do depósito.
+*   **Capacidade**: `min(10, nível × 2)` slots — de 2 (Nível 1) a 10 (Nível 5).
+*   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige`, que zera apenas `inventory` e `equipment`.
+
+### E. Quartel de Expedições e Academia Militar (v5.2.0)
+**Quartel de Expedições** — Custo base 150 Madeira / 200 Pedra / 100 Carne:
+*   Permite alocar classes já desbloqueadas e com nível registrado (`classLevels` local ou `medieval_idle_global_class_levels` global) — exceto a classe atualmente ativa (`character.classId`) — em expedições passivas.
+*   Slots simultâneos: 1 (Nível 1) → 2 (Nível 3) → 3 (Nível 5).
+*   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` e pelo bônus de grupo de atributo da classe:
+    *   *Força* (Guerreiro, Paladino): +25% Pedra/h.
+    *   *Destreza* (Arqueiro, Ladrão): +25% Madeira e Carne/h.
+    *   *Magia* (Mago, Clérigo, Necromante, Avatar): +30% Insígnias de Estudo/h.
+
+**Academia Militar** — Custo base 200 Madeira / 300 Pedra / 50 Insígnias de Estudo:
+*   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em três pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6":
+    1.  *Táticas de Combate Avançadas*: `+1.5%` de Dano Geral por nível (`damageMultiplierPct`).
+    2.  *Condicionamento Físico Extremo*: `+2%` de Vida Máxima por nível (`maxHpPct`).
+    3.  *Exercícios de Agilidade*: `+1%` de Velocidade de Ataque por nível (`attackSpeedPct`).
+*   O teto de nível de cada pesquisa é `nível_da_Academia × 5` (de 5 no Nível 1 até 25 no Nível 5); custo de pesquisa: `20 × próximo_nível` Insígnias.
+
+### F. Torre de Vigia Astral e Oficina de Automação da Forja (v5.3.0)
+**Torre de Vigia Astral** — Custo base 500 Madeira / 500 Pedra / 300 Carne:
+*   Fabrica **Chaves da Torre Infinita** de forma passiva (mesmo offline), a uma taxa de 24h/chave (Nível 1-2), 12h/chave (Nível 3-4) e 6h/chave (Nível 5).
+*   Possui um buffer interno de capacidade 1 (Nível 1-2), 2 (Nível 3-4) e 4 (Nível 5) chaves, garantindo uma janela de segurança de até 24h de ausência sem desperdício de produção em qualquer tier. As chaves acumuladas são automaticamente escoadas para o inventário assim que houver espaço.
+
+**Oficina de Automação da Forja** — Custo base 600 Madeira / 800 Pedra / 150 Insígnias de Estudo:
+*   Converte Ouro e Madeira excedentes em **Fragmentos de Forja** através de "ordens de serviço" passivas de 1 hora (200 Ouro + 50 Madeira → 15 Fragmentos por ordem), com o nível da Oficina determinando quantas ordens paralelas podem ser processadas por hora.
+*   **Nível 5 "Mestre Forjador"** desbloqueia o **Desmonte Automatizado**: equipamentos de raridade Comum ou Rara "puros" (sem pertencer a um conjunto Ancestral, Pandemoníaco ou Celestial) dropados em combate são convertidos instantaneamente em +1 Fragmento de Forja em segundo plano, sem nunca ocupar um slot do inventário (`CombatFSM.ts`, fluxo de drop de equipamento).
+
+### G. Sistemas de Fim de Jogo: Sifão, Altar e Laboratório (v5.4.0)
+**Sifão de Essência Cósmica** — Custo base 1500 Pedra / 1000 Madeira / 50 Essências de Transcendência:
+*   Mitiga as duas penalidades ambientais da Ecoterra (ver Seção 11.C) de forma linear por nível: a drenagem de mana de `1.5%/s` cai para `max(0, 1.5% - nível × 0.3%)`, e a erosão de recarga de `+15%` cai para `max(0, 15% - nível × 3%)`.
+*   No **Nível 5 "Sincronia Perfeita"**, ambas as penalidades são completamente neutralizadas, permitindo lutar na Ecoterra com 100% da capacidade técnica original.
+
+**Altar de Sincronia Elemental** — Custo base 2000 Pedra / 200 Essências de Transcendência / 500 Insígnias de Estudo:
+*   Eleva o teto de dano da classe Avatar, injetando uma fração dos atributos secundários no cálculo do Maior Atributo Ativo (ver Seção 11.E), centralizado no método `CombatFSM.getAvatarEffectiveAttribute()`:
+$$\text{Atributo Efetivo Final} = \max(\text{Str}, \text{Mag}, \text{Dex}, \text{Con}, \text{Luk}) + \lfloor \text{Soma dos Demais Atributos} \times (\text{Nível do Altar} \times 0.03) \rfloor$$
+*   No Nível 5, o Avatar soma **+15%** de toda a pontuação de seus atributos secundários ao valor do seu atributo principal ativo.
+
+**Laboratório de Relíquias Místicas** — Custo base 3000 Pedra / 2000 Madeira / 100 Fragmentos de Alma Instável:
+*   Libera 2 vagas de **Superaquecimento de Alma** por nível (até 10 vagas no Nível 5, cobrindo as 8 relíquias existentes), permitindo submeter qualquer relíquia já no Nível máximo (5) a um processo de amplificação de seu efeito Capstone, ao custo de 50.000 Ouro + 20 Fragmentos de Alma Instável por relíquia (`useRelicStore.spendFragments`).
+*   O Superaquecimento amplifica em ~2.5× a magnitude do bônus Capstone de cada uma das 8 relíquias, incluindo o exemplo de referência do design original — a *Luz da Alma Partida*, cujo Capstone de Multiplicador de Dano Crítico sobe de `+10%` para `+25%` — bem como Moeda do Ciclo Eterno, Símbolo do Aprendizado, Gema da Vontade, Núcleo do Pensamento, Foco da Precisão, Brasão da Devoção e Olho da Sobrevivência.
+
+### H. Nota sobre a Arte das Construções
+Todos os prédios da Cidadela são exibidos em `CitadelOverview.tsx` através de placeholders genéricos (ícones emoji sobre um card com borda dourada, variando apenas opacidade/estado entre "vazio" e "construído"). Os sprites definitivos de evolução visual por nível (Bloqueado → Básico → Avançado → Supremo) descritos no planejamento original ficam para uma etapa futura, quando os ativos gráficos estiverem disponíveis — a estrutura de dados (`level` por construção) já está pronta para alimentar essa camada visual sem exigir nenhuma migração adicional.
