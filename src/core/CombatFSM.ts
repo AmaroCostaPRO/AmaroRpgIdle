@@ -264,7 +264,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     hpMultiplier: 3.8,
     damageMultiplier: 3.2,
     attackSpeedMultiplier: 1.2,
-    xpValue: 500,
+    xpValue: 60,
     color: '#e9d5ff',
     flipX: false,
     yOffset: 0
@@ -276,7 +276,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     hpMultiplier: 4.2,
     damageMultiplier: 2.8,
     attackSpeedMultiplier: 1.0,
-    xpValue: 550,
+    xpValue: 65,
     color: '#a5f3fc',
     flipX: false,
     yOffset: 0
@@ -288,7 +288,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     hpMultiplier: 4.6,
     damageMultiplier: 3.5,
     attackSpeedMultiplier: 0.85,
-    xpValue: 600,
+    xpValue: 70,
     color: '#f472b6',
     flipX: false,
     yOffset: 0
@@ -300,7 +300,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     hpMultiplier: 8.0,
     damageMultiplier: 4.5,
     attackSpeedMultiplier: 1.1,
-    xpValue: 2500,
+    xpValue: 500,
     color: '#38bdf8',
     flipX: false,
     yOffset: 0
@@ -542,11 +542,11 @@ export class CombatFSM {
     }
 
     // Multiplicador de HP/Dano por dificuldade:
-    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 18.0× | Pandemônio (31+): 22.0×
+    // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
     const hpBoost = stage >= 31 ? 6.0 : stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
 
-    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.50x por fase)
-    const difficultyScale = Math.pow(1.50, stage - 1);
+    // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.30x por fase)
+    const difficultyScale = Math.pow(1.30, stage - 1);
 
     if (stage >= 31) {
       // No Pandemônio, todos os inimigos comuns podem aparecer aleatoriamente
