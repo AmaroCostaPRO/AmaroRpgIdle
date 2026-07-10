@@ -44,11 +44,6 @@ export const AcademyPanel: React.FC = () => {
             Consome Insígnias de Estudo em pesquisas permanentes, universais para todas as classes do save.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪵 {materials.wood}</span>
-          <span>🪨 {materials.stone}</span>
-          <span>📜 {materials.studyInsignias}</span>
-        </div>
       </div>
 
       {academy.level < ACADEMY_MAX_LEVEL ? (

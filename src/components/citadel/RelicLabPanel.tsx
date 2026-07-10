@@ -43,12 +43,6 @@ export const RelicLabPanel: React.FC = () => {
             Submete relíquias no Nível máximo (5) ao Superaquecimento de Alma, amplificando seus efeitos Capstone.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪨 {materials.stone}</span>
-          <span>🪵 {materials.wood}</span>
-          <span>💠 {soulFragments}</span>
-          <span>🪙 {character.gold}</span>
-        </div>
       </div>
 
       {relicLab.level < RELIC_LAB_MAX_LEVEL ? (

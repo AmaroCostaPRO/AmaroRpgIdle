@@ -13,7 +13,16 @@ import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
 import { TowerPanel } from './TowerPanel';
-import { CitadelPanel } from './citadel/CitadelPanel';
+import { CitadelTabsBar, CITADEL_SUB_TABS, CitadelSubTab } from './citadel/CitadelTabsBar';
+import { CitadelOverview } from './citadel/CitadelOverview';
+import { VaultPanel } from './citadel/VaultPanel';
+import { ExpeditionPanel } from './citadel/ExpeditionPanel';
+import { AcademyPanel } from './citadel/AcademyPanel';
+import { WatchTowerPanel } from './citadel/WatchTowerPanel';
+import { ForgeWorkshopPanel } from './citadel/ForgeWorkshopPanel';
+import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
+import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
+import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 
 export const DAILY_MODIFIERS = [
@@ -6652,11 +6661,76 @@ export default function GameUI() {
   const dismantleItem = useGameStore((state) => state.dismantleItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
 
-  const towerKeyCount = character.inventory.filter(item => 
+  const towerKeyCount = character.inventory.filter(item =>
     item.slot === 'consumable' && item.consumableType === 'tower_key'
   ).length;
 
+  const citadelMaterials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
+  const citadelSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
+
+  // Cada sub-aba da Cidadela mostra, no cabeçalho, apenas os recursos que ela de fato consome —
+  // igual ao que cada painel exibia antes de sua própria barra de recursos ser centralizada aqui.
+  const CITADEL_HEADER_RESOURCES: Record<CitadelSubTab, { icon: string; value: number; color: string; label: string }[]> = {
+    overview: [],
+    vault: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
+    ],
+    expeditions: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
+    academy: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
+    watchTower: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
+    ],
+    forgeWorkshop: [
+      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
+    cosmicSiphon: [
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🌌', value: character.transcendenceEssence || 0, color: '#c084fc', label: 'Essência de Transcendência' },
+    ],
+    synchronyAltar: [
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🌌', value: character.transcendenceEssence || 0, color: '#c084fc', label: 'Essência de Transcendência' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
+    relicLab: [
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '💠', value: citadelSoulFragments, color: '#67e8f9', label: 'Fragmentos de Alma Instável' },
+      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
+    ],
+  };
+
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
+  const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number } | null>(null);
+
+  // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
+  useEffect(() => {
+    if (!resourceTooltip) return;
+    const closeTooltip = () => setResourceTooltip(null);
+    window.addEventListener('click', closeTooltip, true);
+    window.addEventListener('scroll', closeTooltip, true);
+    return () => {
+      window.removeEventListener('click', closeTooltip, true);
+      window.removeEventListener('scroll', closeTooltip, true);
+    };
+  }, [resourceTooltip]);
 
   useEffect(() => {
     bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab });
@@ -6671,6 +6745,22 @@ export default function GameUI() {
     return () => clearInterval(interval);
   }, []);
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
+  const [citadelSubTab, setCitadelSubTab] = useState<CitadelSubTab>('overview');
+
+  useEffect(() => {
+    setResourceTooltip(null);
+  }, [citadelSubTab]);
+
+  // Permite que os prédios clicáveis na área de sprites da Cidadela (renderizada em App.tsx)
+  // naveguem para a sub-aba correspondente.
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.CITADEL_SUBTAB_REQUESTED, (payload: any) => {
+      if (payload?.subTab) {
+        setCitadelSubTab(payload.subTab);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
   const loreContainerRef = useRef<HTMLDivElement>(null);
@@ -6827,6 +6917,16 @@ export default function GameUI() {
 
     // O movimento precisa ser predominantemente horizontal e maior que o limiar
     if (Math.abs(diffX) > thresholdX && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      if (activeTab === 'citadel') {
+        // Dentro da Cidadela, o swipe navega pelas sub-abas dela, não pelas abas principais
+        AudioManager.getInstance().playClick();
+        setCitadelSubTab((prev) => {
+          const idx = CITADEL_SUB_TABS.findIndex((t) => t.id === prev);
+          const nextIdx = diffX < 0 ? (idx + 1) % CITADEL_SUB_TABS.length : (idx - 1 + CITADEL_SUB_TABS.length) % CITADEL_SUB_TABS.length;
+          return CITADEL_SUB_TABS[nextIdx].id;
+        });
+        return;
+      }
       if (diffX < 0) {
         // Swipe para a esquerda (próxima aba à direita)
         AudioManager.getInstance().playClick();
@@ -6858,17 +6958,55 @@ export default function GameUI() {
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
-          <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
-            <span>🪙</span>
-            <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
-          </div>
-          <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.18)' }}>
-            <span>🔑</span>
-            <span>{towerKeyCount} Chaves</span>
-          </div>
+          {activeTab === 'citadel' ? (
+            <>
+              {CITADEL_HEADER_RESOURCES[citadelSubTab].map((res, idx) => (
+                <div
+                  key={idx}
+                  className="font-mono"
+                  title={res.label}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setResourceTooltip((prev) =>
+                      prev?.idx === idx
+                        ? null
+                        : { idx, label: res.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
+                    );
+                  }}
+                  style={{ fontSize: '0.65rem', fontWeight: 'bold', color: res.color, display: 'flex', alignItems: 'center', gap: '4px', background: `${res.color}14`, padding: '0.15rem 0.4rem', borderRadius: '4px', border: `1px solid ${res.color}2e`, cursor: 'pointer' }}
+                >
+                  <span>{res.icon}</span>
+                  <span>{formatNumber(res.value, abbreviateNumbers)}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
+                <span>🪙</span>
+                <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
+              </div>
+              <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.18)' }}>
+                <span>🔑</span>
+                <span>{towerKeyCount} Chaves</span>
+              </div>
+            </>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {showExitConfirm ? (
+          {activeTab === 'citadel' ? (
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setActiveTab('combat');
+              }}
+              className="btn btn-danger btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              VOLTAR
+            </button>
+          ) : showExitConfirm ? (
             <button
               onClick={() => {
                 AudioManager.getInstance().playClick();
@@ -6896,8 +7034,38 @@ export default function GameUI() {
           )}
         </div>
       </div>
-  
-      {/* Abas Superiores — Premium Tab Bar (Desktop) */}
+
+      {/* Tooltip do recurso clicado no cabeçalho — renderizado via portal para não ser cortado pelo overflow:hidden do painel */}
+      {resourceTooltip && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: resourceTooltip.y,
+            left: resourceTooltip.x,
+            transform: 'translateX(-50%)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.25rem 0.6rem',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            color: '#fff',
+            whiteSpace: 'nowrap',
+            boxShadow: 'var(--shadow-panel)',
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        >
+          {resourceTooltip.label}
+        </div>,
+        document.body
+      )}
+
+      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela quando essa aba está ativa */}
+      {activeTab === 'citadel' ? (
+        <CitadelTabsBar subTab={citadelSubTab} setSubTab={setCitadelSubTab} />
+      ) : (
+      <>
       <div className="tabs-container-desktop-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', pointerEvents: 'auto' }}>
         <button
           onClick={() => {
@@ -7006,7 +7174,9 @@ export default function GameUI() {
           })}
         </div>
       </div>
-  
+      </>
+      )}
+
       {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Conteúdo Dinâmico com rolagem */}
@@ -7017,7 +7187,19 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
-          {activeTab === 'citadel' && isCitadelUnlocked && <CitadelPanel onBackToCombat={() => setActiveTab('combat')} />}
+          {activeTab === 'citadel' && isCitadelUnlocked && (
+            <>
+              {citadelSubTab === 'overview' && <CitadelOverview />}
+              {citadelSubTab === 'vault' && <VaultPanel />}
+              {citadelSubTab === 'expeditions' && <ExpeditionPanel />}
+              {citadelSubTab === 'academy' && <AcademyPanel />}
+              {citadelSubTab === 'watchTower' && <WatchTowerPanel />}
+              {citadelSubTab === 'forgeWorkshop' && <ForgeWorkshopPanel />}
+              {citadelSubTab === 'cosmicSiphon' && <CosmicSiphonPanel />}
+              {citadelSubTab === 'synchronyAltar' && <SynchronyAltarPanel />}
+              {citadelSubTab === 'relicLab' && <RelicLabPanel />}
+            </>
+          )}
           {activeTab === 'tower' && <TowerPanel />}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}

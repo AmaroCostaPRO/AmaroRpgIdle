@@ -10,6 +10,7 @@ import { useGameStore } from './store/useGameStore';
 import { AudioManager } from './core/AudioManager';
 import { bridge } from './bridge/GameBridge';
 import { GameEvent } from './core/types';
+import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
 
 const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -21,6 +22,18 @@ const App: React.FC = () => {
   const [showChangelog, setShowChangelog] = useState(false);
   const [welcomeCheckbox, setWelcomeCheckbox] = useState(false);
   const [isGameReady, setIsGameReady] = useState(false);
+  const [activeTab, setActiveTab] = useState('combat');
+
+  // Escuta a troca de aba da UI para saber quando sobrepor a tela de combate
+  // com a visualização da Cidadela.
+  useEffect(() => {
+    const unsubscribeTab = bridge.subscribe(GameEvent.TAB_CHANGED, (payload: any) => {
+      setActiveTab(payload?.tab ?? 'combat');
+    });
+    return () => {
+      unsubscribeTab();
+    };
+  }, []);
 
   // Reseta o estado do carregador quando o jogador sai da tela de batalha
   useEffect(() => {
@@ -230,6 +243,9 @@ const App: React.FC = () => {
                 </div>
               </div>
               <CombatDropToasts />
+
+              {/* Sobrepõe a tela de combate com a visualização da Cidadela enquanto essa aba está ativa */}
+              {activeTab === 'citadel' && <CitadelSpriteStage />}
             </div>
 
             {/* UI Component Container */}

@@ -53,12 +53,6 @@ export const ExpeditionPanel: React.FC = () => {
             Aloque classes inativas em missões automáticas que geram materiais e Insígnias de Estudo por hora.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪵 {materials.wood}</span>
-          <span>🪨 {materials.stone}</span>
-          <span>🥩 {materials.meat}</span>
-          <span>📜 {materials.studyInsignias}</span>
-        </div>
       </div>
 
       {expeditions.level < EXPEDITIONS_MAX_LEVEL ? (

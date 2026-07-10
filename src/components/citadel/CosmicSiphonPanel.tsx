@@ -39,11 +39,6 @@ export const CosmicSiphonPanel: React.FC = () => {
             Neutraliza as penalidades ambientais sofridas na zona espelho da Ecoterra.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪨 {materials.stone}</span>
-          <span>🪵 {materials.wood}</span>
-          <span>🌌 {essence}</span>
-        </div>
       </div>
 
       {siphon.level < COSMIC_SIPHON_MAX_LEVEL ? (

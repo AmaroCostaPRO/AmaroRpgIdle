@@ -40,12 +40,6 @@ export const ForgeWorkshopPanel: React.FC = () => {
             Converte Ouro e Madeira excedentes em Fragmentos de Forja através de ordens de serviço automáticas.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪙 {character.gold}</span>
-          <span>🪵 {materials.wood}</span>
-          <span>🪨 {materials.stone}</span>
-          <span>📜 {materials.studyInsignias}</span>
-        </div>
       </div>
 
       {forgeWorkshop.level < FORGE_WORKSHOP_MAX_LEVEL ? (

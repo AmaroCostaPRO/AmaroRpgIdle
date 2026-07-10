@@ -38,11 +38,6 @@ export const WatchTowerPanel: React.FC = () => {
             Fabrica passivamente Chaves da Torre Infinita, mesmo offline.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪵 {materials.wood}</span>
-          <span>🪨 {materials.stone}</span>
-          <span>🥩 {materials.meat}</span>
-        </div>
       </div>
 
       {watchTower.level < WATCH_TOWER_MAX_LEVEL ? (

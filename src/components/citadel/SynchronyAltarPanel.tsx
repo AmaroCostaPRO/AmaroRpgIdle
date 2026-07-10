@@ -38,11 +38,6 @@ export const SynchronyAltarPanel: React.FC = () => {
             Maximiza o teto de dano da classe Avatar, injetando parte dos atributos secundários no Maior Atributo Ativo.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪨 {materials.stone}</span>
-          <span>🌌 {essence}</span>
-          <span>📜 {materials.studyInsignias}</span>
-        </div>
       </div>
 
       {altar.level < SYNCHRONY_ALTAR_MAX_LEVEL ? (

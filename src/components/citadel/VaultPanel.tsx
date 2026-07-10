@@ -48,11 +48,6 @@ export const VaultPanel: React.FC = () => {
             Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de Ascensão.
           </p>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', display: 'flex', gap: '1rem' }}>
-          <span>🪵 {materials.wood}</span>
-          <span>🪨 {materials.stone}</span>
-          <span>🥩 {materials.meat}</span>
-        </div>
       </div>
 
       {vault.level < VAULT_MAX_LEVEL ? (
