@@ -143,7 +143,7 @@ Para garantir a coesão visual e o funcionamento adequado dos efeitos de transpa
 
 ## 4. Sistema de Classes e Maestria
 
-O jogo possui sete classes distintas: três classes primárias disponíveis desde o início, três classes secundárias avançadas desbloqueadas através do progresso de classe, e uma classe avançada especial de endgame.
+O jogo possui oito classes distintas: três classes primárias disponíveis desde o início, três classes secundárias avançadas desbloqueadas através do progresso de classe, uma classe avançada especial de endgame (Necromante) e uma classe suprema transcendental de pós-endgame (Avatar, detalhada na Seção 11.E).
 
 ### A. Desbloqueio de Classes Secundárias e Especiais (Roguelite)
 As classes avançadas secundárias requerem dedicação a uma classe primária específica e são desbloqueadas quando o jogador alcança pelo menos o **Nível 50** na classe base correspondente. O progresso de classe é persistido globalmente através da chave `medieval_idle_global_class_levels` no armazenamento local do navegador. Quando o jogador realiza resets, ascensões ou cria novos jogos em slots alternativos, a permissão das classes avançadas é mantida.
@@ -151,6 +151,7 @@ As classes avançadas secundárias requerem dedicação a uma classe primária e
 *   **Clérigo (`Cleric`)**: Requer Mago (`Mage`) Nível $\ge 50$.
 *   **Ladrão (`Rogue`)**: Requer Arqueiro (`Ranger`) Nível $\ge 50$.
 *   **Necromante (`Necromancer`)**: Requer as duas classes secundárias avançadas, **Clérigo Nível 50 e Ladrão Nível 50**, independentemente do slot de salvamento ativo.
+*   **Avatar (`avatar`)**: Requer o talento *Avatar Pleno* na árvore de Transcendência ou o acúmulo de **10 Pontos de Transcendência (PT)** vitalícios — não depende de nível de classe base. Ver Seção 11.E para a mecânica completa.
 
 ### B. Atributos Iniciais e Taxas de Crescimento
 Cada classe possui uma distribuição distinta de atributos base e ganha bônus diferentes automaticamente a cada passagem de nível (*Level Up*), conforme detalhado na tabela abaixo:
@@ -164,6 +165,7 @@ Cada classe possui uma distribuição distinta de atributos base e ganha bônus 
 | **Clérigo** | Mestre sagrado especializado em curas massivas e expor inimigos. | Magia | 7 / +1.0 | 13 / +2.5 | 5 / +0.5 | 11 / +2.0 | 6 / +0.6 |
 | **Ladrão** | Assassino ágil de acertos críticos com foco em venenos e força. | Destreza | 8 / +1.5 | 3 / +0.5 | 16 / +3.0 | 8 / +1.0 | 10 / +1.0 |
 | **Necromante** | Mestre da morte que drena os vivos e comanda lacaios profanos. | Magia | 5 / +0.8 | 15 / +3.2 | 6 / +0.8 | 10 / +1.8 | 12 / +1.5 |
+| **Avatar** | Fusão de todas as energias; escala dinamicamente com o maior atributo ativo (ver Seção 11.E). | *Maior Atributo Ativo* | 15 / +2.5 | 15 / +2.5 | 15 / +2.5 | 15 / +2.5 | 15 / +2.5 |
 
 ### C. Fórmulas de Atributos Derivados (Balanceamento de Utilidade)
 Para garantir um combate equilibrado e incentivar a distribuição diversificada de pontos, o jogo aplica um sistema de **escalonamento dinâmico**. Atributos que servem como fonte primária de dano para uma classe concedem bônus reduzidos aos status secundários (como HP Máximo ou regenerações), enquanto as demais classes se beneficiam de uma escala amplificada nesses mesmos atributos.
@@ -265,6 +267,14 @@ graph LR
     *   2 peças: $+15$ Destreza
     *   3 peças: $+20$ Força
     *   5 peças: $+35$ Destreza *(Total acumulado: +50 Dex, +20 Str)*
+*   **Set do Arauto da Ceifa (`necromancer`)**:
+    *   2 peças: $+15$ Magia
+    *   3 peças: $+20$ Constituição
+    *   5 peças: $+35$ Magia *(Total acumulado: +50 Magic, +20 Con)*
+*   **Set do Avatar Celestizado (`avatar`)** [Dropado na Ecoterra]:
+    *   2 peças: $+10$ Força, $+10$ Magia, $+10$ Destreza
+    *   3 peças: $+15$ Constituição, $+15$ Sorte
+    *   5 peças: $+20$ em todos os atributos primários *(Total acumulado: +30 For/Mag/Des, +35 Con/Sor)*
 
 *   **Sets Ancestrais (Pós-Ascensão)**:
     Estes conjuntos são liberados apenas após a primeira ascensão do personagem e garantem bônus de atributos extremamente superiores, além de mecânicas únicas de toque e combate:
@@ -295,6 +305,14 @@ graph LR
         *   2 peças: $+80$ Destreza
         *   3 peças: $+100$ Força, $+50$ Sorte
         *   5 peças: $+200$ Destreza *(Total acumulado: +280 Destreza, +100 For, +50 Sorte)*
+    *   **Set Ancestral do Senhor dos Ecos Perdidos (`necromancer`)**:
+        *   2 peças: $+80$ Magia
+        *   3 peças: $+100$ Constituição, $+50$ Sorte
+        *   5 peças: $+200$ Magia *(Total acumulado: +280 Magia, +100 Con, +50 Sorte)*
+    *   **Set Ancestral da Totalidade (`avatar`)** [Forjado no Altar de Fusão Mística]:
+        *   2 peças: $+50$ Força, $+50$ Magia, $+50$ Destreza
+        *   3 peças: $+80$ Constituição, $+80$ Sorte
+        *   5 peças: $+120$ em todos os atributos primários *(Total acumulado: +170 For/Mag/Des, +200 Con/Sor)*
 
 *   **Sets Pandemoníacos (Exclusivos do Modo Pandemônio)**:
     Estes conjuntos de tier supremo são obtidos apenas derrotando inimigos na dificuldade Pandemônio (Fase 21+) e possuem atributos extraordinários, além de mecânicas de sobrevivência e agressividade:
@@ -325,6 +343,14 @@ graph LR
         *   2 peças: $+250$ Destreza
         *   3 peças: $+300$ Força, $+150$ Sorte
         *   5 peças: $+600$ Destreza *(Total acumulado: +850 Destreza, +300 Força, +150 Sorte)*
+    *   **Set Pandemoníaco do Devorador de Almas (`necromancer`)**:
+        *   2 peças: $+250$ Magia
+        *   3 peças: $+300$ Constituição, $+150$ Sorte
+        *   5 peças: $+600$ Magia *(Total acumulado: +850 Magia, +300 Con, +150 Sorte)*
+    *   **Set Pandemoníaco do Eco Supremo (`avatar`)** [Dropado no Modo Pandemônio (Fases 21+)]:
+        *   2 peças: $+150$ Força, $+150$ Magia, $+150$ Destreza
+        *   3 peças: $+200$ Constituição, $+200$ Sorte
+        *   5 peças: $+350$ em todos os atributos primários *(Total acumulado: +500 For/Mag/Des, +550 Con/Sor)*
 
 *   **Sets Celestiais (Tier Supremo - Pós-Purgatório Fase 30)**:
     Estes conjuntos representam a progressão máxima de endgame e são liberados após vencer o Guardião dos Cacos duas ou mais vezes no Purgatório. Possuem atributos celestiais e impulsionam ao extremo a velocidade e automação:
@@ -359,10 +385,42 @@ graph LR
         *   2 peças: $+160$ Magia
         *   3 peças: $+200$ Constituição, $+100$ Sorte
         *   5 peças: $+400$ Magia *(Total acumulado: +560 Magia, +200 Con, +100 Sorte)*
+    *   **Set Celestial do Avatar Supremo (`avatar`)** [Dropado do boss Guardião dos Cacos (2ª morte em diante)]:
+        *   2 peças: $+100$ Força, $+100$ Magia, $+100$ Destreza
+        *   3 peças: $+150$ Constituição, $+150$ Sorte
+        *   5 peças: $+250$ em todos os atributos primários *(Total acumulado: +350 For/Mag/Des, +400 Con/Sor)*
 
 ### C. Desmonte de Equipamentos
 *   **Reciclagem e Recompensas**: Para fornecer uma utilidade ecológica aos itens de equipamento sobressalentes acumulados, o jogador pode optar por desmontar qualquer peça diretamente a partir do modal de detalhes do inventário.
-*   **Taxa de Retorno Estritamente Balanceada**: O desmonte de qualquer equipamento de qualquer slot (Cabeça, Peito, Pernas, Luvas, Arma) ou nível de raridade (Comum, Raro, Lendário, Ancestral, Místico) retorna estritamente **1 Fragmento de Forja** (`forgeFragments`). Itens do tipo consumível (como chaves ou baús) não possuem opção de desmonte.
+*   **Taxa de Retorno Estritamente Balanceada**: O desmonte de qualquer equipamento de qualquer slot (Cabeça, Peito, Pernas, Luvas, Arma, Colar) ou nível de raridade (Comum, Raro, Lendário, Ancestral, Místico) retorna estritamente **1 Fragmento de Forja** (`forgeFragments`). Itens do tipo consumível (como chaves ou baús) não possuem opção de desmonte.
+
+### D. Slot de Colar (`necklace`) e Passivos Utilitários
+Introduzido na v5.0.0, o Colar é o **sexto slot de equipamento** (junto a Cabeça, Peito, Pernas, Luvas e Arma), posicionado no topo direito do painel de equipamentos. Diferente dos demais slots, ele não concede atributos primários (Força, Magia, Destreza, Constituição, Sorte) — em vez disso, rola de **1 a 3 passivos utilitários** aleatórios de um pool fixo de 10 efeitos possíveis.
+
+*   **Chance de Drop (Independente da Sorte)**: Ao derrotar qualquer inimigo, o jogo realiza uma rolagem **separada e adicional** à chance de drop normal (Seção 7.F): $5\%$ fixos, sem influência da Sorte, relíquias de drop ou do próprio `dropChancePct` de outros itens equipados. Essa rolagem é independente da rolagem de equipamento normal (Cabeça/Peito/Pernas/Luvas/Arma) — é possível o jogador receber um Colar e um item de outro slot no mesmo abate, já que ambas as rolagens ocorrem no mesmo kill sem se excluírem.
+*   **Raridade e Tiers**: O Colar utiliza o **mesmo sistema de raridade e tiers** dos demais equipamentos (Comum, Raro, Lendário, Ancestral, Celestial, Pandemoníaco), incluindo os mesmos multiplicadores de escala (`mult`: $1.0$/$1.5$/$2.5$/$4.5$/$6.0$/$7.0$) e as mesmas condições de desbloqueio (Celestial após a 2ª morte do Guardião dos Cacos, Pandemoníaco na Fase 21+, Ancestral pós-Ascensão). Apenas o **conteúdo** dos atributos gerados é diferente (passivos utilitários em vez de atributos primários).
+*   **Quantidade de Passivos por Raridade**:
+    *   **Comum**: 1 passivo.
+    *   **Raro**: 2 passivos.
+    *   **Épico / Lendário / Místico**: 3 passivos (o teto de 3 passivos é compartilhado por todas as raridades superiores a Raro, não exclusivo de Lendário).
+    *   Os passivos são sorteados sem repetição dentre os 10 disponíveis.
+*   **Pool de Passivos Utilitários** (magnitude escala com a Fase de obtenção e o multiplicador de raridade `mult`, cada um com teto individual):
+    | Passivo | Efeito | Fórmula Base | Teto |
+    | :--- | :--- | :---: | :---: |
+    | `damageMultiplierPct` | Dano Final Global | $0.02 \times (1 + \text{Fase} \times 0.015) \times \text{mult}$ | $20\%$ |
+    | `maxHpPct` | Vida Máxima | $0.02 \times (1 + \text{Fase} \times 0.015) \times \text{mult}$ | $20\%$ |
+    | `maxManaPct` | Mana Máxima | $0.02 \times (1 + \text{Fase} \times 0.015) \times \text{mult}$ | $20\%$ |
+    | `attackSpeedPct` | Velocidade de Ataque | $0.01 \times (1 + \text{Fase} \times 0.01) \times \text{mult}$ | $10\%$ |
+    | `damageReductionPct` | Redução de Dano Recebido (inclui dano de explosão de Elites Voláteis) | $0.01 \times (1 + \text{Fase} \times 0.01) \times \text{mult}$ | $12\%$ |
+    | `lifesteal` | Roubo de Vida em dano direto | $0.005 \times (1 + \text{Fase} \times 0.01) \times \text{mult}$ | $4\%$ |
+    | `touchDamageMult` | Multiplicador de Dano de Toque | $0.05 \times (1 + \text{Fase} \times 0.02) \times \text{mult}$ | $50\%$ |
+    | `dropChancePct` | Bônus na Chance de Drop normal (Seção 7.F) | $0.01 \times (1 + \text{Fase} \times 0.015) \times \text{mult}$ | $15\%$ |
+    | `frenzyChancePct` | Chance de Frenesi instantâneo por clique | $0.005 \times (1 + \text{Fase} \times 0.005) \times \text{mult}$ | $3\%$ |
+    | `robotClicks` | Toques por segundo adicionais do Robô Assistente | $\max(1, \min(3, \lfloor 1 + \text{Fase} \times 0.01 \times \text{mult} \rfloor))$ | $3$ toques/s |
+
+    *Nota: `dropChancePct` alimenta a fórmula normal de chance de drop (Seção 7.F) mas não afeta a rolagem fixa de $5\%$ do próprio Colar.*
+*   **Participação em Bônus de Conjunto**: O Colar possui `setName` como qualquer outro equipamento e conta normalmente para os limiares de 2/3/5 peças descritos na Seção 5.B. Como o jogador agora possui **6 slots equipáveis** em vez de 5, é possível equipar 3 peças de um conjunto (ex: Cabeça, Peito, Pernas) e 3 peças de outro conjunto (ex: Luvas, Arma, Colar) simultaneamente, ativando **dois bônus de 3 peças distintos ao mesmo tempo** — algo impossível antes da v5.0.0, quando o máximo alcançável era 3+2 peças entre dois conjuntos.
+*   **Fusão na Forja (Altar de Fusão Mística)**: O Colar pode ser fundido normalmente com outro Colar do mesmo conjunto (`setName`) na Grande Forja Arcana, seguindo as mesmas regras de custo, limite de Nível Místico ($+8$) e chance de "Forja Lendária" ($5\%$ de bônus de $+50\%$) dos demais slots. Diferente dos atributos primários (que são somados e arredondados para cima como inteiros), os passivos percentuais do Colar são somados e arredondados com **3 casas decimais de precisão**, exibindo corretamente a prévia de fusão em formato percentual.
 
 ---
 
@@ -417,6 +475,10 @@ As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada
     *   *Dano*: Causa $1300\%$ de dano mágico baseado em Magia e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
     *   *Custo de Mana*: $75$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Foice gigante que corta a tela com explosão de névoa escura e invoca um monstro lacaio.
+8.  **Avatar**: *Coro da Alma Inteira* (`ultimate_avatar`)
+    *   *Dano*: Causa dano imediato calculado sobre a soma de todos os atributos primários: $(\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 5.0$.
+    *   *Custo de Mana*: $100$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Efeito Visual*: Reúne a força de todos os cacos de memórias passadas do herói em um único golpe unificado.
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
 Os custos de mana e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
@@ -572,6 +634,14 @@ Escala suas habilidades de ataque com **Magia** (`magic`) e bônus de dano com *
     *   *Mecânica*: Conjura servos que atacam continuamente causando $120\%$ de dano por segundo por 8 segundos.
     *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo.
 
+#### 🌌 Avatar (`avatar`)
+Classe suprema transcendental (ver Seção 11.E para desbloqueio e mecânica completa). Diferente das demais classes, todas as suas habilidades são concedidas imediatamente ao desbloquear a classe, sem árvore de progressão por níveis, e escalam com o **Maior Atributo Ativo** do personagem (`max(Força, Magia, Destreza, Constituição, Sorte)`) em vez de um único atributo fixo.
+*   **Eco Unificado** (Ativa):
+    *   *Mecânica*: Causa $250\%$ do maior atributo ativo como dano do tipo elemental do inimigo.
+*   **Barreira Prismática** (Ativa):
+    *   *Mecânica*: Concede um escudo de absorção equivalente a $30\%$ do maior atributo ativo por 5 segundos.
+*   **Coro da Alma Inteira** (Ultimate) — ver Seção 6, Catálogo de Habilidades Ultimate, item 8.
+
 ---
 
 ### C. Habilidade Comum: 💚 Cura (`heal`)
@@ -630,7 +700,7 @@ stateDiagram-v2
     $$\text{Recarga do Inimigo} = \max\left( 1000\text{ ms}, \frac{\text{Recarga Base}}{\text{Multiplicador de Velocidade do Monstro}} \right)$$
 
 ### C. Escalonamento Exponencial de Dificuldade dos Inimigos
-O jogo possui **20 fases de campanha** divididas em **4 tiers de dificuldade** e um **Modo Infinito** chamado **Modo Pandemônio (Fase 21+)**. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço. No Modo Pandemônio, a progressão é sem fim e a seleção de inimigos comuns e chefes torna-se inteiramente aleatória.
+O jogo possui **30 fases fixas de campanha** — as 20 fases clássicas divididas em 4 tiers de dificuldade, seguidas pelo bloco intermediário do **Purgatório (Fases 21-30)** — e, após vencer o chefe da Fase 30, um **Modo Infinito** chamado **Modo Pandemônio (Fase 31+)**. Cada fase exige a derrota de **15 monstros normais** seguidos pela eliminação de um **Chefe de Fase** para permitir o avanço. No Modo Pandemônio, a progressão é sem fim e a seleção de inimigos comuns e chefes torna-se inteiramente aleatória.
 
 #### Tiers de Dificuldade e Multiplicadores
 | Tier | Fases | Fator de Dificuldade | Aumento vs. Normal |
@@ -639,14 +709,16 @@ O jogo possui **20 fases de campanha** divididas em **4 tiers de dificuldade** e
 | **Pesadelo** 🔴 | 6 – 10 | × 2.0 | +100% de HP e Dano |
 | **Inferno** 🟠 | 11 – 15 | × 3.0 | +200% de HP e Dano |
 | **Apocalipse** 🟣 | 16 – 20 | × 4.0 | +300% de HP e Dano |
-| **Pandemônio** 💀 | 21+ (Infinito) | × 5.0 inicial | +400% de HP/Dano inicial (escalonamento exponencial padrão contínuo) |
+| **Purgatório** 💎 | 21 – 30 | × 5.0 | +400% de HP e Dano |
+| **Pandemônio** 💀 | 31+ (Infinito) | × 6.0 inicial | +500% de HP/Dano inicial (escalonamento exponencial padrão contínuo) |
 
 *Cada tier possui identidade visual exclusiva no HUD: cor do label, tint de background e tint do sprite do inimigo mudam conforme o tier ativo. O Modo Pandemônio é representado por tons e brilhos vermelhos e pretos intensos.*
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
     $$\text{Fator HP} = 1.30^{\text{Fase} - 1}$$
     $$\text{Fator Dano} = 1.25^{\text{Fase} - 1}$$
-    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \\ 5.0 & \text{se Fase} \ge 21 \text{ (Pandemônio)} \end{cases}$$
+    $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \text{ (Normal)} \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \text{ (Pesadelo)} \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \text{ (Inferno)} \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \text{ (Apocalipse)} \\ 5.0 & \text{se } 21 \le \text{Fase} \le 30 \text{ (Purgatório)} \\ 6.0 & \text{se Fase} \ge 31 \text{ (Pandemônio)} \end{cases}$$
+    *O Fator Tier é idêntico para HP e Dano — ambos escalam simetricamente em todos os tiers, incluindo a transição do Purgatório para o Pandemônio.*
 *   **Vida Máxima de Inimigo Comum**:
     $$\text{HP Máximo Normal} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Monstro} \times \text{Fator Tier} \rfloor$$
 *   **Vida Máxima de Chefe**:
@@ -689,6 +761,10 @@ O jogo possui 24 monstros catalogados de acordo com sua fase e tipo:
 
 *Nota: O XP ganho é multiplicado a cada fase pela taxa acelerada de $\text{Fator XP} = 1.35^{\text{Fase} - 1}$ para equilibrar o aumento da barra de nível.*
 
+*   **Custo de XP para Subir de Nível**: Para acompanhar o crescimento exponencial do ganho de XP acima, o custo de XP necessário para o próximo nível também escala pelo mesmo fator, com base na Fase atual do personagem:
+    $$\text{XP Necessário} = \left\lfloor \text{Nível} \times 100 \times 1.35^{\text{Fase} - 1} \right\rfloor$$
+    Como o mesmo fator exponencial multiplica tanto o ganho quanto o custo, a proporção entre XP ganho por abate e XP necessário para o próximo nível permanece constante ao longo de todo o jogo, evitando que o ganho de XP ultrapasse disparadamente o custo em fases avançadas.
+
 ---
 
 ### E. Sistema de Bônus de Dano do Bestiário
@@ -729,6 +805,8 @@ Sempre que um inimigo é derrotado, há uma chance de gerar um equipamento no in
     $$\text{Peso Total} = \text{Peso Lendário} + \text{Peso Raro} + \text{Peso Comum}$$
     A raridade é determinada jogando um valor de $0$ a $\text{Peso Total}$: se menor que $\text{Peso Lendário}$, o item é **Lendário**; se menor que $\text{Peso Lendário} + \text{Peso Raro}$, o item é **Raro**; caso contrário, é **Comum**.
 
+*Nota: A rolagem acima cobre apenas os slots normais (Cabeça, Peito, Pernas, Luvas, Arma). O Colar (Seção 5.D) possui uma rolagem de drop totalmente separada e fixa em $5\%$, independente da Sorte — ela não substitui nem compete com a chance de drop normal, podendo ambas ocorrerem no mesmo abate.*
+
 ---
 
 ## 8. Sistema de Status Effects (Buffs & Debuffs)
@@ -766,8 +844,8 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
 *   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, melhorias permanentes de prestígio e o estado de desbloqueio/ativação do Modo Pandemônio.
 
 ### B. Fórmulas de Recompensa de Prestígio
-A XP total acumulada pelo personagem desde o nível 1 é calculada por:
-$$\text{XP Total} = 50 \times \text{Nível} \times (\text{Nível} - 1) + \text{XP Atual na Barra}$$
+A XP total acumulada pelo personagem desde o nível 1 (`totalXpEarned`) é um contador vitalício persistido, incrementado diretamente a cada ganho de XP (independente de quantos níveis esse ganho cruza), e resetado a 0 apenas na Ascensão. Isso substitui a antiga fórmula fechada $50 \times \text{Nível} \times (\text{Nível} - 1) + \text{XP Atual}$, que só era válida enquanto o custo de XP por nível era puramente linear (ver Seção 7.C sobre a curva de custo de XP escalada por fase). Saves antigos sem o contador são migrados automaticamente no carregamento, reconstruindo uma aproximação via essa fórmula legada.
+
 O ganho de Pontos de Prestígio (PP) na ascensão é determinado por:
 $$\text{PP Obtidos} = \lfloor \lfloor \left( \frac{\text{XP Total}}{1000} \right)^{0.45} \rfloor \times 1.5 \rfloor$$
 
@@ -1075,7 +1153,34 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 4.4.5 (Atual)
+### Versão 5.0.3 (Atual)
+*   **⚖️ Correção: Assimetria de Dano no Tier Pandemônio**:
+    *   **Problema**: O multiplicador de dificuldade por tier do HP dos inimigos (`hpBoost`) já contemplava corretamente os 6 tiers (incluindo Purgatório ×5.0 e Pandemônio ×6.0 na Fase 31+), mas o multiplicador equivalente de Dano (`dmgBoost`) havia ficado defasado desde a introdução do Purgatório: parava em ×5.0 a partir da Fase 21 e nunca escalava para ×6.0 no Pandemônio, fazendo o HP dos inimigos crescer proporcionalmente mais que o Dano a partir da Fase 31+.
+    *   **Correção**: `dmgBoost` em `CombatFSM.ts` agora espelha exatamente os mesmos 6 tiers do `hpBoost`, restaurando a simetria de escalonamento entre HP e Dano em todas as fases.
+*   **📖 Correção de Documentação: Tiers de Dificuldade Desatualizados**:
+    *   A tabela de Tiers de Dificuldade e as fórmulas de escalonamento (Seção 7.C) ainda descreviam apenas 4 tiers fixos e um "Modo Pandemônio (Fase 21+)", refletindo o estado do jogo antes da introdução do Purgatório. Atualizado para os 6 tiers reais atualmente implementados: Normal (1-5), Pesadelo (6-10), Inferno (11-15), Apocalipse (16-20), Purgatório (21-30) e Pandemônio (31+, infinito).
+
+### Versão 5.0.2
+*   **🐛 Correção: Ascensão dentro da Torre Infinita**:
+    *   **Problema**: Realizar Ascensão, ativar o Modo Pandemônio ou realizar a Transcendência enquanto o personagem estava dentro da Torre Infinita corrompia o estado do jogo: a fase da campanha não era resetada para a Fase 1 (o `useTowerStore` restaurava, ao sair da torre, o estágio salvo *antes* da ascensão, sobrescrevendo o reset), resultando em um personagem recém-resetado (nível 1, equipamentos zerados) enfrentando o estágio avançado em que estava antes de entrar na torre — o que podia causar tela preta por incompatibilidade de escala entre o personagem e os inimigos.
+    *   **Correção**: `performPrestige`, `unlockPandemonium` e `performTranscendence` (`useGameStore.ts`) agora verificam se `towerActive` (Torre Infinita) ou `activeDailyChallenge` (Desafio Diário) estão ativos antes de executar o reset, bloqueando a ação e emitindo um aviso no log de combate. Os botões correspondentes na interface (`GameUI.tsx`) também ficam desabilitados nesses estados, com texto explicativo.
+
+### Versão 5.0.1
+*   **⚖️ Rebalanceamento da Curva de Custo de XP por Nível**:
+    *   **Problema**: O custo de XP para subir de nível era linear (`Nível × 100`), enquanto o XP concedido por abate escala exponencialmente com a fase (`1.35^(Fase-1)`). A partir de aproximadamente o Nível 18+, o ganho de XP passava a superar disparadamente o custo do próximo nível, quebrando a sensação de progressão.
+    *   **Nova Fórmula**: O custo de XP por nível passou a escalar com a mesma taxa exponencial usada no ganho, com base na Fase atual do personagem: $\text{XP Necessário} = \lfloor \text{Nível} \times 100 \times 1.35^{\text{Fase} - 1} \rfloor$. Como o mesmo fator multiplica ganho e custo, a proporção entre eles permanece constante do início ao fim do jogo.
+    *   **Level-Up em Cascata**: Corrigido um bug em que um único ganho de XP suficiente para vários níveis só aplicava 1 nível por vez (usava `if` em vez de `while` em `addXp`). Agora múltiplos níveis são aplicados corretamente numa única atualização, incluindo pontos de atributo, pontos de habilidade e crescimento de stats por cada nível ganho.
+    *   **Contador Vitalício de XP (`totalXpEarned`)**: Como o custo por nível passou a depender também da Fase em que o personagem estava a cada level-up, a antiga fórmula fechada de reconstrução do XP total ($50 \times \text{Nível} \times (\text{Nível}-1) + \text{XP Atual}$) deixou de ser válida. Substituída por um contador persistido incrementado diretamente a cada ganho de XP, usado no cálculo de Pontos de Prestígio na Ascensão (ver Seção 9.B). Saves antigos são migrados automaticamente no carregamento, reconstruindo uma aproximação via fórmula legada.
+
+### Versão 5.0.0 "Transcendência e o Segundo Ciclo"
+*   **🌌 Aba Dedicada de Transcendência**: A interface de Transcendência foi desacoplada do Altar de Ascensão e ganhou uma aba própria no menu superior de navegação. O Ritual de Transcendência (`performTranscendence` em `useGameStore.ts`) requer o Modo Pandemônio liberado, ter alcançado a Fase 50 no Loop Infinito e ao menos 500 PP Vitalícios acumulados (ver Seção 11.B).
+*   **🌟 Classe Transcendental: Avatar**: Nova classe suprema (`classId: 'avatar'`), desbloqueada pelo talento *Avatar Pleno* na árvore de Transcendência ou pelo acúmulo de 10 Pontos de Transcendência (PT). Escala dinamicamente com o maior atributo primário ativo do personagem; sua Ultimate *Coro da Alma Inteira* escala com a soma de todos os atributos (ver Seção 11.E).
+*   **🛒 Nova Loja Celestial**: Painel de troca que consome Essências de Transcendência (ET) coletadas na Ecoterra por consumíveis exclusivos: Elixir Transcendental (+10 Níveis, +50 atributos e +10 pontos de habilidade), Cristal de Forja Eterna (+25 Fragmentos de Forja) e Chave da Fenda Temporal (+2 Chaves da Torre Infinita) (ver Seção 11.D).
+*   **🍃 Espelho da Ecoterra e Segundo Ciclo**: Nova zona-espelho ativável que fortalece os monstros das Fases 1 a 20 (+30% HP, +20% Velocidade de Ataque) em troca da coleta de Essência de Transcendência, sob penalidades ambientais arcanas (ver Seção 11.C).
+*   **📿 Novo Slot de Equipamento: Colar**: Adicionado o slot de Colar (`necklace`) ao painel de equipamentos, concedendo de 1 a 3 passivos utilitários aleatórios (redução de dano físico/de explosões, chance de frenesi no clique, roubo de vida, chance de drop). Possui taxa de drop fixa de 5% (independente de Sorte) e participa da contagem de peças de conjunto, permitindo ativar até dois bônus de 3 peças distintos simultaneamente.
+*   **🔩 Ajuste de Recompensas da Torre Infinita**: A quantidade de Fragmentos de Forja concedidos ao avançar andares na Torre Infinita foi quadruplicada, e a Grande Forja Arcana passou a suportar fusões de Colar com prévia de atributos e formatação percentual precisa.
+
+### Versão 4.4.5
 *   **🦂 Sprite do Rei Escorpião de Ouro**:
     *   Criação e integração do sprite em pixel art exclusivo para o chefe "Rei Escorpião de Ouro" (`boss_sand_scorpion.png`).
     *   Substituição do antigo mapeamento de textura que causava o reuso do sprite de escorpião comum (`enemy_scorpion.png`) na lógica de spawn do `CombatFSM.ts`.

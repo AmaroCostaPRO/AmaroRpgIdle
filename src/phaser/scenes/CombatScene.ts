@@ -5,6 +5,7 @@ import { GameEvent, ENEMIES_PER_STAGE } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
 import { useTowerStore } from '../../store/useTowerStore';
 import { AudioManager } from '../../core/AudioManager';
+import { getXpNeededForLevel } from '../../core/XpEngine';
 
 export const ZOOM_FACTOR = 1.35;
 
@@ -741,7 +742,7 @@ export class CombatScene extends Phaser.Scene {
 
     const level = char.level || 1;
     const xp = char.xp || 0;
-    const xpNeeded = level * 100;
+    const xpNeeded = getXpNeededForLevel(level, char.currentStage || 1);
     const xpPct = Math.max(0, Math.min(1, xp / xpNeeded));
 
     // Dimensões da barra de XP (tamanho fixo harmonioso no canvas de 800x600)

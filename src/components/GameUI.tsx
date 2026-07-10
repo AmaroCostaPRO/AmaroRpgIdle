@@ -1,6 +1,8 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
+import { getXpNeededForLevel, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
+import { useTowerStore } from '../store/useTowerStore';
 import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
@@ -713,7 +715,7 @@ const AttributePanel: React.FC = () => {
   const upgradeAttribute = useGameStore((state) => state.upgradeAttribute);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const availablePoints = character.attributePoints;
-  const xpNeeded = character.level * 100;
+  const xpNeeded = getXpNeededForLevel(character.level, character.currentStage);
   const [multiplier, setMultiplier] = useState<1 | 10 | 100>(1);
 
   const handleUpgradeAttribute = (attr: string) => {
@@ -2315,16 +2317,16 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
   const availablePrestigePoints = character.prestigePoints;
   const level = character.level;
-  const xp = character.xp;
-  const totalXp = 50 * level * (level - 1) + xp;
+  const totalXp = getTotalXpEarned(character);
   // Multiplicado por 1.5 para alinhar com a triplicação no store
-  const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
+  const prestigeEarnedOnReset = calculatePrestigePointsFromTotalXp(totalXp);
   const ascensionCount = character.ascensionCount || 0;
   const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
-  const isProgressReqMet = ascensionCount === 0 
-    ? (character.highestStageReached >= 6) 
+  const isProgressReqMet = ascensionCount === 0
+    ? (character.highestStageReached >= 6)
     : (level >= 5);
-  const canPrestige = isProgressReqMet && prestigeEarnedOnReset >= requiredPP;
+  const isInTowerOrChallenge = useTowerStore((state) => state.towerActive) || !!character.activeDailyChallenge;
+  const canPrestige = isProgressReqMet && prestigeEarnedOnReset >= requiredPP && !isInTowerOrChallenge;
 
   const baseKeys = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'];
   const isBaseMaxed = baseKeys.every(key => (character.prestigeUpgrades[key] || 0) >= 10);
@@ -2824,13 +2826,15 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
             style={{ width: '100%', cursor: canPrestige ? 'pointer' : 'not-allowed', opacity: canPrestige ? 1 : 0.5 }}
             disabled={!canPrestige}
           >
-            {!isProgressReqMet 
-              ? (ascensionCount === 0 
-                  ? 'Requer completar a Fase 5' 
-                  : 'Requer Nível 5+ para obter PP')
-              : prestigeEarnedOnReset < requiredPP 
-                ? `Requer +${requiredPP} PP nesta rodada (Ganho: ${prestigeEarnedOnReset})` 
-                : `Ascender (+${prestigeEarnedOnReset} PP)`
+            {isInTowerOrChallenge
+              ? 'Saia da Torre/Desafio Diário para Ascender'
+              : !isProgressReqMet
+                ? (ascensionCount === 0
+                    ? 'Requer completar a Fase 5'
+                    : 'Requer Nível 5+ para obter PP')
+                : prestigeEarnedOnReset < requiredPP
+                  ? `Requer +${requiredPP} PP nesta rodada (Ganho: ${prestigeEarnedOnReset})`
+                  : `Ascender (+${prestigeEarnedOnReset} PP)`
             }
           </button>
         ) : (
@@ -3049,7 +3053,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                   const isUnlocked = character.pandemoniumUnlocked;
                   const cost = 100;
                   const isPurgatoryDone = character.purgatoryCompleted;
-                  const hasPoints = availablePrestigePoints >= cost && isPurgatoryDone;
+                  const hasPoints = availablePrestigePoints >= cost && isPurgatoryDone && !isInTowerOrChallenge;
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '36rem', margin: '0 auto' }}>
@@ -3106,7 +3110,9 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                                 border: hasPoints ? '1px solid #f87171' : undefined
                               }}
                             >
-                              {isPurgatoryDone ? `Ativar Modo Pandemônio (${cost} PP)` : 'Requer Purgatório'}
+                              {isInTowerOrChallenge
+                                ? 'Saia da Torre/Desafio Diário'
+                                : isPurgatoryDone ? `Ativar Modo Pandemônio (${cost} PP)` : 'Requer Purgatório'}
                             </button>
                           )}
                         </div>
@@ -3249,22 +3255,22 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                           onClick={(e) => {
                             e.stopPropagation();
                             const cost = 100;
-                            if (availablePrestigePoints >= cost && character.purgatoryCompleted) {
+                            if (availablePrestigePoints >= cost && character.purgatoryCompleted && !isInTowerOrChallenge) {
                               AudioManager.getInstance().playClick();
                               useGameStore.getState().unlockPandemonium();
                               setSelectedUpgradeId('');
                             }
                           }}
-                          disabled={availablePrestigePoints < 100 || !character.purgatoryCompleted}
-                          className={`btn btn-sm ${(availablePrestigePoints >= 100 && character.purgatoryCompleted) ? 'btn-purple' : 'btn-ghost'}`}
-                          style={{ 
-                            padding: '0.2rem 0.5rem', 
+                          disabled={availablePrestigePoints < 100 || !character.purgatoryCompleted || isInTowerOrChallenge}
+                          className={`btn btn-sm ${(availablePrestigePoints >= 100 && character.purgatoryCompleted && !isInTowerOrChallenge) ? 'btn-purple' : 'btn-ghost'}`}
+                          style={{
+                            padding: '0.2rem 0.5rem',
                             fontSize: '0.6rem',
-                            background: (availablePrestigePoints >= 100 && character.purgatoryCompleted) ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
-                            border: (availablePrestigePoints >= 100 && character.purgatoryCompleted) ? '1px solid #f87171' : undefined
+                            background: (availablePrestigePoints >= 100 && character.purgatoryCompleted && !isInTowerOrChallenge) ? 'linear-gradient(135deg, #ef4444, #7f1d1d)' : undefined,
+                            border: (availablePrestigePoints >= 100 && character.purgatoryCompleted && !isInTowerOrChallenge) ? '1px solid #f87171' : undefined
                           }}
                         >
-                          {character.purgatoryCompleted ? 'Ativar (100 PP)' : 'Requer Purgatório'}
+                          {isInTowerOrChallenge ? 'Saia da Torre/Desafio' : character.purgatoryCompleted ? 'Ativar (100 PP)' : 'Requer Purgatório'}
                         </button>
                       </div>
                     </div>
@@ -4203,7 +4209,8 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
   }, 0);
   const totalPP = Math.max(character.lifetimePrestigePointsAccumulated || 0, currentPP + spentPP);
   const transcendenceEarnedOnReset = Math.floor(Math.pow(totalPP / 500, 0.75));
-  const canTranscend = character.pandemoniumUnlocked && character.highestStageReached >= 50 && transcendenceEarnedOnReset > 0;
+  const isInTowerOrChallenge = useTowerStore((state) => state.towerActive) || !!character.activeDailyChallenge;
+  const canTranscend = character.pandemoniumUnlocked && character.highestStageReached >= 50 && transcendenceEarnedOnReset > 0 && !isInTowerOrChallenge;
   const transcendenceCount = character.transcendenceCount || 0;
   
   const currentPT = character.transcendencePoints || 0;
@@ -4392,9 +4399,11 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                   style={{ width: '100%', opacity: 0.5, cursor: 'not-allowed', fontSize: '0.7rem', padding: '0.45rem' }}
                   disabled
                 >
-                  {!character.pandemoniumUnlocked || character.highestStageReached < 50
-                    ? '🔒 Requer Pandemônio e Fase 50 no Loop Infinito'
-                    : `🔒 Requer mais PP Vitalícios (Ganho atual: 0 PT)`
+                  {isInTowerOrChallenge
+                    ? '🔒 Saia da Torre/Desafio Diário para Transcender'
+                    : !character.pandemoniumUnlocked || character.highestStageReached < 50
+                      ? '🔒 Requer Pandemônio e Fase 50 no Loop Infinito'
+                      : `🔒 Requer mais PP Vitalícios (Ganho atual: 0 PT)`
                   }
                 </button>
               )}

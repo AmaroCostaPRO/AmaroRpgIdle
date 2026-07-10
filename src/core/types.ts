@@ -116,6 +116,7 @@ export interface Character {
   transcendenceLoreShown?: boolean;
   activeEcoterra?: boolean;
   transcendenceEssence?: number;
+  totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
 }
 
 export enum GameEvent {

@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
+import { useTowerStore } from './useTowerStore';
 import { StatEngine } from '../core/StatEngine';
+import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
@@ -615,6 +617,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     classId: classId,
     level: 1,
     xp: 0,
+    totalXpEarned: 0,
     gold: 0,
     baseStats: { ...config.baseStats },
     growthRates: { ...config.growthRates },
@@ -877,24 +880,31 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   addXp: (amount) => set((state) => {
+    const currentStage = state.character.currentStage;
+    const newTotalXpEarned = (state.character.totalXpEarned ?? legacyReconstructTotalXp(state.character.level, state.character.xp)) + amount;
+
     let newXp = state.character.xp + amount;
     let newLevel = state.character.level;
     let newPoints = state.character.attributePoints;
     let newSkillPoints = state.character.skillPoints;
     const stats = { ...state.character.baseStats };
-    const xpNeeded = newLevel * 100;
 
-    if (newXp >= xpNeeded) {
-      newXp -= xpNeeded;
+    let leveledUp = false;
+    let safetyCounter = 0;
+    while (newXp >= getXpNeededForLevel(newLevel, currentStage) && safetyCounter++ < 10000) {
+      newXp -= getXpNeededForLevel(newLevel, currentStage);
       newLevel += 1;
       newPoints += 5;
       newSkillPoints += 1; // +1 ponto de habilidade por nível
-      
+
       // Aplica crescimento de atributos base
       (Object.keys(stats) as Array<keyof BaseStats>).forEach((key) => {
         stats[key] = Math.round((stats[key] || 0) + (state.character.growthRates[key] || 0));
       });
-      console.log(`[Store] LEVEL UP! Novo Level: ${newLevel}. +5 atributos, +1 skill point.`);
+      leveledUp = true;
+    }
+    if (leveledUp) {
+      console.log(`[Store] LEVEL UP! Novo Level: ${newLevel}. +5 atributos/nível, +1 skill point/nível.`);
     }
 
     // --- VERIFICAÇÃO DE DESBLOQUEIO DE CLASSE ---
@@ -938,8 +948,7 @@ export const useGameStore = create<GameState>((set) => ({
     const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
     
     // canPrestige com novos dados
-    const newTotalXp = 50 * newLevel * (newLevel - 1) + newXp;
-    const newPrestigeEarned = Math.floor(Math.floor(Math.pow(newTotalXp / 1000, 0.45)) * 1.5);
+    const newPrestigeEarned = calculatePrestigePointsFromTotalXp(newTotalXpEarned);
     const newIsProgressReqMet = state.character.highestStageReached >= 6;
     const isPrestigeAvailableNow = newIsProgressReqMet && newPrestigeEarned >= requiredPP;
 
@@ -953,6 +962,7 @@ export const useGameStore = create<GameState>((set) => ({
       ...state.character,
       level: newLevel,
       xp: newXp,
+      totalXpEarned: newTotalXpEarned,
       attributePoints: newPoints,
       skillPoints: newSkillPoints,
       baseStats: stats,
@@ -1001,10 +1011,13 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   performPrestige: () => set((state) => {
-    const level = state.character.level;
-    const xp = state.character.xp;
-    const totalXp = 50 * level * (level - 1) + xp;
-    const pointsEarned = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
+    if (useTowerStore.getState().towerActive || state.character.activeDailyChallenge) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '⚠️ Saia da Torre Infinita ou do Desafio Diário antes de realizar a Ascensão.' });
+      return state;
+    }
+
+    const totalXp = getTotalXpEarned(state.character);
+    const pointsEarned = calculatePrestigePointsFromTotalXp(totalXp);
 
     if (pointsEarned <= 0) return state;
     
@@ -1036,6 +1049,7 @@ export const useGameStore = create<GameState>((set) => ({
       ...state.character,
       level: 1,
       xp: 0,
+      totalXpEarned: 0,
       gold: 0,
       attributePoints: 5,
       skillPoints: 1,
@@ -1085,6 +1099,11 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   unlockPandemonium: () => set((state) => {
+    if (useTowerStore.getState().towerActive || state.character.activeDailyChallenge) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '⚠️ Saia da Torre Infinita ou do Desafio Diário antes de ativar o Modo Pandemônio.' });
+      return state;
+    }
+
     const cost = 100;
     const baseKeys = ['perm_str', 'perm_mag', 'perm_dex', 'perm_con', 'perm_luk'];
     const upgrades = state.character.prestigeUpgrades || {};
@@ -1108,6 +1127,7 @@ export const useGameStore = create<GameState>((set) => ({
       ...state.character,
       level: 1,
       xp: 0,
+      totalXpEarned: 0,
       gold: 0,
       attributePoints: 5,
       skillPoints: 1,
@@ -1162,6 +1182,11 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   performTranscendence: () => set((state) => {
+    if (useTowerStore.getState().towerActive || state.character.activeDailyChallenge) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '⚠️ Saia da Torre Infinita ou do Desafio Diário antes de realizar a Transcendência.' });
+      return state;
+    }
+
     const currentPP = state.character.prestigePoints || 0;
     const spentPP = Object.entries(state.character.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
       const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
@@ -1187,6 +1212,7 @@ export const useGameStore = create<GameState>((set) => ({
       ...state.character,
       level: 1,
       xp: 0,
+      totalXpEarned: 0,
       gold: 0,
       baseStats: { ...config.baseStats },
       growthRates: { ...config.growthRates },
@@ -1382,6 +1408,9 @@ export const useGameStore = create<GameState>((set) => ({
             transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
             activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
             transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            totalXpEarned: char.totalXpEarned !== undefined
+              ? char.totalXpEarned
+              : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
             lifetimePrestigePointsAccumulated: (() => {
               if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
               const curPP = char.prestigePoints || 0;
@@ -1491,9 +1520,8 @@ export const useGameStore = create<GameState>((set) => ({
 
     const nextHighest = Math.max(state.character.highestStageReached, nextStage);
     const level = state.character.level;
-    const xp = state.character.xp;
-    const totalXp = 50 * level * (level - 1) + xp;
-    const prestigeEarnedOnReset = Math.floor(Math.floor(Math.pow(totalXp / 1000, 0.45)) * 1.5);
+    const totalXp = getTotalXpEarned(state.character);
+    const prestigeEarnedOnReset = calculatePrestigePointsFromTotalXp(totalXp);
     const ascensionCount = state.character.ascensionCount || 0;
     const requiredPP = ascensionCount === 0 ? 1 : 3 + 2 * ascensionCount;
     const isProgressReqMet = ascensionCount === 0 
@@ -1801,6 +1829,9 @@ export const useGameStore = create<GameState>((set) => ({
             transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
             activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
             transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            totalXpEarned: char.totalXpEarned !== undefined
+              ? char.totalXpEarned
+              : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
             lifetimePrestigePointsAccumulated: (() => {
               if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
               const curPP = char.prestigePoints || 0;

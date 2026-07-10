@@ -1281,9 +1281,9 @@ export class CombatFSM {
       const dmgScale = Math.pow(1.10, floor - 1);
       damage = Math.floor((10 + floor * 3.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * weaknessMultiplier * constitutionReduction);
     } else {
-      // Multiplicador de dano por dificuldade:
-      // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Pandemônio (21+): 5.0×
-      const dmgBoost = this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
+      // Multiplicador de dano por dificuldade (espelha o hpBoost em setupEnemyForLevel):
+      // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
+      const dmgBoost = this.enemyLevel >= 31 ? 6.0 : this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
       
       // Escala exponencial de dano baseado no estágio (ajustada para 1.25x por fase)
       const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
