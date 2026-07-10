@@ -85,7 +85,20 @@ const App: React.FC = () => {
   }, [screen]);
 
   useEffect(() => {
-    if (screen === 'playing' && gameContainerRef.current && !phaserGameRef.current) {
+    const destroyPhaserGame = () => {
+      if (phaserGameRef.current) {
+        console.log("Destroying Phaser Game...");
+        try {
+          phaserGameRef.current.destroy(true);
+        } catch (e) {
+          console.error("Error during Phaser game destruction:", e);
+        }
+        phaserGameRef.current = null;
+      }
+    };
+
+    const initPhaserGame = () => {
+      if (!gameContainerRef.current || phaserGameRef.current) return;
       console.log("Initializing Phaser Game...");
 
       const config: Phaser.Types.Core.GameConfig = {
@@ -105,21 +118,55 @@ const App: React.FC = () => {
       try {
         phaserGameRef.current = new Phaser.Game(config);
         console.log("Phaser Game Instance successfully attached");
+        // Sinal definitivo de que o contexto WebGL foi perdido (ex.: tela do
+        // celular apagou/bloqueou e o SO reclamou a GPU). O Phaser não
+        // recria texturas/render state sozinho nesse caso, então o canvas
+        // fica preto até recarregarmos a cena do zero.
+        phaserGameRef.current.events.once(Phaser.Core.Events.CONTEXT_LOST, () => {
+          console.warn("[App] WebGL context lost — recreating Phaser Game to recover.");
+          setIsGameReady(false);
+          destroyPhaserGame();
+          initPhaserGame();
+        });
       } catch (error) {
         console.error("CRITICAL ERROR: Failed to initialize Phaser:", error);
       }
+    };
+
+    if (screen === 'playing') {
+      initPhaserGame();
     }
 
-    return () => {
-      if (phaserGameRef.current) {
-        console.log("Destroying Phaser Game...");
-        try {
-          phaserGameRef.current.destroy(true);
-        } catch (e) {
-          console.error("Error during Phaser game destruction:", e);
-        }
-        phaserGameRef.current = null;
+    // Em mobile, apagar/bloquear a tela por tempo suficiente costuma matar o
+    // contexto WebGL sem sempre disparar CONTEXT_LOST de forma confiável em
+    // todos os navegadores. Como fallback, se a aba ficou oculta por mais de
+    // alguns segundos, recriamos o jogo ao voltar — equivalente a recarregar,
+    // mas sem perder progresso (o CombatFSM reconstrói tudo a partir do
+    // useGameStore/useTowerStore).
+    let hiddenAt = 0;
+    const HIDDEN_RECOVERY_THRESHOLD_MS = 3000;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenAt = Date.now();
+        return;
       }
+      if (
+        screen === 'playing' &&
+        hiddenAt > 0 &&
+        Date.now() - hiddenAt > HIDDEN_RECOVERY_THRESHOLD_MS
+      ) {
+        console.log("[App] Returned from a long background pause — recreating Phaser Game as a precaution.");
+        setIsGameReady(false);
+        destroyPhaserGame();
+        initPhaserGame();
+      }
+      hiddenAt = 0;
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      destroyPhaserGame();
     };
   }, [screen]);
 
