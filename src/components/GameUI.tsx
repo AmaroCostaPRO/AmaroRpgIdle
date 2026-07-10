@@ -13,6 +13,7 @@ import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
 import { TowerPanel } from './TowerPanel';
+import { CitadelPanel } from './citadel/CitadelPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 
 export const DAILY_MODIFIERS = [
@@ -6655,7 +6656,20 @@ export default function GameUI() {
     item.slot === 'consumable' && item.consumableType === 'tower_key'
   ).length;
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
+
+  useEffect(() => {
+    bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab });
+  }, [activeTab]);
+
+  // Produção passiva das Expedições da Cidadela: recupera o tempo offline no carregamento
+  // e segue creditando materiais a cada minuto enquanto o jogo está aberto.
+  useEffect(() => {
+    const tick = () => useGameStore.getState().tickCitadelProduction();
+    tick();
+    const interval = setInterval(tick, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
@@ -6760,6 +6774,9 @@ export default function GameUI() {
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️' },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️' },
     { id: 'tower' as const, label: 'Torre', icon: '🏰' },
+    ...(character.citadel?.unlocked ? [
+      { id: 'citadel' as const, label: 'Cidadela', icon: '🌌' }
+    ] : []),
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾' },
     ...(((character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0) ? [
       { id: 'transcendence' as const, label: 'Transcendência', icon: '🌌' }
@@ -6995,6 +7012,7 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
+          {activeTab === 'citadel' && <CitadelPanel onBackToCombat={() => setActiveTab('combat')} />}
           {activeTab === 'tower' && <TowerPanel />}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}

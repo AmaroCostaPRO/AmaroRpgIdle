@@ -166,8 +166,9 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
       const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
       let goldReward = Math.floor(baseGold * (1 + relicGoldBonus));
       
-      // Capstone da Moeda do Ciclo Eterno (Lvl 5): 5% de chance de dobrar recompensa
-      if (coinRelicLvl === 5 && Math.random() < 0.05) {
+      // Capstone da Moeda do Ciclo Eterno (Lvl 5): 5% de chance de dobrar recompensa (12.5% se Superaquecida no Laboratório de Relíquias)
+      const isCoinOverheated = (useGameStore.getState().character.citadel?.relicLab?.overheatedRelicIds || []).includes('moeda_ciclo');
+      if (coinRelicLvl === 5 && Math.random() < (isCoinOverheated ? 0.125 : 0.05)) {
         goldReward *= 2;
         bridge.emit(GameEvent.LOG_EMITTED, { message: '🪙 Moeda do Ciclo Eterno duplicou a recompensa da Torre!' });
       }

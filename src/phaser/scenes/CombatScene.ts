@@ -31,6 +31,8 @@ export class CombatScene extends Phaser.Scene {
   private skeletonMinion!: Phaser.GameObjects.Image;
   private lastSkeletonTickTimer: number = 1000;
   private isSkeletonAttacking: boolean = false;
+  private citadelActive: boolean = false;
+  private unsubscribeTabChanged?: () => void;
   
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
@@ -322,6 +324,13 @@ export class CombatScene extends Phaser.Scene {
 
     this.unsubscribeFrenzyBoost = bridge.subscribe('ACTIVATE_FRENZY_BOOST' as any, (payload) => {
       this.fsm.activateFrenzyBoost(payload.duration || 60000);
+    });
+
+    // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela em tela cheia,
+    // sem pausar a lógica de combate (o herói continua lutando/dropando em background)
+    this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
+      this.citadelActive = payload.tab === 'citadel';
+      this.game.loop.targetFps = this.citadelActive ? 15 : 60;
     });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -780,8 +789,10 @@ export class CombatScene extends Phaser.Scene {
 
   public scrollWorld(delta: number): void {
     const isTower = useTowerStore.getState().towerActive;
-    if (!isTower) {
-      const scrollSpeed = 0.22; 
+    // O scroll visual do fundo é pausado enquanto a Cidadela ocupa a tela (otimização gráfica),
+    // mas a aproximação do inimigo abaixo continua para não travar a lógica de combate em background
+    if (!isTower && !this.citadelActive) {
+      const scrollSpeed = 0.22;
       this.background.tilePositionX += scrollSpeed * delta;
     }
     
@@ -1265,6 +1276,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeFrenzyBoost) {
       this.unsubscribeFrenzyBoost();
       this.unsubscribeFrenzyBoost = undefined;
+    }
+    if (this.unsubscribeTabChanged) {
+      this.unsubscribeTabChanged();
+      this.unsubscribeTabChanged = undefined;
     }
     if (this.fsm) {
       this.fsm.cleanup();

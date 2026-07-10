@@ -46,6 +46,29 @@ export interface EnemyType {
   color: string;
   flipX?: boolean;
   yOffset?: number;
+  materialDrops?: ('wood' | 'stone' | 'meat')[];
+}
+
+export interface CitadelBuildingState {
+  level: number;
+  lastTick: number; // Timestamp Unix do último processamento (fundação para produção offline em v5.2+)
+}
+
+export interface CitadelState {
+  unlocked: boolean;
+  commandCenter: CitadelBuildingState;
+  vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
+  expeditions: CitadelBuildingState & { allocatedClassIds: string[] };
+  academy: CitadelBuildingState & {
+    researchDmgLevel: number;
+    researchHpLevel: number;
+    researchSpeedLevel: number;
+  };
+  watchTower: CitadelBuildingState & { storedKeys: number };
+  forgeWorkshop: CitadelBuildingState;
+  cosmicSiphon: CitadelBuildingState;
+  synchronyAltar: CitadelBuildingState;
+  relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
 }
 
 export interface SkillNode {
@@ -117,6 +140,8 @@ export interface Character {
   activeEcoterra?: boolean;
   transcendenceEssence?: number;
   totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
+  materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
+  citadel?: CitadelState;
 }
 
 export enum GameEvent {
@@ -141,7 +166,8 @@ export enum GameEvent {
   CLASS_UNLOCKED = 'CLASS_UNLOCKED',
   BESTIARY_COMPLETED = 'BESTIARY_COMPLETED',
   ASCENSION_AVAILABLE = 'ASCENSION_AVAILABLE',
-  ITEM_DROPPED = 'ITEM_DROPPED'
+  ITEM_DROPPED = 'ITEM_DROPPED',
+  TAB_CHANGED = 'TAB_CHANGED'
 }
 
 export interface GameEventPayload {

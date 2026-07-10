@@ -514,6 +514,22 @@ interface GameState {
   addGold(amount: number): void;
   addForgeFragments(amount: number): void;
   addTranscendenceEssence(amount: number): void;
+  addMaterials(wood: number, stone: number, meat: number): void;
+  buildOrUpgradeVault(): { success: boolean; message: string };
+  depositItemToVault(itemId: string): { success: boolean; message: string };
+  withdrawItemFromVault(itemId: string): { success: boolean; message: string };
+  tickCitadelProduction(): void;
+  buildOrUpgradeExpeditions(): { success: boolean; message: string };
+  allocateClassToExpedition(classId: string): { success: boolean; message: string };
+  deallocateClassFromExpedition(classId: string): { success: boolean; message: string };
+  buildOrUpgradeAcademy(): { success: boolean; message: string };
+  upgradeAcademyResearch(type: 'dmg' | 'hp' | 'speed'): { success: boolean; message: string };
+  buildOrUpgradeWatchTower(): { success: boolean; message: string };
+  buildOrUpgradeForgeWorkshop(): { success: boolean; message: string };
+  buildOrUpgradeCosmicSiphon(): { success: boolean; message: string };
+  buildOrUpgradeSynchronyAltar(): { success: boolean; message: string };
+  buildOrUpgradeRelicLab(): { success: boolean; message: string };
+  overheatRelic(relicId: string): { success: boolean; message: string };
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -610,6 +626,122 @@ export const savePersonalRecords = (records: PersonalRecords): void => {
   localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
 };
 
+const DEFAULT_CITADEL = () => ({
+  unlocked: false,
+  commandCenter: { level: 1, lastTick: Date.now() },
+  vault: { level: 0, lastTick: Date.now(), storedItems: [] as EquipmentItem[] },
+  expeditions: { level: 0, lastTick: Date.now(), allocatedClassIds: [] as string[] },
+  academy: { level: 0, lastTick: Date.now(), researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0 },
+  watchTower: { level: 0, lastTick: Date.now(), storedKeys: 0 },
+  forgeWorkshop: { level: 0, lastTick: Date.now() },
+  cosmicSiphon: { level: 0, lastTick: Date.now() },
+  synchronyAltar: { level: 0, lastTick: Date.now() },
+  relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
+});
+
+const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0 });
+
+// Custo de material para construir (Nível 0->1) ou upgradar (Nível N->N+1) o Depósito
+const VAULT_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number } => ({
+  wood: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
+  stone: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
+});
+
+const VAULT_MAX_LEVEL = 5;
+const VAULT_ALLOWED_RARITIES: EquipmentItem['rarity'][] = ['common', 'rare', 'epic', 'legendary'];
+
+// Grupo de atributo por classe, usado para calcular o bônus de eficiência das expedições
+const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | 'magic'> = {
+  warrior: 'strength',
+  paladin: 'strength',
+  ranger: 'dexterity',
+  rogue: 'dexterity',
+  mage: 'magic',
+  cleric: 'magic',
+  necromancer: 'magic',
+  avatar: 'magic',
+};
+
+const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
+const EXPEDITIONS_MAX_LEVEL = 5;
+const ACADEMY_MAX_LEVEL = 5;
+
+const EXPEDITIONS_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
+  wood: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
+  stone: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
+  meat: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
+});
+
+const EXPEDITIONS_MAX_SLOTS = (level: number): number => (level >= 5 ? 3 : level >= 3 ? 2 : level >= 1 ? 1 : 0);
+
+const ACADEMY_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; studyInsignias: number } => ({
+  wood: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
+  stone: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
+  studyInsignias: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
+});
+
+const ACADEMY_MAX_RESEARCH_LEVEL = (academyLevel: number): number => academyLevel * 5;
+const RESEARCH_COST = (nextLevel: number): number => 20 * nextLevel;
+
+const WATCH_TOWER_MAX_LEVEL = 5;
+const WATCH_TOWER_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
+  wood: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
+  stone: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
+  meat: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
+});
+const WATCH_TOWER_HOURS_PER_KEY = (level: number): number => (level >= 5 ? 6 : level >= 3 ? 12 : 24);
+const WATCH_TOWER_KEY_CAPACITY = (level: number): number => (level >= 5 ? 4 : level >= 3 ? 2 : 1);
+
+const FORGE_WORKSHOP_MAX_LEVEL = 5;
+const FORGE_WORKSHOP_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; studyInsignias: number } => ({
+  wood: Math.round(600 * Math.pow(1.6, nextLevel - 1)),
+  stone: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
+  studyInsignias: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
+});
+// Cada ordem de serviço consome 1h + recursos e converte em Fragmentos de Forja; o nível permite mais ordens paralelas por hora
+const FORGE_ORDER_HOURS = 1;
+const FORGE_ORDER_GOLD_COST = 200;
+const FORGE_ORDER_WOOD_COST = 50;
+const FORGE_ORDER_FRAGMENT_YIELD = 15;
+
+const COSMIC_SIPHON_MAX_LEVEL = 5;
+const COSMIC_SIPHON_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; transcendenceEssence: number } => ({
+  stone: Math.round(1500 * Math.pow(1.6, nextLevel - 1)),
+  wood: Math.round(1000 * Math.pow(1.6, nextLevel - 1)),
+  transcendenceEssence: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
+});
+
+const SYNCHRONY_ALTAR_MAX_LEVEL = 5;
+const SYNCHRONY_ALTAR_UPGRADE_COST = (nextLevel: number): { stone: number; transcendenceEssence: number; studyInsignias: number } => ({
+  stone: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
+  transcendenceEssence: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
+  studyInsignias: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
+});
+
+const RELIC_LAB_MAX_LEVEL = 5;
+const RELIC_LAB_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; unstableSoulFragments: number } => ({
+  stone: Math.round(3000 * Math.pow(1.6, nextLevel - 1)),
+  wood: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
+  unstableSoulFragments: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
+});
+// Cada nível do Laboratório libera o Superaquecimento de Alma de 2 relíquias adicionais (até as 8 existentes no Nível 4+)
+const RELIC_LAB_OVERHEAT_SLOTS = (labLevel: number): number => labLevel * 2;
+const RELIC_OVERHEAT_GOLD_COST = 50000;
+const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
+
+const computeExpeditionProduction = (allocatedClassIds: string[], expeditionLevel: number, hours: number) => {
+  const levelMult = 1 + (expeditionLevel - 1) * 0.15;
+  const totals = { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
+  for (const classId of allocatedClassIds) {
+    const group = EXPEDITION_CLASS_GROUP[classId];
+    totals.wood += EXPEDITION_BASE_HOURLY.wood * hours * levelMult * (group === 'dexterity' ? 1.25 : 1);
+    totals.stone += EXPEDITION_BASE_HOURLY.stone * hours * levelMult * (group === 'strength' ? 1.25 : 1);
+    totals.meat += EXPEDITION_BASE_HOURLY.meat * hours * levelMult * (group === 'dexterity' ? 1.25 : 1);
+    totals.studyInsignias += EXPEDITION_BASE_HOURLY.studyInsignias * hours * levelMult * (group === 'magic' ? 1.30 : 1);
+  }
+  return totals;
+};
+
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
   const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
   return {
@@ -656,6 +788,8 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
     transcendenceLoreShown: false,
     activeEcoterra: false,
     transcendenceEssence: 0,
+    materials: DEFAULT_MATERIALS(),
+    citadel: DEFAULT_CITADEL(),
   };
 };
 
@@ -879,6 +1013,627 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  addMaterials: (wood, stone, meat) => set((state) => {
+    const current = state.character.materials || DEFAULT_MATERIALS();
+    const updated = {
+      ...state.character,
+      materials: {
+        ...current,
+        wood: current.wood + wood,
+        stone: current.stone + stone,
+        meat: current.meat + meat,
+      }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  buildOrUpgradeVault: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.vault.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > VAULT_MAX_LEVEL) {
+        result = { success: false, message: 'O Depósito já está no nível máximo.' };
+        return state;
+      }
+
+      const cost = VAULT_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira e ${cost.stone} Pedra.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone },
+        citadel: {
+          ...citadel,
+          vault: { ...citadel.vault, level: nextLevel, lastTick: Date.now() }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Depósito construído!' : `Depósito melhorado para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  depositItemToVault: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const item = state.character.inventory.find(i => i.id === itemId);
+
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado no inventário.' };
+        return state;
+      }
+      if (item.slot === 'consumable' || !VAULT_ALLOWED_RARITIES.includes(item.rarity)) {
+        result = { success: false, message: 'Apenas equipamentos Comuns, Raros, Épicos ou Lendários podem ser guardados no Depósito.' };
+        return state;
+      }
+      const maxSlots = Math.min(10, citadel.vault.level * 2);
+      if (citadel.vault.storedItems.length >= maxSlots) {
+        result = { success: false, message: 'O Depósito está cheio.' };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        inventory: state.character.inventory.filter(i => i.id !== itemId),
+        citadel: {
+          ...citadel,
+          vault: { ...citadel.vault, storedItems: [...citadel.vault.storedItems, item] }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `[${item.name}] guardado no Depósito.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  withdrawItemFromVault: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const item = citadel.vault.storedItems.find(i => i.id === itemId);
+
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado no Depósito.' };
+        return state;
+      }
+      if (state.character.inventory.length >= state.character.inventorySlots) {
+        result = { success: false, message: 'Seu inventário está cheio.' };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        inventory: [...state.character.inventory, item],
+        citadel: {
+          ...citadel,
+          vault: { ...citadel.vault, storedItems: citadel.vault.storedItems.filter(i => i.id !== itemId) }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `[${item.name}] retirado do Depósito.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  tickCitadelProduction: () => set((state) => {
+    const citadel = state.character.citadel;
+    if (!citadel || !citadel.unlocked) return state;
+    const now = Date.now();
+    let materials = state.character.materials || DEFAULT_MATERIALS();
+    let gold = state.character.gold;
+    let inventory = state.character.inventory;
+    let nextExpeditions = citadel.expeditions;
+    let nextWatchTower = citadel.watchTower;
+    let nextForgeWorkshop = citadel.forgeWorkshop;
+    let forgeFragments = state.character.forgeFragments || 0;
+    let changed = false;
+
+    // Quartel de Expedições: materiais e Insígnias de Estudo por hora
+    if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClassIds.length > 0) {
+      const elapsedHours = (now - citadel.expeditions.lastTick) / (1000 * 60 * 60);
+      if (elapsedHours > 0) {
+        const gained = computeExpeditionProduction(citadel.expeditions.allocatedClassIds, citadel.expeditions.level, elapsedHours);
+        materials = {
+          wood: materials.wood + Math.floor(gained.wood),
+          stone: materials.stone + Math.floor(gained.stone),
+          meat: materials.meat + Math.floor(gained.meat),
+          studyInsignias: materials.studyInsignias + Math.floor(gained.studyInsignias),
+        };
+        nextExpeditions = { ...citadel.expeditions, lastTick: now };
+        changed = true;
+      }
+    }
+
+    // Torre de Vigia Astral: fabrica Chaves da Torre passivamente, respeitando a capacidade interna
+    if (citadel.watchTower.level > 0) {
+      const elapsedHours = (now - citadel.watchTower.lastTick) / (1000 * 60 * 60);
+      if (elapsedHours > 0) {
+        const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(citadel.watchTower.level);
+        const capacity = WATCH_TOWER_KEY_CAPACITY(citadel.watchTower.level);
+        const potentialKeys = Math.floor(elapsedHours / hoursPerKey);
+        const availableSpace = Math.max(0, capacity - citadel.watchTower.storedKeys);
+        const keysToStore = Math.min(potentialKeys, availableSpace);
+        let storedKeys = citadel.watchTower.storedKeys + keysToStore;
+
+        // Escoa as chaves armazenadas para o inventário assim que houver espaço
+        let flushed = 0;
+        while (storedKeys > 0 && inventory.length < state.character.inventorySlots) {
+          inventory = [...inventory, {
+            id: `tower_key-citadel-${now}-${flushed}`,
+            name: 'Chave da Torre',
+            slot: 'consumable',
+            classId: state.character.classId,
+            rarity: 'epic',
+            spriteName: 'tower_key',
+            consumableType: 'tower_key',
+            stats: {}
+          }];
+          storedKeys -= 1;
+          flushed += 1;
+        }
+
+        nextWatchTower = { ...citadel.watchTower, storedKeys, lastTick: now };
+        changed = true;
+      }
+    }
+
+    // Oficina de Automação da Forja: converte Ouro e Madeira em Fragmentos de Forja por ordens de serviço de 1h
+    if (citadel.forgeWorkshop.level > 0) {
+      const elapsedHours = (now - citadel.forgeWorkshop.lastTick) / (1000 * 60 * 60);
+      if (elapsedHours > 0) {
+        const maxOrdersByTime = Math.floor(elapsedHours / FORGE_ORDER_HOURS) * citadel.forgeWorkshop.level;
+        const maxOrdersByGold = Math.floor(gold / FORGE_ORDER_GOLD_COST);
+        const maxOrdersByWood = Math.floor(materials.wood / FORGE_ORDER_WOOD_COST);
+        const orders = Math.max(0, Math.min(maxOrdersByTime, maxOrdersByGold, maxOrdersByWood));
+
+        if (orders > 0) {
+          gold -= orders * FORGE_ORDER_GOLD_COST;
+          materials = { ...materials, wood: materials.wood - orders * FORGE_ORDER_WOOD_COST };
+          forgeFragments += orders * FORGE_ORDER_FRAGMENT_YIELD;
+        }
+        nextForgeWorkshop = { ...citadel.forgeWorkshop, lastTick: now };
+        changed = true;
+      }
+    }
+
+    if (!changed) return state;
+    const updated = {
+      ...state.character,
+      gold,
+      materials,
+      inventory,
+      forgeFragments,
+      citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  buildOrUpgradeExpeditions: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.expeditions.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > EXPEDITIONS_MAX_LEVEL) {
+        result = { success: false, message: 'O Quartel de Expedições já está no nível máximo.' };
+        return state;
+      }
+      const cost = EXPEDITIONS_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || materials.meat < cost.meat) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.meat} Carne.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
+        citadel: { ...citadel, expeditions: { ...citadel.expeditions, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Quartel de Expedições construído!' : `Quartel melhorado para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  allocateClassToExpedition: (classId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const expeditions = citadel.expeditions;
+
+      if (expeditions.level === 0) {
+        result = { success: false, message: 'O Quartel de Expedições ainda não foi construído.' };
+        return state;
+      }
+      if (classId === state.character.classId) {
+        result = { success: false, message: 'Você não pode alocar a classe que está jogando ativamente.' };
+        return state;
+      }
+      if (expeditions.allocatedClassIds.includes(classId)) {
+        result = { success: false, message: 'Esta classe já está em expedição.' };
+        return state;
+      }
+      const maxSlots = EXPEDITIONS_MAX_SLOTS(expeditions.level);
+      if (expeditions.allocatedClassIds.length >= maxSlots) {
+        result = { success: false, message: 'Não há slots de expedição disponíveis.' };
+        return state;
+      }
+      const globalLevels = getGlobalClassLevels();
+      const classLevel = Math.max(state.character.classLevels?.[classId] || 0, globalLevels[classId] || 0);
+      if (classLevel <= 0) {
+        result = { success: false, message: 'Você precisa ter jogado com esta classe ao menos uma vez.' };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        citadel: {
+          ...citadel,
+          expeditions: {
+            ...expeditions,
+            allocatedClassIds: [...expeditions.allocatedClassIds, classId],
+            lastTick: expeditions.allocatedClassIds.length === 0 ? Date.now() : expeditions.lastTick
+          }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: 'Classe alocada em expedição!' };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  deallocateClassFromExpedition: (classId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const expeditions = citadel.expeditions;
+      const updated = {
+        ...state.character,
+        citadel: {
+          ...citadel,
+          expeditions: { ...expeditions, allocatedClassIds: expeditions.allocatedClassIds.filter(id => id !== classId) }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: 'Classe retornou da expedição.' };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeAcademy: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.academy.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > ACADEMY_MAX_LEVEL) {
+        result = { success: false, message: 'A Academia Militar já está no nível máximo.' };
+        return state;
+      }
+      const cost = ACADEMY_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || materials.studyInsignias < cost.studyInsignias) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.studyInsignias} Insígnias de Estudo.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
+        citadel: { ...citadel, academy: { ...citadel.academy, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Academia Militar construída!' : `Academia melhorada para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  upgradeAcademyResearch: (type) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const academy = citadel.academy;
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+
+      if (academy.level === 0) {
+        result = { success: false, message: 'A Academia Militar ainda não foi construída.' };
+        return state;
+      }
+
+      const levelKey = type === 'dmg' ? 'researchDmgLevel' : type === 'hp' ? 'researchHpLevel' : 'researchSpeedLevel';
+      const currentLevel = academy[levelKey];
+      const nextLevel = currentLevel + 1;
+      const cap = ACADEMY_MAX_RESEARCH_LEVEL(academy.level);
+
+      if (nextLevel > cap) {
+        result = { success: false, message: `Esta pesquisa está limitada ao nível ${cap} pelo nível atual da Academia.` };
+        return state;
+      }
+      const cost = RESEARCH_COST(nextLevel);
+      if (materials.studyInsignias < cost) {
+        result = { success: false, message: `Insígnias de Estudo insuficientes: requer ${cost}.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, studyInsignias: materials.studyInsignias - cost },
+        citadel: { ...citadel, academy: { ...academy, [levelKey]: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Pesquisa melhorada para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeWatchTower: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.watchTower.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > WATCH_TOWER_MAX_LEVEL) {
+        result = { success: false, message: 'A Torre de Vigia Astral já está no nível máximo.' };
+        return state;
+      }
+      const cost = WATCH_TOWER_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || materials.meat < cost.meat) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.meat} Carne.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
+        citadel: { ...citadel, watchTower: { ...citadel.watchTower, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Torre de Vigia Astral construída!' : `Torre melhorada para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeForgeWorkshop: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.forgeWorkshop.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > FORGE_WORKSHOP_MAX_LEVEL) {
+        result = { success: false, message: 'A Oficina de Automação da Forja já está no nível máximo.' };
+        return state;
+      }
+      const cost = FORGE_WORKSHOP_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || materials.studyInsignias < cost.studyInsignias) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.studyInsignias} Insígnias de Estudo.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
+        citadel: { ...citadel, forgeWorkshop: { ...citadel.forgeWorkshop, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = {
+        success: true,
+        message: nextLevel === 1
+          ? 'Oficina de Automação da Forja construída!'
+          : nextLevel === 5
+            ? 'Oficina melhorada para o Nível 5 — Mestre Forjador! Desmonte Automatizado ativado.'
+            : `Oficina melhorada para o Nível ${nextLevel}!`
+      };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeCosmicSiphon: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const essence = state.character.transcendenceEssence || 0;
+      const nextLevel = citadel.cosmicSiphon.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > COSMIC_SIPHON_MAX_LEVEL) {
+        result = { success: false, message: 'O Sifão de Essência Cósmica já está no nível máximo.' };
+        return state;
+      }
+      const cost = COSMIC_SIPHON_UPGRADE_COST(nextLevel);
+      if (materials.stone < cost.stone || materials.wood < cost.wood || essence < cost.transcendenceEssence) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.stone} Pedra, ${cost.wood} Madeira e ${cost.transcendenceEssence} Essências de Transcendência.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, stone: materials.stone - cost.stone, wood: materials.wood - cost.wood },
+        transcendenceEssence: essence - cost.transcendenceEssence,
+        citadel: { ...citadel, cosmicSiphon: { ...citadel.cosmicSiphon, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = {
+        success: true,
+        message: nextLevel === 1
+          ? 'Sifão de Essência Cósmica construído!'
+          : nextLevel === 5
+            ? 'Sifão melhorado para o Nível 5 — Sincronia Perfeita! Penalidades da Ecoterra neutralizadas.'
+            : `Sifão melhorado para o Nível ${nextLevel}!`
+      };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeSynchronyAltar: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const essence = state.character.transcendenceEssence || 0;
+      const nextLevel = citadel.synchronyAltar.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > SYNCHRONY_ALTAR_MAX_LEVEL) {
+        result = { success: false, message: 'O Altar de Sincronia Elemental já está no nível máximo.' };
+        return state;
+      }
+      const cost = SYNCHRONY_ALTAR_UPGRADE_COST(nextLevel);
+      if (materials.stone < cost.stone || essence < cost.transcendenceEssence || materials.studyInsignias < cost.studyInsignias) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.stone} Pedra, ${cost.transcendenceEssence} Essências de Transcendência e ${cost.studyInsignias} Insígnias de Estudo.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
+        transcendenceEssence: essence - cost.transcendenceEssence,
+        citadel: { ...citadel, synchronyAltar: { ...citadel.synchronyAltar, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Altar de Sincronia Elemental construído!' : `Altar melhorado para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeRelicLab: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const soulFragments = useRelicStore.getState().unstableSoulFragments;
+      const nextLevel = citadel.relicLab.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > RELIC_LAB_MAX_LEVEL) {
+        result = { success: false, message: 'O Laboratório de Relíquias Místicas já está no nível máximo.' };
+        return state;
+      }
+      const cost = RELIC_LAB_UPGRADE_COST(nextLevel);
+      if (materials.stone < cost.stone || materials.wood < cost.wood || soulFragments < cost.unstableSoulFragments) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.stone} Pedra, ${cost.wood} Madeira e ${cost.unstableSoulFragments} Fragmentos de Alma Instável.` };
+        return state;
+      }
+      if (!useRelicStore.getState().spendFragments(cost.unstableSoulFragments)) {
+        result = { success: false, message: 'Fragmentos de Alma Instável insuficientes.' };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, stone: materials.stone - cost.stone, wood: materials.wood - cost.wood },
+        citadel: { ...citadel, relicLab: { ...citadel.relicLab, level: nextLevel } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: nextLevel === 1 ? 'Laboratório de Relíquias Místicas construído!' : `Laboratório melhorado para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  overheatRelic: (relicId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const relicLab = citadel.relicLab;
+
+      if (relicLab.level === 0) {
+        result = { success: false, message: 'O Laboratório de Relíquias Místicas ainda não foi construído.' };
+        return state;
+      }
+      const relic = useRelicStore.getState().relics[relicId];
+      if (!relic || relic.level < relic.maxLevel) {
+        result = { success: false, message: 'Esta relíquia precisa estar no nível máximo para ser Superaquecida.' };
+        return state;
+      }
+      if (relicLab.overheatedRelicIds.includes(relicId)) {
+        result = { success: false, message: 'Esta relíquia já foi Superaquecida.' };
+        return state;
+      }
+      const maxSlots = RELIC_LAB_OVERHEAT_SLOTS(relicLab.level);
+      if (relicLab.overheatedRelicIds.length >= maxSlots) {
+        result = { success: false, message: 'Não há mais vagas de Superaquecimento liberadas pelo nível atual do Laboratório.' };
+        return state;
+      }
+      if (state.character.gold < RELIC_OVERHEAT_GOLD_COST) {
+        result = { success: false, message: `Ouro insuficiente: requer ${RELIC_OVERHEAT_GOLD_COST}.` };
+        return state;
+      }
+      if (!useRelicStore.getState().spendFragments(RELIC_OVERHEAT_SOUL_FRAGMENT_COST)) {
+        result = { success: false, message: `Fragmentos de Alma Instável insuficientes: requer ${RELIC_OVERHEAT_SOUL_FRAGMENT_COST}.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        gold: state.character.gold - RELIC_OVERHEAT_GOLD_COST,
+        citadel: { ...citadel, relicLab: { ...relicLab, overheatedRelicIds: [...relicLab.overheatedRelicIds, relicId] } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `🔥 [${relic.name}] passou pelo Superaquecimento de Alma! Seu efeito Capstone foi amplificado.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
   addXp: (amount) => set((state) => {
     const currentStage = state.character.currentStage;
     const newTotalXpEarned = (state.character.totalXpEarned ?? legacyReconstructTotalXp(state.character.level, state.character.xp)) + amount;
@@ -1069,7 +1824,8 @@ export const useGameStore = create<GameState>((set) => ({
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
       runStartTime: Date.now(),
-      ascensionNotified: false
+      ascensionNotified: false,
+      citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true }
     };
 
     // Processa os recordes pessoais
@@ -1408,6 +2164,20 @@ export const useGameStore = create<GameState>((set) => ({
             transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
             activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
             transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+            citadel: char.citadel ? {
+              ...defaults.citadel,
+              ...char.citadel,
+              commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel.commandCenter || {}) },
+              vault: { ...defaults.citadel!.vault, ...(char.citadel.vault || {}), storedItems: char.citadel.vault?.storedItems || [] },
+              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel.expeditions || {}), allocatedClassIds: char.citadel.expeditions?.allocatedClassIds || [] },
+              academy: { ...defaults.citadel!.academy, ...(char.citadel.academy || {}) },
+              watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel.watchTower || {}) },
+              forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel.forgeWorkshop || {}) },
+              cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel.cosmicSiphon || {}) },
+              synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel.synchronyAltar || {}) },
+              relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel.relicLab || {}), overheatedRelicIds: char.citadel.relicLab?.overheatedRelicIds || [] },
+            } : defaults.citadel,
             totalXpEarned: char.totalXpEarned !== undefined
               ? char.totalXpEarned
               : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
@@ -1829,6 +2599,20 @@ export const useGameStore = create<GameState>((set) => ({
             transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
             activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
             transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+            materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+            citadel: char.citadel ? {
+              ...defaults.citadel,
+              ...char.citadel,
+              commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel.commandCenter || {}) },
+              vault: { ...defaults.citadel!.vault, ...(char.citadel.vault || {}), storedItems: char.citadel.vault?.storedItems || [] },
+              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel.expeditions || {}), allocatedClassIds: char.citadel.expeditions?.allocatedClassIds || [] },
+              academy: { ...defaults.citadel!.academy, ...(char.citadel.academy || {}) },
+              watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel.watchTower || {}) },
+              forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel.forgeWorkshop || {}) },
+              cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel.cosmicSiphon || {}) },
+              synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel.synchronyAltar || {}) },
+              relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel.relicLab || {}), overheatedRelicIds: char.citadel.relicLab?.overheatedRelicIds || [] },
+            } : defaults.citadel,
             totalXpEarned: char.totalXpEarned !== undefined
               ? char.totalXpEarned
               : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
@@ -1904,6 +2688,20 @@ export const useGameStore = create<GameState>((set) => ({
           inventory: char.inventory || defaults.inventory,
           inventorySlots: char.inventorySlots || defaults.inventorySlots,
           forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
+          materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+          citadel: char.citadel ? {
+            ...defaults.citadel,
+            ...char.citadel,
+            commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel.commandCenter || {}) },
+            vault: { ...defaults.citadel!.vault, ...(char.citadel.vault || {}), storedItems: char.citadel.vault?.storedItems || [] },
+            expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel.expeditions || {}), allocatedClassIds: char.citadel.expeditions?.allocatedClassIds || [] },
+            academy: { ...defaults.citadel!.academy, ...(char.citadel.academy || {}) },
+            watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel.watchTower || {}) },
+            forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel.forgeWorkshop || {}) },
+            cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel.cosmicSiphon || {}) },
+            synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel.synchronyAltar || {}) },
+            relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel.relicLab || {}), overheatedRelicIds: char.citadel.relicLab?.overheatedRelicIds || [] },
+          } : defaults.citadel,
           lastSaved: new Date().toISOString()
         };
 

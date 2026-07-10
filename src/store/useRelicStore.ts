@@ -15,6 +15,7 @@ interface RelicStoreState {
   unstableSoulFragments: number;
   relics: Record<string, Relic>;
   addFragments: (amount: number) => void;
+  spendFragments: (amount: number) => boolean;
   forgeRelic: () => { success: boolean; message: string; relicId?: string };
   getRelicEffectBonus: (relicId: string) => number;
   resetRelics: () => void;
@@ -137,6 +138,18 @@ export const useRelicStore = create<RelicStoreState>((set, get) => ({
       saveRelicsToStorage(nextFragments, state.relics);
       return { unstableSoulFragments: nextFragments };
     });
+  },
+
+  spendFragments: (amount) => {
+    let success = false;
+    set((state) => {
+      if (state.unstableSoulFragments < amount) return state;
+      success = true;
+      const nextFragments = state.unstableSoulFragments - amount;
+      saveRelicsToStorage(nextFragments, state.relics);
+      return { unstableSoulFragments: nextFragments };
+    });
+    return success;
   },
 
   forgeRelic: () => {

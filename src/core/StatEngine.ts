@@ -461,6 +461,14 @@ export class StatEngine {
       finalStats.touch = Math.floor(finalStats.touch * multiplier);
     }
 
+    // 4.6. Aplicar as pesquisas permanentes da Academia Militar da Cidadela (universais para todas as classes)
+    const academy = character.citadel?.academy;
+    if (academy) {
+      finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + (academy.researchDmgLevel || 0) * 0.015;
+      finalStats.maxHpPct = (finalStats.maxHpPct || 0) + (academy.researchHpLevel || 0) * 0.02;
+      finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + (academy.researchSpeedLevel || 0) * 0.01;
+    }
+
     // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)
     if (character.testMode) {
       finalStats.strength *= 5;

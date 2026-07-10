@@ -18,7 +18,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 25,
     color: '#4ade80',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood']
   },
   {
     id: 'shadow_wolf',
@@ -30,7 +31,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 30,
     color: '#94a3b8',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'meat']
   },
   {
     id: 'orc_warrior',
@@ -42,7 +44,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 40,
     color: '#f87171',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood']
   },
   {
     id: 'boss_forest_golem',
@@ -54,7 +57,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 120,
     color: '#34d399',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'stone']
   },
 
   // === FASE 2: Deserto ===
@@ -68,7 +72,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 35,
     color: '#fbbf24',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'meat']
   },
   {
     id: 'desert_bandit',
@@ -80,7 +85,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 35,
     color: '#f59e0b',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood']
   },
   {
     id: 'desert_scorpion',
@@ -92,7 +98,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 38,
     color: '#ef4444',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'meat']
   },
   {
     id: 'boss_sand_scorpion',
@@ -104,7 +111,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 150,
     color: '#fbbf24',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'meat']
   },
 
   // === FASE 3: Neve ===
@@ -118,7 +126,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 40,
     color: '#38bdf8',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['meat']
   },
   {
     id: 'ice_elemental',
@@ -218,7 +227,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 55,
     color: '#64748b',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['stone']
   },
   {
     id: 'living_armor',
@@ -230,7 +240,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 60,
     color: '#a78bfa',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['stone']
   },
   {
     id: 'demon_imp',
@@ -414,6 +425,26 @@ export class CombatFSM {
     return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier;
   }
 
+  // Verifica se uma relíquia foi submetida ao Superaquecimento de Alma no Laboratório de Relíquias Místicas da Cidadela
+  private isRelicOverheated(relicId: string): boolean {
+    return (this.characterData?.citadel?.relicLab?.overheatedRelicIds || []).includes(relicId);
+  }
+
+  // Atributo Efetivo do Avatar: Maior Atributo Ativo + % dos demais injetada pelo Altar de Sincronia Elemental da Cidadela
+  private getAvatarEffectiveAttribute(): number {
+    const stats = [
+      this.playerFinalStats.strength || 0,
+      this.playerFinalStats.magic || 0,
+      this.playerFinalStats.dexterity || 0,
+      this.playerFinalStats.constitution || 0,
+      this.playerFinalStats.luck || 0
+    ];
+    const highest = Math.max(...stats);
+    const sumOthers = stats.reduce((sum, val) => sum + val, 0) - highest;
+    const altarLevel = this.characterData?.citadel?.synchronyAltar?.level || 0;
+    return highest + Math.floor(sumOthers * altarLevel * 0.03);
+  }
+
   constructor(scene: any, initialTarget?: any) {
     this.scene = scene;
     this.target = initialTarget;
@@ -451,7 +482,7 @@ export class CombatFSM {
         this.enemyLevel = activeChar.currentStage;
         this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
         const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
-        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.skillCooldowns = {};
         this.currentState = CombatState.IDLE;
@@ -695,7 +726,7 @@ export class CombatFSM {
         this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
         const devocaoLvl = useRelicStore.getState().relics['brasao_devoacao']?.level || 0;
         if (devocaoLvl === 5) {
-          this.playerHP = Math.floor(this.playerMaxHP * 1.02);
+          this.playerHP = Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02));
         } else {
           this.playerHP = this.playerMaxHP;
         }
@@ -799,12 +830,17 @@ export class CombatFSM {
     // Recuperação de HP/Mana baseada em atributos e balanceada por classe
     const classId = this.characterData?.classId || 'warrior';
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
-    const regenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5 ? 1.15 : 1.0;
+    const regenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5
+      ? (this.isRelicOverheated('nucleo_pensamento') ? 1.375 : 1.15)
+      : 1.0;
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * regenPctBoost * (delta / 1000)));
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
     if (isEcoterraActive) {
-      const manaDrain = this.playerMaxMana * 0.015 * (delta / 1000);
+      // Sifão de Essência Cósmica da Cidadela: mitiga a drenagem de mana ambiental de 1.5%/s (Nível 0) até 0%/s (Nível 5, Sincronia Perfeita)
+      const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
+      const manaDrainPct = Math.max(0, 0.015 - siphonLevel * 0.003);
+      const manaDrain = this.playerMaxMana * manaDrainPct * (delta / 1000);
       this.playerMana = Math.max(0, this.playerMana - manaDrain);
     }
 
@@ -997,7 +1033,7 @@ export class CombatFSM {
     const finalStats = this.playerFinalStats || StatEngine.calculateFinalStats(char);
     const ascensionCount = char.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
-    const precisionSpeedBoost = relicLvlFoco === 5 ? 0.05 : 0;
+    const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost));
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
@@ -1084,7 +1120,7 @@ export class CombatFSM {
     let isCrit = false;
     let critMultiplier = 1.0;
     const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
-    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
+    const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
       critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
@@ -1099,7 +1135,7 @@ export class CombatFSM {
     const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
-    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
     const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
@@ -1163,7 +1199,7 @@ export class CombatFSM {
     if (this.enemyHP <= 0) return;
     const ascensionCount = this.characterData.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
-    const precisionSpeedBoost = relicLvlFoco === 5 ? 0.05 : 0;
+    const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
     const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
@@ -1187,13 +1223,7 @@ export class CombatFSM {
       damageType = 'sagrado';
       secondaryBoost = this.playerFinalStats.strength * 0.25; // Força aumenta levemente o dano geral (+0.25 por ponto)
     } else if (classId === 'avatar') {
-      primaryStatVal = Math.max(
-        this.playerFinalStats.strength || 0,
-        this.playerFinalStats.magic || 0,
-        this.playerFinalStats.dexterity || 0,
-        this.playerFinalStats.constitution || 0,
-        this.playerFinalStats.luck || 0
-      );
+      primaryStatVal = this.getAvatarEffectiveAttribute();
       damageType = 'cósmico';
       secondaryBoost = 0;
     }
@@ -1208,7 +1238,7 @@ export class CombatFSM {
     let isCrit = false;
     let critMultiplier = 1.0;
     const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
-    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
+    const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
       critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
@@ -1223,7 +1253,7 @@ export class CombatFSM {
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
-    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
     const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -1544,7 +1574,8 @@ export class CombatFSM {
     // Capstone da Moeda do Ciclo Eterno (Lvl 5): +5% de chance de monstros normais droparem ouro em dobro
     const coinRelicLvl = useRelicStore.getState().relics['moeda_ciclo']?.level || 0;
     let isGoldDoubled = false;
-    if (!isBoss && coinRelicLvl === 5 && Math.random() < 0.05) {
+    const coinDoubleChance = coinRelicLvl === 5 ? (this.isRelicOverheated('moeda_ciclo') ? 0.125 : 0.05) : 0;
+    if (!isBoss && coinRelicLvl === 5 && Math.random() < coinDoubleChance) {
       gainedGold *= 2;
       isGoldDoubled = true;
     }
@@ -1559,6 +1590,16 @@ export class CombatFSM {
 
     useGameStore.getState().addXp(gainedXp);
     useGameStore.getState().addGold(gainedGold);
+
+    // Drop de materiais da Cidadela (Madeira/Pedra/Carne), sem influência da Sorte
+    if (this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
+      const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0);
+      const gainedMaterials = { wood: 0, stone: 0, meat: 0 };
+      for (const material of this.currentEnemy.materialDrops) {
+        gainedMaterials[material] += materialAmount;
+      }
+      useGameStore.getState().addMaterials(gainedMaterials.wood, gainedMaterials.stone, gainedMaterials.meat);
+    }
 
     // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
     if (!useTowerStore.getState().towerActive && char.activeEcoterra && char.currentStage <= 20) {
@@ -1680,7 +1721,8 @@ export class CombatFSM {
       
       // Capstone do Simbolo do Aprendizado (Lvl 5): +10% de chance de Raro ou superior
       const learningRelicLvl = useRelicStore.getState().relics['simbolo_aprendizado']?.level || 0;
-      if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < 0.10) {
+      const learningPromoteChance = learningRelicLvl === 5 ? (this.isRelicOverheated('simbolo_aprendizado') ? 0.25 : 0.10) : 0;
+      if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < learningPromoteChance) {
         rarity = Math.random() < 0.20 ? 'legendary' : 'rare';
         bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Símbolo do Aprendizado: Item comum promovido a [${rarity === 'legendary' ? 'Lendário' : 'Raro'}]!` });
       }
@@ -1887,15 +1929,26 @@ export class CombatFSM {
         stage
       };
       
-      const added = useGameStore.getState().addItemToInventory(newItem);
-      if (added) {
-        bridge.emit(GameEvent.LOG_EMITTED, { 
-          message: `Você encontrou: [${newItem.name}] (${rarity.toUpperCase()})!` 
+      // Desmonte Automatizado (Oficina de Automação da Forja Nível 5): itens Comuns/Raros "puros" (sem set especial)
+      // são convertidos direto em Fragmentos de Forja em background, sem passar pelo inventário
+      const isAutoDismantleActive = (char.citadel?.forgeWorkshop.level || 0) >= 5;
+      const isPlainDrop = !isCelestialDrop && !isPandemoniumDrop && !isAncestralDrop;
+      if (isAutoDismantleActive && isPlainDrop && (rarity === 'common' || rarity === 'rare')) {
+        useGameStore.getState().addForgeFragments(1);
+        bridge.emit(GameEvent.LOG_EMITTED, {
+          message: `⚙️ Desmonte Automatizado: [${newItem.name}] foi convertido em +1 Fragmento de Forja!`
         });
       } else {
-        bridge.emit(GameEvent.LOG_EMITTED, { 
-          message: `Um item [${newItem.name}] caiu, mas seu inventário está cheio!` 
-        });
+        const added = useGameStore.getState().addItemToInventory(newItem);
+        if (added) {
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `Você encontrou: [${newItem.name}] (${rarity.toUpperCase()})!`
+          });
+        } else {
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `Um item [${newItem.name}] caiu, mas seu inventário está cheio!`
+          });
+        }
       }
     }
 
@@ -1996,7 +2049,7 @@ export class CombatFSM {
 
       if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
         this.scene.time.delayedCall(3000 / speedLimit, () => {
-          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
           this.playerMana = this.playerMaxMana;
           this.currentState = CombatState.IDLE;
 
@@ -2016,7 +2069,7 @@ export class CombatFSM {
 
       if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
         this.scene.time.delayedCall(3000 / speedLimit, () => {
-          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
           this.playerMana = this.playerMaxMana;
           this.currentState = CombatState.IDLE;
 
@@ -2037,7 +2090,7 @@ export class CombatFSM {
 
     if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
       this.scene.time.delayedCall(3000 / speedLimit, () => {
-        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * 1.02) : this.playerMaxHP;
+        this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.currentState = CombatState.IDLE;
 
@@ -2102,7 +2155,8 @@ export class CombatFSM {
     if (skillId === 'heal') {
       const sobrevivenciaLvl = useRelicStore.getState().relics['olho_sobrevivencia']?.level || 0;
       if (sobrevivenciaLvl === 5) {
-        cooldownTime = Math.max(1000, cooldownTime - 1500);
+        const cooldownReduction = this.isRelicOverheated('olho_sobrevivencia') ? 3750 : 1500;
+        cooldownTime = Math.max(1000, cooldownTime - cooldownReduction);
       }
     }
 
@@ -2115,7 +2169,10 @@ export class CombatFSM {
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
     if (isEcoterraActive) {
-      cooldownTime = Math.floor(cooldownTime * 1.15);
+      // Sifão de Essência Cósmica da Cidadela: reduz a erosão de recarga de +15% (Nível 0) até 0% (Nível 5, Sincronia Perfeita)
+      const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
+      const cooldownErosionPct = Math.max(0, 0.15 - siphonLevel * 0.03);
+      cooldownTime = Math.floor(cooldownTime * (1 + cooldownErosionPct));
     }
 
     this.skillCooldowns[skillId] = cooldownTime;
@@ -2192,13 +2249,7 @@ export class CombatFSM {
 
     const isAvatarClass = this.characterData && this.characterData.classId === 'avatar';
     if (isAvatarClass) {
-      primaryStatVal = Math.max(
-        this.playerFinalStats.strength || 0,
-        this.playerFinalStats.magic || 0,
-        this.playerFinalStats.dexterity || 0,
-        this.playerFinalStats.constitution || 0,
-        this.playerFinalStats.luck || 0
-      );
+      primaryStatVal = this.getAvatarEffectiveAttribute();
       damageType = 'prismático';
     } else {
       if (skillClass === 'mage' || skillClass === 'cleric') {
@@ -2227,7 +2278,7 @@ export class CombatFSM {
     let isCrit = false;
     let critMultiplier = 1.0;
     const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
-    const extraCritMult = relicLvlLuz === 5 ? 10 : 0;
+    const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
       critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
@@ -2268,7 +2319,7 @@ export class CombatFSM {
       luckMult = 1 + (this.playerFinalStats.luck * 0.001);
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
-    const armorPenMult = gemaVontadeLvl === 5 ? 1.10 : 1.0;
+    const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
     const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
