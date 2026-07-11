@@ -31,10 +31,10 @@ export const SynchronyAltarPanel: React.FC = () => {
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', color: 'var(--gold-300)' }}>
+          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
             🔯 Altar de Sincronia Elemental {isBuilt ? `— Nível ${altar.level}` : '(Não construído)'}
           </h2>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
             Maximiza o teto de dano da classe Avatar, injetando parte dos atributos secundários no Maior Atributo Ativo.
           </p>
         </div>
@@ -44,16 +44,8 @@ export const SynchronyAltarPanel: React.FC = () => {
         <button
           onClick={handleUpgrade}
           disabled={!canAffordUpgrade}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '0.6rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-accent)',
-            background: 'var(--surface-3)',
-            color: 'var(--gold-300)',
-            cursor: canAffordUpgrade ? 'pointer' : 'not-allowed',
-            opacity: canAffordUpgrade ? 1 : 0.5,
-          }}
+          className="btn btn-gold"
+          style={{ alignSelf: 'flex-start' }}
         >
           {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Altar'} — 🪨 {cost.stone} / 🌌 {cost.transcendenceEssence} / 📜 {cost.studyInsignias}
         </button>

@@ -37,10 +37,10 @@ export const AcademyPanel: React.FC = () => {
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', color: 'var(--gold-300)' }}>
+          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
             🎓 Academia Militar {isBuilt ? `— Nível ${academy.level}` : '(Não construída)'}
           </h2>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
+          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
             Consome Insígnias de Estudo em pesquisas permanentes, universais para todas as classes do save.
           </p>
         </div>
@@ -50,16 +50,8 @@ export const AcademyPanel: React.FC = () => {
         <button
           onClick={handleUpgrade}
           disabled={!canAffordUpgrade}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '0.6rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-accent)',
-            background: 'var(--surface-3)',
-            color: 'var(--gold-300)',
-            cursor: canAffordUpgrade ? 'pointer' : 'not-allowed',
-            opacity: canAffordUpgrade ? 1 : 0.5,
-          }}
+          className="btn btn-gold"
+          style={{ alignSelf: 'flex-start' }}
         >
           {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
         </button>
@@ -69,7 +61,7 @@ export const AcademyPanel: React.FC = () => {
 
       {isBuilt && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Pesquisas (limite atual: Nível {researchCap})
           </h3>
           {RESEARCH_TYPES.map(({ key, levelField, label, description }) => {
@@ -100,16 +92,8 @@ export const AcademyPanel: React.FC = () => {
                 <button
                   onClick={() => { AudioManager.getInstance().playClick(); upgradeAcademyResearch(key); }}
                   disabled={atCap || !canAfford}
-                  style={{
-                    padding: '0.4rem 0.9rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-accent)',
-                    background: 'var(--surface-3)',
-                    color: 'var(--gold-300)',
-                    cursor: atCap || !canAfford ? 'not-allowed' : 'pointer',
-                    opacity: atCap || !canAfford ? 0.5 : 1,
-                    fontSize: '0.8rem',
-                  }}
+                  className="btn btn-sm btn-gold"
+                  style={{ whiteSpace: 'nowrap' }}
                 >
                   {atCap ? 'Limite da Academia' : `Pesquisar — 📜 ${researchCost}`}
                 </button>

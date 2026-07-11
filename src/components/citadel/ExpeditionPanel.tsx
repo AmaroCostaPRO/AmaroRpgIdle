@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore, CLASS_CONFIGS, isClassUnlocked, getGlobalClassLevels } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 
@@ -6,6 +6,30 @@ const GROUP_LABEL: Record<string, string> = {
   warrior: 'Força', paladin: 'Força',
   ranger: 'Destreza', rogue: 'Destreza',
   mage: 'Magia', cleric: 'Magia', necromancer: 'Magia', avatar: 'Magia',
+};
+
+// Espelha computeClassExpeditionProduction (useGameStore.ts) só para exibir os valores reais ao jogador
+const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
+const getClassHourlyProduction = (classId: string, expeditionLevel: number) => {
+  const group = GROUP_LABEL[classId];
+  const levelMult = 1 + (Math.max(expeditionLevel, 1) - 1) * 0.15;
+  return {
+    wood: EXPEDITION_BASE_HOURLY.wood * levelMult * (group === 'Destreza' ? 1.25 : 1),
+    stone: EXPEDITION_BASE_HOURLY.stone * levelMult * (group === 'Força' ? 1.25 : 1),
+    meat: EXPEDITION_BASE_HOURLY.meat * levelMult * (group === 'Destreza' ? 1.25 : 1),
+    studyInsignias: EXPEDITION_BASE_HOURLY.studyInsignias * levelMult * (group === 'Magia' ? 1.30 : 1),
+  };
+};
+
+// Espelha EXPEDITION_ALLOCATION_GOLD_COST / EXPEDITION_ALLOCATION_DURATION_MS (useGameStore.ts)
+const EXPEDITION_ALLOCATION_GOLD_COST = (expeditionLevel: number): number => 20000 * expeditionLevel;
+const EXPEDITION_ALLOCATION_DURATION_HOURS = 8;
+
+const formatRemaining = (ms: number): string => {
+  const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
 
 const EXPEDITIONS_MAX_LEVEL = 5;
@@ -16,9 +40,16 @@ export const ExpeditionPanel: React.FC = () => {
   const allocateClassToExpedition = useGameStore((state) => state.allocateClassToExpedition);
   const deallocateClassFromExpedition = useGameStore((state) => state.deallocateClassFromExpedition);
 
+  // Força a UI a se atualizar periodicamente para manter a contagem regressiva das expedições correta
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
-  const expeditions = citadel?.expeditions || { level: 0, lastTick: 0, allocatedClassIds: [] };
+  const expeditions = citadel?.expeditions || { level: 0, lastTick: 0, allocatedClasses: [] };
   const isBuilt = expeditions.level > 0;
   const nextLevel = expeditions.level + 1;
   const maxSlots = expeditions.level >= 5 ? 3 : expeditions.level >= 3 ? 2 : expeditions.level >= 1 ? 1 : 0;
@@ -28,6 +59,8 @@ export const ExpeditionPanel: React.FC = () => {
     meat: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
   };
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
+  const allocationGoldCost = EXPEDITION_ALLOCATION_GOLD_COST(expeditions.level);
+  const allocatedClassIds = expeditions.allocatedClasses.map((a) => a.classId);
 
   const globalLevels = getGlobalClassLevels();
   const eligibleClasses = Object.keys(CLASS_CONFIGS).filter((classId) => {
@@ -46,11 +79,11 @@ export const ExpeditionPanel: React.FC = () => {
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', color: 'var(--gold-300)' }}>
+          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
             🎖️ Quartel de Expedições {isBuilt ? `— Nível ${expeditions.level}` : '(Não construído)'}
           </h2>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
-            Aloque classes inativas em missões automáticas que geram materiais e Insígnias de Estudo por hora.
+          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
+            Pague ouro para enviar uma classe inativa em expedição por {EXPEDITION_ALLOCATION_DURATION_HOURS}h, gerando materiais e Insígnias de Estudo por hora automaticamente.
           </p>
         </div>
       </div>
@@ -59,16 +92,8 @@ export const ExpeditionPanel: React.FC = () => {
         <button
           onClick={handleUpgrade}
           disabled={!canAffordUpgrade}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '0.6rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-accent)',
-            background: 'var(--surface-3)',
-            color: 'var(--gold-300)',
-            cursor: canAffordUpgrade ? 'pointer' : 'not-allowed',
-            opacity: canAffordUpgrade ? 1 : 0.5,
-          }}
+          className="btn btn-gold"
+          style={{ alignSelf: 'flex-start' }}
         >
           {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Quartel'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
         </button>
@@ -78,64 +103,90 @@ export const ExpeditionPanel: React.FC = () => {
 
       {isBuilt && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)' }}>
-            Classes em expedição ({expeditions.allocatedClassIds.length}/{maxSlots})
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
+            Classes em expedição ({expeditions.allocatedClasses.length}/{maxSlots})
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {expeditions.allocatedClassIds.length === 0 && (
+            {expeditions.allocatedClasses.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Nenhuma classe alocada.</p>
             )}
-            {expeditions.allocatedClassIds.map((classId) => (
-              <div
-                key={classId}
-                onClick={() => deallocateClassFromExpedition(classId)}
-                title="Clique para retornar da expedição"
-                style={{
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-accent)',
-                  background: 'var(--surface-2)',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                }}
-              >
-                {CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span>
-              </div>
-            ))}
-          </div>
-
-          <h3 style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', marginTop: '0.5rem' }}>
-            Classes disponíveis
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {eligibleClasses.filter(id => !expeditions.allocatedClassIds.includes(id)).length === 0 && (
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Nenhuma classe disponível para expedição.</p>
-            )}
-            {eligibleClasses.filter(id => !expeditions.allocatedClassIds.includes(id)).map((classId) => {
-              const full = expeditions.allocatedClassIds.length >= maxSlots;
+            {expeditions.allocatedClasses.map(({ classId, expiresAt }) => {
+              const prod = getClassHourlyProduction(classId, expeditions.level);
+              const remainingMs = expiresAt - Date.now();
               return (
-                <div
+                <button
                   key={classId}
-                  onClick={() => !full && allocateClassToExpedition(classId)}
-                  title={full ? 'Sem slots disponíveis' : 'Clique para alocar'}
+                  onClick={() => { AudioManager.getInstance().playClick(); deallocateClassFromExpedition(classId); }}
+                  title="Clique para retornar a classe agora (perde o tempo restante)"
                   style={{
                     padding: '0.5rem 0.75rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-subtle)',
-                    background: 'var(--surface-2)',
-                    cursor: full ? 'not-allowed' : 'pointer',
-                    opacity: full ? 0.5 : 1,
+                    border: '1px solid var(--border-accent)',
+                    background: 'linear-gradient(135deg, var(--surface-3), var(--surface-2))',
+                    boxShadow: 'var(--shadow-button)',
+                    cursor: 'pointer',
                     fontSize: '0.8rem',
+                    color: '#fff',
+                    textAlign: 'left',
                   }}
                 >
-                  {CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span>
-                </div>
+                  <div>{CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span></div>
+                  <div style={{ fontSize: '0.62rem', color: 'var(--gold-300)', marginTop: '0.2rem' }}>
+                    🪵{prod.wood.toFixed(1)} · 🪨{prod.stone.toFixed(1)} · 🥩{prod.meat.toFixed(1)} · 📜{prod.studyInsignias.toFixed(1)} /h
+                  </div>
+                  <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.15rem' }}>
+                    ⏳ Retorna em {formatRemaining(remainingMs)}
+                  </div>
+                </button>
               );
             })}
           </div>
 
-          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
-            Força: +25% Pedra/h · Destreza: +25% Madeira e Carne/h · Magia: +30% Insígnias de Estudo/h
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: '0.5rem 0 0 0' }}>
+            Classes disponíveis
+          </h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {eligibleClasses.filter(id => !allocatedClassIds.includes(id)).length === 0 && (
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Nenhuma classe disponível para expedição.</p>
+            )}
+            {eligibleClasses.filter(id => !allocatedClassIds.includes(id)).map((classId) => {
+              const slotsFull = expeditions.allocatedClasses.length >= maxSlots;
+              const canAffordAllocation = character.gold >= allocationGoldCost;
+              const disabled = slotsFull || !canAffordAllocation;
+              const prod = getClassHourlyProduction(classId, expeditions.level);
+              return (
+                <button
+                  key={classId}
+                  onClick={() => { if (!disabled) { AudioManager.getInstance().playClick(); allocateClassToExpedition(classId); } }}
+                  disabled={disabled}
+                  title={slotsFull ? 'Sem slots disponíveis' : !canAffordAllocation ? 'Ouro insuficiente' : `Clique para alocar por ${EXPEDITION_ALLOCATION_DURATION_HOURS}h`}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'linear-gradient(135deg, var(--surface-3), var(--surface-2))',
+                    boxShadow: 'var(--shadow-button)',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    fontSize: '0.8rem',
+                    color: '#fff',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div>{CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span></div>
+                  <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                    🪵{prod.wood.toFixed(1)} · 🪨{prod.stone.toFixed(1)} · 🥩{prod.meat.toFixed(1)} · 📜{prod.studyInsignias.toFixed(1)} /h
+                  </div>
+                  <div style={{ fontSize: '0.6rem', color: canAffordAllocation ? 'var(--gold-300)' : '#f87171', marginTop: '0.15rem' }}>
+                    🪙 {allocationGoldCost} · {EXPEDITION_ALLOCATION_DURATION_HOURS}h de expedição
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <p style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+            Cada classe alocada custa 🪙 {allocationGoldCost} e produz os valores acima por hora (mesmo offline) durante {EXPEDITION_ALLOCATION_DURATION_HOURS}h, retornando automaticamente ao fim do prazo. Grupo <strong>Força</strong>: +25% Pedra · <strong>Destreza</strong>: +25% Madeira e Carne · <strong>Magia</strong>: +30% Insígnias de Estudo — bônus já incluído nos números mostrados.
           </p>
         </div>
       )}

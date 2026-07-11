@@ -31,7 +31,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal';
   stage?: number;
 }
 
@@ -58,7 +58,7 @@ export interface CitadelState {
   unlocked: boolean;
   commandCenter: CitadelBuildingState;
   vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
-  expeditions: CitadelBuildingState & { allocatedClassIds: string[] };
+  expeditions: CitadelBuildingState & { allocatedClasses: { classId: string; expiresAt: number }[] };
   academy: CitadelBuildingState & {
     researchDmgLevel: number;
     researchHpLevel: number;

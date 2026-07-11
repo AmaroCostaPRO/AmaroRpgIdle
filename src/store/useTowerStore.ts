@@ -15,9 +15,10 @@ export interface TowerStoreState {
   lastWeeklyResetTime: number;
   savedStageBeforeTower: number;
   savedEnemiesDefeatedBeforeTower: number;
-  
+  activeKeyType: 'normal' | 'evolved';
+
   // Ações
-  startTowerAttempt: () => void;
+  startTowerAttempt: (keyType?: 'normal' | 'evolved') => void;
   advanceTowerFloor: () => void;
   exitTower: (success: boolean) => void;
   checkWeeklyReset: () => void;
@@ -90,18 +91,20 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
   lastWeeklyResetTime: initialData.lastWeeklyResetTime || 0,
   savedStageBeforeTower: 1,
   savedEnemiesDefeatedBeforeTower: 0,
+  activeKeyType: 'normal',
 
-  startTowerAttempt: () => {
+  startTowerAttempt: (keyType: 'normal' | 'evolved' = 'normal') => {
     // Primeiro, verifica se há necessidade de reset semanal
     get().checkWeeklyReset();
 
     const char = useGameStore.getState().character;
-    
-    // Verifica se possui Chave da Torre
-    const keyIndex = char.inventory.findIndex(i => i.consumableType === 'tower_key');
+    const consumableType = keyType === 'evolved' ? 'tower_key_evolved' : 'tower_key';
+
+    // Verifica se possui a Chave correspondente
+    const keyIndex = char.inventory.findIndex(i => i.consumableType === consumableType);
     if (keyIndex === -1) {
       bridge.emit(GameEvent.LOG_EMITTED, {
-        message: '❌ Você precisa de uma Chave da Torre para entrar!'
+        message: keyType === 'evolved' ? '❌ Você precisa de uma Chave da Torre Evoluída para entrar!' : '❌ Você precisa de uma Chave da Torre para entrar!'
       });
       return;
     }
@@ -136,10 +139,13 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
       currentFloor: 1,
       savedStageBeforeTower: savedStage,
       savedEnemiesDefeatedBeforeTower: savedEnemies,
+      activeKeyType: keyType,
     });
 
     bridge.emit(GameEvent.LOG_EMITTED, {
-      message: '🔑 Você utilizou uma [Chave da Torre] e entrou na Torre Infinita! Iniciando subida a partir do Andar 1.'
+      message: keyType === 'evolved'
+        ? '🗝️ Você utilizou uma [Chave da Torre Evoluída] e entrou na Torre Infinita! Ouro e XP triplicados nesta subida. Iniciando a partir do Andar 1.'
+        : '🔑 Você utilizou uma [Chave da Torre] e entrou na Torre Infinita! Iniciando subida a partir do Andar 1.'
     });
 
     // Avisa que o combate precisa recomeçar no modo torre
@@ -161,7 +167,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
       nextWeeklyHighest = floorCompleted;
       
       // Recompensa básica em ouro por andar completado (inédito na semana)
-      const baseGold = 100 * floorCompleted;
+      const baseGold = 100 * floorCompleted * (get().activeKeyType === 'evolved' ? 3 : 1);
       const coinRelicLvl = useRelicStore.getState().relics['moeda_ciclo']?.level || 0;
       const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
       let goldReward = Math.floor(baseGold * (1 + relicGoldBonus));
@@ -187,8 +193,8 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
       }
     }
 
-    // Recompensa de Fragmentos de Forja: ganha sempre ao avançar andares (quadruplicado)
-    const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5)) * 4;
+    // Recompensa de Fragmentos de Forja: ganha sempre ao avançar andares (quadruplicado; 3x adicional com a Chave da Torre Evoluída)
+    const forgeFragmentsReward = Math.max(1, Math.floor(floorCompleted * 0.5)) * 4 * (get().activeKeyType === 'evolved' ? 3 : 1);
     useGameStore.getState().addForgeFragments(forgeFragmentsReward);
     bridge.emit(GameEvent.LOG_EMITTED, {
       message: `🔩 Recompensa de Conclusão: +${forgeFragmentsReward} Fragmento(s) de Forja!`
@@ -245,6 +251,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => ({
 
     set({
       towerActive: false,
+      activeKeyType: 'normal',
     });
 
     // Restaura o progresso do combate da campanha

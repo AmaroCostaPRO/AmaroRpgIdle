@@ -57,7 +57,7 @@ export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter }) => (
     <div style={{ position: 'relative' }}>
       <h2
         className="font-heading"
-        style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--gold-300)', margin: 0, letterSpacing: '0.02em' }}
+        style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--gold-400)', margin: 0, letterSpacing: '0.02em' }}
       >
         Cidadela Astral
       </h2>

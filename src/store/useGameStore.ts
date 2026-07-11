@@ -630,7 +630,7 @@ const DEFAULT_CITADEL = () => ({
   unlocked: false,
   commandCenter: { level: 1, lastTick: Date.now() },
   vault: { level: 0, lastTick: Date.now(), storedItems: [] as EquipmentItem[] },
-  expeditions: { level: 0, lastTick: Date.now(), allocatedClassIds: [] as string[] },
+  expeditions: { level: 0, lastTick: Date.now(), allocatedClasses: [] as { classId: string; expiresAt: number }[] },
   academy: { level: 0, lastTick: Date.now(), researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0 },
   watchTower: { level: 0, lastTick: Date.now(), storedKeys: 0 },
   forgeWorkshop: { level: 0, lastTick: Date.now() },
@@ -648,7 +648,6 @@ const VAULT_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number } 
 });
 
 const VAULT_MAX_LEVEL = 5;
-const VAULT_ALLOWED_RARITIES: EquipmentItem['rarity'][] = ['common', 'rare', 'epic', 'legendary'];
 
 // Grupo de atributo por classe, usado para calcular o bônus de eficiência das expedições
 const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | 'magic'> = {
@@ -665,6 +664,9 @@ const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | 'magic'>
 const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
 const EXPEDITIONS_MAX_LEVEL = 5;
 const ACADEMY_MAX_LEVEL = 5;
+// Custo em ouro para enviar uma classe em expedição e duração da alocação, escalando com o nível do Quartel
+const EXPEDITION_ALLOCATION_GOLD_COST = (expeditionLevel: number): number => 20000 * expeditionLevel;
+const EXPEDITION_ALLOCATION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 const EXPEDITIONS_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
   wood: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
@@ -729,17 +731,15 @@ const RELIC_LAB_OVERHEAT_SLOTS = (labLevel: number): number => labLevel * 2;
 const RELIC_OVERHEAT_GOLD_COST = 50000;
 const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
 
-const computeExpeditionProduction = (allocatedClassIds: string[], expeditionLevel: number, hours: number) => {
+const computeClassExpeditionProduction = (classId: string, expeditionLevel: number, hours: number) => {
   const levelMult = 1 + (expeditionLevel - 1) * 0.15;
-  const totals = { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
-  for (const classId of allocatedClassIds) {
-    const group = EXPEDITION_CLASS_GROUP[classId];
-    totals.wood += EXPEDITION_BASE_HOURLY.wood * hours * levelMult * (group === 'dexterity' ? 1.25 : 1);
-    totals.stone += EXPEDITION_BASE_HOURLY.stone * hours * levelMult * (group === 'strength' ? 1.25 : 1);
-    totals.meat += EXPEDITION_BASE_HOURLY.meat * hours * levelMult * (group === 'dexterity' ? 1.25 : 1);
-    totals.studyInsignias += EXPEDITION_BASE_HOURLY.studyInsignias * hours * levelMult * (group === 'magic' ? 1.30 : 1);
-  }
-  return totals;
+  const group = EXPEDITION_CLASS_GROUP[classId];
+  return {
+    wood: EXPEDITION_BASE_HOURLY.wood * hours * levelMult * (group === 'dexterity' ? 1.25 : 1),
+    stone: EXPEDITION_BASE_HOURLY.stone * hours * levelMult * (group === 'strength' ? 1.25 : 1),
+    meat: EXPEDITION_BASE_HOURLY.meat * hours * levelMult * (group === 'dexterity' ? 1.25 : 1),
+    studyInsignias: EXPEDITION_BASE_HOURLY.studyInsignias * hours * levelMult * (group === 'magic' ? 1.30 : 1),
+  };
 };
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
@@ -1075,8 +1075,8 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Item não encontrado no inventário.' };
         return state;
       }
-      if (item.slot === 'consumable' || !VAULT_ALLOWED_RARITIES.includes(item.rarity)) {
-        result = { success: false, message: 'Apenas equipamentos Comuns, Raros, Épicos ou Lendários podem ser guardados no Depósito.' };
+      if (item.slot === 'consumable') {
+        result = { success: false, message: 'Apenas peças de equipamento podem ser guardadas no Depósito.' };
         return state;
       }
       const maxSlots = Math.min(10, citadel.vault.level * 2);
@@ -1143,19 +1143,41 @@ export const useGameStore = create<GameState>((set) => ({
     let forgeFragments = state.character.forgeFragments || 0;
     let changed = false;
 
-    // Quartel de Expedições: materiais e Insígnias de Estudo por hora
-    if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClassIds.length > 0) {
-      const elapsedHours = (now - citadel.expeditions.lastTick) / (1000 * 60 * 60);
-      if (elapsedHours > 0) {
-        const gained = computeExpeditionProduction(citadel.expeditions.allocatedClassIds, citadel.expeditions.level, elapsedHours);
+    // Quartel de Expedições: materiais e Insígnias de Estudo por hora; cada classe expira 8h após ser alocada
+    if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClasses.length > 0) {
+      const lastTick = citadel.expeditions.lastTick;
+      if (now > lastTick) {
+        let totalWood = 0, totalStone = 0, totalMeat = 0, totalStudy = 0;
+        const stillActive: { classId: string; expiresAt: number }[] = [];
+        const returnedClassIds: string[] = [];
+        for (const allocation of citadel.expeditions.allocatedClasses) {
+          const activeUntil = Math.min(now, allocation.expiresAt);
+          const activeHours = Math.max(0, (activeUntil - lastTick) / (1000 * 60 * 60));
+          if (activeHours > 0) {
+            const gained = computeClassExpeditionProduction(allocation.classId, citadel.expeditions.level, activeHours);
+            totalWood += gained.wood;
+            totalStone += gained.stone;
+            totalMeat += gained.meat;
+            totalStudy += gained.studyInsignias;
+          }
+          if (allocation.expiresAt > now) {
+            stillActive.push(allocation);
+          } else {
+            returnedClassIds.push(allocation.classId);
+          }
+        }
         materials = {
-          wood: materials.wood + Math.floor(gained.wood),
-          stone: materials.stone + Math.floor(gained.stone),
-          meat: materials.meat + Math.floor(gained.meat),
-          studyInsignias: materials.studyInsignias + Math.floor(gained.studyInsignias),
+          wood: materials.wood + Math.floor(totalWood),
+          stone: materials.stone + Math.floor(totalStone),
+          meat: materials.meat + Math.floor(totalMeat),
+          studyInsignias: materials.studyInsignias + Math.floor(totalStudy),
         };
-        nextExpeditions = { ...citadel.expeditions, lastTick: now };
+        nextExpeditions = { ...citadel.expeditions, allocatedClasses: stillActive, lastTick: now };
         changed = true;
+        if (returnedClassIds.length > 0) {
+          const names = returnedClassIds.map(id => CLASS_CONFIGS[id]?.name || id).join(', ');
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🎖️ Expedição concluída! ${names} retornou(aram) ao Quartel.` });
+        }
       }
     }
 
@@ -1174,13 +1196,13 @@ export const useGameStore = create<GameState>((set) => ({
         let flushed = 0;
         while (storedKeys > 0 && inventory.length < state.character.inventorySlots) {
           inventory = [...inventory, {
-            id: `tower_key-citadel-${now}-${flushed}`,
-            name: 'Chave da Torre',
+            id: `tower_key_evolved-citadel-${now}-${flushed}`,
+            name: 'Chave da Torre Evoluída',
             slot: 'consumable',
             classId: state.character.classId,
-            rarity: 'epic',
-            spriteName: 'tower_key',
-            consumableType: 'tower_key',
+            rarity: 'legendary',
+            spriteName: 'tower_key_evolved',
+            consumableType: 'tower_key_evolved',
             stats: {}
           }];
           storedKeys -= 1;
@@ -1273,12 +1295,12 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Você não pode alocar a classe que está jogando ativamente.' };
         return state;
       }
-      if (expeditions.allocatedClassIds.includes(classId)) {
+      if (expeditions.allocatedClasses.some(a => a.classId === classId)) {
         result = { success: false, message: 'Esta classe já está em expedição.' };
         return state;
       }
       const maxSlots = EXPEDITIONS_MAX_SLOTS(expeditions.level);
-      if (expeditions.allocatedClassIds.length >= maxSlots) {
+      if (expeditions.allocatedClasses.length >= maxSlots) {
         result = { success: false, message: 'Não há slots de expedição disponíveis.' };
         return state;
       }
@@ -1288,20 +1310,26 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Você precisa ter jogado com esta classe ao menos uma vez.' };
         return state;
       }
+      const goldCost = EXPEDITION_ALLOCATION_GOLD_COST(expeditions.level);
+      if (state.character.gold < goldCost) {
+        result = { success: false, message: `Ouro insuficiente: enviar uma classe em expedição custa 🪙 ${goldCost}.` };
+        return state;
+      }
 
       const updated = {
         ...state.character,
+        gold: state.character.gold - goldCost,
         citadel: {
           ...citadel,
           expeditions: {
             ...expeditions,
-            allocatedClassIds: [...expeditions.allocatedClassIds, classId],
-            lastTick: expeditions.allocatedClassIds.length === 0 ? Date.now() : expeditions.lastTick
+            allocatedClasses: [...expeditions.allocatedClasses, { classId, expiresAt: Date.now() + EXPEDITION_ALLOCATION_DURATION_MS }],
+            lastTick: expeditions.allocatedClasses.length === 0 ? Date.now() : expeditions.lastTick
           }
         }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: 'Classe alocada em expedição!' };
+      result = { success: true, message: `Classe enviada em expedição por 8h! (custou 🪙 ${goldCost})` };
       return { character: updated };
     });
     return result;
@@ -1317,7 +1345,7 @@ export const useGameStore = create<GameState>((set) => ({
         ...state.character,
         citadel: {
           ...citadel,
-          expeditions: { ...expeditions, allocatedClassIds: expeditions.allocatedClassIds.filter(id => id !== classId) }
+          expeditions: { ...expeditions, allocatedClasses: expeditions.allocatedClasses.filter(a => a.classId !== classId) }
         }
       };
       saveToLocalStorage(updated);
@@ -1806,6 +1834,7 @@ export const useGameStore = create<GameState>((set) => ({
       xp: 0,
       totalXpEarned: 0,
       gold: 0,
+      forgeFragments: 0,
       attributePoints: 5,
       skillPoints: 1,
       unlockedSkills: [...config.initialSkills],
@@ -1885,6 +1914,7 @@ export const useGameStore = create<GameState>((set) => ({
       xp: 0,
       totalXpEarned: 0,
       gold: 0,
+      forgeFragments: 0,
       attributePoints: 5,
       skillPoints: 1,
       unlockedSkills: [...config.initialSkills],
@@ -1970,6 +2000,7 @@ export const useGameStore = create<GameState>((set) => ({
       xp: 0,
       totalXpEarned: 0,
       gold: 0,
+      forgeFragments: 0,
       baseStats: { ...config.baseStats },
       growthRates: { ...config.growthRates },
       unlockedSkills: [...config.initialSkills],
@@ -2172,7 +2203,7 @@ export const useGameStore = create<GameState>((set) => ({
               unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
               commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
               vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClassIds: char.citadel?.expeditions?.allocatedClassIds || [] },
+              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: char.citadel?.expeditions?.allocatedClasses || [] },
               academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
               watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
               forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
@@ -2609,7 +2640,7 @@ export const useGameStore = create<GameState>((set) => ({
               unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
               commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
               vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClassIds: char.citadel?.expeditions?.allocatedClassIds || [] },
+              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: char.citadel?.expeditions?.allocatedClasses || [] },
               academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
               watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
               forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
@@ -2700,7 +2731,7 @@ export const useGameStore = create<GameState>((set) => ({
             unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
             commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
             vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-            expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClassIds: char.citadel?.expeditions?.allocatedClassIds || [] },
+            expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: char.citadel?.expeditions?.allocatedClasses || [] },
             academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
             watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
             forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },

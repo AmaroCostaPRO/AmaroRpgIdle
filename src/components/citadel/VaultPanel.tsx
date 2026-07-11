@@ -8,6 +8,7 @@ const RARITY_COLOR: Record<string, string> = {
   rare: '#3b82f6',
   epic: '#a855f7',
   legendary: '#f59e0b',
+  mystic: '#d946ef',
 };
 
 const RARITY_BG: Record<string, string> = {
@@ -15,6 +16,7 @@ const RARITY_BG: Record<string, string> = {
   rare: 'rgba(59, 130, 246, 0.15)',
   epic: 'rgba(168, 85, 247, 0.15)',
   legendary: 'rgba(245, 158, 11, 0.15)',
+  mystic: 'rgba(217, 70, 239, 0.15)',
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -134,9 +136,7 @@ export const VaultPanel: React.FC = () => {
     stone: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
   };
 
-  const depositableItems = character.inventory.filter(
-    (item) => item.slot !== 'consumable' && item.rarity !== 'mystic'
-  );
+  const depositableItems = character.inventory.filter((item) => item.slot !== 'consumable');
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -166,14 +166,15 @@ export const VaultPanel: React.FC = () => {
   const vaultGrid = Array.from({ length: maxSlots }, (_, i) => vault.storedItems[i] || null);
 
   return (
+    <>
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', color: 'var(--gold-300)' }}>
+          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
             📦 Depósito {isBuilt ? `— Nível ${vault.level}` : '(Não construído)'}
           </h2>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.25rem' }}>
-            Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de Ascensão.
+          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
+            Protege qualquer peça de equipamento, incluindo itens Místicos, do reset de Ascensão.
           </p>
         </div>
       </div>
@@ -182,16 +183,8 @@ export const VaultPanel: React.FC = () => {
         <button
           onClick={handleUpgrade}
           disabled={materials.wood < cost.wood || materials.stone < cost.stone}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '0.6rem 1.25rem',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-accent)',
-            background: 'var(--surface-3)',
-            color: 'var(--gold-300)',
-            cursor: materials.wood < cost.wood || materials.stone < cost.stone ? 'not-allowed' : 'pointer',
-            opacity: materials.wood < cost.wood || materials.stone < cost.stone ? 0.5 : 1,
-          }}
+          className="btn btn-gold"
+          style={{ alignSelf: 'flex-start' }}
         >
           {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
         </button>
@@ -201,7 +194,7 @@ export const VaultPanel: React.FC = () => {
 
       {isBuilt && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Itens guardados ({vault.storedItems.length}/{maxSlots})
           </h3>
           <div style={{
@@ -223,7 +216,7 @@ export const VaultPanel: React.FC = () => {
             ))}
           </div>
 
-          <h3 style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', marginTop: '0.5rem' }}>
+          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: '0.5rem 0 0 0' }}>
             Inventário disponível para guardar
           </h3>
           <div style={{
@@ -252,8 +245,9 @@ export const VaultPanel: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
 
-      {selected && (() => {
+    {selected && (() => {
         const { item, source } = selected;
         const nameColor = RARITY_COLOR[item.rarity] || RARITY_COLOR.common;
         const vaultFull = vault.storedItems.length >= maxSlots;
@@ -261,7 +255,7 @@ export const VaultPanel: React.FC = () => {
         return (
           <div
             style={{
-              position: 'fixed',
+              position: 'absolute',
               inset: 0,
               background: 'rgba(0, 0, 0, 0.75)',
               display: 'flex',
@@ -344,6 +338,6 @@ export const VaultPanel: React.FC = () => {
           </div>
         );
       })()}
-    </div>
+    </>
   );
 };

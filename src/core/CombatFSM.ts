@@ -1315,8 +1315,8 @@ export class CombatFSM {
       // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
       const dmgBoost = this.enemyLevel >= 31 ? 6.0 : this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
       
-      // Escala exponencial de dano baseado no estágio (ajustada para 1.25x por fase)
-      const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
+      // Escala exponencial de dano baseado no estágio (ajustada para 1.18x por fase, para conter o dano em fases avançadas)
+      const dmgScale = Math.pow(1.18, this.enemyLevel - 1);
       
       damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
     }
@@ -1557,16 +1557,26 @@ export class CombatFSM {
       gainedXp *= 5;
     }
 
-    // Escala de Gold por fase e sorte
-    const goldScale = Math.pow(1.25, char.currentStage - 1);
+    // Chave da Torre Evoluída: a subida atual concede 3x XP e Ouro
+    const isEvolvedTowerRun = useTowerStore.getState().towerActive && useTowerStore.getState().activeKeyType === 'evolved';
+    if (isEvolvedTowerRun) {
+      gainedXp *= 3;
+    }
+
+    // Escala de Gold por fase e sorte (reduzida para conter o acúmulo em fases avançadas)
+    const goldScale = Math.pow(1.15, char.currentStage - 1);
     const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale);
     let gainedGold = isBoss ? baseGainedGold * 3.5 : baseGainedGold;
-    
+
     // Inimigos Elite concedem 2.0x mais Ouro (acumula com multiplicador base)
     if (this.isElite) {
       gainedGold *= 2.0;
     }
-    
+
+    if (isEvolvedTowerRun) {
+      gainedGold *= 3;
+    }
+
     const luckBonus = 1 + Math.sqrt(this.playerFinalStats.luck || 0) * 0.1;
     const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
     gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus));

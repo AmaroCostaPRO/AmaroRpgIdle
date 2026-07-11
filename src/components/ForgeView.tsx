@@ -31,7 +31,7 @@ const getSlotEmoji = (slot: string) => {
   switch (slot) {
     case 'weapon': return '⚔️';
     case 'head': return '🪖';
-    case 'chest': return '🛡️';
+    case 'chest': return '👕';
     case 'legs': return '👖';
     case 'gloves': return '🧤';
     case 'necklace': return '📿';
@@ -353,7 +353,7 @@ export const ForgeView: React.FC = () => {
         <div className="p-3 sm:p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/60 backdrop-blur-md z-10 gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-lg sm:text-xl flex-shrink-0">⚒️</span>
-            <h2 className="text-sm sm:text-base md:text-lg font-bold text-gray-100 truncate whitespace-nowrap">Grande Forja Arcana</h2>
+            <h2 className="section-title truncate whitespace-nowrap" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>Grande Forja Arcana</h2>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex items-center px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full whitespace-nowrap">

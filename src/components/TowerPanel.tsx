@@ -19,10 +19,14 @@ export const TowerPanel: React.FC = () => {
   } = useTowerStore();
 
   const character = useGameStore((state) => state.character);
+  const activeKeyType = useTowerStore((state) => state.activeKeyType);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
-  const towerKeys = character.inventory.filter(item => 
+  const towerKeys = character.inventory.filter(item =>
     item.slot === 'consumable' && item.consumableType === 'tower_key'
+  ).length;
+  const evolvedTowerKeys = character.inventory.filter(item =>
+    item.slot === 'consumable' && item.consumableType === 'tower_key_evolved'
   ).length;
 
   // Títulos disponíveis e seus andares de desbloqueio
@@ -67,9 +71,9 @@ export const TowerPanel: React.FC = () => {
     return () => clearInterval(interval);
   }, [checkWeeklyReset]);
 
-  const handleStartAttempt = () => {
+  const handleStartAttempt = (keyType: 'normal' | 'evolved') => {
     AudioManager.getInstance().playClick();
-    startTowerAttempt();
+    startTowerAttempt(keyType);
   };
 
   const handleExitAttempt = () => {
@@ -118,7 +122,9 @@ export const TowerPanel: React.FC = () => {
           }}>
             <div style={{ fontSize: '0.6rem', color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Andar Ativo</div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', margin: '0.2rem 0' }}>{currentFloor}</div>
-            <div style={{ fontSize: '0.55rem', color: '#94a3b8' }}>Combate em Progresso</div>
+            <div style={{ fontSize: '0.55rem', color: '#94a3b8' }}>
+              {activeKeyType === 'evolved' ? '🗝️ Chave Evoluída (3x Ouro/XP)' : 'Combate em Progresso'}
+            </div>
           </div>
         )}
 
@@ -183,7 +189,7 @@ export const TowerPanel: React.FC = () => {
         {!towerActive ? (
           <>
             <button
-              onClick={handleStartAttempt}
+              onClick={() => handleStartAttempt('normal')}
               disabled={towerKeys === 0}
               className={`btn ${towerKeys > 0 ? 'btn-gold' : 'btn-disabled'}`}
               style={{
@@ -206,7 +212,32 @@ export const TowerPanel: React.FC = () => {
               <span style={{ fontSize: '0.85rem' }}>⚔️ INICIAR SUBIDA DA TORRE</span>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: towerKeys > 0 ? '#fef08a' : '#64748b', opacity: 0.85 }}>(Consome 1 🔑)</span>
             </button>
-            
+
+            <button
+              onClick={() => handleStartAttempt('evolved')}
+              disabled={evolvedTowerKeys === 0}
+              className={`btn ${evolvedTowerKeys > 0 ? 'btn-gold' : 'btn-disabled'}`}
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.75rem',
+                fontWeight: 800,
+                background: evolvedTowerKeys > 0 ? 'linear-gradient(135deg, #a855f7, #6d28d9)' : 'rgba(255,255,255,0.05)',
+                boxShadow: evolvedTowerKeys > 0 ? '0 4px 15px rgba(168, 85, 247, 0.3)' : 'none',
+                border: 'none',
+                color: evolvedTowerKeys > 0 ? '#fff' : '#64748b',
+                cursor: evolvedTowerKeys > 0 ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.15rem',
+                lineHeight: 1.2
+              }}
+            >
+              <span style={{ fontSize: '0.85rem' }}>🗝️ SUBIDA COM CHAVE EVOLUÍDA (3x Ouro/XP)</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, color: evolvedTowerKeys > 0 ? '#e9d5ff' : '#64748b', opacity: 0.85 }}>(Consome 1 🗝️)</span>
+            </button>
+
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -215,11 +246,18 @@ export const TowerPanel: React.FC = () => {
               background: 'rgba(0,0,0,0.15)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-dim)',
-              fontSize: '0.65rem'
+              fontSize: '0.65rem',
+              flexWrap: 'wrap',
+              gap: '0.4rem'
             }}>
               <span style={{ color: '#94a3b8' }}>Chaves Disponíveis:</span>
-              <span className="font-mono" style={{ fontWeight: 700, color: towerKeys > 0 ? '#34d399' : '#f87171', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                🔑 {towerKeys}
+              <span style={{ display: 'flex', gap: '0.75rem' }}>
+                <span className="font-mono" style={{ fontWeight: 700, color: towerKeys > 0 ? '#34d399' : '#f87171', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  🔑 {towerKeys}
+                </span>
+                <span className="font-mono" style={{ fontWeight: 700, color: evolvedTowerKeys > 0 ? '#c084fc' : '#f87171', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  🗝️ {evolvedTowerKeys}
+                </span>
               </span>
             </div>
 
@@ -255,7 +293,7 @@ export const TowerPanel: React.FC = () => {
             }}>
               <span>🎁</span>
               <div>
-                <strong>Prêmios da Torre:</strong> Cada andar vencido concede <strong>🔩 Fragmentos de Forja</strong> (escala com o andar). A cada 5 andares concluídos, você ganha adicionalmente <strong>✨ 1 Fragmento de Alma Instável</strong>!
+                <strong>Prêmios da Torre:</strong> Cada andar vencido concede <strong>🔩 Fragmentos de Forja</strong> (escala com o andar). A cada 5 andares concluídos, você ganha adicionalmente <strong>✨ 1 Fragmento de Alma Instável</strong>! Subidas com a <strong>🗝️ Chave da Torre Evoluída</strong> (produzida pela Torre de Vigia Astral da Cidadela) concedem <strong>3x Ouro e XP</strong> durante toda a subida.
               </div>
             </div>
           </>

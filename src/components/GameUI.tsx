@@ -1036,9 +1036,9 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
         
         {/* Visualização de Equipados */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
+          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
             Equipamento Atual
-          </h3>
+          </h2>
 
           <div style={{ 
             display: 'grid', 
@@ -1489,7 +1489,8 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                       item.consumableType === 'chest_ancestral' ? '🔮' :
                       item.consumableType === 'relic_chest' ? '💜' :
                       item.consumableType === 'unstable_soul_fragment' ? '🔮' :
-                      item.consumableType === 'tower_key' ? '🔑' : '🎁'
+                      item.consumableType === 'tower_key' ? '🔑' :
+                      item.consumableType === 'tower_key_evolved' ? '🗝️' : '🎁'
                     ) : (
                       slotIcons[item.slot]
                     )}
@@ -2613,10 +2614,16 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                         ? 'linear-gradient(135deg, #a78bfa, #7c3aed)' 
                         : undefined,
                       color: '#fff',
-                      boxShadow: unstableSoulFragments >= 10 && !isAllMaxed 
-                        ? '0 0 10px rgba(167, 139, 250, 0.4)' 
+                      boxShadow: unstableSoulFragments >= 10 && !isAllMaxed
+                        ? '0 0 10px rgba(167, 139, 250, 0.4)'
                         : undefined,
-                      height: '2.2rem',
+                      minHeight: '2.2rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      whiteSpace: 'normal',
+                      lineHeight: 1.3,
                       fontWeight: 'bold',
                       fontSize: '0.75rem',
                       cursor: unstableSoulFragments >= 10 && !isAllMaxed ? 'pointer' : 'not-allowed'
@@ -6665,6 +6672,9 @@ export default function GameUI() {
   const towerKeyCount = character.inventory.filter(item =>
     item.slot === 'consumable' && item.consumableType === 'tower_key'
   ).length;
+  const evolvedTowerKeyCount = character.inventory.filter(item =>
+    item.slot === 'consumable' && item.consumableType === 'tower_key_evolved'
+  ).length;
 
   const citadelMaterials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
   const citadelSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
@@ -7011,6 +7021,12 @@ export default function GameUI() {
                 <span>🔑</span>
                 <span>{towerKeyCount} Chaves</span>
               </div>
+              {evolvedTowerKeyCount > 0 && (
+                <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.12)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.25)' }}>
+                  <span>🗝️</span>
+                  <span>{evolvedTowerKeyCount} Evoluídas</span>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -7322,6 +7338,7 @@ export default function GameUI() {
                         {selectedItem.consumableType === 'relic_chest' && '💜 Ao abrir, concede +3 Fragmentos de Alma Instável diretamente no seu Altar de Relíquias.'}
                         {selectedItem.consumableType === 'unstable_soul_fragment' && '🔮 Fragmento de Alma absorvido no Altar de Relíquias: +1 Fragmento.'}
                         {selectedItem.consumableType === 'tower_key' && '🔑 Chave de acesso para a Torre Infinita. Consumida ao iniciar uma tentativa de subida a partir do painel da Torre.'}
+                        {selectedItem.consumableType === 'tower_key_evolved' && '🗝️ Chave Evoluída de acesso à Torre Infinita. Concede +200% de Ouro e XP na subida. Consumida ao iniciar uma tentativa a partir do painel da Torre.'}
                       </div>
                     </>
                   ) : (
@@ -7359,7 +7376,7 @@ export default function GameUI() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                   {selectedItem.slot === 'consumable' ? (
-                    selectedItem.consumableType !== 'tower_key' && (
+                    selectedItem.consumableType !== 'tower_key' && selectedItem.consumableType !== 'tower_key_evolved' && (
                       <button 
                         onClick={() => {
                           AudioManager.getInstance().playClick();
