@@ -6,7 +6,7 @@ import { Character } from './types';
  * fator multiplica ganho e custo, a proporção ganho/custo permanece constante em qualquer fase.
  */
 export const getXpNeededForLevel = (level: number, currentStage: number): number =>
-  Math.floor(level * 100 * Math.pow(1.35, currentStage - 1));
+  Math.floor(level * 3.25 * Math.pow(1.35, currentStage - 1));
 
 /** Fórmula antiga (pré-fase-scaling), usada só como fallback de migração para saves sem totalXpEarned. */
 export const legacyReconstructTotalXp = (level: number, xp: number): number =>
