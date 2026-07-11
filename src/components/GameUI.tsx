@@ -14,6 +14,7 @@ import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
 import { TowerPanel } from './TowerPanel';
 import { CitadelTabsBar, CITADEL_SUB_TABS, CitadelSubTab } from './citadel/CitadelTabsBar';
+import { CitadelGate } from './citadel/CitadelGate';
 import { CitadelOverview } from './citadel/CitadelOverview';
 import { VaultPanel } from './citadel/VaultPanel';
 import { ExpeditionPanel } from './citadel/ExpeditionPanel';
@@ -6718,7 +6719,7 @@ export default function GameUI() {
   };
 
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
-  const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number } | null>(null);
+  const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
   // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
   useEffect(() => {
@@ -6732,9 +6733,20 @@ export default function GameUI() {
     };
   }, [resourceTooltip]);
 
+  // Portão de entrada da Cidadela: acessar a aba apenas mostra um convite para entrar,
+  // evitando que o jogador saia do combate sem querer ao navegar pelo carrossel de abas.
+  // Só entra de fato (sprite stage cobrindo o combate + sub-abas) após clicar em "Entrar".
+  const [citadelEntered, setCitadelEntered] = useState(false);
+
   useEffect(() => {
-    bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab });
+    if (activeTab !== 'citadel') {
+      setCitadelEntered(false);
+    }
   }, [activeTab]);
+
+  useEffect(() => {
+    bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab, citadelEntered });
+  }, [activeTab, citadelEntered]);
 
   // Produção passiva das Expedições da Cidadela: recupera o tempo offline no carregamento
   // e segue creditando materiais a cada minuto enquanto o jogo está aberto.
@@ -6917,7 +6929,7 @@ export default function GameUI() {
 
     // O movimento precisa ser predominantemente horizontal e maior que o limiar
     if (Math.abs(diffX) > thresholdX && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-      if (activeTab === 'citadel') {
+      if (activeTab === 'citadel' && citadelEntered) {
         // Dentro da Cidadela, o swipe navega pelas sub-abas dela, não pelas abas principais
         AudioManager.getInstance().playClick();
         setCitadelSubTab((prev) => {
@@ -6958,7 +6970,7 @@ export default function GameUI() {
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
-          {activeTab === 'citadel' ? (
+          {activeTab === 'citadel' && citadelEntered ? (
             <>
               {CITADEL_HEADER_RESOURCES[citadelSubTab].map((res, idx) => (
                 <div
@@ -6968,10 +6980,18 @@ export default function GameUI() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const rect = e.currentTarget.getBoundingClientRect();
+                    // Perto do rodapé (cabeçalho da Cidadela no mobile), não cabe abrir para baixo — abre para cima.
+                    const fitsBelow = window.innerHeight - rect.bottom > 50;
                     setResourceTooltip((prev) =>
                       prev?.idx === idx
                         ? null
-                        : { idx, label: res.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 }
+                        : {
+                            idx,
+                            label: res.label,
+                            x: rect.left + rect.width / 2,
+                            y: fitsBelow ? rect.bottom + 6 : rect.top - 6,
+                            placement: fitsBelow ? 'below' : 'above',
+                          }
                     );
                   }}
                   style={{ fontSize: '0.65rem', fontWeight: 'bold', color: res.color, display: 'flex', alignItems: 'center', gap: '4px', background: `${res.color}14`, padding: '0.15rem 0.4rem', borderRadius: '4px', border: `1px solid ${res.color}2e`, cursor: 'pointer' }}
@@ -6995,7 +7015,7 @@ export default function GameUI() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {activeTab === 'citadel' ? (
+          {activeTab === 'citadel' && citadelEntered ? (
             <button
               onClick={() => {
                 AudioManager.getInstance().playClick();
@@ -7042,7 +7062,7 @@ export default function GameUI() {
             position: 'fixed',
             top: resourceTooltip.y,
             left: resourceTooltip.x,
-            transform: 'translateX(-50%)',
+            transform: resourceTooltip.placement === 'above' ? 'translate(-50%, -100%)' : 'translateX(-50%)',
             background: 'var(--surface-2)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-sm)',
@@ -7061,8 +7081,8 @@ export default function GameUI() {
         document.body
       )}
 
-      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela quando essa aba está ativa */}
-      {activeTab === 'citadel' ? (
+      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela após o jogador confirmar a entrada */}
+      {activeTab === 'citadel' && citadelEntered ? (
         <CitadelTabsBar subTab={citadelSubTab} setSubTab={setCitadelSubTab} />
       ) : (
       <>
@@ -7187,7 +7207,10 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
-          {activeTab === 'citadel' && isCitadelUnlocked && (
+          {activeTab === 'citadel' && isCitadelUnlocked && !citadelEntered && (
+            <CitadelGate onEnter={() => setCitadelEntered(true)} />
+          )}
+          {activeTab === 'citadel' && isCitadelUnlocked && citadelEntered && (
             <>
               {citadelSubTab === 'overview' && <CitadelOverview />}
               {citadelSubTab === 'vault' && <VaultPanel />}

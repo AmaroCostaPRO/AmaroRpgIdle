@@ -23,12 +23,15 @@ const App: React.FC = () => {
   const [welcomeCheckbox, setWelcomeCheckbox] = useState(false);
   const [isGameReady, setIsGameReady] = useState(false);
   const [activeTab, setActiveTab] = useState('combat');
+  const [citadelEntered, setCitadelEntered] = useState(false);
 
   // Escuta a troca de aba da UI para saber quando sobrepor a tela de combate
-  // com a visualização da Cidadela.
+  // com a visualização da Cidadela — só sobrepõe depois que o jogador confirma
+  // a entrada no portão (citadelEntered), não apenas ao tocar na aba.
   useEffect(() => {
     const unsubscribeTab = bridge.subscribe(GameEvent.TAB_CHANGED, (payload: any) => {
       setActiveTab(payload?.tab ?? 'combat');
+      setCitadelEntered(!!payload?.citadelEntered);
     });
     return () => {
       unsubscribeTab();
@@ -245,7 +248,7 @@ const App: React.FC = () => {
               <CombatDropToasts />
 
               {/* Sobrepõe a tela de combate com a visualização da Cidadela enquanto essa aba está ativa */}
-              {activeTab === 'citadel' && <CitadelSpriteStage />}
+              {activeTab === 'citadel' && citadelEntered && <CitadelSpriteStage />}
             </div>
 
             {/* UI Component Container */}
