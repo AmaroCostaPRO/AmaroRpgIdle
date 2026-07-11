@@ -6887,8 +6887,8 @@ export default function GameUI() {
     { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
-    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
     { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: !isCitadelUnlocked },
+    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
     ...(((character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0) ? [
       { id: 'transcendence' as const, label: 'Transcendência', icon: '🌌', disabled: false }
@@ -7140,7 +7140,7 @@ export default function GameUI() {
               }}
               disabled={tab.disabled}
               title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''}`}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'tab-btn-citadel' : ''}`}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
             >
               <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
@@ -7196,7 +7196,7 @@ export default function GameUI() {
                   setActiveTab(tab.id);
                 }}
                 title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
-                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''}`}
+                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'carousel-tab-btn-citadel' : ''}`}
                 style={{
                   flex: '0 0 33.333%',
                   width: '33.333%',

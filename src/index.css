@@ -511,6 +511,34 @@ input, textarea, [contenteditable="true"] {
   box-shadow: 0 0 8px var(--gold-glow);
 }
 
+/* ── Destaque da aba Cidadela — mecânica principal, precisa se diferenciar das demais abas ── */
+.tab-btn-citadel {
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.14), rgba(59, 130, 246, 0.08));
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.18);
+  animation: citadel-tab-glow 2.6s ease-in-out infinite;
+}
+
+.tab-btn-citadel:hover { color: #e9d5ff; }
+
+.tab-btn-citadel.active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(59, 130, 246, 0.16));
+  border-color: rgba(168, 85, 247, 0.65);
+  color: #e9d5ff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 18px rgba(168, 85, 247, 0.5);
+}
+
+.tab-btn-citadel.active::after {
+  background: linear-gradient(90deg, transparent, #c084fc, transparent);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
+}
+
+@keyframes citadel-tab-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(168, 85, 247, 0.15); }
+  50% { box-shadow: 0 0 16px rgba(168, 85, 247, 0.4); }
+}
+
 /* ── Skill Node (Árvore de habilidades) ── */
 .skill-node {
   position: absolute;
@@ -1075,6 +1103,18 @@ input, textarea, [contenteditable="true"] {
   .carousel-tab-btn.active .carousel-label {
     font-size: 0.60rem;
     font-weight: 800;
+  }
+
+  /* ── Destaque da aba Cidadela no carrossel mobile ── */
+  .carousel-tab-btn-citadel {
+    color: #c084fc;
+    opacity: 0.9;
+  }
+
+  .carousel-tab-btn-citadel.active {
+    color: #e9d5ff;
+    border-bottom: 2px solid #c084fc;
+    background: linear-gradient(to top, rgba(168, 85, 247, 0.18), transparent);
   }
 
   /* Permite rolagem horizontal na árvore no mobile */

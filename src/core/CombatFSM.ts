@@ -278,7 +278,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 60,
     color: '#e9d5ff',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['stone']
   },
   {
     id: 'lost_soul',
@@ -290,7 +291,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 65,
     color: '#a5f3fc',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['meat']
   },
   {
     id: 'crystal_shatterer',
@@ -302,7 +304,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 70,
     color: '#f472b6',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'stone']
   },
   {
     id: 'boss_crystal_guardian',
@@ -314,7 +317,8 @@ export const ENEMY_TYPES: EnemyType[] = [
     xpValue: 500,
     color: '#38bdf8',
     flipX: false,
-    yOffset: 0
+    yOffset: 0,
+    materialDrops: ['wood', 'stone', 'meat']
   }
 ];
 
