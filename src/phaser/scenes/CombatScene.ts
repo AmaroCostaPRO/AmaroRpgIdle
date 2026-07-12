@@ -32,7 +32,9 @@ export class CombatScene extends Phaser.Scene {
   private lastSkeletonTickTimer: number = 1000;
   private isSkeletonAttacking: boolean = false;
   private citadelActive: boolean = false;
+  private lastEconomyModeEnabled: boolean = false;
   private unsubscribeTabChanged?: () => void;
+  private unsubscribeEconomyMode?: () => void;
   
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
@@ -241,7 +243,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Textos informativos
     const classConfig = useGameStore.getState().character;
-    const friendlyName = (CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
+    const friendlyName = (classConfig.name || CLASS_CONFIGS[classConfig.classId]?.name || classConfig.classId).toUpperCase();
 
     this.playerNameText = this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 105 * ZOOM_FACTOR, friendlyName, { 
       fontSize: '19px', 
@@ -331,10 +333,22 @@ export class CombatScene extends Phaser.Scene {
 
     // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela em tela cheia,
     // sem pausar a lógica de combate (o herói continua lutando/dropando em background)
+    const applyTargetFps = () => {
+      const economyModeEnabled = useGameStore.getState().economyModeEnabled;
+      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 30 : 60);
+    };
     this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
       this.citadelActive = payload.tab === 'citadel';
-      this.game.loop.targetFps = this.citadelActive ? 15 : 60;
+      applyTargetFps();
     });
+    this.unsubscribeEconomyMode = useGameStore.subscribe((state) => {
+      if (state.economyModeEnabled !== this.lastEconomyModeEnabled) {
+        this.lastEconomyModeEnabled = state.economyModeEnabled;
+        applyTargetFps();
+      }
+    });
+    this.lastEconomyModeEnabled = useGameStore.getState().economyModeEnabled;
+    applyTargetFps();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.cleanup();
@@ -835,6 +849,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public spawnDamageText(x: number, y: number, text: string, color: string): void {
+    if (useGameStore.getState().economyModeEnabled) return;
     const roundedX = Math.round(x);
     const roundedY = Math.round(y) + 65; // Posiciona o dano 65 pixels mais para baixo do Y original
     
@@ -869,6 +884,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public spawnTouchEffect(isCrit: boolean, damage: number, clickX?: number, clickY?: number): void {
+    if (useGameStore.getState().economyModeEnabled) return;
     const targetX = Math.round(clickX ?? (this.enemyBody.x + (Math.random() * 80 - 40)));
     const targetY = Math.round(clickY ?? (this.enemyBody.y + (Math.random() * 80 - 40))) + 65; // Posiciona 65 pixels mais para baixo
 
@@ -1283,6 +1299,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeTabChanged) {
       this.unsubscribeTabChanged();
       this.unsubscribeTabChanged = undefined;
+    }
+    if (this.unsubscribeEconomyMode) {
+      this.unsubscribeEconomyMode();
+      this.unsubscribeEconomyMode = undefined;
     }
     if (this.fsm) {
       this.fsm.cleanup();

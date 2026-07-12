@@ -12,6 +12,7 @@ import { bridge } from './bridge/GameBridge';
 import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
+import { useWakeLock } from './hooks/useWakeLock';
 
 const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -25,6 +26,8 @@ const App: React.FC = () => {
   const [isGameReady, setIsGameReady] = useState(false);
   const [activeTab, setActiveTab] = useState('combat');
   const [citadelEntered, setCitadelEntered] = useState(false);
+
+  useWakeLock(screen === 'playing');
 
   // Escuta a troca de aba da UI para saber quando sobrepor a tela de combate
   // com a visualização da Cidadela — só sobrepõe depois que o jogador confirma

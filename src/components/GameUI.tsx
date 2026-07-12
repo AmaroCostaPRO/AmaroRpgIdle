@@ -25,6 +25,7 @@ import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
 import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
+import { useHoldRepeat } from '../hooks/useHoldRepeat';
 
 export const DAILY_MODIFIERS = [
   {
@@ -721,6 +722,38 @@ const ActiveSkillsPanel: React.FC = () => {
   );
 };
 
+interface HoldButtonProps {
+  onRepeat: () => void;
+  disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+  stopPropagation?: boolean;
+}
+
+const HoldButton: React.FC<HoldButtonProps> = ({ onRepeat, disabled, className, style, children, stopPropagation }) => {
+  const holdHandlers = useHoldRepeat(onRepeat, disabled);
+  const stopIfNeeded = (e: React.SyntheticEvent) => {
+    if (stopPropagation) e.stopPropagation();
+  };
+  return (
+    <button
+      disabled={disabled}
+      className={className}
+      style={style}
+      onMouseDown={(e) => { stopIfNeeded(e); holdHandlers.onMouseDown(); }}
+      onMouseUp={(e) => { stopIfNeeded(e); holdHandlers.onMouseUp(); }}
+      onMouseLeave={holdHandlers.onMouseLeave}
+      onTouchStart={(e) => { stopIfNeeded(e); holdHandlers.onTouchStart(); }}
+      onTouchEnd={(e) => { stopIfNeeded(e); holdHandlers.onTouchEnd(); }}
+      onTouchCancel={holdHandlers.onTouchCancel}
+      onClick={stopIfNeeded}
+    >
+      {children}
+    </button>
+  );
+};
+
 const AttributePanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const upgradeAttribute = useGameStore((state) => state.upgradeAttribute);
@@ -782,7 +815,7 @@ const AttributePanel: React.FC = () => {
       <div style={{ marginBottom: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', marginBottom: '0.4rem' }}>
           <span className="font-heading" style={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-400)' }}>
-            {CLASS_CONFIGS[character.classId]?.name || character.classId} (Lv. {character.level})
+            {character.name || CLASS_CONFIGS[character.classId]?.name || character.classId} ({CLASS_CONFIGS[character.classId]?.name || character.classId} Lv. {character.level})
           </span>
           <span className="font-mono" style={{ color: '#94a3b8', fontSize: '0.65rem' }}>{formatNumber(character.xp, abbreviateNumbers)} / {formatNumber(xpNeeded, abbreviateNumbers)} XP</span>
         </div>
@@ -814,14 +847,14 @@ const AttributePanel: React.FC = () => {
                 <span className="font-mono" style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.15rem' }}>Valor base: {character.baseStats[attr as keyof BaseStats]}</span>
                 <span style={{ fontSize: '0.58rem', color: '#94a3b8', marginTop: '0.15rem', opacity: 0.95, lineHeight: 1.2 }}>{getAttrDetails(attr, character.classId)}</span>
               </span>
-              <button
-                onClick={() => handleUpgradeAttribute(attr)}
+              <HoldButton
+                onRepeat={() => handleUpgradeAttribute(attr)}
                 disabled={availablePoints <= 0}
                 className={`btn btn-sm ${availablePoints > 0 ? 'btn-gold' : 'btn-ghost'}`}
                 style={{ minWidth: '3rem' }}
               >
                 +{multiplier}
-              </button>
+              </HoldButton>
             </div>
           ))}
       </div>
@@ -2068,8 +2101,8 @@ const SkillsTreePanel: React.FC = () => {
                     >
                       Fechar
                     </button>
-                    <button
-                      onClick={() => unlockOrUpgradeSkill(selectedSkillId)}
+                    <HoldButton
+                      onRepeat={() => unlockOrUpgradeSkill(selectedSkillId)}
                       disabled={
                         (character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) ||
                         availableSkillPoints < selectedSkill.cost ||
@@ -2084,13 +2117,13 @@ const SkillsTreePanel: React.FC = () => {
                           ? 'btn-gold' : 'btn-ghost'
                       }`}
                     >
-                      {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0 
+                      {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0
                         ? 'Bloqueado'
-                        : (character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage) 
-                          ? 'Nível Máximo' 
+                        : (character.skillLevels[selectedSkillId] || 0) >= getSkillMaxLevel(selectedSkillId, character.currentStage)
+                          ? 'Nível Máximo'
                           : `Aprimorar (${selectedSkill.cost} SP)`
                       }
-                    </button>
+                    </HoldButton>
                   </div>
                 </div>
               </div>
@@ -2252,11 +2285,9 @@ const SkillsTreePanel: React.FC = () => {
                       <span style={{ fontSize: '0.58rem', color: '#94a3b8' }}>
                         Custo: {skill.cost} SP
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          unlockOrUpgradeSkill(id);
-                        }}
+                      <HoldButton
+                        onRepeat={() => unlockOrUpgradeSkill(id)}
+                        stopPropagation
                         disabled={
                           (character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) ||
                           availableSkillPoints < skill.cost ||
@@ -2272,13 +2303,13 @@ const SkillsTreePanel: React.FC = () => {
                         }`}
                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.6rem' }}
                       >
-                        {getSkillMaxLevel(id, character.currentStage) === 0 
-                          ? 'Bloqueado' 
-                          : (character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage) 
-                            ? 'Nível Máximo' 
+                        {getSkillMaxLevel(id, character.currentStage) === 0
+                          ? 'Bloqueado'
+                          : (character.skillLevels[id] || 0) >= getSkillMaxLevel(id, character.currentStage)
+                            ? 'Nível Máximo'
                             : `Aprimorar (${skill.cost} SP)`
                         }
-                      </button>
+                      </HoldButton>
                     </div>
                   </div>
                 )}
@@ -5215,6 +5246,7 @@ const OptionsPanel: React.FC = () => {
   const autoSellRare = useGameStore((state) => state.autoSellRare);
   const isAutoDismantleActive = (character.citadel?.forgeWorkshop.level || 0) >= 5;
   const disableRobotTap = useGameStore((state) => state.disableRobotTap);
+  const economyModeEnabled = useGameStore((state) => state.economyModeEnabled);
 
   const toggleSfx = useGameStore((state) => state.toggleSfx);
   const toggleBgm = useGameStore((state) => state.toggleBgm);
@@ -5223,6 +5255,7 @@ const OptionsPanel: React.FC = () => {
   const toggleAutoSellCommon = useGameStore((state) => state.toggleAutoSellCommon);
   const toggleAutoSellRare = useGameStore((state) => state.toggleAutoSellRare);
   const toggleDisableRobotTap = useGameStore((state) => state.toggleDisableRobotTap);
+  const toggleEconomyMode = useGameStore((state) => state.toggleEconomyMode);
 
   const playClick = () => AudioManager.getInstance().playClick();
 
@@ -5660,6 +5693,26 @@ const OptionsPanel: React.FC = () => {
               style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
             >
               {abbreviateNumbers ? 'On' : 'Off'}
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--border-dim)', margin: '0.2rem 0' }} />
+
+          {/* Toggle Modo de Economia */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+            <div>
+              <div style={{ fontWeight: 'bold' }}>Modo de Economia</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Oculta os números de dano na tela e reduz a animação para 30fps, economizando bateria.</div>
+            </div>
+            <button
+              onClick={() => {
+                toggleEconomyMode();
+                playClick();
+              }}
+              className={`btn btn-sm ${economyModeEnabled ? 'btn-success' : 'btn-secondary'}`}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+            >
+              {economyModeEnabled ? 'On' : 'Off'}
             </button>
           </div>
         </div>

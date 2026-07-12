@@ -1,4 +1,4 @@
-export const ENEMIES_PER_STAGE = 15;
+export const ENEMIES_PER_STAGE = 20;
 
 export interface BaseStats {
   strength: number;
@@ -97,6 +97,7 @@ export interface PrestigeUpgradeNode {
 
 export interface Character {
   id: string;
+  name: string;
   classId: string;
   level: number;
   xp: number;
@@ -112,7 +113,7 @@ export interface Character {
   skillPoints: number; // pontos para a árvore de habilidades
   highestStageReached: number;
   currentStage: number; // Fase active do combate (ex: Fase 1)
-  enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 15)
+  enemiesDefeatedInStage: number; // Inimigos normais derrotados na fase (0 a 20)
   classLevels: Record<string, number>; // Maior nível alcançado em cada classe
   autoCastEnabled: boolean; // Indica se o auto-ataque de habilidades está ligado
   autoCastHealPercent?: number; // Porcentagem de HP para cura automática

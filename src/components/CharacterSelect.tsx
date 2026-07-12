@@ -9,6 +9,8 @@ export const CharacterSelect: React.FC = () => {
   const classLevels = useGameStore((state) => state.character.classLevels || {});
   
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
+  const [characterName, setCharacterName] = useState<string>('');
+  const trimmedName = characterName.trim();
 
   const classes = Object.entries(CLASS_CONFIGS);
   const activeIndex = classes.findIndex(([classId]) => classId === selectedClass);
@@ -23,8 +25,8 @@ export const CharacterSelect: React.FC = () => {
 
   const handleStartGame = () => {
     AudioManager.getInstance().playClick();
-    if (isClassUnlocked(selectedClass, classLevels)) {
-      startNewGame(selectedClass);
+    if (isClassUnlocked(selectedClass, classLevels) && trimmedName.length > 0) {
+      startNewGame(selectedClass, trimmedName);
     }
   };
 
@@ -61,6 +63,30 @@ export const CharacterSelect: React.FC = () => {
         Selecione Sua Classe
       </h2>
       <div className="ornament" style={{ marginBottom: '1.5rem' }} />
+
+      {/* Nome do Personagem */}
+      <div style={{ width: '100%', maxWidth: '22rem', marginBottom: '1.5rem' }}>
+        <label className="font-heading" style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-400)', marginBottom: '0.4rem' }}>
+          Nome do Personagem
+        </label>
+        <input
+          type="text"
+          value={characterName}
+          onChange={(e) => setCharacterName(e.target.value.slice(0, 20))}
+          placeholder="Digite um nome..."
+          maxLength={20}
+          className="input"
+          style={{
+            width: '100%',
+            padding: '0.6rem 0.75rem',
+            fontSize: '0.8rem',
+            background: 'rgba(0,0,0,0.3)',
+            border: '1px solid var(--border-dim)',
+            borderRadius: 'var(--radius-md)',
+            color: '#fff',
+          }}
+        />
+      </div>
 
       {/* Conteúdo Principal de Seleção (Desktop lado a lado, Mobile empilhado) */}
       <div className="class-selection-layout">
@@ -322,7 +348,7 @@ export const CharacterSelect: React.FC = () => {
         </button>
         <button
           onClick={handleStartGame}
-          disabled={!isClassUnlocked(selectedClass, classLevels)}
+          disabled={!isClassUnlocked(selectedClass, classLevels) || trimmedName.length === 0}
           className="btn btn-gold"
           style={{ flex: 1 }}
         >

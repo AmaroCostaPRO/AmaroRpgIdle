@@ -478,6 +478,7 @@ interface GameState {
   autoSellCommon: boolean;
   autoSellRare: boolean;
   disableRobotTap: boolean;
+  economyModeEnabled: boolean;
   currentSlot: number | null;
   toggleSfx(): void;
   toggleBgm(): void;
@@ -488,6 +489,7 @@ interface GameState {
   toggleAutoSellCommon(): void;
   toggleAutoSellRare(): void;
   toggleDisableRobotTap(): void;
+  toggleEconomyMode(): void;
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
@@ -523,7 +525,7 @@ interface GameState {
   resetTranscendenceUpgrades(): void;
   unlockOrUpgradeSkill(skillId: string): void;
   selectClass(classId: string): void;
-  startNewGame(classId: string): void;
+  startNewGame(classId: string, name?: string): void;
   loadSavedGame(): boolean;
   advanceStage(): void;
   resetStageProgress(): void;
@@ -722,10 +724,11 @@ const computeClassExpeditionProduction = (classId: string, expeditionLevel: numb
   };
 };
 
-const DEFAULT_CHARACTER = (classId: string = 'warrior'): Character => {
+const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Character => {
   const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
   return {
     id: 'default-char',
+    name: name?.trim() || config.name,
     classId: classId,
     level: 1,
     xp: 0,
@@ -874,6 +877,15 @@ export const useGameStore = create<GameState>((set) => ({
     }
   })(),
 
+  economyModeEnabled: (() => {
+    try {
+      const saved = localStorage.getItem('rpg_economy_mode');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  })(),
+
   toggleConsole: () => set((state) => {
     const val = !state.consoleEnabled;
     try {
@@ -916,6 +928,14 @@ export const useGameStore = create<GameState>((set) => ({
       localStorage.setItem('rpg_disable_robot_tap', String(val));
     } catch (e) {}
     return { disableRobotTap: val };
+  }),
+
+  toggleEconomyMode: () => set((state) => {
+    const val = !state.economyModeEnabled;
+    try {
+      localStorage.setItem('rpg_economy_mode', String(val));
+    } catch (e) {}
+    return { economyModeEnabled: val };
   }),
 
   toggleSfx: () => set((state) => {
@@ -2150,8 +2170,8 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
-  startNewGame: (classId) => set(() => {
-    const newChar = DEFAULT_CHARACTER(classId);
+  startNewGame: (classId, name) => set(() => {
+    const newChar = DEFAULT_CHARACTER(classId, name);
 
     saveToLocalStorage(newChar);
     return { character: newChar, screen: 'playing' };
