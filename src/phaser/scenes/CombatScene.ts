@@ -60,6 +60,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('cleric_sprite', 'assets/cleric_sprite.png');
     this.load.image('rogue_sprite', 'assets/rogue_sprite.png');
     this.load.image('necromancer_sprite', 'assets/necromancer_sprite.png');
+    this.load.image('avatar_sprite', 'assets/avatar_sprite.png');
 
     // Inimigos - Fase 1 (Floresta)
     this.load.image('enemy_goblin', 'assets/enemy_goblin.png');
@@ -164,6 +165,7 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('cleric_sprite', 'cleric_transparent');
     this.makeTextureTransparent('rogue_sprite', 'rogue_transparent');
     this.makeTextureTransparent('necromancer_sprite', 'necromancer_transparent');
+    this.makeTextureTransparent('avatar_sprite', 'avatar_transparent');
 
     this.makeTextureTransparent('enemy_orc', 'enemy_orc_transparent');
     this.makeTextureTransparent('enemy_goblin', 'enemy_goblin_transparent');
@@ -214,6 +216,7 @@ export class CombatScene extends Phaser.Scene {
     else if (classId === 'cleric') playerTexture = 'cleric_transparent';
     else if (classId === 'rogue') playerTexture = 'rogue_transparent';
     else if (classId === 'necromancer') playerTexture = 'necromancer_transparent';
+    else if (classId === 'avatar') playerTexture = 'avatar_transparent';
 
     // Player (Herói) usando a textura da classe atualizada
     this.playerBody = this.add.image(this.PLAYER_START_X, this.PLAYER_START_Y, playerTexture);
