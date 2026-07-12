@@ -2365,7 +2365,22 @@ export const useGameStore = create<GameState>((set) => ({
       for (let i = 1; i <= 12; i++) {
         localStorage.removeItem(`medieval_idle_save_slot_${i}`);
       }
+      // Sistemas persistidos fora do nó do personagem (adicionados após a criação
+      // original deste reset) — precisam ser limpos explicitamente, senão sobrevivem
+      // ao "Resetar Todos os Dados" tanto no localStorage quanto na memória da store.
+      localStorage.removeItem('medieval_idle_relics');
+      localStorage.removeItem('medieval_idle_tower');
+      localStorage.removeItem('medieval_idle_personal_records');
     } catch (e) {}
+
+    // Reseta também o estado em memória dessas stores, já que a tela permanece
+    // montada (volta para 'menu' sem recarregar a página) — sem isso, o jogador
+    // veria relíquias/torre antigas até um refresh manual do navegador.
+    try {
+      useRelicStore.getState().resetRelics();
+      useTowerStore.getState().resetTowerProgress();
+    } catch (e) {}
+
     const fresh = DEFAULT_CHARACTER('warrior');
     return { character: fresh, currentSlot: null, screen: 'menu' };
   }),

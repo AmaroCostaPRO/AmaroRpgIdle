@@ -11,6 +11,7 @@ import { AudioManager } from './core/AudioManager';
 import { bridge } from './bridge/GameBridge';
 import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
+import { WelcomeGuideModal } from './components/WelcomeGuideModal';
 
 const App: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
@@ -20,7 +21,7 @@ const App: React.FC = () => {
 
   const [showWelcome, setShowWelcome] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
-  const [welcomeCheckbox, setWelcomeCheckbox] = useState(false);
+  const [isGuideManuallyReopened, setIsGuideManuallyReopened] = useState(false);
   const [isGameReady, setIsGameReady] = useState(false);
   const [activeTab, setActiveTab] = useState('combat');
   const [citadelEntered, setCitadelEntered] = useState(false);
@@ -65,12 +66,30 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleCloseWelcome = () => {
-    AudioManager.getInstance().playClick();
-    if (welcomeCheckbox) {
+  // Permite reabrir o Guia Rápido a qualquer momento pela aba Opções, mesmo
+  // que o jogador já tenha marcado "não mostrar novamente" no primeiro acesso.
+  useEffect(() => {
+    const unsubscribeGuide = bridge.subscribe(GameEvent.SHOW_WELCOME_GUIDE, () => {
+      setShowChangelog(false);
+      setIsGuideManuallyReopened(true);
+      setShowWelcome(true);
+    });
+    return () => {
+      unsubscribeGuide();
+    };
+  }, []);
+
+  const handleCloseWelcome = (dontShowAgain: boolean) => {
+    if (dontShowAgain) {
       localStorage.setItem('medieval_idle_hide_welcome', 'true');
     }
     setShowWelcome(false);
+    // Se o guia foi reaberto manualmente pela aba Opções (não no primeiro acesso),
+    // não reexibe o changelog de novidades ao fechar.
+    if (isGuideManuallyReopened) {
+      setIsGuideManuallyReopened(false);
+      return;
+    }
     setShowChangelog(true);
   };
 
@@ -258,120 +277,9 @@ const App: React.FC = () => {
           </div>
         )}
 
-      {/* Modal 1: Boas-vindas / Tutorial */}
+      {/* Modal 1: Boas-vindas / Tutorial (Guia Rápido paginado) */}
       {showWelcome && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(10, 8, 15, 0.85)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 999999,
-          padding: '1rem',
-          pointerEvents: 'all'
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #1d1f1f 0%, #161717 100%)',
-            border: '2px solid var(--gold-400)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.5rem',
-            width: '100%',
-            maxWidth: '450px',
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
-          }}>
-            <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              🛡️ Guia Rápido & Tutorial Inicial
-            </h3>
-            
-            <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p>
-                Bem-vindo ao <strong>Amaro RPG Idle</strong>! Prepare-se para enfrentar hordas de monstros e ascender sua alma. Siga este guia rápido para iniciar sua jornada de poder:
-              </p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', background: 'rgba(0,0,0,0.2)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⚔️</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Combate Automático e Toques Ativos</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
-                      Seu herói ataca automaticamente. Mas você pode ajudar clicando ou tocando ativamente na tela de combate para desferir danos de clique adicionais e ativar combos de Frenesi!
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>◆</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Evolução e Atributos</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
-                      Suba de nível para ganhar pontos e distribuí-los. O Atributo Principal da sua classe ativa escala seu dano básico. Atributos secundários concedem vida, mana e esquiva de forma aprimorada.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>⚙️</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Habilidades e Auto-Cast</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
-                      Compre novas habilidades ativas e passivas. Ative o <i>Auto-Cast</i> para conjuração automática e clique na engrenagem ao lado para definir o limite de vida para a Cura e selecionar quais habilidades usar.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>🎒</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Equipamentos e a Grande Forja</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
-                      Derrote monstros para coletar itens e formar bônus de conjunto. Na Forja, você pode fundir peças idênticas de um mesmo conjunto pagando taxas em ouro para criar e evoluir itens de raridade <strong>Mística</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>👑</span>
-                  <div>
-                    <strong style={{ color: '#fff', fontSize: '0.72rem' }}>Ascensão da Alma (Roguelite)</strong>
-                    <p style={{ color: '#94a3b8', fontSize: '0.68rem', margin: '0.1rem 0 0 0', lineHeight: 1.35 }}>
-                      Quando o avanço ficar difícil, Ascenda sua Alma. Você resetará o progresso temporário, mas ganhará bônus permanentes acumulados e Pontos de Prestígio (PP) para evoluir sua árvore de talentos de Alma.
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.68rem', color: '#94a3b8', userSelect: 'none' }}>
-                <input 
-                  type="checkbox" 
-                  checked={welcomeCheckbox} 
-                  onChange={(e) => setWelcomeCheckbox(e.target.checked)} 
-                  style={{ cursor: 'pointer', width: '14px', height: '14px', accentColor: 'var(--gold-500)' }} 
-                />
-                Não mostrar esta mensagem novamente
-              </label>
-
-              <button 
-                onClick={handleCloseWelcome}
-                className="btn btn-sm btn-gold" 
-                style={{ width: '100%', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}
-              >
-                Começar Aventura!
-              </button>
-            </div>
-          </div>
-        </div>
+        <WelcomeGuideModal onClose={handleCloseWelcome} />
       )}
 
       {/* Modal 2: Changelog / Notas de Atualização */}

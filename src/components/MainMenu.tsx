@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
+import { bridge } from '../bridge/GameBridge';
+import { GameEvent } from '../core/types';
 
 export const MainMenu: React.FC = () => {
   const setScreen = useGameStore((state) => state.setScreen);
@@ -208,6 +210,34 @@ export const MainMenu: React.FC = () => {
             </button>
           </div>
  
+          {/* Reabrir Guia Rápido */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', fontSize: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+              <span style={{ color: '#94a3b8' }}>Guia Rápido & Tutorial</span>
+              <span style={{ fontSize: '0.58rem', color: '#64748b', lineHeight: 1.4 }}>Reabre o guia de boas-vindas, mesmo se marcado para não mostrar novamente.</span>
+            </div>
+            <button
+              onClick={() => {
+                playClick();
+                bridge.emit(GameEvent.SHOW_WELCOME_GUIDE, {});
+              }}
+              className="badge badge-unlocked"
+              style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#34d399',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '0.65rem',
+                whiteSpace: 'nowrap' as const
+              }}
+            >
+              Abrir
+            </button>
+          </div>
+
           <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-dim)' }}>
             <h3 className="font-heading" style={{ fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               Zona de Perigo

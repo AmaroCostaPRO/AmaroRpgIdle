@@ -191,20 +191,21 @@ A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
     *   Regeneração de Mana ganha por ponto de Magia: $0.09\text{ Mana/s}$
 
 #### 3. Velocidade de Ataque (Attack Speed) e Esquiva (Dodge)
-A velocidade com que o herói realiza ataques básicos e sua chance de se esquivar de ataques inimigos escalam a partir do atributo **Destreza**:
-*   **Classes Primárias de Destreza (Arqueiro, Ladrão)**:
-    *   Aumento de Velocidade de Ataque por ponto de Destreza: $+1.0\%$
-*   **Outras Classes (Guerreiro, Mago, Paladino, Clérigo)**:
-    *   Aumento de Velocidade de Ataque por ponto de Destreza: $+3.5\%$
+A velocidade com que o herói realiza ataques básicos e sua chance de se esquivar de ataques inimigos escalam a partir do atributo **Destreza**, através de uma **raiz quadrada** (para evitar crescimento linear descontrolado em fases avançadas):
+$$\text{Velocidade de Ataque} = \left(1 + \sqrt{\text{Destreza}} \times \text{Fator de Destreza}\right) \times \text{Bônus de Velocidade de Habilidades} \times \left(1 + \text{Bônus de Set/Colar/Academia}\right)$$
+*   **Classes Primárias de Destreza (Arqueiro, Ladrão)**: $\text{Fator de Destreza} = 0.15$
+*   **Outras Classes (Guerreiro, Mago, Paladino, Clérigo)**: $\text{Fator de Destreza} = 0.40$ (compensa a menor Destreza base dessas classes)
+*   O multiplicador final de velocidade é limitado a um teto de **$15\times$**.
 *   **Esquiva (Todas as Classes)**:
-    *   Cada ponto de Destreza concede $+0.1\%$ de Chance de Esquiva contra ataques recebidos de monstros, com limite de até $75\%$ de esquiva máxima para fins de balanceamento do jogo.
+    $$\text{Chance de Esquiva} = \min\left(75\%,\ \text{Destreza} \times 0.1\% + \text{Ascensões} \times 0.5\%\right)$$
+    Cada ponto de Destreza concede $+0.1\%$ de Chance de Esquiva, e cada Ascensão realizada soma $+0.5\%$ adicional, com limite de até $75\%$ de esquiva máxima para fins de balanceamento do jogo.
 
 #### 4. Drop, Ouro e Crítico (Sorte)
 O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados, o ouro ganho e também o desempenho em combate ativamente através do clique:
 *   **Chance de Drop (Monstros Normais)**:
-    $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\%\right)$$
-*   **Multiplicador de Ouro**:
-    $$\text{Bônus} = 1 + \frac{\text{Sorte Final}}{100}$$
+    $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\% + \text{Bônus de Relíquia} + \text{Bônus de Colar (}dropChancePct\text{)}\right)$$
+*   **Multiplicador de Ouro** (escala por raiz quadrada, ver também Seção 13.B):
+    $$\text{Bônus} = 1 + \frac{\sqrt{\text{Sorte Final}}}{10}$$
 *   **Chance de Crítico de Toque**:
     Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
 *   **Dano Crítico de Toque**:
@@ -443,7 +444,7 @@ Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adi
 ### Habilidades Ultimate (End-Game)
 As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada classe, desbloqueadas sob condições estritas:
 *   **Condições de Desbloqueio**: O personagem precisa estar na dificuldade **Inferno** ou superior (Fase 11+), ter alcançado pelo menos o **Nível 15** e possuir a habilidade tier 6 de sua classe desbloqueada (nível $\ge 1$).
-*   **Limitação**: O limite máximo de nível de todas as habilidades Ultimate é fixado em **Nível 1**, não sendo possível aumentá-lo.
+*   **Progressão de Nível**: As habilidades Ultimate possuem `maxLevel` base de **5** e seguem exatamente as mesmas regras de expansão de nível máximo descritas em "Regras de Progressão e Nível Máximo" acima — podendo ser aprimoradas até o **Nível 10** ao alcançar a Fase 11 (Inferno) e até o **Nível 15** ao alcançar a Fase 21 (Pandemônio). O dano escala em $+15\%$ multiplicativo por nível, como qualquer habilidade ativa comum.
 *   **Custo e Cooldown**: Possuem custos elevados de mana e tempos de recarga prolongados (50 a 80 segundos), refletindo seu impacto massivo no combate.
 
 #### Catálogo de Habilidades Ultimate por Classe
@@ -683,18 +684,16 @@ stateDiagram-v2
 5.  **`DEAD`**: O herói foi derrotado. O progresso de monstros derrotados no estágio atual é resetado para zero. Após um período de 3 segundos, o herói ressuscita com HP e mana cheios e o FSM retorna para `IDLE` no início da mesma fase.
 
 ### B. Ciclos de Ataque e Velocidades
-*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $3.0\times$ do Atributo Principal da classe ativa e seu bônus de Força secundário (com a adição de chance e dano crítico globalizados), mais uma variação aleatória de $+0$ a $+3$:
-    $$\text{Dano Básico} = \lfloor ((\text{Atributo Principal} + \text{Bônus Secundário de Força}) \times 3.0 + \text{Random}(0, 2)) \times \text{Multiplicador de Crítico} \rfloor$$
+*   **Ataque Básico do Jogador**: Causa dano físico, mágico ou de perfuração equivalente a $3.0\times$ do Atributo Principal da classe ativa e seu bônus de Força secundário (com a adição de chance e dano crítico globalizados), mais uma variação aleatória de $+0$ a $+3$, multiplicado por uma cadeia completa de modificadores globais:
+    $$\text{Dano Básico} = \left\lfloor \left((\text{Atributo Principal} + \text{Bônus Secundário de Força}) \times 3.0 + \text{Random}(0, 3)\right) \times \text{Exposto} \times \text{Boost de Dano} \times \text{Crítico} \times \text{Força}_{\text{pen.}} \times (1 + \text{Relíquia Luz da Alma}) \times \text{Penetração de Armadura (Relíquia)} \times \text{Bônus de Set/Colar/Academia} \right\rfloor$$
     *   *Onde o bônus secundário de Força se aplica apenas a classes que não possuem a Força como atributo primário:*
         $$\text{Bônus Secundário de Força} = \begin{cases} 0 & \text{se Guerreiro} \\ \text{Força} \times 0.25 & \text{se Mago, Arqueiro, Paladino, Clérigo, Ladrão} \end{cases}$$
-    A recarga do ataque básico é calculada dinamicamente:
-    $$\text{Velocidade de Ataque} = \left( 1 + \text{Destreza} \times \text{Fator de Destreza} \right) \times \left(1 + \text{Ascensões} \times 0.02\right)$$
-    *Onde o $\text{Fator de Destreza}$ depende do balanceamento de utilidade da classe:*
-    *   *Se a classe for focada em Destreza (Arqueiro, Ladrão): $\text{Fator de Destreza} = 0.01$ ($1\%$ por ponto).*
-    *   *Se a classe NÃO for focada em Destreza (Guerreiro, Mago, Paladino, Clérigo): $\text{Fator de Destreza} = 0.035$ ($3.5\%$ por ponto).*
-    $$\text{Recarga do Ataque} = \max\left( 800\text{ ms}, \frac{3000\text{ ms}}{\text{Velocidade de Ataque}} \right)$$
-*   **Ataque do Inimigo**: Causa dano com base no escalonamento da fase. Contudo, antes de aplicar o dano à vida do herói, o jogo calcula a chance de esquiva do jogador baseada em sua Destreza:
-    $$\text{Chance de Esquiva} = \min\left(75\%, \text{Destreza} \times 0.1\%\right)$$
+    *   *Força$_{\text{pen.}}$ (penetração de armadura por Força, Seção 4.C.5): $1 + \text{Força} \times 0.0005$.*
+    *   *Boost de Dano* agrega os bônus de Ascensão e do Bestiário (Seção 7.E); *Exposto* é o multiplicador do debuff aplicado por certas habilidades (ex.: Ira do Céu do Clérigo).
+    A recarga do ataque básico é calculada dinamicamente a partir da Velocidade de Ataque (fórmula por raiz quadrada, ver Seção 4.C.3):
+    $$\text{Recarga do Ataque} = \max\left( 200\text{ ms}, \frac{3000\text{ ms}}{\text{Velocidade de Ataque}} \right)$$
+*   **Ataque do Inimigo**: Causa dano com base no escalonamento da fase. Contudo, antes de aplicar o dano à vida do herói, o jogo calcula a chance de esquiva do jogador baseada em sua Destreza e no número de Ascensões (fórmula completa na Seção 4.C.3):
+    $$\text{Chance de Esquiva} = \min\left(75\%, \text{Destreza} \times 0.1\% + \text{Ascensões} \times 0.5\%\right)$$
     Se a esquiva for bem-sucedida, o ataque é anulado, a mensagem de log relata o desvio e o texto flutuante **"Desviou!"** é disparado. O tempo de recarga base do ataque do monstro diminui com o nível da fase para torná-lo mais rápido, modificado por seu multiplicador de velocidade:
     $$\text{Recarga Base} = 3600 - \left( \text{Fase} \times 30 \right)$$
     $$\text{Recarga do Inimigo} = \max\left( 1000\text{ ms}, \frac{\text{Recarga Base}}{\text{Multiplicador de Velocidade do Monstro}} \right)$$
@@ -716,7 +715,8 @@ O jogo possui **30 fases fixas de campanha** — as 20 fases clássicas dividida
 
 *   **Fórmulas de Escalonamento de Dificuldade**:
     $$\text{Fator HP} = 1.30^{\text{Fase} - 1}$$
-    $$\text{Fator Dano} = 1.25^{\text{Fase} - 1}$$
+    $$\text{Fator Dano} = 1.18^{\text{Fase} - 1}$$
+    *(O Fator Dano usa um expoente mais conservador que o Fator HP para conter o crescimento do dano recebido em fases avançadas, mantendo o combate jogável sem exigir redução de dano desproporcional.)*
     $$\text{Fator Tier} = \begin{cases} 1.0 & \text{se Fase} \le 5 \text{ (Normal)} \\ 2.0 & \text{se } 6 \le \text{Fase} \le 10 \text{ (Pesadelo)} \\ 3.0 & \text{se } 11 \le \text{Fase} \le 15 \text{ (Inferno)} \\ 4.0 & \text{se } 16 \le \text{Fase} \le 20 \text{ (Apocalipse)} \\ 5.0 & \text{se } 21 \le \text{Fase} \le 30 \text{ (Purgatório)} \\ 6.0 & \text{se Fase} \ge 31 \text{ (Pandemônio)} \end{cases}$$
     *O Fator Tier é idêntico para HP e Dano — ambos escalam simetricamente em todos os tiers, incluindo a transição do Purgatório para o Pandemônio.*
 *   **Vida Máxima de Inimigo Comum**:
@@ -724,7 +724,8 @@ O jogo possui **30 fases fixas de campanha** — as 20 fases clássicas dividida
 *   **Vida Máxima de Chefe**:
     $$\text{HP Máximo Chefe} = \lfloor (150 + (\text{Fase} \times 50)) \times \text{Fator HP} \times \text{Multiplicador HP Chefe} \times 3.0 \times \text{Fator Tier} \rfloor$$
 *   **Dano dos Ataques do Inimigo**:
-    $$\text{Dano do Inimigo} = \lfloor (10 + \text{Fase} \times 4.0 + \text{Random}(0, 1)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Tier} \rfloor$$
+    $$\text{Dano do Inimigo} = \lfloor (10 + \text{Fase} \times 4.0 + \text{Random}(0, 2)) \times \text{Fator Dano} \times \text{Multiplicador Dano Monstro} \times \text{Fator Tier} \times \text{Redução por Constituição} \rfloor$$
+    *(Na Torre Infinita, a fórmula usa base $10 + \text{Andar} \times 3.0$ e um Fator Dano exponencial próprio de $1.10^{\text{Andar}-1}$, sem o Fator Tier — ver Seção 10 sobre a Torre.)*
 
 ---
 
@@ -793,7 +794,8 @@ Sempre que um inimigo é derrotado, há uma chance de gerar um equipamento no in
 
 1.  **Probabilidade de Drop**:
     *   *Monstro Comum*:
-        $$\text{Chance de Drop} = \min\left(0.50, 0.05 + \text{Sorte} \times 0.002\right)$$
+        $$\text{Chance de Drop} = \min\left(0.50,\ 0.05 + \text{Sorte} \times 0.002 + \text{Bônus da Relíquia Símbolo do Aprendizado} + \text{Bônus }dropChancePct\text{ do Colar}\right)$$
+        *(Os bônus de Relíquia e do passivo `dropChancePct` do Colar — Seção 5.D — somam-se antes da fórmula base ser limitada ao teto de $50\%$.)*
     *   *Chefe de Fase*:
         $$\text{Chance de Drop} = 1.00\quad (100\%)$$
 2.  **Qualidade (Raridade) do Item**:
@@ -856,10 +858,10 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 *   **Foco Ágil (`perm_dex`)**: $+6$ Dexterity permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
 *   **Vigor Eterno (`perm_con`)**: $+18$ Constitution permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
 *   **Bênção da Sorte (`perm_luk`)**: $+6$ Luck permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10 (Sem limite após Pandemônio).
-*   **Toque Divino (`perm_touch`)**: $+5$ Poder do Toque permanente por nível. Custo inicial: $2\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
+*   **Toque Divino (`perm_touch`)**: $+8$ Poder do Toque permanente por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Foco Crítico (`perm_touch_crit`)**: $+3\%$ Chance de Crítico global por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
 *   **Poder Devastador (`perm_touch_crit_dmg`)**: $+15\%$ Dano Crítico global por nível. Custo inicial: $3\text{ PP} \times \text{Nível}$. Nível Máximo: 10.
-*   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+2$ cliques por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
+*   **Robô Assistente (`perm_robot`)**: Desbloqueia e aprimora um robô de clique automático permanente que realiza $+1$ Toque por segundo por nível. Custo inicial: $5\text{ PP} \times \text{Nível}$. Nível Máximo: 5.
 
 ### D. Ativação Especial do Modo Pandemônio
 *   **Requisito de Desbloqueio (Altar de Alma)**:
@@ -1059,6 +1061,26 @@ Para otimizar o espaço visual da interface (especialmente em dispositivos móve
 2.  **Aba de Consumíveis**: Destinada a abrigar itens de uso imediato ou moedas em forma de item, como Baús de Equipamentos Lendários/Ancestrais, Baús de Relíquias, Chaves da Torre e Fragmentos de Alma Instável.
     *   *Proteção contra Vendas*: Todos os itens contidos na aba de Consumíveis são protegidos por travas de sistema contra vendas em massa ou rápidas, prevenindo que o jogador venda acidentalmente moedas raras ou consumíveis de alto valor estratégico adquiridos na Loja ou como recompensas.
 
+### F. Sistema de Relíquias (Altar da Alma)
+Paralelamente ao ouro, o jogo possui uma segunda economia de progressão permanente baseada em **Fragmentos de Alma Instável** (`unstableSoulFragments`), persistidos independentemente do personagem ativo na chave `medieval_idle_relics` (compartilhados entre todos os slots de save).
+
+*   **Obtenção de Fragmentos**: Chefes de Fase possuem **5% de chance** de derrubar 1 unidade de "Fragmento de Alma Instável" ao serem derrotados (`CombatFSM.ts`).
+*   **Forja de Relíquia**: Por $10$ Fragmentos, o jogador pode forjar no Altar da Alma, o que sorteia **aleatoriamente uma relíquia elegível** (nível atual $<$ nível máximo $5$) dentre as 8 disponíveis e a desbloqueia ou aprimora em +1 nível. Não é possível escolher qual relíquia será sorteada.
+*   **Catálogo de Relíquias** (todas com Nível Máximo 5, bônus linear por nível + efeito especial exclusivo no Nível 5, o "Capstone"):
+
+| Relíquia | Bônus por Nível | Efeito Capstone (Nível 5) |
+| :--- | :--- | :--- |
+| Luz da Alma Partida (`luz_alma`) | $+3\%$ Dano Geral | $+10\%$ Dano Crítico |
+| Moeda do Ciclo Eterno (`moeda_ciclo`) | $+4\%$ Ouro Ganho | $+5\%$ de chance de Ouro em Dobro |
+| Símbolo do Aprendizado (`simbolo_aprendizado`) | $+3\%$ Chance de Drop | $+10\%$ de chance de promover um drop Comum para Raro/Lendário |
+| Gema da Vontade (`gema_vontade`) | $+4$ Força | $+10\%$ de Penetração de Armadura |
+| Núcleo do Pensamento (`nucleo_pensamento`) | $+4$ Magia | $+15\%$ de Regeneração de Mana |
+| Foco da Precisão (`foco_precisao`) | $+4$ Destreza | $+5\%$ de Velocidade de Ataque |
+| Brasão da Devoção (`brasao_devoacao`) | $+6$ Constituição | $+2\%$ de HP Máximo como barreira ao iniciar/reviver em combate |
+| Olho da Sobrevivência (`olho_sobrevivencia`) | $+4$ Sorte | Reduz o Cooldown de Cura em $1.5\text{s}$ |
+
+*   **Superaquecimento de Alma (Cidadela — Laboratório de Relíquias)**: Uma vez que uma relíquia atinja o Nível 5, ela pode ser submetida ao Superaquecimento no **Laboratório de Relíquias Místicas** da Cidadela Astral (Seção 18.G), amplificando seu efeito Capstone em aproximadamente $2.5\times$ (ex.: o Dano Crítico da Luz da Alma Partida sobe de $+10\%$ para $+25\%$).
+
 ---
 
 ## 14. Altar de Forja Mística
@@ -1072,14 +1094,13 @@ Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatori
 *   **Mesma Categoria de Raridade**:
     *   **Fusão Não-Mística**: Dois itens normais/convencionais (Comum, Incomum, Raro, Épico ou Lendário). Eles não precisam ser da mesma raridade entre si (ex.: um Épico e um Lendário do mesmo tipo podem ser fundidos).
     *   **Fusão Mística**: Dois itens Místicos. Contudo, eles **devem ter exatamente o mesmo nível místico** (ex.: Místico +1 com Místico +1). Não é permitido fundir um item convencional com um místico, ou dois místicos de níveis diferentes.
-*   **Nível Místico Máximo**: O nível místico máximo de destino permitido para qualquer item é **+5**.
+*   **Nível Místico Máximo**: O nível místico máximo de destino permitido para qualquer item é **+8** (elevado de +5 para +8 na Versão 4.2.0 — ver Histórico de Updates).
 
 ### B. Custo de Fusão
 A fusão exige o pagamento de uma taxa combinada de Ouro e **Fragmentos de Forja** que aumenta progressivamente dependendo do nível místico resultante:
 *   **Fusão Inicial** (Gera Místico +1): $500$ Ouro e $100$ Fragmentos de Forja.
-*   **Fusão de Itens Místicos** (Gera Místico $+2$ até $+5$):
-    *   Místico +1 para Místico +2: $1.000$ Ouro e $250$ Fragmentos de Forja.
-    *   Demais fusões: Ouro escalado por $100 \times 5^L$ (onde $L$ é o nível de origem) e Fragmentos escalados proporcionalmente.
+*   **Fusão de Itens Místicos até +5** (Místico $+2$ até $+5$): custos fixos em tabela (abaixo).
+*   **Fusão de Itens Místicos +6 a +8**: Ouro escalado pela fórmula $100 \times 5^L$ (onde $L$ é o nível místico de origem) e Fragmentos de Forja fixos por patamar (5.000 / 10.000 / 20.000).
 
 | Nível de Origem | Nível Resultante | Custo em Ouro | Custo em Fragmentos de Forja |
 | :--- | :--- | :--- | :--- |
@@ -1088,6 +1109,9 @@ A fusão exige o pagamento de uma taxa combinada de Ouro e **Fragmentos de Forja
 | Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro | $500$ Fragmentos |
 | Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro | $1.000$ Fragmentos |
 | Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro | $2.500$ Fragmentos |
+| Místico +5 + Místico +5 | Místico +6 | $312.500$ Ouro | $5.000$ Fragmentos |
+| Místico +6 + Místico +6 | Místico +7 | $1.562.500$ Ouro | $10.000$ Fragmentos |
+| Místico +7 + Místico +7 | Místico +8 | $7.812.500$ Ouro | $20.000$ Fragmentos |
 
 ### C. Regras de Fusão — Fórmula Assimétrica de Atributos
 Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são combinados no novo item místico seguindo uma **fórmula assimétrica** que recompensa o uso de itens complementares em vez de penalizar o item mais valioso:
@@ -1323,6 +1347,18 @@ A arte definitiva já está integrada (Versão 5.7.0), tanto em `CitadelSpriteSt
 ## 16. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
+
+### Revisão Documental (Auditoria de Manual vs. Código-Fonte)
+*   **📖 Correção de Fórmulas Desatualizadas**: Auditoria completa comparando o corpo do manual (Seções 4, 6 e 7) contra o código-fonte real de `CombatFSM.ts`, `useGameStore.ts` e demais módulos, corrigindo descrições que haviam ficado defasadas em relação a mudanças já registradas apenas no changelog:
+    *   Velocidade de Ataque e Esquiva (Seções 4.C.3 e 7.B): fórmula linear substituída pela fórmula real por raiz quadrada da Destreza (fatores $0.15$/$0.40$), incluindo o bônus de esquiva por Ascensão e o teto de $15\times$ no multiplicador de velocidade.
+    *   Piso de recarga do ataque básico: corrigido de $800\text{ ms}$ para o valor real de $200\text{ ms}$.
+    *   Multiplicador de Ouro por Sorte (Seção 4.C.4): fórmula linear substituída pela fórmula real por raiz quadrada, eliminando a contradição com a Seção 13.B.
+    *   Fórmula de Dano Básico do jogador (Seção 7.B): documentados os multiplicadores reais ausentes (Exposto, Boost de Dano, penetração de armadura por Força, bônus de Relíquias e de Sets/Colar/Academia) e corrigida a variação aleatória de `Random(0,2)` para `Random(0,3)`.
+    *   Escalonamento de dano dos inimigos (Seção 7.C): expoente corrigido de $1.25$ para o valor real de $1.18$ por fase.
+    *   Habilidades Ultimate (Seção 6): removida a afirmação de que ficam travadas no Nível 1 — na verdade seguem as mesmas regras de expansão de nível das demais habilidades ativas (até Nível 10 no Inferno, Nível 15 no Pandemônio).
+    *   Nível Místico Máximo da Forja (Seção 14): corpo principal atualizado de $+5$ para o teto real de $+8$, com a tabela de custos completa até $+8$.
+    *   Upgrades de Prestígio (Seção 9.C): "Toque Divino" corrigido de $+5$ para $+8$ por nível; "Robô Assistente" corrigido de $+2$ para $+1$ Toque/s por nível.
+*   **📖 Nova Seção 13.F "Sistema de Relíquias (Altar da Alma)"**: O catálogo completo das 8 relíquias e suas fórmulas de obtenção/forja, antes disperso apenas em notas de changelog históricas, ganhou uma seção dedicada e atual.
 
 ### Versão 5.7.0 "Arte da Cidadela em Produção" (Atual)
 *   **🖼️ Background e Sprites Definitivos da Cidadela**: Integrados os 9 arquivos de construção (`citadel_*.png`) e o background do pátio (`citadel_background.png`), todos gerados por IA com fundo sólido vermelho `#FE0201` para recorte de transparência. `CitadelSpriteStage.tsx` trocou o chão/estradas 100% CSS por `<img>` do background real; as posições dos 9 marcadores foram recalibradas de um layout livre para um grid 3×3 (20%/50%/80%) batendo com as 8 clareiras + espaço central da arte.
