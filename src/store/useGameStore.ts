@@ -86,7 +86,10 @@ export const getSkillMaxLevel = (skillId: string, currentStage: number): number 
     if (skill.type === 'passive') {
       return Infinity;
     }
-    return Math.max(skill.maxLevel, 15);
+    // Habilidades ativas exclusivas do Avatar escalam além do teto padrão de 15,
+    // já que a classe tem poucas habilidades e sobra ponto sem essa extensão.
+    const activeCap = skill.classId === 'avatar' ? 25 : 15;
+    return Math.max(skill.maxLevel, activeCap);
   }
   if (currentStage >= 11) {
     return Math.max(skill.maxLevel, 10);
@@ -163,7 +166,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'A fusão de todas as energias. Todo o seu dano escala com o maior atributo ativo.',
     baseStats: { strength: 15, magic: 15, dexterity: 15, constitution: 15, luck: 15, touch: 15, touchCritChance: 10, touchCritDamage: 180, robotClicks: 0 },
     growthRates: { strength: 2.5, magic: 2.5, dexterity: 2.5, constitution: 2.5, luck: 2.5, touch: 2.5, touchCritChance: 0.25, touchCritDamage: 2.0, robotClicks: 0 },
-    initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar'],
+    initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar', 'cosmic_convergence'],
     primaryStat: 'magic'
   }
 };
@@ -366,6 +369,7 @@ export const SKILLS_CATALOG: Record<string, {
   unified_echo: { name: 'Eco Unificado', description: 'Causa 250% do maior atributo como dano do tipo elemental do inimigo.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar' },
   prismatic_barrier: { name: 'Barreira Prismática', description: 'Escuda o jogador em 30% do maior atributo por 5 segundos.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar' },
   ultimate_avatar: { name: 'Coro da Alma Inteira', description: 'Canaliza o poder de todos os cacos, causando dano imediato de (Str + Mag + Dex + Con + Luk) x 5.0. (Ultimate)', cost: 5, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'avatar', isUltimate: true, cooldown: 60000, manaCost: 100 },
+  cosmic_convergence: { name: 'Convergência das Cinco Almas', description: 'Sintoniza permanentemente as cinco energias cardinais. Aumento passivo de +5 em Força, Magia, Destreza, Constituição e Sorte por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5, magic: 5, dexterity: 5, constitution: 5, luck: 5 }, requiredLevel: 1, classId: 'avatar' },
 
   // Comum
   heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }

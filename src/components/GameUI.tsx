@@ -3435,7 +3435,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
 const GuidePanel: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
-  const [guideSubTab, setGuideSubTab] = useState<'classes' | 'codex'>('classes');
+  const [guideSubTab, setGuideSubTab] = useState<'classes' | 'systems' | 'codex'>('classes');
   const character = useGameStore((s) => s.character);
 
   // --- Dados para o Codex de Lendas ---
@@ -3586,13 +3586,20 @@ const GuidePanel: React.FC = () => {
       </div>
 
       {/* Sub-abas do Guia */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
         <button
           onClick={() => { AudioManager.getInstance().playClick(); setGuideSubTab('classes'); }}
           className={`tab-btn ${guideSubTab === 'classes' ? 'active' : ''}`}
           style={{ padding: '0.4rem', fontSize: '0.65rem' }}
         >
           ⚔️ Classes
+        </button>
+        <button
+          onClick={() => { AudioManager.getInstance().playClick(); setGuideSubTab('systems'); }}
+          className={`tab-btn ${guideSubTab === 'systems' ? 'active' : ''}`}
+          style={{ padding: '0.4rem', fontSize: '0.65rem' }}
+        >
+          🏰 Sistemas
         </button>
         <button
           onClick={() => { AudioManager.getInstance().playClick(); setGuideSubTab('codex'); }}
@@ -3668,6 +3675,275 @@ const GuidePanel: React.FC = () => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- ABA: SISTEMAS DO JOGO ---- */}
+      {guideSubTab === 'systems' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }} className="animate-tabFade">
+          <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+            Explicações dos grandes sistemas do jogo fora do combate por-classe: gerenciamento de base, endgame pós-Pandemônio e recursos de qualidade de vida.
+          </p>
+
+          {/* Cidadela Astral */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir 8 construções:
+              </p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
+                <li><span className="text-white font-semibold">Depósito (Vault):</span> <span className="text-gray-400">armazenamento externo de equipamentos, fora do inventário normal — os itens guardados aqui sobrevivem à Ascensão.</span></li>
+                <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel.</span></li>
+                <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida e Velocidade globais.</span></li>
+                <li><span className="text-white font-semibold">Torre de Vigia Astral:</span> <span className="text-gray-400">produz passivamente Chaves da Torre, usadas para tentar subir andares na Torre Infinita.</span></li>
+                <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">automatiza a auto-venda/auto-desmonte de equipamentos comuns e raros conforme evolui de nível.</span></li>
+                <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
+                <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
+                <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Colar */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 O Colar (6º Slot de Equipamento)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                Diferente dos outros 5 slots, o Colar <strong>não concede atributos primários</strong> (Força, Magia, Destreza, Constituição, Sorte). Em vez disso, ele rola aleatoriamente entre <strong>1 e 3 passivos utilitários</strong> (conforme a raridade: Comum = 1, Raro = 2, Lendário/Ancestral/Celestial = 3), sorteados de um pool fixo de 10 efeitos possíveis:
+              </p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                <li><span className="text-gray-400">Dano Final (até +20%), Vida Máxima (até +20%), Mana Máxima (até +20%)</span></li>
+                <li><span className="text-gray-400">Velocidade de Ataque (até +10%), Redução de Dano Recebido, Chance de Fúria (Frenzy)</span></li>
+                <li><span className="text-gray-400">Cliques extras do Robô Assistente (+1 a +3), Roubo de Vida/Lifesteal (até +4%)</span></li>
+                <li><span className="text-gray-400">Dano de Toque (até +50%), Chance de Drop de itens</span></li>
+              </ul>
+              <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
+            </div>
+          </div>
+
+          {/* Transcendência / Ecoterra / Loja Celestial */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                O <strong>Segundo Ciclo</strong>, desbloqueado após o Modo Pandemônio. Requer ter o <strong>Pandemônio ativo</strong> e ter alcançado a <strong>Fase 50</strong> para realizar o Rito de Transcendência pela primeira vez.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">Fórmula de Pontos de Transcendência (PT):</strong>
+                <code className="text-fuchsia-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                  PT Ganho = Floor((PP Vitalício Acumulado / 500) ^ 0.75)
+                </code>
+                <p className="text-gray-500 text-[8px] mt-0.5">O Rito reseta todo o progresso da Ascensão (nível, PP, ouro, equipamentos, upgrades de PP) em troca desses PT permanentes.</p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🌌 Espelho da Ecoterra:</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Modo opcional que substitui o combate normal nas Fases 1 a 20 por versões espelhadas e fortalecidas dos monstros (<strong>+30% Vida, +20% Velocidade</strong>). Em troca, esses monstros derrubam <strong>Essência de Transcendência (ET)</strong> ao morrer.
+                </p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🛒 Loja Celestial:</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Troca a Essência de Transcendência (ET) acumulada na Ecoterra por consumíveis especiais de alto poder, acelerando a progressão. Os Talentos de Transcendência (comprados com PT) também podem ser resetados por 10 ET, caso o jogador queira redistribuir os pontos.
+                </p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🌟 Classe Suprema: Avatar</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Desbloqueada ao atingir Nível 5 em quatro talentos específicos da árvore de Transcendência (Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar), que juntos liberam o talento final "Avatar Pleno". O Avatar escala dinamicamente com o maior atributo ativo do jogador, fundindo as cinco energias cardinais.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* QoL / Opções */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">⚙️ Qualidade de Vida e Opções</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 30fps, prolongando a bateria em sessões longas.</span></li>
+                <li><span className="text-white font-semibold">Tela sempre ativa:</span> <span className="text-gray-400">enquanto você está na tela de combate, o jogo pede ao navegador para manter a tela do dispositivo ligada automaticamente, sem precisar tocar o celular a cada poucos minutos.</span></li>
+                <li><span className="text-white font-semibold">Pressionar e segurar:</span> <span className="text-gray-400">os botões de investir Pontos de Atributo e de aprimorar Habilidades podem ser mantidos pressionados para aplicar múltiplos níveis em sequência, sem precisar tocar repetidamente.</span></li>
+                <li><span className="text-white font-semibold">Nome do Personagem:</span> <span className="text-gray-400">escolhido na tela de criação de personagem, identifica seu herói no painel de Atributos e no combate, no lugar do nome genérico da classe.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Mecânica de Ascensão e Prestígio */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                  <li>
+                    <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
+                  </li>
+                  <li>
+                    <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
+                  </li>
+                  <li>
+                    <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
+                  </li>
+                  <li>
+                    <span className="text-gray-400">Fórmula de PP obtido:</span>
+                    <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
+                    <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
+                  </li>
+                  <li>
+                    <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
+                <p className="text-gray-400 mt-0.5">
+                  Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Forja Mística */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) e do <strong>mesmo conjunto</strong> (ex: Senhor da Guerra) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong> que preserva a identidade visual do conjunto original. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+8</strong>.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">Regras de Fusão:</strong>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                  <li><span className="text-gray-400">Mesmo slot e conjunto obrigatórios</span> — os dois equipamentos devem ser do mesmo tipo (ex: arma + arma) e pertencer ao mesmo set (ex: ambos "Senhor da Guerra").</li>
+                  <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
+                  <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
+                  <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+8</strong>.</li>
+                  <li><span className="text-gray-400">Todas as fusões custam Fragmentos de Forja além de Ouro</span> — inclusive a primeira fusão (Convencional → Místico +1). Fragmentos são obtidos desmontando equipamentos sobressalentes (1 por item desmontado).</li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">Fórmula Normal (95% das fusões):</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Para cada atributo presente nos dois itens, o <strong>maior valor é preservado 100%</strong> e o <strong>menor valor contribui com 50%</strong> (arredondado para cima). Atributos exclusivos de um item são copiados integralmente.
+                </p>
+                <code className="text-fuchsia-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                  Resultado = Maior + ⌈Menor × 0.5⌉
+                </code>
+                <code className="text-gray-500 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                  Ex: Força 50 + Força 5  →  50 + ⌈2.5⌉ = 53
+                </code>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold" style={{ color: '#facc15' }}>⚡ Forja Lendária (5% de chance):</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Há 5% de chance de a fusão ser uma Forja Lendária. Nesse caso, a fórmula é substituída por um bônus de +50% sobre a soma total de cada atributo.
+                </p>
+                <code className="text-yellow-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                  Resultado Lendário = ⌈(A + B) × 1.5⌉
+                </code>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷):</strong>
+                <div className="mt-1 space-y-0.5">
+                  {[
+                    { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '100' },
+                    { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '250' },
+                    { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '500' },
+                    { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '1.000' },
+                    { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '2.500' },
+                    { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '5.000' },
+                    { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '10.000' },
+                    { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '20.000' },
+                  ].map((row) => (
+                    <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
+                      <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
+                      <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.ouro} Ouro + {row.frag} 🔷</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Altar de Relíquias de Alma */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-widest block">🔮 Altar de Relíquias de Alma</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                As Relíquias são artefatos cósmicos permanentes que fortalecem todos os seus personagens, resistindo inteiramente aos resets de Ascensão. Elas podem ser forjadas e aprimoradas no **Altar de Relíquias** (Aba Ascensão) utilizando **Fragmentos de Alma Instáveis**.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                  <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
+                  <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
+                  <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 5.000 Ouro para obter instantaneamente 3 fragmentos garantidos ao consumi-lo.</li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">Efeitos de Capstone (Nível 5 Máximo):</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Cada uma das 8 relíquias pode atingir o nível máximo de 5. Ao atingir o ápice, um bônus passivo monumental (Capstone) é ativado permanentemente:
+                </p>
+                <div className="mt-1 space-y-1">
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">1. Luz da Alma Partida (+3% Dano Geral/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de Multiplicador de Dano Crítico global.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">2. Moeda do Ciclo Eterno (+4% Ouro Ganho/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +5% de chance de monstros comuns droparem ouro dobrado.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">3. Símbolo do Aprendizado (+3% Chance de Drop/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de chance de qualquer item dropado ser Raro ou superior.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">4. Gema da Vontade (+4 Força/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de Penetração de Armadura (Aumento de Dano Final).</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">5. Núcleo do Pensamento (+4 Magia/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +15% de Regeneração de Mana ativa e passiva.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">6. Foco da Precisão (+4 Destreza/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +5% de Velocidade de Ataque global.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">7. Brasão da Devoção (+6 Constituição/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: +2% da sua Vida Máxima como escudo protetor no início do combate.</span>
+                  </div>
+                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                    <span className="text-violet-300 font-bold block">8. Olho da Sobrevivência (+4 Sorte/nvl)</span>
+                    <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* A Torre Infinita */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🏰 A Torre Infinita</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                A **Torre Infinita** é uma arena de desafios verticais onde o jogador testa seus limites contra hordas intermináveis de inimigos e chefes. Ao contrário da campanha, a Torre oferece batalhas estáticas, sem progressão lateral (sidescrolling), focando na superação rápida de andares.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">Funcionamento e Fluxo:</strong>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                  <li><span className="text-gray-400">Combates Estáticos:</span> O jogador aguarda em sua posição de batalha no centro da arena enquanto o inimigo entra caminhando. O combate inicia assim que ambos estão posicionados.</li>
+                  <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
+                  <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -3765,7 +4041,7 @@ const GuidePanel: React.FC = () => {
                     <div className="text-[8px] text-gray-500 mt-1 flex justify-between">
                       <span>Requer Level {skill.requiredLevel}</span>
                       {skill.type === 'active' && (
-                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : (skill.requiredLevel <= 1 ? '3s' : (skill.requiredLevel <= 3 ? '5s' : (skill.requiredLevel <= 7 ? '8s' : '12s')))}</span>
+                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : (skill.requiredLevel <= 1 ? '6s' : (skill.requiredLevel <= 3 ? '10s' : (skill.requiredLevel <= 7 ? '16s' : '24s')))}</span>
                       )}
                     </div>
                   </div>
@@ -3917,23 +4193,32 @@ const GuidePanel: React.FC = () => {
             <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
               <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">Dificuldade das Fases e Escalonamento</span>
               <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                <p>
+                  Cada fase exige a derrota de <strong className="text-white">20 monstros normais</strong> seguidos da eliminação de um <strong className="text-white">Chefe de Fase</strong> para liberar a próxima. O progresso ("Progresso: X/20") aparece no HUD durante o combate.
+                </p>
                 <div>
                   <strong className="text-white block font-semibold">Fases Normais (1 a 5)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
                     Fase 1: Floresta | Fase 2: Deserto | Fase 3: Neve | Fase 4: Cemitério | Fase 5: Ruínas.
                   </p>
                   <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Fator Dificuldade = 1.65 ^ (Fase - 1)
+                    Fator de HP = 1.30 ^ (Fase - 1)
                   </code>
                   <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    HP Normal = (120 + Fase × 35) × Fator Dificuldade × Mult. HP Monstro
+                    Fator de Dano = 1.18 ^ (Fase - 1)
                   </code>
                   <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    HP Chefe = (120 + Fase × 35) × Fator Dificuldade × Mult. HP Chefe × 3.0
+                    HP Monstro Normal = (150 + Fase × 50) × Fator de HP × Mult. HP Monstro × Mult. Tier
                   </code>
                   <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Dano Monstros = (5 + Fase × 2.0 + Random(0, 1)) × 1.3 ^ (Fase - 1) × Mult. Dano Monstro
+                    HP Chefe = (150 + Fase × 50) × Fator de HP × Mult. HP Chefe × 3.0 × Mult. Tier
                   </code>
+                  <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Dano do Monstro = Base × Fator de Dano × Mult. Dano Monstro × Mult. Tier
+                  </code>
+                  <p className="text-gray-500 text-[8px] mt-0.5">
+                    O "Mult. Tier" é o multiplicador fixo de dificuldade da faixa de fases atual (tabela abaixo) — ele se soma à escala contínua acima, não a substitui.
+                  </p>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold">Fases Pesadelo (6 a 10)</strong>
@@ -3941,7 +4226,7 @@ const GuidePanel: React.FC = () => {
                     As mesmas fases com tint avermelhado, maior agressividade e status maciçamente aumentados.
                   </p>
                   <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Pesadelo = Status Base × 2.0 (+100% de HP e Dano)
+                    Mult. Tier Pesadelo = × 2.0 (+100% de HP e Dano)
                   </code>
                 </div>
                 <div>
@@ -3950,7 +4235,7 @@ const GuidePanel: React.FC = () => {
                     As mesmas 5 fases cicladas com tint laranja flamejante. Inimigos com poder avassalador.
                   </p>
                   <code className="text-orange-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Inferno = Status Base × 3.0 (+200% de HP e Dano)
+                    Mult. Tier Inferno = × 3.0 (+200% de HP e Dano)
                   </code>
                 </div>
                 <div>
@@ -3959,179 +4244,26 @@ const GuidePanel: React.FC = () => {
                     O tier extremo original. Tint roxo sinistro e criaturas de poder quase divino.
                   </p>
                   <code className="text-purple-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Apocalipse = Status Base × 4.0 (+300% de HP e Dano)
+                    Mult. Tier Apocalipse = × 4.0 (+300% de HP e Dano)
                   </code>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold" style={{ color: '#a78bfa' }}>Fases Purgatório (21 a 30)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
-                    Território dos cristais partidos. Inimigos têm HP e Dano escalados em 4.5x. Requer derrotar o Guardião dos Cacos na Fase 30 para desbloquear o Pandemônio.
+                    Território dos cristais partidos. Requer derrotar o Guardião dos Cacos na Fase 30 para desbloquear o Pandemônio.
                   </p>
                   <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Purgatório = Status Base × 4.5
+                    Mult. Tier Purgatório = × 5.0 (+400% de HP e Dano)
                   </code>
                 </div>
                 <div>
                   <strong className="text-white block font-semibold" style={{ color: '#ec4899' }}>Modo Pandemônio (31+)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
-                    Dificuldade infinita desbloqueada via Altar da Alma no Prestígio. Monstros e chefes surgem de forma aleatória, com buffs que escalam a cada nível de fase.
+                    Dificuldade infinita desbloqueada via Altar da Alma no Prestígio. Monstros e chefes surgem de forma aleatória, e a escala contínua de HP/Dano (Fator de HP / Fator de Dano acima) segue subindo indefinidamente por fase, sem novo tier acima deste.
                   </p>
                   <code className="text-rose-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Status Pandemônio = Status Base × 5.0 × (1.15 ^ (Fase - 31))
+                    Mult. Tier Pandemônio = × 6.0 inicial (+500% de HP e Dano)
                   </code>
-                </div>
-              </div>
-            </div>
-
-            {/* Como Funciona a Ascensão */}
-            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-              <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
-              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-                <p>
-                  A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
-                </p>
-                <div>
-                  <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
-                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                    <li>
-                      <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
-                    </li>
-                    <li>
-                      <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
-                    </li>
-                    <li>
-                      <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
-                    </li>
-                    <li>
-                      <span className="text-gray-400">Fórmula de PP obtido:</span>
-                      <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
-                      <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
-                    </li>
-                    <li>
-                      <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
-                  <p className="text-gray-400 mt-0.5">
-                    Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Forja Mística */}
-            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-              <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
-              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-                <p>
-                  A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) e do <strong>mesmo conjunto</strong> (ex: Senhor da Guerra) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong> que preserva a identidade visual do conjunto original. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+5</strong>.
-                </p>
-                <div>
-                  <strong className="text-white block font-semibold">Regras de Fusão:</strong>
-                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                    <li><span className="text-gray-400">Mesmo slot e conjunto obrigatórios</span> — os dois equipamentos devem ser do mesmo tipo (ex: arma + arma) e pertencer ao mesmo set (ex: ambos "Senhor da Guerra").</li>
-                    <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
-                    <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
-                    <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+5</strong>.</li>
-                  </ul>
-                </div>
-                <div>
-                  <strong className="text-white block font-semibold">Fórmula Normal (95% das fusões):</strong>
-                  <p className="text-gray-400 text-[9px] mt-0.5">
-                    Para cada atributo presente nos dois itens, o <strong>maior valor é preservado 100%</strong> e o <strong>menor valor contribui com 50%</strong> (arredondado para cima). Atributos exclusivos de um item são copiados integralmente.
-                  </p>
-                  <code className="text-fuchsia-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Resultado = Maior + ⌈Menor × 0.5⌉
-                  </code>
-                  <code className="text-gray-500 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Ex: Força 50 + Força 5  →  50 + ⌈2.5⌉ = 53
-                  </code>
-                </div>
-                <div>
-                  <strong className="text-white block font-semibold" style={{ color: '#facc15' }}>⚡ Forja Lendária (5% de chance):</strong>
-                  <p className="text-gray-400 text-[9px] mt-0.5">
-                    Há 5% de chance de a fusão ser uma Forja Lendária. Nesse caso, a fórmula é substituída por um bônus de +50% sobre a soma total de cada atributo.
-                  </p>
-                  <code className="text-yellow-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                    Resultado Lendário = ⌈(A + B) × 1.5⌉
-                  </code>
-                </div>
-                <div>
-                  <strong className="text-white block font-semibold">Custo de Fusão (em Ouro 🪙):</strong>
-                  <div className="mt-1 space-y-0.5">
-                    {[
-                      { origem: 'Convencional + Convencional', resultado: 'Místico +1', custo: '500' },
-                      { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', custo: '1.000' },
-                      { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', custo: '2.500' },
-                      { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', custo: '12.500' },
-                      { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', custo: '62.500' },
-                    ].map((row) => (
-                      <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
-                        <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
-                        <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.custo} Ouro</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Altar de Relíquias de Alma */}
-            <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-              <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-widest block">🔮 Altar de Relíquias de Alma</span>
-              <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-                <p>
-                  As Relíquias são artefatos cósmicos permanentes que fortalecem todos os seus personagens, resistindo inteiramente aos resets de Ascensão. Elas podem ser forjadas e aprimoradas no **Altar de Relíquias** (Aba Ascensão) utilizando **Fragmentos de Alma Instáveis**.
-                </p>
-                <div>
-                  <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
-                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                    <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
-                    <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
-                    <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 5.000 Ouro para obter instantaneamente 3 fragmentos garantidos ao consumi-lo.</li>
-                  </ul>
-                </div>
-                <div>
-                  <strong className="text-white block font-semibold">Efeitos de Capstone (Nível 5 Máximo):</strong>
-                  <p className="text-gray-400 text-[9px] mt-0.5">
-                    Cada uma das 8 relíquias pode atingir o nível máximo de 5. Ao atingir o ápice, um bônus passivo monumental (Capstone) é ativado permanentemente:
-                  </p>
-                  <div className="mt-1 space-y-1">
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">1. Luz da Alma Partida (+3% Dano Geral/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de Multiplicador de Dano Crítico global.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">2. Moeda do Ciclo Eterno (+4% Ouro Ganho/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +5% de chance de monstros comuns droparem ouro dobrado.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">3. Símbolo do Aprendizado (+3% Chance de Drop/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de chance de qualquer item dropado ser Raro ou superior.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">4. Gema da Vontade (+4 Força/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +10% de Penetração de Armadura (Aumento de Dano Final).</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">5. Núcleo do Pensamento (+4 Magia/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +15% de Regeneração de Mana ativa e passiva.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">6. Foco da Precisão (+4 Destreza/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +5% de Velocidade de Ataque global.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">7. Brasão da Devoção (+6 Constituição/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: +2% da sua Vida Máxima como escudo protetor no início do combate.</span>
-                    </div>
-                    <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                      <span className="text-violet-300 font-bold block">8. Olho da Sobrevivência (+4 Sorte/nvl)</span>
-                      <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -4161,20 +4293,50 @@ const GuidePanel: React.FC = () => {
               </div>
             </div>
 
-            {/* A Torre Infinita */}
+            {/* Classe Suprema: Avatar */}
             <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-              <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🏰 A Torre Infinita</span>
+              <span className="text-[9px] font-semibold text-amber-300 uppercase tracking-widest block">🌟 Classe Suprema: Avatar</span>
               <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                 <p>
-                  A **Torre Infinita** é uma arena de desafios verticais onde o jogador testa seus limites contra hordas intermináveis de inimigos e chefes. Ao contrário da campanha, a Torre oferece batalhas estáticas, sem progressão lateral (sidescrolling), focando na superação rápida de andares.
+                  O <strong>Avatar</strong> é a classe suprema do jogo — mais rara e poderosa até mesmo que o Necromante — nascida da fusão perfeita entre as cinco energias cardinais da Alma. Só pode ser alcançada depois de já ter avançado no Segundo Ciclo (Transcendência).
                 </p>
                 <div>
-                  <strong className="text-white block font-semibold">Funcionamento e Fluxo:</strong>
-                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                    <li><span className="text-gray-400">Combates Estáticos:</span> O jogador aguarda em sua posição de batalha no centro da arena enquanto o inimigo entra caminhando. O combate inicia assim que ambos estão posicionados.</li>
-                    <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
-                    <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
-                  </ul>
+                  <strong className="text-white block font-semibold">Como desbloquear:</strong>
+                  <p className="text-gray-400">Requer o talento final <strong>"Avatar Pleno"</strong> na árvore de Transcendência (Aba Transcendência), que por sua vez exige <strong>Nível 5</strong> simultaneamente em quatro outros talentos: <strong>Mana Suprema</strong>, <strong>Domínio do Vazio</strong>, <strong>Foco Temporal</strong> e <strong>Alma do Avatar</strong>. Não depende de nível de classe base nem de nenhum outro atalho.</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Status Iniciais:</strong>
+                  <p className="text-gray-400">Único personagem com <strong>15 pontos em todos os 5 atributos primários</strong> (Força, Magia, Destreza, Constituição, Sorte) e crescimento de <strong>+2.5</strong> em cada um por nível — não possui um atributo principal fixo como as demais classes.</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Mecânica de Atributo Dinâmico:</strong>
+                  <p className="text-gray-400 mb-1">Para dano de ataque básico ("cósmico") e de habilidades ("prismático"), o Avatar usa o <strong>maior entre seus 5 atributos</strong> no momento do cálculo — ele se adapta automaticamente ao que você mais investiu ou equipou. O Altar de Sincronia Elemental (Cidadela Astral) permite injetar uma fração da soma dos outros 4 atributos nesse valor:</p>
+                  <code className="text-amber-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Atributo Efetivo = Maior Atributo + Floor(Soma dos Outros 4 × Nível do Altar × 3%)
+                  </code>
+                  <p className="text-gray-500 text-[8px] mt-0.5">No nível máximo do Altar (5), isso injeta até +15% da soma dos atributos secundários no Maior Atributo Ativo.</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Habilidade Exclusiva (Ultimate) - Coro da Alma Inteira:</strong>
+                  <p className="text-gray-400 mb-1">Canaliza o poder de todos os cacos da Alma de uma vez, causando dano imediato somando os 5 atributos:</p>
+                  <code className="text-amber-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    Dano = (Força + Magia + Destreza + Constituição + Sorte) × 5.0
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Árvore de Habilidades Reduzida (por design):</strong>
+                  <p className="text-gray-400">O Avatar já nasce com todas as suas 4 habilidades desbloqueadas desde o Nível 1 (Eco Unificado, Barreira Prismática, Coro da Alma Inteira e Convergência das Cinco Almas), sem custo de desbloqueio nem árvore de dependências — todo Ponto de Habilidade ganho vai direto para aprimorar essas 4.</p>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Convergência das Cinco Almas (Passiva Infinita):</strong>
+                  <p className="text-gray-400 mb-1">Única habilidade passiva do Avatar. Assim como as passivas das demais classes, evolui infinitamente a partir da Fase 21 (Purgatório), consumindo o excedente de Pontos de Habilidade que sobraria ocioso:</p>
+                  <code className="text-amber-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                    +5 em Força, Magia, Destreza, Constituição e Sorte por nível
+                  </code>
+                </div>
+                <div>
+                  <strong className="text-white block font-semibold">Teto Estendido das Habilidades Ativas (Nível 25):</strong>
+                  <p className="text-gray-400">Diferente das demais classes — cujas habilidades ativas travam no <strong>Nível 15</strong> a partir da Fase 21 (Purgatório) — as 3 habilidades ativas exclusivas do Avatar (Eco Unificado, Barreira Prismática e Coro da Alma Inteira) continuam evoluindo até o <strong>Nível 25</strong>. Essa exceção existe justamente porque a classe tem poucas habilidades no total; a Cura do Clérigo, por exemplo, não recebe esse mesmo tratamento por já atingir 100% de eficácia no Nível 15.</p>
                 </div>
               </div>
             </div>

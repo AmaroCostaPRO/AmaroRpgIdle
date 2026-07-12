@@ -22,6 +22,7 @@ const App: React.FC = () => {
 
   const [showWelcome, setShowWelcome] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [showOlderChangelog, setShowOlderChangelog] = useState(false);
   const [isGuideManuallyReopened, setIsGuideManuallyReopened] = useState(false);
   const [isGameReady, setIsGameReady] = useState(false);
   const [activeTab, setActiveTab] = useState('combat');
@@ -315,19 +316,42 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v5.4.0 — O Despertar da Cidadela!
+              🔔 Atualização v6.0.0 — O Despertar da Cidadela!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                As versões v5.1.0 a v5.4.0 introduzem a Cidadela Astral: uma nova aba de tela cheia de gerenciamento de base, com coleta de materiais, produção passiva, expedições de classes, pesquisas permanentes e sistemas de fim de jogo.
+                A Cidadela Astral chega ao seu lançamento completo! As versões v5.1.0 a v5.7.0 construíram, peça por peça, uma nova aba de tela cheia de gerenciamento de base — e a v6.0.0 marca esse arco como oficialmente concluído, junto com uma leva de ajustes gerais.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v6.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.0.0 (Atual) — O Despertar da Cidadela:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        🏰 Cidadela Astral — Lançamento Completo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        As 8 construções (Depósito, Quartel de Expedições, Academia Militar, Torre de Vigia Astral, Oficina da Forja, Sifão Cósmico, Altar de Sincronia e Laboratório de Relíquias) estão completas, com arte definitiva e economia de materiais (Madeira, Pedra, Carne e Insígnias de Estudo) totalmente ativa. O combate continua avançando em segundo plano enquanto você gerencia a base.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        🛠️ Ajustes e Melhorias Gerais
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Recalibragem do início de jogo, pressionar-e-segurar nos botões de Atributos/Habilidades, tela sempre ativa durante o combate, nome de personagem, Modo de Economia, fases agora exigem 20 monstros antes do Chefe, nova passiva infinita e teto de nível 25 para o Avatar, e a Aba Guia revisada com uma nova sub-aba de Sistemas.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v5.4.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 5.4.0 (Atual) — O Despertar Cósmico:</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 5.4.0 — O Despertar Cósmico:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
@@ -433,6 +457,33 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Alternador de updates antigos (v5.0.0 e anteriores ficam ocultos por padrão) */}
+                <button
+                  onClick={() => setShowOlderChangelog((prev) => !prev)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    width: '100%',
+                    background: 'rgba(168, 85, 247, 0.08)',
+                    border: '1px solid rgba(168, 85, 247, 0.25)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.4rem',
+                    color: '#c084fc',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    marginBottom: '0.2rem'
+                  }}
+                >
+                  <span style={{ display: 'inline-block', transition: 'transform 0.2s ease', transform: showOlderChangelog ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                  {showOlderChangelog ? 'Ocultar atualizações antigas' : 'Ver atualizações antigas'}
+                </button>
+
+                {showOlderChangelog && (
+                <>
                 {/* v5.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
                   <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 5.0.0:</span>
@@ -1354,13 +1405,15 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                </>
+                )}
               </div>
             </div>
 
             <div style={{ marginTop: '0.5rem' }}>
-              <button 
+              <button
                 onClick={handleCloseChangelog}
-                className="btn btn-sm btn-gold" 
+                className="btn btn-sm btn-gold"
                 style={{ width: '100%', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', border: '1px solid #c084fc' }}
               >
                 Entendido!

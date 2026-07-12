@@ -443,6 +443,7 @@ Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adi
 *   **Limite de Nível Padrão**: Por padrão (Fases 1 a 10, dificuldades Normal e Pesadelo), cada habilidade comum pode ser aprimorada até o **Nível 5**.
 *   **Expansão no End-Game (Inferno / Apocalipse)**: Ao alcançar a Fase 11 (dificuldades Inferno e Apocalipse), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 10**.
 *   **Expansão no End-Game (Modo Pandemônio)**: Ao alcançar a Fase 21 (dificuldade Pandemônio), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 15**, com **exceção das habilidades passivas**, cujos limites de nível são completamente removidos (**ilimitadas / `Infinity`**), permitindo que o jogador gaste pontos de habilidades excedentes infinitamente para aprimorar os bônus de atributos no endgame.
+*   **Exceção — Habilidades Ativas do Avatar**: as 3 habilidades ativas exclusivas da classe Avatar têm esse teto estendido para o **Nível 25** em vez do Nível 15 (ver Seção 4.B, subseção Avatar, para a motivação de design e a lista completa).
 *   **Escalonamento**:
     *   *Habilidades Ativas*: O dano aumenta em $+15\%$ multiplicativo por nível da habilidade baseado no multiplicador original (ex: dano de $150\%$ vai para $240\%$ no nível 5, $315\%$ no nível 10 e até $465\%$ no nível 15).
     *   *Cura*: A porcentagem curada aumenta em $+5\%$ por nível (de $30\%$ no nível 1 para $50\%$ no nível 5, $75\%$ no nível 10 e até $100\%$ de cura no nível 15).
@@ -454,7 +455,7 @@ Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adi
 ### Habilidades Ultimate (End-Game)
 As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada classe, desbloqueadas sob condições estritas:
 *   **Condições de Desbloqueio**: O personagem precisa estar na dificuldade **Inferno** ou superior (Fase 11+), ter alcançado pelo menos o **Nível 15** e possuir a habilidade tier 6 de sua classe desbloqueada (nível $\ge 1$).
-*   **Progressão de Nível**: As habilidades Ultimate possuem `maxLevel` base de **5** e seguem exatamente as mesmas regras de expansão de nível máximo descritas em "Regras de Progressão e Nível Máximo" acima — podendo ser aprimoradas até o **Nível 10** ao alcançar a Fase 11 (Inferno) e até o **Nível 15** ao alcançar a Fase 21 (Pandemônio). O dano escala em $+15\%$ multiplicativo por nível, como qualquer habilidade ativa comum.
+*   **Progressão de Nível**: As habilidades Ultimate possuem `maxLevel` base de **5** e seguem exatamente as mesmas regras de expansão de nível máximo descritas em "Regras de Progressão e Nível Máximo" acima — podendo ser aprimoradas até o **Nível 10** ao alcançar a Fase 11 (Inferno) e até o **Nível 15** ao alcançar a Fase 21 (Pandemônio). O dano escala em $+15\%$ multiplicativo por nível, como qualquer habilidade ativa comum. *Exceção*: a Ultimate do Avatar (*Coro da Alma Inteira*) segue o teto estendido de Nível 25 da classe (ver Seção 4.B).
 *   **Custo e Cooldown**: Possuem custos elevados de mana e tempos de recarga prolongados (50 a 80 segundos), refletindo seu impacto massivo no combate.
 
 #### Catálogo de Habilidades Ultimate por Classe
@@ -646,12 +647,17 @@ Escala suas habilidades de ataque com **Magia** (`magic`) e bônus de dano com *
     *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo.
 
 #### 🌌 Avatar (`avatar`)
-Classe suprema transcendental (ver Seção 11.E para desbloqueio e mecânica completa). Diferente das demais classes, todas as suas habilidades são concedidas imediatamente ao desbloquear a classe, sem árvore de progressão por níveis, e escalam com o **Maior Atributo Ativo** do personagem (`max(Força, Magia, Destreza, Constituição, Sorte)`) em vez de um único atributo fixo.
+Classe suprema transcendental (ver Seção 11.E para desbloqueio e mecânica completa). Diferente das demais classes, todas as suas 4 habilidades são concedidas e desbloqueadas imediatamente já no Nível 1 (via `initialSkills`, sem custo de desbloqueio nem árvore de dependências entre elas) — mas continuam evoluindo normalmente de nível com Pontos de Habilidade, como qualquer outra classe. As 3 habilidades ativas escalam com o **Maior Atributo Ativo** do personagem (`max(Força, Magia, Destreza, Constituição, Sorte)`) em vez de um único atributo fixo.
 *   **Eco Unificado** (Ativa):
     *   *Mecânica*: Causa $250\%$ do maior atributo ativo como dano do tipo elemental do inimigo.
 *   **Barreira Prismática** (Ativa):
     *   *Mecânica*: Concede um escudo de absorção equivalente a $30\%$ do maior atributo ativo por 5 segundos.
 *   **Coro da Alma Inteira** (Ultimate) — ver Seção 6, Catálogo de Habilidades Ultimate, item 8.
+*   **Convergência das Cinco Almas** (Passiva, Nível Requerido: 1, adicionada na v5.9.0):
+    *   *Mecânica*: Aumento passivo de $+5$ em Força, Magia, Destreza, Constituição **e** Sorte simultaneamente por nível da habilidade (todos os 5 atributos primários de uma vez, ao contrário das passivas das demais classes que bonificam 1 a 2 atributos).
+    *   *Motivação de Design*: Corrige o excedente de Pontos de Habilidade que sobrava ocioso no Avatar — a classe possuía apenas 3 habilidades (todas ativas), então ao atingirem o teto de nível não havia mais onde investir pontos. Sendo uma habilidade passiva, ela se beneficia da mesma regra de progressão ilimitada (`∞`) que as passivas de outras classes ganham a partir da Fase 21 (ver "Regras de Progressão e Nível Máximo" acima).
+
+**Exceção de Teto de Nível — Habilidades Ativas do Avatar até Nível 25**: a partir da Fase 21 (Pandemônio), as 3 habilidades ativas exclusivas do Avatar (Eco Unificado, Barreira Prismática, Coro da Alma Inteira) têm seu teto de nível estendido para **Nível 25**, em vez do Nível 15 padrão aplicado às demais classes (`getSkillMaxLevel`, `src/store/useGameStore.ts`). Essa exceção existe pelo mesmo motivo da nova passiva: poucas habilidades para escoar o excedente de pontos. A **Cura** (`heal`), disponível a todas as classes, está deliberadamente fora dessa exceção — ela já atinge $100\%$ de eficácia no Nível 15 e não se beneficiaria de níveis adicionais.
 
 ---
 
@@ -1370,7 +1376,35 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   Upgrades de Prestígio (Seção 9.C): "Toque Divino" corrigido de $+5$ para $+8$ por nível; "Robô Assistente" corrigido de $+2$ para $+1$ Toque/s por nível.
 *   **📖 Nova Seção 13.F "Sistema de Relíquias (Altar da Alma)"**: O catálogo completo das 8 relíquias e suas fórmulas de obtenção/forja, antes disperso apenas em notas de changelog históricas, ganhou uma seção dedicada e atual.
 
-### Versão 5.8.0 "Ergonomia, Persistência e Modo de Economia" (Atual)
+### Versão 6.0.0 "O Despertar da Cidadela" (Atual)
+Marco de lançamento que encerra o arco iniciado na Versão 5.1.0: a **Cidadela Astral** está agora completa, com as 8 construções, os 4 materiais de base e a arte definitiva todos em produção estável. Esta versão consolida o trabalho das Versões 5.1.0 a 5.7.0 como release oficial e acrescenta um conjunto menor de ajustes gerais de qualidade de vida e balanceamento (Versões 5.5.0, 5.8.0 e 5.9.0).
+
+#### 🏰 Expansão Completa: A Cidadela Astral
+*   **Nova aba de gerenciamento de base**: Desbloqueada na primeira Ascensão, a Cidadela roda como um overlay de tela cheia sobre o Canvas do Phaser, sem interromper o combate em segundo plano (o herói continua avançando, farmando e dropando itens enquanto o jogador organiza a base).
+*   **4 novos materiais de coleta**: Madeira, Pedra e Carne passam a ser dropados por monstros da campanha (sem influência da Sorte), e Insígnias de Estudo são geradas pelo Quartel de Expedições — todos consumidos na construção e evolução das 8 estruturas.
+*   **As 8 construções da Cidadela**, cada uma com sua própria árvore de níveis:
+    1.  **Depósito (Almoxarifado)** — protege até 10 equipamentos do reset de inventário da Ascensão (itens Místicos ficam de fora).
+    2.  **Quartel de Expedições** — aloca classes já jogadas em missões passivas de coleta, com bônus de eficiência por grupo de atributo e expiração automática de 8h por alocação.
+    3.  **Academia Militar** — investe Insígnias de Estudo em pesquisas permanentes e universais de Dano Geral, Vida Máxima e Velocidade de Ataque.
+    4.  **Torre de Vigia Astral** — fabrica Chaves da Torre Infinita passivamente, mesmo offline, com taxa e capacidade escalando por nível.
+    5.  **Oficina de Automação da Forja** — converte Ouro e Madeira em Fragmentos de Forja automaticamente, culminando no Desmonte Automatizado de itens Comuns/Raros no Nível 5 ("Mestre Forjador").
+    6.  **Sifão de Essência Cósmica** — mitiga linearmente a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no Nível 5 ("Sincronia Perfeita").
+    7.  **Altar de Sincronia Elemental** — eleva o teto de dano do Avatar injetando até +15% da soma dos atributos secundários no Maior Atributo Ativo no Nível 5.
+    8.  **Laboratório de Relíquias Místicas** — permite Superaquecer as 8 relíquias do Altar da Alma já no Nível 5, amplificando seus efeitos Capstone em ~2.5×.
+*   **Arte definitiva integrada**: Backgrounds e spritesheets de evolução (Bloqueado/Básico/Avançado/Supremo) de todas as construções, com recorte de transparência dedicado (`imageBackgroundStrip.ts`) e grid de marcadores calibrado ao pátio real (ver Seção 18 para o histórico técnico completo dessa produção, incluindo as correções de alinhamento e chroma key das Versões 5.6.0 e 5.7.0).
+
+#### 🛠️ Ajustes e Melhorias Gerais
+*   **Recalibragem de progressão** (v5.5.0): piso de custo de XP para conter o nivelamento inicial acelerado demais, meta de abates do Guardião dos Cacos reduzida no Bestiário, nova redução no drop de Chaves da Torre, e correções de bugs (Depósito sobrevivendo à Transcendência indevidamente, atalho inconsistente de desbloqueio do Avatar).
+*   **Ergonomia e qualidade de vida** (v5.8.0): pressionar-e-segurar nos botões de Atributos/Habilidades, tela sempre ativa durante o combate (Wake Lock), nome de personagem na criação, Modo de Economia nas Opções, e expansão da meta de monstros por fase de 15 para 20 antes do Chefe.
+*   **Equilíbrio do Avatar** (v5.9.0): nova habilidade passiva infinita "Convergência das Cinco Almas" (+5 em todos os atributos por nível) e teto de nível estendido para 25 nas 3 habilidades ativas da classe, corrigindo o excedente de Pontos de Habilidade sem uso.
+*   **Aba Guia revisada**: fórmulas de dificuldade, recarga de habilidades e Forja Mística corrigidas para bater com o código real; nova sub-aba "🏰 Sistemas" reunindo Cidadela, Colar, Transcendência/Ecoterra e QoL; nova seção dedicada à classe Avatar.
+
+### Versão 5.9.0 "Equilíbrio do Avatar"
+*   **⚖️ Balanceamento: Nova Passiva Infinita para o Avatar**: Adicionada a habilidade `cosmic_convergence` ("Convergência das Cinco Almas") ao catálogo do Avatar (`SKILLS_CATALOG`, `src/store/useGameStore.ts`) — a primeira habilidade **passiva** da classe, concedendo `+5` em Força, Magia, Destreza, Constituição e Sorte simultaneamente por nível. Corrige o problema de Pontos de Habilidade acumulando ociosamente: antes, o Avatar possuía apenas 3 habilidades (todas ativas), então ao atingirem o teto de nível não havia mais onde investir pontos. Por ser passiva, herda automaticamente a regra existente de progressão ilimitada (`∞`) a partir da Fase 21, sem exigir nenhuma mudança em `getSkillMaxLevel`. Adicionada também a `initialSkills` da classe (`CLASS_CONFIGS.avatar`), já desbloqueada desde o Nível 1 como as demais habilidades do Avatar.
+*   **⚖️ Balanceamento: Teto de Nível 25 para as Ativas do Avatar**: `getSkillMaxLevel` (`src/store/useGameStore.ts`) ganhou uma exceção por `classId`: a partir da Fase 21 (Pandemônio), as habilidades **ativas** com `classId === 'avatar'` (Eco Unificado, Barreira Prismática, Coro da Alma Inteira) agora escalam até o **Nível 25** em vez do Nível 15 padrão de todas as outras classes — mesma motivação da passiva nova (poucas habilidades para escoar pontos excedentes). A **Cura** (`heal`), comum a todas as classes, foi deliberadamente mantida fora dessa exceção por já atingir 100% de eficácia no Nível 15.
+*   **📖 Aba Guia Atualizada**: A subseção "🌟 Classe Suprema: Avatar" (sub-aba Classes do `GuidePanel`) ganhou os blocos "Árvore de Habilidades Reduzida (por design)", "Convergência das Cinco Almas (Passiva Infinita)" e "Teto Estendido das Habilidades Ativas (Nível 25)", explicando a mudança de balanceamento diretamente ao jogador.
+
+### Versão 5.8.0 "Ergonomia, Persistência e Modo de Economia"
 *   **🖱️ Pressionar e Segurar nos Botões de Investimento**: Novo hook reutilizável `useHoldRepeat` (`src/hooks/useHoldRepeat.ts`) e componente `HoldButton` em `GameUI.tsx`, aplicados aos botões de distribuição de Atributos (`+{multiplier}`) e de aprimoramento de Habilidades (modal desktop e lista mobile). O primeiro toque/clique aplica o efeito imediatamente; mantendo pressionado por ~400ms, o incremento passa a repetir a cada ~100ms até o botão ser solto, o ponteiro sair da área ou os pontos disponíveis se esgotarem — elimina a necessidade de cliques repetidos para investir grandes quantidades de pontos.
 *   **🔋 Tela Sempre Ativa Durante o Jogo (Wake Lock)**: Novo hook `useWakeLock` (`src/hooks/useWakeLock.ts`, ver Seção 3.H) mantém a tela do dispositivo ligada via Screen Wake Lock API nativa enquanto o jogador está na tela de combate (`screen === 'playing'`), com reaquisição automática após o navegador liberar o lock (aba oculta) e feature-detection para navegadores sem suporte.
 *   **✍️ Nome de Personagem na Criação**: Adicionado o campo `name: string` à interface `Character` (`src/core/types.ts`). A tela de Seleção de Classe (`CharacterSelect.tsx`) ganhou um campo de texto obrigatório (máx. 20 caracteres) para nomear o herói antes de "Iniciar Jornada"; o nome substitui o nome da classe como identificador do personagem no painel de Atributos e no texto flutuante da cena de combate. Saves antigos sem o campo usam o nome da classe como *fallback* automático (ver Seção 4).
