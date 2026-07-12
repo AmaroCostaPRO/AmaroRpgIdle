@@ -891,6 +891,8 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   toggleAutoSellCommon: () => set((state) => {
+    const isAutoDismantleActive = (state.character.citadel?.forgeWorkshop.level || 0) >= 5;
+    if (isAutoDismantleActive) return state;
     const val = !state.autoSellCommon;
     try {
       localStorage.setItem('rpg_auto_sell_common', String(val));
@@ -899,6 +901,8 @@ export const useGameStore = create<GameState>((set) => ({
   }),
 
   toggleAutoSellRare: () => set((state) => {
+    const isAutoDismantleActive = (state.character.citadel?.forgeWorkshop.level || 0) >= 5;
+    if (isAutoDismantleActive) return state;
     const val = !state.autoSellRare;
     try {
       localStorage.setItem('rpg_auto_sell_rare', String(val));
@@ -1474,9 +1478,17 @@ export const useGameStore = create<GameState>((set) => ({
         message: nextLevel === 1
           ? 'Oficina de Automação da Forja construída!'
           : nextLevel === 5
-            ? 'Oficina melhorada para o Nível 5 — Mestre Forjador! Desmonte Automatizado ativado.'
+            ? 'Oficina melhorada para o Nível 5 — Mestre Forjador! Desmonte Automatizado ativado. Auto-venda de itens Comuns e Raros foi desativada.'
             : `Oficina melhorada para o Nível ${nextLevel}!`
       };
+
+      if (nextLevel >= 5) {
+        try {
+          localStorage.setItem('rpg_auto_sell_common', 'false');
+          localStorage.setItem('rpg_auto_sell_rare', 'false');
+        } catch (e) {}
+        return { character: updated, autoSellCommon: false, autoSellRare: false };
+      }
       return { character: updated };
     });
     return result;

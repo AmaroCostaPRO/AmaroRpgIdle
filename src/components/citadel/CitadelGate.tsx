@@ -3,15 +3,18 @@ import { AudioManager } from '../../core/AudioManager';
 
 interface CitadelGateProps {
   onEnter: () => void;
+  locked?: boolean;
+  lockedReason?: string;
 }
 
 /**
  * Portão de entrada exibido assim que o jogador acessa a aba Cidadela — a
  * base só é aberta de fato (cobrindo a tela de combate) após confirmar aqui.
  * Evita que o jogador saia do combate sem querer só de passar pelo carrossel
- * de abas.
+ * de abas. Quando `locked`, a aba continua clicável (para o jogador ler a
+ * descrição), mas o botão de entrada fica desabilitado.
  */
-export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter }) => (
+export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter, locked = false, lockedReason }) => (
   <div
     className="panel animate-tabFade"
     style={{
@@ -69,9 +72,11 @@ export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter }) => (
 
     <button
       onClick={() => {
+        if (locked) return;
         AudioManager.getInstance().playClick();
         onEnter();
       }}
+      disabled={locked}
       className="btn btn-gold"
       style={{
         position: 'relative',
@@ -80,9 +85,17 @@ export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter }) => (
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
+        opacity: locked ? 0.5 : 1,
+        cursor: locked ? 'not-allowed' : 'pointer',
       }}
     >
-      Entrar na Cidadela 🏰
+      {locked ? 'Cidadela Bloqueada 🔒' : 'Entrar na Cidadela 🏰'}
     </button>
+
+    {locked && lockedReason && (
+      <p style={{ position: 'relative', fontSize: '0.7rem', color: 'rgba(245,158,11,0.8)', maxWidth: '380px', margin: 0 }}>
+        {lockedReason}
+      </p>
+    )}
   </div>
 );

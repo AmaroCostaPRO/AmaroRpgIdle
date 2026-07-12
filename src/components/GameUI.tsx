@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
 import { getXpNeededForLevel, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
@@ -486,7 +486,7 @@ const ActiveSkillsPanel: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem',
-                animation: 'fade-in 0.2s ease-out'
+                animation: 'fadeIn 0.2s ease-out'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(217, 119, 6, 0.15)', paddingBottom: '0.4rem' }}>
@@ -5213,6 +5213,7 @@ const OptionsPanel: React.FC = () => {
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const autoSellCommon = useGameStore((state) => state.autoSellCommon);
   const autoSellRare = useGameStore((state) => state.autoSellRare);
+  const isAutoDismantleActive = (character.citadel?.forgeWorkshop.level || 0) >= 5;
   const disableRobotTap = useGameStore((state) => state.disableRobotTap);
 
   const toggleSfx = useGameStore((state) => state.toggleSfx);
@@ -5671,15 +5672,21 @@ const OptionsPanel: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
             <div>
               <div style={{ fontWeight: 'bold' }}>Auto-venda: Equipamentos Comuns</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Vende instantaneamente itens comuns dropados por ouro.</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>
+                {isAutoDismantleActive
+                  ? 'Desativado: a Oficina de Automação da Forja (Nível 5) já desmonta esses itens em Fragmentos de Forja.'
+                  : 'Vende instantaneamente itens comuns dropados por ouro.'}
+              </div>
             </div>
             <button
               onClick={() => {
+                if (isAutoDismantleActive) return;
                 toggleAutoSellCommon();
                 playClick();
               }}
+              disabled={isAutoDismantleActive}
               className={`btn btn-sm ${autoSellCommon ? 'btn-success' : 'btn-secondary'}`}
-              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px', opacity: isAutoDismantleActive ? 0.5 : 1, cursor: isAutoDismantleActive ? 'not-allowed' : 'pointer' }}
             >
               {autoSellCommon ? 'On' : 'Off'}
             </button>
@@ -5691,15 +5698,21 @@ const OptionsPanel: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
             <div>
               <div style={{ fontWeight: 'bold' }}>Auto-venda: Equipamentos Raros</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Vende instantaneamente itens raros dropados por ouro.</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>
+                {isAutoDismantleActive
+                  ? 'Desativado: a Oficina de Automação da Forja (Nível 5) já desmonta esses itens em Fragmentos de Forja.'
+                  : 'Vende instantaneamente itens raros dropados por ouro.'}
+              </div>
             </div>
             <button
               onClick={() => {
+                if (isAutoDismantleActive) return;
                 toggleAutoSellRare();
                 playClick();
               }}
+              disabled={isAutoDismantleActive}
               className={`btn btn-sm ${autoSellRare ? 'btn-success' : 'btn-secondary'}`}
-              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px' }}
+              style={{ fontSize: '0.6rem', padding: '0.2rem 0.6rem', minWidth: '70px', opacity: isAutoDismantleActive ? 0.5 : 1, cursor: isAutoDismantleActive ? 'not-allowed' : 'pointer' }}
             >
               {autoSellRare ? 'On' : 'Off'}
             </button>
@@ -6804,7 +6817,7 @@ export default function GameUI() {
             return prev;
           }
         });
-      }, 2000);
+      }, 4000);
       return () => clearInterval(timer);
     }
   }, [character.introLoreShown]);
@@ -6882,7 +6895,7 @@ export default function GameUI() {
     { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
-    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: !isCitadelUnlocked },
+    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: false },
     { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
     ...(((character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0) ? [
@@ -7218,8 +7231,12 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
-          {activeTab === 'citadel' && isCitadelUnlocked && !citadelEntered && (
-            <CitadelGate onEnter={() => setCitadelEntered(true)} />
+          {activeTab === 'citadel' && !citadelEntered && (
+            <CitadelGate
+              locked={!isCitadelUnlocked}
+              lockedReason="Requer 1 Ascensão para desbloquear a Cidadela."
+              onEnter={() => setCitadelEntered(true)}
+            />
           )}
           {activeTab === 'citadel' && isCitadelUnlocked && citadelEntered && (
             <>
@@ -7880,7 +7897,7 @@ export default function GameUI() {
               display: 'flex',
               flexDirection: 'column',
               gap: '1.5rem',
-              animation: 'fade-in 0.4s ease-out',
+              animation: 'fadeIn 0.4s ease-out',
               position: 'relative'
             }}
           >
@@ -7929,40 +7946,40 @@ export default function GameUI() {
                 color: '#cbd5e1',
                 textAlign: 'justify'
               }}
-              className="ui-scrollable-content"
+              className="lore-scrollable-content"
             >
               {visibleParagraphs >= 1 && (
-                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fadeIn 1.2s ease-out' }}>
                   "Antes que houvesse reinos, havia uma única Alma — vasta, inteira, sonhando o mundo em existência.
                 </p>
               )}
               {visibleParagraphs >= 2 && (
-                <p style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, color: '#a78bfa', textAlign: 'center', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, color: '#a78bfa', textAlign: 'center', animation: 'fadeIn 1.2s ease-out' }}>
                   Ela se partiu.
                 </p>
               )}
               {visibleParagraphs >= 3 && (
-                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fadeIn 1.2s ease-out' }}>
                   Ninguém sabe se foi guerra, acidente ou escolha. O que se sabe é que seus cacos caíram sobre a terra como estrelas, e cada um deles despertou como um herói: um Guerreiro de fúria inquebrantável, um Mago de fogo arcano, um Arqueiro de mira impossível — seis ecos de uma única vontade, cada um convencido de ser o único."
                 </p>
               )}
               {visibleParagraphs >= 4 && (
-                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fadeIn 1.2s ease-out' }}>
                   "Os monstros que você enfrenta não nasceram deste mundo. São o vazio entre os cacos, tentando preencher o espaço onde a Alma deveria estar inteira — e a cada fase que você atravessa, o vazio fica mais denso, mais faminto, mais forte."
                 </p>
               )}
               {visibleParagraphs >= 5 && (
-                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', animation: 'fadeIn 1.2s ease-out' }}>
                   "Você vai morrer. Muitas vezes. Mas cada morte é só um fragmento retornando à fonte por um instante — e cada retorno o torna mais do que era.
                 </p>
               )}
               {visibleParagraphs >= 6 && (
-                <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--gold-400)', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--gold-400)', animation: 'fadeIn 1.2s ease-out' }}>
                   Chamam isso de Ascensão. Você chama de a única forma de continuar."
                 </p>
               )}
               {visibleParagraphs >= 7 && (
-                <p style={{ margin: 0, fontStyle: 'italic', fontSize: '0.62rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem', animation: 'fade-in 0.6s ease-out' }}>
+                <p style={{ margin: 0, fontStyle: 'italic', fontSize: '0.62rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.6rem', animation: 'fadeIn 1.2s ease-out' }}>
                   *E em algum lugar, no fundo de tudo, algo mais antigo que os cacos está esperando você cavar fundo demais. Chamam isso de Pandemônio.*
                 </p>
               )}

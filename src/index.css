@@ -891,27 +891,32 @@ input, textarea, [contenteditable="true"] {
 .stat-row:hover { border-color: var(--border-subtle); }
 
 /* ── Conteúdo Rolável da Interface do Painel ── */
-.ui-scrollable-content {
+.ui-scrollable-content,
+.lore-scrollable-content {
   scrollbar-width: thin;
   scrollbar-color: var(--surface-4) var(--surface-1);
   padding-right: 6px;
 }
 
-.ui-scrollable-content::-webkit-scrollbar {
+.ui-scrollable-content::-webkit-scrollbar,
+.lore-scrollable-content::-webkit-scrollbar {
   width: 4px;
 }
 
-.ui-scrollable-content::-webkit-scrollbar-track {
+.ui-scrollable-content::-webkit-scrollbar-track,
+.lore-scrollable-content::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 3px;
 }
 
-.ui-scrollable-content::-webkit-scrollbar-thumb {
+.ui-scrollable-content::-webkit-scrollbar-thumb,
+.lore-scrollable-content::-webkit-scrollbar-thumb {
   background: var(--surface-4);
   border-radius: 3px;
 }
 
-.ui-scrollable-content::-webkit-scrollbar-thumb:hover {
+.ui-scrollable-content::-webkit-scrollbar-thumb:hover,
+.lore-scrollable-content::-webkit-scrollbar-thumb:hover {
   background: var(--gold-500);
 }
 
@@ -1145,7 +1150,7 @@ input, textarea, [contenteditable="true"] {
     order: 1 !important;
   }
 
-  .ui-scrollable-content {
+  .game-ui-root .ui-scrollable-content {
     order: 2 !important;
     flex: 1 !important;
     min-height: 0 !important;
@@ -1156,13 +1161,15 @@ input, textarea, [contenteditable="true"] {
     padding-right: 6px !important;
   }
 
-  .ui-scrollable-content::-webkit-scrollbar {
+  .game-ui-root .ui-scrollable-content::-webkit-scrollbar,
+  .lore-scrollable-content::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
   }
 
-  .ui-scrollable-content {
+  .game-ui-root .ui-scrollable-content,
+  .lore-scrollable-content {
     -ms-overflow-style: none !important;  /* IE/Edge */
     scrollbar-width: none !important;  /* Firefox */
   }
