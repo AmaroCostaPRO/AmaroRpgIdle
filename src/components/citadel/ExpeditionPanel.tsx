@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore, CLASS_CONFIGS, isClassUnlocked, getGlobalClassLevels } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
+import {
+  EXPEDITIONS_MAX_LEVEL, EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
+  EXPEDITION_ALLOCATION_GOLD_COST, computeClassExpeditionProduction,
+} from '../../core/citadelFormulas';
 
 const GROUP_LABEL: Record<string, string> = {
   warrior: 'Força', paladin: 'Força',
@@ -8,21 +12,9 @@ const GROUP_LABEL: Record<string, string> = {
   mage: 'Magia', cleric: 'Magia', necromancer: 'Magia', avatar: 'Magia',
 };
 
-// Espelha computeClassExpeditionProduction (useGameStore.ts) só para exibir os valores reais ao jogador
-const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
-const getClassHourlyProduction = (classId: string, expeditionLevel: number) => {
-  const group = GROUP_LABEL[classId];
-  const levelMult = 1 + (Math.max(expeditionLevel, 1) - 1) * 0.15;
-  return {
-    wood: EXPEDITION_BASE_HOURLY.wood * levelMult * (group === 'Destreza' ? 1.25 : 1),
-    stone: EXPEDITION_BASE_HOURLY.stone * levelMult * (group === 'Força' ? 1.25 : 1),
-    meat: EXPEDITION_BASE_HOURLY.meat * levelMult * (group === 'Destreza' ? 1.25 : 1),
-    studyInsignias: EXPEDITION_BASE_HOURLY.studyInsignias * levelMult * (group === 'Magia' ? 1.30 : 1),
-  };
-};
+const getClassHourlyProduction = (classId: string, expeditionLevel: number) =>
+  computeClassExpeditionProduction(classId, expeditionLevel, 1);
 
-// Espelha EXPEDITION_ALLOCATION_GOLD_COST / EXPEDITION_ALLOCATION_DURATION_MS (useGameStore.ts)
-const EXPEDITION_ALLOCATION_GOLD_COST = (expeditionLevel: number): number => 20000 * expeditionLevel;
 const EXPEDITION_ALLOCATION_DURATION_HOURS = 8;
 
 const formatRemaining = (ms: number): string => {
@@ -31,8 +23,6 @@ const formatRemaining = (ms: number): string => {
   const minutes = totalMinutes % 60;
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
-
-const EXPEDITIONS_MAX_LEVEL = 5;
 
 export const ExpeditionPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -52,12 +42,8 @@ export const ExpeditionPanel: React.FC = () => {
   const expeditions = citadel?.expeditions || { level: 0, lastTick: 0, allocatedClasses: [] };
   const isBuilt = expeditions.level > 0;
   const nextLevel = expeditions.level + 1;
-  const maxSlots = expeditions.level >= 5 ? 3 : expeditions.level >= 3 ? 2 : expeditions.level >= 1 ? 1 : 0;
-  const cost = {
-    wood: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
-    stone: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-    meat: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const maxSlots = EXPEDITIONS_MAX_SLOTS(expeditions.level);
+  const cost = EXPEDITIONS_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
   const allocationGoldCost = EXPEDITION_ALLOCATION_GOLD_COST(expeditions.level);
   const allocatedClassIds = expeditions.allocatedClasses.map((a) => a.classId);

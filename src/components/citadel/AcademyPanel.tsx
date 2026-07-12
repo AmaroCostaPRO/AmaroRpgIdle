@@ -1,8 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const ACADEMY_MAX_LEVEL = 5;
+import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST } from '../../core/citadelFormulas';
 
 const RESEARCH_TYPES: { key: 'dmg' | 'hp' | 'speed'; levelField: 'researchDmgLevel' | 'researchHpLevel' | 'researchSpeedLevel'; label: string; description: string }[] = [
   { key: 'dmg', levelField: 'researchDmgLevel', label: 'Táticas de Combate Avançadas', description: '+1.5% Dano Geral por nível' },
@@ -20,12 +19,8 @@ export const AcademyPanel: React.FC = () => {
   const academy = citadel?.academy || { level: 0, lastTick: 0, researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0 };
   const isBuilt = academy.level > 0;
   const nextLevel = academy.level + 1;
-  const researchCap = academy.level * 5;
-  const cost = {
-    wood: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-    stone: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
-    studyInsignias: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const researchCap = ACADEMY_MAX_RESEARCH_LEVEL(academy.level);
+  const cost = ACADEMY_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
 
   const handleUpgrade = () => {
@@ -67,7 +62,7 @@ export const AcademyPanel: React.FC = () => {
           {RESEARCH_TYPES.map(({ key, levelField, label, description }) => {
             const level = academy[levelField];
             const nextResearchLevel = level + 1;
-            const researchCost = 20 * nextResearchLevel;
+            const researchCost = RESEARCH_COST(nextResearchLevel);
             const atCap = nextResearchLevel > researchCap;
             const canAfford = materials.studyInsignias >= researchCost;
             return (

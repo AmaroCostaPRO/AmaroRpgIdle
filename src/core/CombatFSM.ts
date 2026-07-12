@@ -572,7 +572,6 @@ export class CombatFSM {
         }
       }
 
-      console.log(`[CombatFSM-Torre] Spawned ${this.currentEnemy.name} (Andar ${floor}). MaxHP: ${this.enemyMaxHP}, Elite: ${this.isElite}`);
       return;
     }
 
@@ -594,7 +593,6 @@ export class CombatFSM {
         const randBossIndex = Math.floor(Math.random() * bossEnemies.length);
         this.currentEnemy = bossEnemies[randBossIndex];
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
-        console.log(`[CombatFSM] Pandemônio BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP}`);
       } else {
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       }
@@ -620,8 +618,6 @@ export class CombatFSM {
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       }
       this.enemyHP = this.enemyMaxHP;
-      const label = isBoss ? 'CHEFE' : 'COMUM';
-      console.log(`[CombatFSM] Purgatório ${label} ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP}`);
     } else if (isBoss) {
       const theme = ((stage - 1) % 5) + 1;
       let bossId = 'boss_forest_golem';
@@ -633,8 +629,6 @@ export class CombatFSM {
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
-      const diffLabel = stage >= 16 ? 'Apocalipse' : stage >= 11 ? 'Inferno' : stage >= 6 ? 'Pesadelo' : 'Normal';
-      console.log(`[CombatFSM] BOSS ${this.currentEnemy.name} Spawned. MaxHP: ${this.enemyMaxHP} (Dificuldade: ${diffLabel})`);
     } else {
       const theme = ((stage - 1) % 5) + 1;
       let commonIds: string[] = [];
@@ -672,7 +666,6 @@ export class CombatFSM {
         // HP do Elite é multiplicado por 3.0x
         this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
         this.enemyHP = this.enemyMaxHP;
-        console.log(`[CombatFSM] ELITE ${this.currentEnemy.name} Spawned! Afixo: ${this.eliteAfix}. MaxHP: ${this.enemyMaxHP}`);
       }
     }
 
@@ -682,7 +675,6 @@ export class CombatFSM {
     if (isEcoterra) {
       this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
       this.enemyHP = this.enemyMaxHP;
-      console.log(`[CombatFSM-Ecoterra] Inimigo fortalecido! MaxHP: ${this.enemyMaxHP}`);
     }
   }
 

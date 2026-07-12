@@ -1,8 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const WATCH_TOWER_MAX_LEVEL = 5;
+import { WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY } from '../../core/citadelFormulas';
 
 export const WatchTowerPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -13,14 +12,10 @@ export const WatchTowerPanel: React.FC = () => {
   const watchTower = citadel?.watchTower || { level: 0, lastTick: 0, storedKeys: 0 };
   const isBuilt = watchTower.level > 0;
   const nextLevel = watchTower.level + 1;
-  const cost = {
-    wood: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-    stone: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-    meat: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const cost = WATCH_TOWER_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
-  const hoursPerKey = watchTower.level >= 5 ? 6 : watchTower.level >= 3 ? 12 : 24;
-  const capacity = watchTower.level >= 5 ? 4 : watchTower.level >= 3 ? 2 : 1;
+  const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(watchTower.level);
+  const capacity = WATCH_TOWER_KEY_CAPACITY(watchTower.level);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();

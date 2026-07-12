@@ -1,8 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const COSMIC_SIPHON_MAX_LEVEL = 5;
+import { COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST } from '../../core/citadelFormulas';
 
 export const CosmicSiphonPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -14,11 +13,7 @@ export const CosmicSiphonPanel: React.FC = () => {
   const siphon = citadel?.cosmicSiphon || { level: 0, lastTick: 0 };
   const isBuilt = siphon.level > 0;
   const nextLevel = siphon.level + 1;
-  const cost = {
-    stone: Math.round(1500 * Math.pow(1.6, nextLevel - 1)),
-    wood: Math.round(1000 * Math.pow(1.6, nextLevel - 1)),
-    transcendenceEssence: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const cost = COSMIC_SIPHON_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && materials.wood >= cost.wood && essence >= cost.transcendenceEssence;
   const manaDrainPct = Math.max(0, 1.5 - siphon.level * 0.3);
   const cooldownErosionPct = Math.max(0, 15 - siphon.level * 3);

@@ -1,8 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const SYNCHRONY_ALTAR_MAX_LEVEL = 5;
+import { SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST } from '../../core/citadelFormulas';
 
 export const SynchronyAltarPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -14,11 +13,7 @@ export const SynchronyAltarPanel: React.FC = () => {
   const altar = citadel?.synchronyAltar || { level: 0, lastTick: 0 };
   const isBuilt = altar.level > 0;
   const nextLevel = altar.level + 1;
-  const cost = {
-    stone: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
-    transcendenceEssence: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-    studyInsignias: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const cost = SYNCHRONY_ALTAR_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && essence >= cost.transcendenceEssence && materials.studyInsignias >= cost.studyInsignias;
   const injectionPct = altar.level * 3;
 

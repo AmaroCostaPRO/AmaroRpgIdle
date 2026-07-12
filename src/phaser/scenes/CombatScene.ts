@@ -366,8 +366,6 @@ export class CombatScene extends Phaser.Scene {
 
     // Notifica o React que a arena de combate foi carregada e inicializada com sucesso
     bridge.emit(GameEvent.ARENA_READY, {});
-
-    console.log(`[Phaser] CombatScene configurada para classe ${classId}!`);
   }
 
   update(time: number, delta: number): void {
@@ -617,7 +615,6 @@ export class CombatScene extends Phaser.Scene {
     const isTower = useTowerStore.getState().towerActive;
     if (isTower) {
       if (this.currentBgTexture !== 'tower_background') {
-        console.log(`[CombatScene] Atualizando background para: tower_background`);
         this.background.setTexture('tower_background');
         this.currentBgTexture = 'tower_background';
         // Exibe a imagem de 1024x1024 inteira adaptada exatamente para os 800x600 do canvas,
@@ -651,7 +648,6 @@ export class CombatScene extends Phaser.Scene {
     }
 
     if (this.currentBgTexture !== textureKey) {
-      console.log(`[CombatScene] Atualizando background para: ${textureKey}`);
       this.background.setTexture(textureKey);
       this.currentBgTexture = textureKey;
       const baseBgScale = 600 / 1024;
@@ -1307,6 +1303,5 @@ export class CombatScene extends Phaser.Scene {
     if (this.fsm) {
       this.fsm.cleanup();
     }
-    console.log('[CombatScene] Cleaned up subscriptions.');
   }
 }

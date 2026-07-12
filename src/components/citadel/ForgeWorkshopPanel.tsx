@@ -1,11 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const FORGE_WORKSHOP_MAX_LEVEL = 5;
-const FORGE_ORDER_GOLD_COST = 200;
-const FORGE_ORDER_WOOD_COST = 50;
-const FORGE_ORDER_FRAGMENT_YIELD = 15;
+import { FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_FRAGMENT_YIELD } from '../../core/citadelFormulas';
 
 export const ForgeWorkshopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -17,11 +13,7 @@ export const ForgeWorkshopPanel: React.FC = () => {
   const isBuilt = forgeWorkshop.level > 0;
   const isMasterForger = forgeWorkshop.level >= 5;
   const nextLevel = forgeWorkshop.level + 1;
-  const cost = {
-    wood: Math.round(600 * Math.pow(1.6, nextLevel - 1)),
-    stone: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
-    studyInsignias: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const cost = FORGE_WORKSHOP_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
 
   const handleUpgrade = () => {

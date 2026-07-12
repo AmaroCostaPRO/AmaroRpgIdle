@@ -346,7 +346,6 @@ const ActiveSkillsPanel: React.FC = () => {
   }, []);
 
   const triggerSkill = (skillId: string) => {
-    console.log(`Triggering skill via UI: ${skillId}`);
     bridge.emit(GameEvent.EQUIP_SKILL, { skillId });
   };
 
@@ -5502,7 +5501,6 @@ const OptionsPanel: React.FC = () => {
       const originalSetItem = localStorage.setItem;
       localStorage.setItem = function(key, value) {
         if ((window as any).isDevModeActive && (key.startsWith('medieval_idle_') || key === 'global_class_levels')) {
-          console.log('Salvamento interceptado e bloqueado no modo Sandbox:', key);
           return;
         }
         originalSetItem.call(this, key, value);

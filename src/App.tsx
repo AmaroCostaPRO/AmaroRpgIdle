@@ -53,7 +53,6 @@ const App: React.FC = () => {
   // Escuta o evento que sinaliza que o Phaser renderizou a cena
   useEffect(() => {
     const unsubscribeReady = bridge.subscribe(GameEvent.ARENA_READY, () => {
-      console.log("[App] Combat Arena is ready! Hiding loading screen.");
       setIsGameReady(true);
     });
     return () => {
@@ -126,7 +125,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const destroyPhaserGame = () => {
       if (phaserGameRef.current) {
-        console.log("Destroying Phaser Game...");
         try {
           phaserGameRef.current.destroy(true);
         } catch (e) {
@@ -138,7 +136,6 @@ const App: React.FC = () => {
 
     const initPhaserGame = () => {
       if (!gameContainerRef.current || phaserGameRef.current) return;
-      console.log("Initializing Phaser Game...");
 
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
@@ -156,7 +153,6 @@ const App: React.FC = () => {
 
       try {
         phaserGameRef.current = new Phaser.Game(config);
-        console.log("Phaser Game Instance successfully attached");
         // Sinal definitivo de que o contexto WebGL foi perdido (ex.: tela do
         // celular apagou/bloqueou e o SO reclamou a GPU). O Phaser não
         // recria texturas/render state sozinho nesse caso, então o canvas
@@ -194,7 +190,6 @@ const App: React.FC = () => {
         hiddenAt > 0 &&
         Date.now() - hiddenAt > HIDDEN_RECOVERY_THRESHOLD_MS
       ) {
-        console.log("[App] Returned from a long background pause — recreating Phaser Game as a precaution.");
         setIsGameReady(false);
         destroyPhaserGame();
         initPhaserGame();

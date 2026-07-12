@@ -60,7 +60,6 @@ class GameBridge {
    */
   sendCommand(event: GameEvent, payload: GameEventPayload): void {
     // Logic to be implemented when Phaser is initialized to listen for these commands
-    console.log(`[Bridge Command]: ${event}`, payload);
   }
 }
 

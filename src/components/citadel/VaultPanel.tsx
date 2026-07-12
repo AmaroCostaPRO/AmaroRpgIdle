@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { EquipmentItem } from '../../core/types';
+import { VAULT_MAX_LEVEL, VAULT_UPGRADE_COST } from '../../core/citadelFormulas';
 
 const RARITY_COLOR: Record<string, string> = {
   common: '#94a3b8',
@@ -59,8 +60,6 @@ const formatStatValue = (stat: string, val: number) => {
   }
   return `+${val}`;
 };
-
-const VAULT_MAX_LEVEL = 5;
 
 interface SelectedVaultItem {
   item: EquipmentItem;
@@ -131,10 +130,7 @@ export const VaultPanel: React.FC = () => {
   const isBuilt = vault.level > 0;
   const nextLevel = vault.level + 1;
   const maxSlots = Math.min(10, vault.level * 2);
-  const cost = {
-    wood: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
-    stone: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
-  };
+  const cost = VAULT_UPGRADE_COST(nextLevel);
 
   const depositableItems = character.inventory.filter((item) => item.slot !== 'consumable');
 

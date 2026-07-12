@@ -2,10 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { useRelicStore } from '../../store/useRelicStore';
 import { AudioManager } from '../../core/AudioManager';
-
-const RELIC_LAB_MAX_LEVEL = 5;
-const RELIC_OVERHEAT_GOLD_COST = 50000;
-const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
+import { RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST } from '../../core/citadelFormulas';
 
 export const RelicLabPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -19,13 +16,9 @@ export const RelicLabPanel: React.FC = () => {
   const relicLab = citadel?.relicLab || { level: 0, lastTick: 0, overheatedRelicIds: [] };
   const isBuilt = relicLab.level > 0;
   const nextLevel = relicLab.level + 1;
-  const cost = {
-    stone: Math.round(3000 * Math.pow(1.6, nextLevel - 1)),
-    wood: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
-    unstableSoulFragments: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
-  };
+  const cost = RELIC_LAB_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && materials.wood >= cost.wood && soulFragments >= cost.unstableSoulFragments;
-  const maxSlots = relicLab.level * 2;
+  const maxSlots = RELIC_LAB_OVERHEAT_SLOTS(relicLab.level);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();

@@ -5,6 +5,19 @@ import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
 import { StatEngine } from '../core/StatEngine';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
+import {
+  VAULT_MAX_LEVEL, VAULT_UPGRADE_COST,
+  EXPEDITIONS_MAX_LEVEL, ACADEMY_MAX_LEVEL,
+  EXPEDITION_ALLOCATION_GOLD_COST, EXPEDITION_ALLOCATION_DURATION_MS,
+  EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
+  ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST,
+  WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY,
+  FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_HOURS, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_FRAGMENT_YIELD,
+  COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST,
+  SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
+  RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
+  computeClassExpeditionProduction, getMysticFusionCost,
+} from '../core/citadelFormulas';
 
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
@@ -626,107 +639,6 @@ const DEFAULT_CITADEL = () => ({
 });
 
 const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0 });
-
-// Custo de material para construir (Nível 0->1) ou upgradar (Nível N->N+1) o Depósito
-const VAULT_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number } => ({
-  wood: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
-  stone: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
-});
-
-const VAULT_MAX_LEVEL = 5;
-
-// Grupo de atributo por classe, usado para calcular o bônus de eficiência das expedições
-const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | 'magic'> = {
-  warrior: 'strength',
-  paladin: 'strength',
-  ranger: 'dexterity',
-  rogue: 'dexterity',
-  mage: 'magic',
-  cleric: 'magic',
-  necromancer: 'magic',
-  avatar: 'magic',
-};
-
-const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
-const EXPEDITIONS_MAX_LEVEL = 5;
-const ACADEMY_MAX_LEVEL = 5;
-// Custo em ouro para enviar uma classe em expedição e duração da alocação, escalando com o nível do Quartel
-const EXPEDITION_ALLOCATION_GOLD_COST = (expeditionLevel: number): number => 20000 * expeditionLevel;
-const EXPEDITION_ALLOCATION_DURATION_MS = 8 * 60 * 60 * 1000;
-
-const EXPEDITIONS_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
-  wood: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
-  stone: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-  meat: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
-});
-
-const EXPEDITIONS_MAX_SLOTS = (level: number): number => (level >= 5 ? 3 : level >= 3 ? 2 : level >= 1 ? 1 : 0);
-
-const ACADEMY_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; studyInsignias: number } => ({
-  wood: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-  stone: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
-  studyInsignias: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
-});
-
-const ACADEMY_MAX_RESEARCH_LEVEL = (academyLevel: number): number => academyLevel * 5;
-const RESEARCH_COST = (nextLevel: number): number => 20 * nextLevel;
-
-const WATCH_TOWER_MAX_LEVEL = 5;
-const WATCH_TOWER_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
-  wood: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-  stone: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-  meat: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
-});
-const WATCH_TOWER_HOURS_PER_KEY = (level: number): number => (level >= 5 ? 6 : level >= 3 ? 12 : 24);
-const WATCH_TOWER_KEY_CAPACITY = (level: number): number => (level >= 5 ? 4 : level >= 3 ? 2 : 1);
-
-const FORGE_WORKSHOP_MAX_LEVEL = 5;
-const FORGE_WORKSHOP_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; studyInsignias: number } => ({
-  wood: Math.round(600 * Math.pow(1.6, nextLevel - 1)),
-  stone: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
-  studyInsignias: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
-});
-// Cada ordem de serviço consome 1h + recursos e converte em Fragmentos de Forja; o nível permite mais ordens paralelas por hora
-const FORGE_ORDER_HOURS = 1;
-const FORGE_ORDER_GOLD_COST = 200;
-const FORGE_ORDER_WOOD_COST = 50;
-const FORGE_ORDER_FRAGMENT_YIELD = 15;
-
-const COSMIC_SIPHON_MAX_LEVEL = 5;
-const COSMIC_SIPHON_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; transcendenceEssence: number } => ({
-  stone: Math.round(1500 * Math.pow(1.6, nextLevel - 1)),
-  wood: Math.round(1000 * Math.pow(1.6, nextLevel - 1)),
-  transcendenceEssence: Math.round(50 * Math.pow(1.6, nextLevel - 1)),
-});
-
-const SYNCHRONY_ALTAR_MAX_LEVEL = 5;
-const SYNCHRONY_ALTAR_UPGRADE_COST = (nextLevel: number): { stone: number; transcendenceEssence: number; studyInsignias: number } => ({
-  stone: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
-  transcendenceEssence: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
-  studyInsignias: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
-});
-
-const RELIC_LAB_MAX_LEVEL = 5;
-const RELIC_LAB_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; unstableSoulFragments: number } => ({
-  stone: Math.round(3000 * Math.pow(1.6, nextLevel - 1)),
-  wood: Math.round(2000 * Math.pow(1.6, nextLevel - 1)),
-  unstableSoulFragments: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
-});
-// Cada nível do Laboratório libera o Superaquecimento de Alma de 2 relíquias adicionais (até as 8 existentes no Nível 4+)
-const RELIC_LAB_OVERHEAT_SLOTS = (labLevel: number): number => labLevel * 2;
-const RELIC_OVERHEAT_GOLD_COST = 50000;
-const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
-
-const computeClassExpeditionProduction = (classId: string, expeditionLevel: number, hours: number) => {
-  const levelMult = 1 + (expeditionLevel - 1) * 0.15;
-  const group = EXPEDITION_CLASS_GROUP[classId];
-  return {
-    wood: EXPEDITION_BASE_HOURLY.wood * hours * levelMult * (group === 'dexterity' ? 1.25 : 1),
-    stone: EXPEDITION_BASE_HOURLY.stone * hours * levelMult * (group === 'strength' ? 1.25 : 1),
-    meat: EXPEDITION_BASE_HOURLY.meat * hours * levelMult * (group === 'dexterity' ? 1.25 : 1),
-    studyInsignias: EXPEDITION_BASE_HOURLY.studyInsignias * hours * levelMult * (group === 'magic' ? 1.30 : 1),
-  };
-};
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Character => {
   const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
@@ -1702,9 +1614,6 @@ export const useGameStore = create<GameState>((set) => ({
       });
       leveledUp = true;
     }
-    if (leveledUp) {
-      console.log(`[Store] LEVEL UP! Novo Level: ${newLevel}. +5 atributos/nível, +1 skill point/nível.`);
-    }
 
     // --- VERIFICAÇÃO DE DESBLOQUEIO DE CLASSE ---
     const oldClassLevels = state.character.classLevels || {};
@@ -1842,8 +1751,6 @@ export const useGameStore = create<GameState>((set) => ({
       }
     });
 
-    console.log(`[Prestige] Ascendido! Ganhou ${pointsEarned} pontos de prestígio.`);
-
     const updated = {
       ...state.character,
       level: 1,
@@ -1921,8 +1828,6 @@ export const useGameStore = create<GameState>((set) => ({
         newBaseStats[upgrade.stat] += upgrade.bonusPerLevel * lvl;
       }
     });
-
-    console.log(`[Pandemonium] Modo Pandemônio Desbloqueado! Cobrado 100 PP e executada Ascensão Especial.`);
 
     const updated = {
       ...state.character,
@@ -2008,7 +1913,6 @@ export const useGameStore = create<GameState>((set) => ({
     const currentClassId = state.character.classId;
     const config = CLASS_CONFIGS[currentClassId] || CLASS_CONFIGS.warrior;
 
-    console.log(`[Transcendence] Rito de Transcendência realizado! Ganhou ${pointsEarned} PT.`);
 
     const updatedChar = {
       ...state.character,
@@ -2115,20 +2019,16 @@ export const useGameStore = create<GameState>((set) => ({
     const currentLvl = state.character.skillLevels[skillId] || 0;
     const maxLevel = getSkillMaxLevel(skillId, state.character.currentStage);
 
-    console.log(`[Store] Skill: ${skillId}, Current Level: ${currentLvl}, Max Level allowed for Stage ${state.character.currentStage}: ${maxLevel}`);
-
     if (currentLvl >= maxLevel) return state;
 
     // Validar nível requerido
     if (state.character.level < skill.requiredLevel) {
-      console.log(`[Store] Requisito de nível não atingido: requer nível ${skill.requiredLevel}.`);
       return state;
     }
 
     // Validar dependências de habilidades
     const dependenciesMet = skill.dependencies.every(depId => (state.character.skillLevels[depId] || 0) > 0);
     if (!dependenciesMet) {
-      console.log(`[Store] Dependências não liberadas: ${skill.dependencies.join(', ')}.`);
       return state;
     }
 
@@ -3077,22 +2977,9 @@ export const useGameStore = create<GameState>((set) => ({
         }
 
         targetMysticLevel = lvl1 + 1;
-        if (lvl1 < 5) {
-          const costs = [0, 1000, 2500, 12500, 62500];
-          const fragmentCosts = [0, 250, 500, 1000, 2500];
-          cost = costs[lvl1] || 500;
-          fragmentCost = fragmentCosts[lvl1] || 250;
-        } else {
-          // Fórmula: 100 * 5^L
-          cost = 100 * Math.pow(5, lvl1);
-          // Fragmentos: 5000 para lvl 5 (+6), 10000 para lvl 6 (+7), 20000 para lvl 7 (+8)
-          const extraFragmentCosts: Record<number, number> = {
-            5: 5000,
-            6: 10000,
-            7: 20000
-          };
-          fragmentCost = extraFragmentCosts[lvl1] || 20000;
-        }
+        const fusionCost = getMysticFusionCost(lvl1);
+        cost = fusionCost.cost;
+        fragmentCost = fusionCost.fragmentCost;
       }
 
       if ((state.character.gold || 0) < cost) {

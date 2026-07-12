@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore, formatNumber } from '../store/useGameStore';
 import { EquipmentItem, BaseStats } from '../core/types';
+import { getMysticFusionCost } from '../core/citadelFormulas';
 
 const isPercentStat = (stat: string) => {
   return [
@@ -173,20 +174,9 @@ export const ForgeView: React.FC = () => {
       }
 
       nextLevel = lvl1 + 1;
-      if (lvl1 < 5) {
-        const costs = [0, 1000, 2500, 12500, 62500];
-        const fragmentCosts = [0, 250, 500, 1000, 2500];
-        cost = costs[lvl1] || 500;
-        fragmentCost = fragmentCosts[lvl1] || 250;
-      } else {
-        cost = 100 * Math.pow(5, lvl1);
-        const extraFragmentCosts: Record<number, number> = {
-          5: 5000,
-          6: 10000,
-          7: 20000
-        };
-        fragmentCost = extraFragmentCosts[lvl1] || 20000;
-      }
+      const fusionCost = getMysticFusionCost(lvl1);
+      cost = fusionCost.cost;
+      fragmentCost = fusionCost.fragmentCost;
     }
 
     const hasGold = (character.gold || 0) >= cost;
