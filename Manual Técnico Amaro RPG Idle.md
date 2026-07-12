@@ -151,7 +151,7 @@ As classes avançadas secundárias requerem dedicação a uma classe primária e
 *   **Clérigo (`Cleric`)**: Requer Mago (`Mage`) Nível $\ge 50$.
 *   **Ladrão (`Rogue`)**: Requer Arqueiro (`Ranger`) Nível $\ge 50$.
 *   **Necromante (`Necromancer`)**: Requer as duas classes secundárias avançadas, **Clérigo Nível 50 e Ladrão Nível 50**, independentemente do slot de salvamento ativo.
-*   **Avatar (`avatar`)**: Requer o talento *Avatar Pleno* na árvore de Transcendência ou o acúmulo de **10 Pontos de Transcendência (PT)** vitalícios — não depende de nível de classe base. Ver Seção 11.E para a mecânica completa.
+*   **Avatar (`avatar`)**: Requer possuir o talento *Avatar Pleno* na árvore de Transcendência (`transcendenceUpgrades.avatar_pleno > 0`) — não depende de nível de classe base nem de nenhum outro atalho. Ver Seção 11.E para a mecânica completa.
 
 ### B. Atributos Iniciais e Taxas de Crescimento
 Cada classe possui uma distribuição distinta de atributos base e ganha bônus diferentes automaticamente a cada passagem de nível (*Level Up*), conforme detalhado na tabela abaixo:
@@ -762,8 +762,8 @@ O jogo possui 24 monstros catalogados de acordo com sua fase e tipo:
 *Nota: O XP ganho é multiplicado a cada fase pela taxa acelerada de $\text{Fator XP} = 1.35^{\text{Fase} - 1}$ para equilibrar o aumento da barra de nível.*
 
 *   **Custo de XP para Subir de Nível**: Para acompanhar o crescimento exponencial do ganho de XP acima, o custo de XP necessário para o próximo nível também escala pelo mesmo fator, com base na Fase atual do personagem:
-    $$\text{XP Necessário} = \left\lfloor \text{Nível} \times 100 \times 1.35^{\text{Fase} - 1} \right\rfloor$$
-    Como o mesmo fator exponencial multiplica tanto o ganho quanto o custo, a proporção entre XP ganho por abate e XP necessário para o próximo nível permanece constante ao longo de todo o jogo, evitando que o ganho de XP ultrapasse disparadamente o custo em fases avançadas.
+    $$\text{XP Necessário} = \left\lfloor (\text{Nível} + 80) \times 3.25 \times 1.35^{\text{Fase} - 1} \right\rfloor$$
+    Como o mesmo fator exponencial multiplica tanto o ganho quanto o custo, a proporção entre XP ganho por abate e XP necessário para o próximo nível permanece constante ao longo de todo o jogo, evitando que o ganho de XP ultrapasse disparadamente o custo em fases avançadas. O piso constante de **+80** somado ao Nível (`LEVEL_COST_OFFSET`) pesa proporcionalmente mais nos níveis baixos — freando a subida vertiginosa nos primeiros abates da Fase 1 — e se torna praticamente irrelevante em níveis altos, preservando o ritmo de progressão do mid/endgame (Fase 20+). Ver Versão 5.5.0 no Histórico de Updates para o contexto da mudança.
 
 ---
 
@@ -771,7 +771,7 @@ O jogo possui 24 monstros catalogados de acordo com sua fase e tipo:
 
 O Bestiário concede um bônus passivo e permanente de **Dano Geral** ao herói com base na derrota acumulada de monstros comuns e chefes. Para que um monstro seja considerado "concluído" no Bestiário, o jogador deve alcançar a meta de eliminação exigida:
 *   **Monstros Comuns**: 100 abates.
-*   **Chefes (Bosses)**: 50 abates.
+*   **Chefes (Bosses)**: 50 abates, exceto o **Guardião dos Cacos** (`boss_crystal_guardian`, chefe da Fase 30), cuja meta foi reduzida para **20 abates** (ver Versão 5.5.0 no Histórico de Updates).
 
 O cálculo do multiplicador de dano é efetuado na classe `StatEngine` (através do método `calculateBestiaryDamageMultiplier`) com base nas seguintes regras de acúmulo de bônus:
 1.  **Bônus Individual por Monstro**:
@@ -893,8 +893,9 @@ O modo **Torre Infinita** (v4.1.0) consiste em uma arena de desafios verticais c
 
 ### D. Chaves da Torre e Restrições de Entrada
 *   **Consumo Obrigatório**: A entrada no modo Torre Infinita exige e consome 1 **Chave da Torre** (`tower_key`) por tentativa. O botão "INICIAR SUBIDA" no painel da Torre Infinita permanece desabilitado se o herói não possuir nenhuma chave em seu inventário.
-*   **Drop na Campanha**: Chaves da Torre são adquiridas derrotando monstros ao longo da campanha normal (fases 1-30). A taxa de drop é **fixa** dependendo do monstro derrotado: monstros comuns possuem 5% de chance de drop, monstros Elites possuem 15% e Chefes de fase possuem 30% de chance. O drop destas chaves **não** sofre influência da estatística de **Sorte** do herói.
+*   **Drop na Campanha**: Chaves da Torre são adquiridas derrotando monstros ao longo da campanha normal (fases 1-30), desde que a subida da Torre Infinita e o Desafio Diário não estejam ativos no momento do abate. A taxa de drop é **fixa** dependendo do monstro derrotado: monstros comuns possuem **0.625%** de chance de drop, monstros Elites possuem **1.875%** e Chefes de fase possuem **3.75%** de chance (ver Versão 5.5.0 no Histórico de Updates). O drop destas chaves **não** sofre influência da estatística de **Sorte** do herói.
 *   **Proteção no Inventário**: As chaves são armazenadas na aba de Consumíveis do inventário. Por segurança, elas possuem restrição estrita de uso direto: ao tentar consumi-las no inventário, o jogador é impedido e instruído a utilizá-las diretamente no painel da Torre Infinita, evitando desperdícios e erros de uso.
+*   **Chave da Torre Evoluída (`tower_key_evolved`)**: Variante superior consumida no lugar da Chave da Torre comum. Ao entrar com ela (`useTowerStore.startTowerAttempt('evolved')`), a subida inteira concede **3x Ouro, XP e Fragmentos de Forja** enquanto durar a tentativa (`activeKeyType === 'evolved'` em `CombatFSM.ts` e `useTowerStore.ts`). Não possui taxa de drop em combate — é obtida exclusivamente através da produção passiva da **Torre de Vigia Astral** da Cidadela (Seção 18.F) ou da compra do consumível **Chave da Fenda Temporal** na Loja Celestial (Seção 11.D), que concede +2 unidades imediatas por 20 Essências de Transcendência.
 
 ### E. Recompensas: Fragmentos de Forja
 *   **Recompensa de Progresso**: Ao derrotar inimigos e superar andares na Torre Infinita, o jogador é recompensado com uma nova moeda especial chamada **Fragmentos de Forja** (`forgeFragments`).
@@ -913,14 +914,24 @@ A mecânica de Transcendência agora é acessada diretamente pelo menu principal
 2.  **🛒 Loja Celestial**: Nova loja exclusiva que permite trocar a **Essência de Transcendência (ET)** obtida na Ecoterra por itens consumíveis transcendentais de alto impacto.
 
 ### B. Mecânica de Transcendência (Segundo Ciclo de Prestígio)
-*   **Condições de Desbloqueio**: A Transcendência e sua respectiva aba tornam-se disponíveis após o jogador liberar o **Modo Pandemônio**, alcançar a **Fase 50** no Loop Infinito e acumular pelo menos **500 Pontos de Prestígio (PP)** vitalícios (ativos e gastos combinados) na história do personagem para gerar pelo menos 1 PT.
-*   **Reset de Transcendência**: Ao transcender, o jogador redefine seu progresso de fases, atributos de Ascensão normais, equipamentos normais e ouro em troca de **Pontos de Transcendência (PT)** permanentes.
-*   **Árvore de Upgrades de Transcendência**: Os PT obtidos são distribuídos em uma árvore de talentos exclusivos que concedem bônus transcendentais (acessível na sub-aba *Talentos & Ritual*):
-    1.  *Eco Permanente*: Aumento de $+1.5\%$ de todos os atributos globais por nível (sem limite de nível).
-    2.  *Essência Vital*: $+2\%$ HP Máximo e $+2\%$ Mana Máxima por nível.
-    3.  *Forja Infinita*: Aumenta a chance de acionar a "Forja Lendária" em $+1\%$ por nível.
-    4.  *Domínio do Vazio*: Aumenta o dano causado contra Elites do Vazio em $+10\%$ por nível.
-    5.  *Avatar Pleno*: Desbloqueia a classe Suprema Avatar (exige nível 5 nos outros upgrades e um total acumulado de pelo menos 10 PT).
+*   **Condições de Desbloqueio do Rito** (`performTranscendence`, `useGameStore.ts`): as três precisam ser verdadeiras simultaneamente, e o herói não pode estar dentro da Torre Infinita nem do Desafio Diário no momento:
+    1.  **Modo Pandemônio** já desbloqueado (`pandemoniumUnlocked`).
+    2.  **Fase 50** alcançada no Loop Infinito (`highestStageReached >= 50`).
+    3.  O cálculo de PT (fórmula abaixo) resultar em pelo menos **1 PT** — na prática, isso exige **500 Pontos de Prestígio (PP) vitalícios acumulados** (`lifetimePrestigePointsAccumulated`) desde a última Transcendência (ou desde o início, na primeira vez).
+*   **Fórmula de Conversão PP → PT**:
+    $$\text{PT Obtidos} = \left\lfloor \left( \frac{\text{PP Vitalício Acumulado}}{500} \right)^{0.75} \right\rfloor$$
+    O "PP Vitalício Acumulado" é a soma de todos os Pontos de Prestígio já obtidos em **todas** as Ascensões realizadas desde a última Transcendência (`lifetimePrestigePointsAccumulated`, que nunca diminui quando PP é gasto na árvore de prestígio — só é zerado ao transcender). Não é o saldo de PP disponível no momento, e sim o total histórico do ciclo. Por segurança de migração, o jogo usa `max(lifetimePrestigePointsAccumulated, PP_atual + PP_já_gasto_na_árvore)` como valor efetivo, caso o contador vitalício esteja ausente em saves antigos.
+    *   Referência de escala: são necessários **68.400 PP vitalícios** para 40 PT (o suficiente para maximizar os 4 talentos principais da árvore) e **80.031 PP** para os 45 PT que fecham a árvore inteira, incluindo o capstone Avatar Pleno.
+*   **Reset de Transcendência**: é um reset mais profundo que a Ascensão comum — zera nível, XP (atual e o contador vitalício `totalXpEarned`), ouro, Fragmentos de Forja, atributos base e taxas de crescimento (voltam ao padrão da classe), habilidades desbloqueadas/níveis, Pontos de Prestígio e upgrades de prestígio, contagem de Ascensões, fase atual e fase máxima alcançada, **equipamentos e inventário (sempre, sem exceção — diferente da Ascensão, que preserva o equipamento vestido se o Pandemônio já estiver desbloqueado)**, e também **redesbloqueia o Modo Pandemônio do zero** (`pandemoniumUnlocked` volta a `false`, exigindo repetir o Altar de Alma na Seção 9.D). O **Depósito/Almoxarifado da Cidadela também é esvaziado** neste reset — diferente da Ascensão, cujos itens guardados no Depósito sobrevivem (ver Seção 18.D); as demais construções da Cidadela (Torre de Vigia, Quartel, Oficina, etc.) não são afetadas.
+*   **O que é mantido**: os **Pontos de Transcendência** acumulados (somam com o novo ganho), a **árvore de Talentos de Transcendência** já comprada, o contador `transcendenceCount`, e as construções da Cidadela (exceto o conteúdo do Depósito).
+*   **Árvore de Upgrades de Transcendência**: os PT obtidos são distribuídos em uma árvore de talentos exclusivos (`TRANSCENDENCE_UPGRADES_CATALOG`, acessível na sub-aba *Talentos & Ritual*). Ao contrário da árvore de Prestígio, o custo por nível aqui é **fixo** (não escala com o nível atual):
+    1.  *Mana Suprema* (`mana_suprema`): $+10\%$ de Mana Máxima por nível. Custo: 1 PT/nível. Nível máximo: 10 (10 PT para maximizar).
+    2.  *Domínio do Vazio* (`dominio_vazio`): $+5\%$ de Dano contra Elites por nível. Custo: 1 PT/nível. Nível máximo: 10 (10 PT para maximizar).
+    3.  *Foco Temporal* (`foco_temporal`): Reduz o tempo de recarga de todas as habilidades em $3\%$ por nível. Custo: 1 PT/nível. Nível máximo: 10 (10 PT para maximizar).
+    4.  *Alma do Avatar* (`alma_avatar`): Aumento multiplicativo de $+2\%$ nos atributos base por nível. Custo: 2 PT/nível. Nível máximo: 5 (10 PT para maximizar).
+    5.  *Avatar Pleno* (`avatar_pleno`): Desbloqueia a classe Suprema Avatar. Custo: 5 PT (nível único). Exige que os outros 4 talentos estejam no nível máximo (5+) antes de poder ser comprado.
+    *   **Total para maximizar os 4 talentos principais**: 40 PT. **Total incluindo Avatar Pleno**: 45 PT.
+    *   **Respec**: `resetTranscendenceUpgrades` devolve integralmente todo o PT já investido na árvore e a zera, ao custo de **10 Essências de Transcendência (ET)** — moeda diferente do PT, obtida separadamente na Ecoterra (ver Seção 11.C).
 
 ### C. A Zona Espelho: Ecoterra
 *   **Ativação e Acesso**: Após realizar a primeira Transcendência (`transcendenceCount >= 1`), o switch de ativação **Espelho da Ecoterra** é exibido sob a aba *Talentos & Ritual*. Quando ativado, as Fases 1 a 20 da campanha normal são convertidas em suas variantes espectrais da Ecoterra.
@@ -944,7 +955,7 @@ A Loja Celestial (acessível na sub-aba *Loja Celestial*) permite ao jogador gas
 3.  **Chave da Fenda Temporal (🔑)** [Custo: 20 ET]: Concede imediatamente +2 Chaves da Torre Infinita ao inventário de consumíveis do jogador, permitindo mais entradas no desafio.
 
 ### E. Classe Suprema: Avatar
-*   **Desbloqueio**: Desbloqueada de forma definitiva ao ativar o talento *Avatar Pleno* na árvore de Transcendência ou ao acumular um total de **10 Pontos de Transcendência (PT)**.
+*   **Desbloqueio**: Desbloqueada de forma definitiva e exclusiva ao comprar o talento *Avatar Pleno* na árvore de Transcendência (Seção 11.B) — o que por sua vez exige ter os outros 4 talentos (Mana Suprema, Domínio do Vazio, Foco Temporal, Alma do Avatar) no Nível 5, e mais 5 PT para o próprio Avatar Pleno (30 PT no total pelo caminho mínimo). Não existe mais um atalho alternativo por quantidade de PT acumulado — essa era uma condição paralela e inconsistente com o requisito de nível 5 nos talentos, corrigida na Versão 5.5.0 (ver Histórico de Updates).
 *   **Mecânica de Atributo Único**: O Avatar não possui uma escala de atributo principal pré-definida. Todo o seu poder ofensivo e defensivo escala dinamicamente a partir do **Maior Atributo Ativo** no momento do tick de cálculo:
     $$\text{Atributo Efetivo} = \max(\text{Strength}, \text{Magic}, \text{Dexterity}, \text{Constitution}, \text{Luck})$$
 *   **Habilidades Integradas**:
@@ -1153,7 +1164,21 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 5.4.0 "O Despertar Cósmico" (Atual)
+### Versão 5.5.0 "Recalibragem de Progressão" (Atual)
+*   **📈 Correção da Curva de Custo de XP (Nivelamento Inicial)**: A constante multiplicadora do custo de XP por nível (`XpEngine.getXpNeededForLevel`) havia sido reduzida de `Nível × 100` para `Nível × 3.25` para permitir mais níveis ao longo da campanha. Como o fator exponencial de fase (`1.35^{Fase-1}`) multiplica igualmente o ganho e o custo de XP, essa mudança acelerou a subida de nível de forma **uniforme em todas as fases**, tornando o início do jogo absurdamente rápido (o primeiro abate já concedia múltiplos níveis, e o jogador chegava à Fase 2 com dezenas de níveis acumulados).
+    *   Introduzido um piso constante `LEVEL_COST_OFFSET = 80` somado ao Nível antes da multiplicação: `(Nível + 80) × 3.25 × 1.35^{Fase-1}`. Esse piso pesa proporcionalmente muito nos níveis baixos (freando o início) e se torna desprezível em níveis altos, preservando o ritmo de progressão do mid/endgame (Fase 20+) que a mudança anterior pretendia alcançar.
+    *   Impacto estimado por simulação: nível ao fim da Fase 1 caiu de ~18 para ~2; nível ao fim da Fase 20 caiu de ~109 para ~55; nível ao fim do Purgatório (Fase 30) caiu de ~159 para ~97 — ainda bem acima da fórmula anterior a `100`, que resultava em apenas ~27 no fim do Purgatório.
+*   **🗡️ Redução da Meta de Abates do Guardião dos Cacos no Bestiário**: A meta de eliminação exigida para "concluir" o chefe final da Fase 30 (`boss_crystal_guardian`) no Bestiário foi reduzida de 50 para **20 abates**, mantendo os demais chefes em 50. Ajuste especial aplicado em `StatEngine.calculateBestiaryDamageMultiplier`, `useGameStore.registerEnemyKill` e nas duas telas do `BestiaryPanel` em `GameUI.tsx`.
+*   **🔑 Nova Redução no Drop de Chaves da Torre**: As probabilidades de drop da "Chave da Torre" em combate (já reduzidas em 50% na Versão 4.4.0) foram cortadas para **1/4** dos valores vigentes, para desacelerar ainda mais o ritmo de acúmulo de chaves na campanha normal:
+    *   *Chefes (Boss)*: de 15% para **3.75%**.
+    *   *Elites*: de 7.5% para **1.875%**.
+    *   *Monstros Comuns*: de 2.5% para **0.625%**.
+    *   A produção passiva da Torre de Vigia Astral (Seção 18.F) e o consumível "Chave da Fenda Temporal" não foram alterados por este ajuste.
+*   **🎖️ Expiração Automática das Expedições do Quartel**: Antes, uma classe alocada no Quartel de Expedições permanecia farmando materiais indefinidamente até o jogador removê-la manualmente. Isso foi substituído por um limite fixo de **8 horas** por alocação (`EXPEDITION_ALLOCATION_DURATION_MS`): ao expirar, a classe retorna automaticamente ao Quartel, liberando o slot para uma nova alocação (ver Seção 18.E).
+*   **🐛 Correção: Depósito da Cidadela sobrevivendo à Transcendência**: `performTranscendence` não zerava o Depósito/Almoxarifado da Cidadela, permitindo que o jogador preservasse equipamentos através do reset mais profundo do jogo — comportamento que deveria ser exclusivo da Ascensão (Prestígio), não da Transcendência. Corrigido para que o Rito de Transcendência esvazie `citadel.vault.storedItems`, mantendo as demais construções da Cidadela intactas (ver Seção 11.B e Seção 18.D).
+*   **🐛 Correção: Condição de Desbloqueio do Avatar Inconsistente**: `isClassUnlocked('avatar', ...)` liberava a classe Avatar tanto pela compra real do talento *Avatar Pleno* quanto por um atalho paralelo de **10 PT acumulados** (gastos ou não) — um limiar mais baixo e alcançável antes mesmo de colocar 5 pontos em qualquer um dos 4 talentos-requisito, tornando a mensagem "exige Nível 5 nos outros talentos" enganosa e a UI da árvore marcava *Avatar Pleno* como "MÁXIMO"/"Desbloqueado por PT" sem o jogador nunca tê-lo comprado de fato. Removido o atalho de 10 PT em `isClassUnlocked` (`useGameStore.ts`) e na árvore de talentos (`GameUI.tsx`): agora a classe Avatar só é liberada com a compra efetiva de *Avatar Pleno*, que continua exigindo Nível 5 em Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar. Textos de UI em `GameUI.tsx` e `App.tsx` atualizados para refletir a regra única.
+
+### Versão 5.4.0 "O Despertar Cósmico"
 *   **🌫️ Sifão de Essência Cósmica**: Nova construção da Cidadela que mitiga linearmente a drenagem de mana (`1.5%/s → 0%/s`) e a erosão de recarga (`+15% → 0%`) da Ecoterra por nível, culminando na "Sincronia Perfeita" no Nível 5 (ver Seção 18.G).
 *   **🔯 Altar de Sincronia Elemental**: Centraliza o cálculo do "Maior Atributo Ativo" do Avatar em `CombatFSM.getAvatarEffectiveAttribute()` (substituindo dois blocos de código duplicados) e injeta até `+15%` da soma dos atributos secundários no atributo principal ativo no Nível 5.
 *   **🧪 Laboratório de Relíquias Místicas e Superaquecimento de Alma**: Nova mecânica que amplifica em ~2.5× os efeitos Capstone (Nível 5) das 8 relíquias existentes, ao custo de Ouro e Fragmentos de Alma Instável. Adicionada a ação `spendFragments` em `useRelicStore.ts`.
@@ -1668,11 +1693,12 @@ Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materia
 *   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
 *   **Função**: Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de inventário causado pela Ascensão. Itens Místicos (refinados na Forja) são bloqueados do depósito.
 *   **Capacidade**: `min(10, nível × 2)` slots — de 2 (Nível 1) a 10 (Nível 5).
-*   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige`, que zera apenas `inventory` e `equipment`.
+*   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige` (Ascensão), que zera apenas `inventory` e `equipment`. **Não sobrevivem**, porém, ao Rito de Transcendência (`performTranscendence`, Seção 11.B): por ser um reset mais profundo, `storedItems` é esvaziado nesse momento, mesmo com as demais construções da Cidadela permanecendo intactas.
 
 ### E. Quartel de Expedições e Academia Militar (v5.2.0)
 **Quartel de Expedições** — Custo base 150 Madeira / 200 Pedra / 100 Carne:
 *   Permite alocar classes já desbloqueadas e com nível registrado (`classLevels` local ou `medieval_idle_global_class_levels` global) — exceto a classe atualmente ativa (`character.classId`) — em expedições passivas.
+*   **Duração da Alocação**: cada classe enviada fica em expedição por **8 horas** (`EXPEDITION_ALLOCATION_DURATION_MS`), custando `20.000 × nível_do_Quartel` de Ouro no ato do envio. Ao expirar, a classe retorna automaticamente ao Quartel (liberando o slot) e um log de conclusão é emitido.
 *   Slots simultâneos: 1 (Nível 1) → 2 (Nível 3) → 3 (Nível 5).
 *   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` e pelo bônus de grupo de atributo da classe:
     *   *Força* (Guerreiro, Paladino): +25% Pedra/h.
@@ -1688,7 +1714,7 @@ Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materia
 
 ### F. Torre de Vigia Astral e Oficina de Automação da Forja (v5.3.0)
 **Torre de Vigia Astral** — Custo base 500 Madeira / 500 Pedra / 300 Carne:
-*   Fabrica **Chaves da Torre Infinita** de forma passiva (mesmo offline), a uma taxa de 24h/chave (Nível 1-2), 12h/chave (Nível 3-4) e 6h/chave (Nível 5).
+*   Fabrica **Chaves da Torre Evoluída** (`tower_key_evolved` — ver Seção 13.D) de forma passiva (mesmo offline), a uma taxa de 24h/chave (Nível 1-2), 12h/chave (Nível 3-4) e 6h/chave (Nível 5).
 *   Possui um buffer interno de capacidade 1 (Nível 1-2), 2 (Nível 3-4) e 4 (Nível 5) chaves, garantindo uma janela de segurança de até 24h de ausência sem desperdício de produção em qualquer tier. As chaves acumuladas são automaticamente escoadas para o inventário assim que houver espaço.
 
 **Oficina de Automação da Forja** — Custo base 600 Madeira / 800 Pedra / 150 Insígnias de Estudo:

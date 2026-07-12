@@ -5,8 +5,10 @@ import { Character } from './types';
  * pelo mesmo fator exponencial usado no ganho de XP por abate (CombatFSM.ts). Como o mesmo
  * fator multiplica ganho e custo, a proporção ganho/custo permanece constante em qualquer fase.
  */
+const LEVEL_COST_OFFSET = 80;
+
 export const getXpNeededForLevel = (level: number, currentStage: number): number =>
-  Math.floor(level * 3.25 * Math.pow(1.35, currentStage - 1));
+  Math.floor((level + LEVEL_COST_OFFSET) * 3.25 * Math.pow(1.35, currentStage - 1));
 
 /** Fórmula antiga (pré-fase-scaling), usada só como fallback de migração para saves sem totalXpEarned. */
 export const legacyReconstructTotalXp = (level: number, xp: number): number =>

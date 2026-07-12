@@ -539,7 +539,7 @@ const App: React.FC = () => {
                         🌟 Classe Transcendental: Avatar
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Desbloqueie a classe Avatar através do talento correspondente na árvore de Transcendência ou acumulando 10 Pontos de Transcendência (PT). O Avatar desfere Dano Cósmico escalado com o maior atributo e a ultimate "Coro da Alma Inteira" escala com a soma de todos eles!
+                        Desbloqueie a classe Avatar comprando o talento Avatar Pleno na árvore de Transcendência (exige Nível 5 em Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar primeiro). O Avatar desfere Dano Cósmico escalado com o maior atributo e a ultimate "Coro da Alma Inteira" escala com a soma de todos eles!
                       </div>
                     </div>
                     <div>

@@ -410,17 +410,7 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
       const state = useGameStore.getState();
       if (state && state.character) {
         const hasPleno = state.character.transcendenceUpgrades?.['avatar_pleno'] || 0;
-        const currentPoints = state.character.transcendencePoints || 0;
-        const spentPT = Object.entries(state.character.transcendenceUpgrades || {}).reduce((sum, [upgradeId, lvl]) => {
-          const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
-          const levelVal = lvl as number;
-          if (upgrade && levelVal > 0) {
-            sum += upgrade.costPerLevel * levelVal;
-          }
-          return sum;
-        }, 0);
-        const totalPT = currentPoints + spentPT;
-        if (hasPleno > 0 || totalPT >= 10) return true;
+        if (hasPleno > 0) return true;
       }
     } catch {}
     try {
@@ -430,17 +420,7 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
         if (savedCharRaw) {
           const savedChar = JSON.parse(savedCharRaw);
           const hasPleno = savedChar.transcendenceUpgrades?.['avatar_pleno'] || 0;
-          const currentPoints = savedChar.transcendencePoints || 0;
-          const spentPT = Object.entries(savedChar.transcendenceUpgrades || {}).reduce((sum, [upgradeId, lvl]) => {
-            const upgrade = TRANSCENDENCE_UPGRADES_CATALOG[upgradeId];
-            const levelVal = lvl as number;
-            if (upgrade && levelVal > 0) {
-              sum += upgrade.costPerLevel * levelVal;
-            }
-            return sum;
-          }, 0);
-          const totalPT = currentPoints + spentPT;
-          if (hasPleno > 0 || totalPT >= 10) return true;
+          if (hasPleno > 0) return true;
         }
       }
     } catch {}
@@ -2023,7 +2003,12 @@ export const useGameStore = create<GameState>((set) => ({
       transcendencePoints: (state.character.transcendencePoints || 0) + pointsEarned,
       lifetimePrestigePointsAccumulated: 0,
       transcendenceCount: (state.character.transcendenceCount || 0) + 1,
-      transcendenceLoreShown: true
+      transcendenceLoreShown: true,
+      // Diferente da Ascensão, a Transcendência zera o Depósito da Cidadela: os itens guardados não sobrevivem a este reset mais profundo.
+      citadel: {
+        ...(state.character.citadel || DEFAULT_CITADEL()),
+        vault: { ...(state.character.citadel?.vault || DEFAULT_CITADEL().vault), storedItems: [] }
+      }
     };
 
     saveToLocalStorage(updatedChar);
@@ -2550,7 +2535,7 @@ export const useGameStore = create<GameState>((set) => ({
     const newKills = prevKills + 1;
 
     const isBoss = enemyId.startsWith('boss_');
-    const reqKills = isBoss ? 50 : 100;
+    const reqKills = enemyId === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
 
     if (prevKills < reqKills && newKills >= reqKills) {
       setTimeout(() => {

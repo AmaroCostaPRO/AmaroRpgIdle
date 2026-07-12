@@ -1671,7 +1671,7 @@ export class CombatFSM {
     const isTower = useTowerStore.getState().towerActive;
 
     if (!isTower && !isDaily) {
-      const keyDropChance = isBoss ? 0.15 : (this.isElite ? 0.075 : 0.025);
+      const keyDropChance = isBoss ? 0.0375 : (this.isElite ? 0.01875 : 0.00625);
       const finalKeyChance = keyDropChance;
 
       if (Math.random() < finalKeyChance) {

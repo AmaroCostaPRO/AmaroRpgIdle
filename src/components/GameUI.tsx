@@ -3539,7 +3539,7 @@ const GuidePanel: React.FC = () => {
       id: 'avatar_unlocked',
       icon: '🌟',
       title: 'O Avatar Pleno',
-      hint: 'Desbloqueie a classe Suprema Avatar (exige acumular 10 PT ou obter o talento Avatar Pleno).',
+      hint: 'Desbloqueie a classe Suprema Avatar (exige o talento Avatar Pleno, que por sua vez exige Nível 5 em Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar).',
       lore: 'O Avatar não é apenas um guerreiro, mago ou arqueiro; ele é a união perfeita de todos eles. Ao canalizar os cinco atributos cardinais da alma em perfeita harmonia, ele se torna a encarnação viva da própria Alma-Mundo.',
       color: '#f87171',
       unlocked: isClassUnlocked('avatar', classLevels),
@@ -4435,7 +4435,7 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                 🌳 Talentos de Transcendência
               </h4>
               <div style={{ fontSize: '0.62rem', color: '#9ca3af' }}>
-                Total PT Acumulados: <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{totalPT}</span>/10 para Classe Avatar
+                Total PT Acumulados: <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{totalPT}</span>
               </div>
             </div>
 
@@ -4458,7 +4458,7 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                 if (id === 'avatar_pleno') {
                   const otherKeys = ['mana_suprema', 'dominio_vazio', 'foco_temporal', 'alma_avatar'];
                   const allAtLeast5 = otherKeys.every(k => (character.transcendenceUpgrades?.[k] || 0) >= 5);
-                  isLocked = !allAtLeast5 && totalPT < 10;
+                  isLocked = !allAtLeast5;
                 }
 
                 return (
@@ -4490,11 +4490,6 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                         <span style={{ fontSize: '0.58rem', color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', padding: '0.05rem 0.3rem', borderRadius: '3px' }}>
                           Lvl {currentLvl}/{maxLvl}
                         </span>
-                        {id === 'avatar_pleno' && totalPT >= 10 && (
-                          <span style={{ fontSize: '0.52rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '0.05rem 0.3rem', borderRadius: '3px' }}>
-                            Desbloqueado por PT
-                          </span>
-                        )}
                       </div>
                       <span style={{ fontSize: '0.62rem', color: '#9ca3af', lineHeight: '1.2' }}>
                         {upgrade.description}
@@ -4502,7 +4497,7 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                     </div>
 
                     <div>
-                      {isMaxed || (id === 'avatar_pleno' && totalPT >= 10) ? (
+                      {isMaxed ? (
                         <span style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 'bold', padding: '0.25rem 0.5rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '4px' }}>
                           MÁXIMO
                         </span>
@@ -4831,7 +4826,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
               {phase.enemies.map((enemy) => {
                 const kills = killCount[enemy.id] || 0;
                 const isBoss = enemy.id.startsWith('boss_');
-                const reqKills = isBoss ? 50 : 100;
+                const reqKills = enemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
                 const isUnlocked = kills >= reqKills;
                 const isHovered = hoveredEnemyId === enemy.id;
 
@@ -7601,7 +7596,7 @@ export default function GameUI() {
           (() => {
             const kills = (character.killCount || {})[selectedEnemy.id] || 0;
             const isBoss = selectedEnemy.id.startsWith('boss_');
-            const reqKills = isBoss ? 50 : 100;
+            const reqKills = selectedEnemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
             const isPurgatory = ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian'].includes(selectedEnemy.id);
             const enemyBonus = isPurgatory ? 2 : 1;
 
