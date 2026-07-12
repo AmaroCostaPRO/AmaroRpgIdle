@@ -1160,6 +1160,166 @@ Ao efetuar a compra de qualquer item na Loja, ele é processado de acordo com se
 
 ---
 
+## 17. Modo de Teste (God Mode / Cheat de Desenvolvimento)
+
+Esta seção documenta o **Modo de Teste (Multiplicador 5x)** implementado especificamente para testes internos e validação ágil de conteúdos de fim de jogo (*endgame*). Por se tratar de um recurso de trapaça temporário que **não deve constar na versão final do jogo**, todas as intervenções de código foram mapeadas abaixo para facilitar sua remoção completa no futuro.
+
+### A. Mecânica de Funcionamento
+Quando ativado na interface, o modo aplica as seguintes regras:
+1. **Atributos de Personagem**: Todos os status finais consolidados do personagem (`strength`, `magic`, `dexterity`, `constitution`, `luck` e `touch`) são multiplicados por **5x** na engine de cálculo. Como consequência direta, a vida máxima (`playerMaxHP`), mana máxima (`playerMaxMana`) e as suas respectivas taxas de regeneração automática aumentam em exatamente **5x**.
+2. **Dano Causado**: Todos os danos diretos desferidos pelo jogador contra monstros (ataques básicos automáticos, cliques físicos de toque na arena e dano de todas as habilidades ativas disparadas) recebem um multiplicador de **5x**.
+3. **Recompensas**: Toda a experiência ganha ao derrotar monstros comuns ou chefes de estágio é multiplicada por **5x**.
+
+### B. Mapeamento das Intervenções de Código (Guia de Remoção)
+
+Para remover completamente este recurso no futuro, remova ou reverta as seguintes linhas de código:
+
+#### 1. Tipos e Interfaces (`src/core/types.ts`)
+*   **Arquivo**: `src/core/types.ts`
+*   *O que remover*: A propriedade opcional `testMode?: boolean;` dentro da interface `Character`.
+
+#### 2. Estado Global (`src/store/useGameStore.ts`)
+*   **Arquivo**: `src/store/useGameStore.ts`
+*   *O que remover*:
+    *   A assinatura do método `toggleTestMode(): void;` na interface `GameState`.
+    *   A inicialização da chave `testMode: false,` no objeto `DEFAULT_CHARACTER`.
+    *   A implementação da ação `toggleTestMode` (que faz o toggle da flag e emite o log de ativação/desativação no chat).
+
+#### 3. Motor de Atributos (`src/core/StatEngine.ts`)
+*   **Arquivo**: `src/core/StatEngine.ts`
+*   *O que remover*: O bloco condicional `if (character.testMode)` dentro do método `calculateFinalStats` que multiplica por 5 os atributos principais do personagem antes de retornar o objeto `finalStats`.
+
+#### 4. Motor de Batalha e Regras de Combate (`src/core/CombatFSM.ts`)
+*   **Arquivo**: `src/core/CombatFSM.ts`
+*   *O que remover*:
+    *   No método `performTap`: A condicional que multiplica `finalTouchDmg` por 5 se `this.characterData.testMode` for verdadeiro.
+    *   No método `performPlayerAttack`: A condicional que multiplica `damage` por 5 se `this.characterData.testMode` for verdadeiro (lembre-se de reverter a palavra-chave `let damage` de volta para `const damage`).
+    *   No método `handleEnemyDefeat`: A condicional que multiplica `gainedXp` por 5 se `char.testMode` for verdadeiro (lembre-se de reverter `let gainedXp` de volta para `const gainedXp`).
+    *   No método `triggerSkill`: A condicional que multiplica `dmg` por 5 se `this.characterData.testMode` for verdadeiro.
+
+#### 5. Interface Visual do Jogo (`src/components/GameUI.tsx`)
+*   **Arquivo**: `src/components/GameUI.tsx`
+*   *O que remover*: A marcação TSX do botão switch do Modo de Teste (bloco contendo o comentário `{/* Modo de Teste (Cheat Mode) */}` dentro do componente `ActiveSkillsPanel`).
+
+---
+
+## 18. A Cidadela Astral (v5.1.0 – v5.4.0): Expansão de Gerenciamento de Base
+
+A expansão **"O Despertar da Cidadela"** introduz um módulo completo de gerenciamento de base fora do combate sidescrolling, distribuído em quatro atualizações incrementais (v5.1.0 a v5.4.0). A Cidadela adiciona uma nova camada econômica (materiais, produção passiva e construções evolutivas) que retroalimenta o combate principal, a Torre Infinita, a Forja e o sistema de Relíquias, sem alterar a lógica central desses sistemas.
+
+### A. Arquitetura da Tela Cheia e Comunicação com o Phaser
+A Cidadela é renderizada como um *overlay* React de tela cheia (`src/components/citadel/CitadelPanel.tsx`, `position: fixed; inset: 0; z-index: 100`) sobreposto ao Canvas do Phaser, evitando a destruição e recriação do contexto WebGL (o que causaria *overhead* de recarregamento de texturas). Ao entrar na aba **Cidadela (🌌)** — visível apenas quando `character.citadel.unlocked === true` —, o `GameUI.tsx` emite o evento `GameEvent.TAB_CHANGED` pela `GameBridge`. O `CombatScene.ts` assina esse evento e reduz o custo gráfico (`this.game.loop.targetFps = 15` e suspensão do *scroll* de fundo em `scrollWorld`), mas **não pausa a `CombatFSM`**: o combate, os drops e o ganho de XP/Ouro continuam avançando normalmente em segundo plano, como esperado em um jogo *idle*, restaurando o desempenho total (`targetFps = 60`) ao retornar à aba Combate.
+
+### B. Modelo de Dados (`src/core/types.ts` / `src/store/useGameStore.ts`)
+O estado da Cidadela é serializado dentro do nó do personagem ativo, em dois novos campos opcionais de `Character`:
+```typescript
+interface CitadelBuildingState {
+  level: number;
+  lastTick: number; // Timestamp Unix do último processamento de produção offline
+}
+
+interface CitadelState {
+  unlocked: boolean;
+  commandCenter: CitadelBuildingState;
+  vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
+  expeditions: CitadelBuildingState & { allocatedClassIds: string[] };
+  academy: CitadelBuildingState & { researchDmgLevel: number; researchHpLevel: number; researchSpeedLevel: number };
+  watchTower: CitadelBuildingState & { storedKeys: number };
+  forgeWorkshop: CitadelBuildingState;
+  cosmicSiphon: CitadelBuildingState;
+  synchronyAltar: CitadelBuildingState;
+  relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
+}
+
+// Character passa a incluir:
+materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
+citadel?: CitadelState;
+```
+Todos os campos são opcionais e mesclados com valores padrão (`DEFAULT_CITADEL()`, `DEFAULT_MATERIALS()`) nos três pontos de carregamento de save (`loadSavedGame`, `loadGameFromSlot`, `importSave`), preservando total retrocompatibilidade com saves anteriores à v5.1.0. A produção passiva de todas as estruturas é centralizada na ação `tickCitadelProduction()`, chamada uma vez ao montar `GameUI.tsx` (recuperando o tempo offline via delta de `Date.now()` contra `lastTick`) e repetida a cada 60 segundos enquanto o jogo está aberto.
+
+### C. Desbloqueio e o Centro de Comando (v5.1.0)
+A aba da Cidadela é liberada automaticamente na primeira Ascensão do jogador (`ascensionCount` passa de 0 para 1 dentro de `performPrestige`), iniciando com o **Centro de Comando (Nível 1)** liberado gratuitamente. Três novos materiais passam a ser dropados por monstros da campanha, sem influência da Sorte:
+$$\text{Quantidade Ganha} = \max(1, \lfloor \text{Fase} \times 0.5 \rfloor) \times \text{Multiplicador de Elite } (2.0 \text{ ou } 1.0)$$
+*   **Madeira (`wood`)**: Inimigos de terreno Floresta e Deserto.
+*   **Pedra (`stone`)**: Golens, Gárgulas e Armaduras Possuídas.
+*   **Carne (`meat`)**: Lobos, Serpentes e Escorpiões.
+Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materialDrops?: ('wood'|'stone'|'meat')[]`, permitindo que um mesmo monstro conceda mais de um material simultaneamente.
+
+### D. Depósito / Almoxarifado
+*   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
+*   **Função**: Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de inventário causado pela Ascensão. Itens Místicos (refinados na Forja) são bloqueados do depósito.
+*   **Capacidade**: `min(10, nível × 2)` slots — de 2 (Nível 1) a 10 (Nível 5).
+*   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige` (Ascensão), que zera apenas `inventory` e `equipment`. **Não sobrevivem**, porém, ao Rito de Transcendência (`performTranscendence`, Seção 11.B): por ser um reset mais profundo, `storedItems` é esvaziado nesse momento, mesmo com as demais construções da Cidadela permanecendo intactas.
+
+### E. Quartel de Expedições e Academia Militar (v5.2.0)
+**Quartel de Expedições** — Custo base 150 Madeira / 200 Pedra / 100 Carne:
+*   Permite alocar classes já desbloqueadas e com nível registrado (`classLevels` local ou `medieval_idle_global_class_levels` global) — exceto a classe atualmente ativa (`character.classId`) — em expedições passivas.
+*   **Duração da Alocação**: cada classe enviada fica em expedição por **8 horas** (`EXPEDITION_ALLOCATION_DURATION_MS`), custando `20.000 × nível_do_Quartel` de Ouro no ato do envio. Ao expirar, a classe retorna automaticamente ao Quartel (liberando o slot) e um log de conclusão é emitido.
+*   Slots simultâneos: 1 (Nível 1) → 2 (Nível 3) → 3 (Nível 5).
+*   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` e pelo bônus de grupo de atributo da classe:
+    *   *Força* (Guerreiro, Paladino): +25% Pedra/h.
+    *   *Destreza* (Arqueiro, Ladrão): +25% Madeira e Carne/h.
+    *   *Magia* (Mago, Clérigo, Necromante, Avatar): +30% Insígnias de Estudo/h.
+
+**Academia Militar** — Custo base 200 Madeira / 300 Pedra / 50 Insígnias de Estudo:
+*   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em três pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6":
+    1.  *Táticas de Combate Avançadas*: `+1.5%` de Dano Geral por nível (`damageMultiplierPct`).
+    2.  *Condicionamento Físico Extremo*: `+2%` de Vida Máxima por nível (`maxHpPct`).
+    3.  *Exercícios de Agilidade*: `+1%` de Velocidade de Ataque por nível (`attackSpeedPct`).
+*   O teto de nível de cada pesquisa é `nível_da_Academia × 5` (de 5 no Nível 1 até 25 no Nível 5); custo de pesquisa: `20 × próximo_nível` Insígnias.
+
+### F. Torre de Vigia Astral e Oficina de Automação da Forja (v5.3.0)
+**Torre de Vigia Astral** — Custo base 500 Madeira / 500 Pedra / 300 Carne:
+*   Fabrica **Chaves da Torre Evoluída** (`tower_key_evolved` — ver Seção 13.D) de forma passiva (mesmo offline), a uma taxa de 24h/chave (Nível 1-2), 12h/chave (Nível 3-4) e 6h/chave (Nível 5).
+*   Possui um buffer interno de capacidade 1 (Nível 1-2), 2 (Nível 3-4) e 4 (Nível 5) chaves, garantindo uma janela de segurança de até 24h de ausência sem desperdício de produção em qualquer tier. As chaves acumuladas são automaticamente escoadas para o inventário assim que houver espaço.
+
+**Oficina de Automação da Forja** — Custo base 600 Madeira / 800 Pedra / 150 Insígnias de Estudo:
+*   Converte Ouro e Madeira excedentes em **Fragmentos de Forja** através de "ordens de serviço" passivas de 1 hora (200 Ouro + 50 Madeira → 15 Fragmentos por ordem), com o nível da Oficina determinando quantas ordens paralelas podem ser processadas por hora.
+*   **Nível 5 "Mestre Forjador"** desbloqueia o **Desmonte Automatizado**: equipamentos de raridade Comum ou Rara "puros" (sem pertencer a um conjunto Ancestral, Pandemoníaco ou Celestial) dropados em combate são convertidos instantaneamente em +1 Fragmento de Forja em segundo plano, sem nunca ocupar um slot do inventário (`CombatFSM.ts`, fluxo de drop de equipamento).
+
+### G. Sistemas de Fim de Jogo: Sifão, Altar e Laboratório (v5.4.0)
+**Sifão de Essência Cósmica** — Custo base 1500 Pedra / 1000 Madeira / 50 Essências de Transcendência:
+*   Mitiga as duas penalidades ambientais da Ecoterra (ver Seção 11.C) de forma linear por nível: a drenagem de mana de `1.5%/s` cai para `max(0, 1.5% - nível × 0.3%)`, e a erosão de recarga de `+15%` cai para `max(0, 15% - nível × 3%)`.
+*   No **Nível 5 "Sincronia Perfeita"**, ambas as penalidades são completamente neutralizadas, permitindo lutar na Ecoterra com 100% da capacidade técnica original.
+
+**Altar de Sincronia Elemental** — Custo base 2000 Pedra / 200 Essências de Transcendência / 500 Insígnias de Estudo:
+*   Eleva o teto de dano da classe Avatar, injetando uma fração dos atributos secundários no cálculo do Maior Atributo Ativo (ver Seção 11.E), centralizado no método `CombatFSM.getAvatarEffectiveAttribute()`:
+$$\text{Atributo Efetivo Final} = \max(\text{Str}, \text{Mag}, \text{Dex}, \text{Con}, \text{Luk}) + \lfloor \text{Soma dos Demais Atributos} \times (\text{Nível do Altar} \times 0.03) \rfloor$$
+*   No Nível 5, o Avatar soma **+15%** de toda a pontuação de seus atributos secundários ao valor do seu atributo principal ativo.
+
+**Laboratório de Relíquias Místicas** — Custo base 3000 Pedra / 2000 Madeira / 100 Fragmentos de Alma Instável:
+*   Libera 2 vagas de **Superaquecimento de Alma** por nível (até 10 vagas no Nível 5, cobrindo as 8 relíquias existentes), permitindo submeter qualquer relíquia já no Nível máximo (5) a um processo de amplificação de seu efeito Capstone, ao custo de 50.000 Ouro + 20 Fragmentos de Alma Instável por relíquia (`useRelicStore.spendFragments`).
+*   O Superaquecimento amplifica em ~2.5× a magnitude do bônus Capstone de cada uma das 8 relíquias, incluindo o exemplo de referência do design original — a *Luz da Alma Partida*, cujo Capstone de Multiplicador de Dano Crítico sobe de `+10%` para `+25%` — bem como Moeda do Ciclo Eterno, Símbolo do Aprendizado, Gema da Vontade, Núcleo do Pensamento, Foco da Precisão, Brasão da Devoção e Olho da Sobrevivência.
+
+### H. Sprites de Evolução das Construções (`EvolutionSprite.tsx`)
+A arte definitiva já está integrada (Versão 5.7.0), tanto em `CitadelSpriteStage.tsx` (pátio clicável, com background real) quanto em `CitadelOverview.tsx` (lista de status).
+*   **Componente**: `EvolutionSprite.tsx` recorta o quadrante correto de uma spritesheet **1024×1024 em grid 2×2** com base no nível atual da construção. A ordem do grid **não é leitura em linha** — foi confirmada visualmente nas artes geradas pela IA (a mesma construção fica mais elaborada ao longo de uma diagonal, não ao longo das linhas/colunas):
+    *   `[0,1]` (inferior-esquerdo) → **Bloqueado/Nível 1** — versão mais simples.
+    *   `[0,0]` (superior-esquerdo) → **Básico**.
+    *   `[1,1]` (inferior-direito) → **Avançado**.
+    *   `[1,0]` (superior-direito) → **Supremo** — versão mais elaborada.
+    O corte por terços de `maxLevel` (`getEvolutionTier`) segue o mesmo padrão de breakpoints já usado pela Torre de Vigia (níveis 1-2 / 3-4 / 5), mantendo a linguagem visual consistente mesmo entre construções com tetos de nível diferentes.
+*   **`fixedTier`**: construções sem progressão de nível (hoje, só o Centro de Comando — sempre Nível 1) usam essa prop para fixar um quadrante específico do grid (Avançado, `[1,1]`, o castelo cinza clássico) em vez de depender do resultado incidental de `getEvolutionTier` com `maxLevel = 1`.
+*   **Fallback automático**: enquanto o arquivo de uma construção não existir (ou falhar ao carregar), o componente recua sozinho para o ícone emoji atual — nenhuma outra parte do app precisa saber se a arte definitiva já foi adicionada.
+*   **Convenção de arquivos e nomes** (`citadelBuildingSprites.ts`, compartilhado pelos dois componentes): cada construção usa um arquivo próprio 1024×1024 em `public/assets/`, todos em grid 2×2 (inclusive o Centro de Comando, que também veio em grid apesar de não evoluir):
+    | Construção | Arquivo |
+    | :--- | :--- |
+    | Centro de Comando | `citadel_command_center.png` |
+    | Depósito | `citadel_vault.png` |
+    | Quartel de Expedições | `citadel_expeditions.png` |
+    | Academia Militar | `citadel_academy.png` |
+    | Torre de Vigia Astral | `citadel_watch_tower.png` |
+    | Oficina de Automação | `citadel_forge_workshop.png` |
+    | Sifão de Essência Cósmica | `citadel_cosmic_siphon.png` |
+    | Altar de Sincronia Elemental | `citadel_synchrony_altar.png` |
+    | Laboratório de Relíquias | `citadel_relic_lab.png` |
+    | Background do pátio | `citadel_background.png` (imagem única, sem grid — carregada diretamente em `CitadelSpriteStage.tsx`, não passa por `EvolutionSprite`) |
+*   **Remoção automática de fundo** (`imageBackgroundStrip.ts`): como as construções são renderizadas em React/DOM (não em Phaser), `EvolutionSprite` processa cada imagem por um canvas antes de exibir. Usa **chroma key explícito** (cor de chave fixa `DEFAULT_CHROMA_KEY = { r: 254, g: 2, b: 1 }`, o vermelho `#FE0201` usado nas artes atuais, com tolerância de soma-de-diferenças 50) em vez de auto-detectar a cor pela borda da imagem como `CombatScene.makeTextureTransparent` faz no Phaser — a auto-detecção por linha y=0 não funciona aqui porque as spritesheets 2x2 de evolução têm um contorno preto fino ao redor e entre os quadrantes, então a "cor de fundo" amostrada na borda seria esse preto do contorno, apagando todo o contorno preto real da arte pixel art (a maior parte do desenho) em vez do fundo vermelho. `getTransparentImageUrl(src, keyColor?, tolerance?)` aceita cor e tolerância customizadas para o caso de uma arte futura usar outra cor de fundo. O resultado é cacheado por `src`+`keyColor`+`tolerance` (`getTransparentImageUrl`), então cada imagem só é processada uma vez mesmo com múltiplos re-renders. Pode ser desligado por construção via a prop `stripBackground={false}` (útil se, no futuro, algum arquivo já vier com canal alfa real). O background do pátio (`citadel_background.png`) **não** passa por essa remoção — é opaco por natureza, cobrindo toda a área atrás dos marcadores.
+*   **Posições dos marcadores**: grid 3×3 (20%/50%/80% em cada eixo) calibrado para as 8 clareiras + 1 espaço central de `citadel_background.png`, definido em `buildings` dentro de `CitadelSpriteStage.tsx`. Se o background for regerado com um layout diferente, ajuste os valores `top`/`left` de cada entrada para acompanhar — nenhuma outra mudança de código é necessária.
+
+---
+
+
 ## 16. Histórico de Updates e Otimizações de Engenharia
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
@@ -1614,161 +1774,3 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
     *   Refatoração do ciclo de atualização do HUD de HP e Mana no React para utilizar referências diretas (`useRef`) em vez de recriar estados reativos estritos do React a cada 30 ms.
     *   Ajuste da IA de Auto-Cast para disparar a cada 300 ms em vez de atuar no ciclo físico de renderização de 60 FPS do Phaser.
 
----
-
-## 17. Modo de Teste (God Mode / Cheat de Desenvolvimento)
-
-Esta seção documenta o **Modo de Teste (Multiplicador 5x)** implementado especificamente para testes internos e validação ágil de conteúdos de fim de jogo (*endgame*). Por se tratar de um recurso de trapaça temporário que **não deve constar na versão final do jogo**, todas as intervenções de código foram mapeadas abaixo para facilitar sua remoção completa no futuro.
-
-### A. Mecânica de Funcionamento
-Quando ativado na interface, o modo aplica as seguintes regras:
-1. **Atributos de Personagem**: Todos os status finais consolidados do personagem (`strength`, `magic`, `dexterity`, `constitution`, `luck` e `touch`) são multiplicados por **5x** na engine de cálculo. Como consequência direta, a vida máxima (`playerMaxHP`), mana máxima (`playerMaxMana`) e as suas respectivas taxas de regeneração automática aumentam em exatamente **5x**.
-2. **Dano Causado**: Todos os danos diretos desferidos pelo jogador contra monstros (ataques básicos automáticos, cliques físicos de toque na arena e dano de todas as habilidades ativas disparadas) recebem um multiplicador de **5x**.
-3. **Recompensas**: Toda a experiência ganha ao derrotar monstros comuns ou chefes de estágio é multiplicada por **5x**.
-
-### B. Mapeamento das Intervenções de Código (Guia de Remoção)
-
-Para remover completamente este recurso no futuro, remova ou reverta as seguintes linhas de código:
-
-#### 1. Tipos e Interfaces (`src/core/types.ts`)
-*   **Arquivo**: `src/core/types.ts`
-*   *O que remover*: A propriedade opcional `testMode?: boolean;` dentro da interface `Character`.
-
-#### 2. Estado Global (`src/store/useGameStore.ts`)
-*   **Arquivo**: `src/store/useGameStore.ts`
-*   *O que remover*:
-    *   A assinatura do método `toggleTestMode(): void;` na interface `GameState`.
-    *   A inicialização da chave `testMode: false,` no objeto `DEFAULT_CHARACTER`.
-    *   A implementação da ação `toggleTestMode` (que faz o toggle da flag e emite o log de ativação/desativação no chat).
-
-#### 3. Motor de Atributos (`src/core/StatEngine.ts`)
-*   **Arquivo**: `src/core/StatEngine.ts`
-*   *O que remover*: O bloco condicional `if (character.testMode)` dentro do método `calculateFinalStats` que multiplica por 5 os atributos principais do personagem antes de retornar o objeto `finalStats`.
-
-#### 4. Motor de Batalha e Regras de Combate (`src/core/CombatFSM.ts`)
-*   **Arquivo**: `src/core/CombatFSM.ts`
-*   *O que remover*:
-    *   No método `performTap`: A condicional que multiplica `finalTouchDmg` por 5 se `this.characterData.testMode` for verdadeiro.
-    *   No método `performPlayerAttack`: A condicional que multiplica `damage` por 5 se `this.characterData.testMode` for verdadeiro (lembre-se de reverter a palavra-chave `let damage` de volta para `const damage`).
-    *   No método `handleEnemyDefeat`: A condicional que multiplica `gainedXp` por 5 se `char.testMode` for verdadeiro (lembre-se de reverter `let gainedXp` de volta para `const gainedXp`).
-    *   No método `triggerSkill`: A condicional que multiplica `dmg` por 5 se `this.characterData.testMode` for verdadeiro.
-
-#### 5. Interface Visual do Jogo (`src/components/GameUI.tsx`)
-*   **Arquivo**: `src/components/GameUI.tsx`
-*   *O que remover*: A marcação TSX do botão switch do Modo de Teste (bloco contendo o comentário `{/* Modo de Teste (Cheat Mode) */}` dentro do componente `ActiveSkillsPanel`).
-
----
-
-## 18. A Cidadela Astral (v5.1.0 – v5.4.0): Expansão de Gerenciamento de Base
-
-A expansão **"O Despertar da Cidadela"** introduz um módulo completo de gerenciamento de base fora do combate sidescrolling, distribuído em quatro atualizações incrementais (v5.1.0 a v5.4.0). A Cidadela adiciona uma nova camada econômica (materiais, produção passiva e construções evolutivas) que retroalimenta o combate principal, a Torre Infinita, a Forja e o sistema de Relíquias, sem alterar a lógica central desses sistemas.
-
-### A. Arquitetura da Tela Cheia e Comunicação com o Phaser
-A Cidadela é renderizada como um *overlay* React de tela cheia (`src/components/citadel/CitadelPanel.tsx`, `position: fixed; inset: 0; z-index: 100`) sobreposto ao Canvas do Phaser, evitando a destruição e recriação do contexto WebGL (o que causaria *overhead* de recarregamento de texturas). Ao entrar na aba **Cidadela (🌌)** — visível apenas quando `character.citadel.unlocked === true` —, o `GameUI.tsx` emite o evento `GameEvent.TAB_CHANGED` pela `GameBridge`. O `CombatScene.ts` assina esse evento e reduz o custo gráfico (`this.game.loop.targetFps = 15` e suspensão do *scroll* de fundo em `scrollWorld`), mas **não pausa a `CombatFSM`**: o combate, os drops e o ganho de XP/Ouro continuam avançando normalmente em segundo plano, como esperado em um jogo *idle*, restaurando o desempenho total (`targetFps = 60`) ao retornar à aba Combate.
-
-### B. Modelo de Dados (`src/core/types.ts` / `src/store/useGameStore.ts`)
-O estado da Cidadela é serializado dentro do nó do personagem ativo, em dois novos campos opcionais de `Character`:
-```typescript
-interface CitadelBuildingState {
-  level: number;
-  lastTick: number; // Timestamp Unix do último processamento de produção offline
-}
-
-interface CitadelState {
-  unlocked: boolean;
-  commandCenter: CitadelBuildingState;
-  vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
-  expeditions: CitadelBuildingState & { allocatedClassIds: string[] };
-  academy: CitadelBuildingState & { researchDmgLevel: number; researchHpLevel: number; researchSpeedLevel: number };
-  watchTower: CitadelBuildingState & { storedKeys: number };
-  forgeWorkshop: CitadelBuildingState;
-  cosmicSiphon: CitadelBuildingState;
-  synchronyAltar: CitadelBuildingState;
-  relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
-}
-
-// Character passa a incluir:
-materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
-citadel?: CitadelState;
-```
-Todos os campos são opcionais e mesclados com valores padrão (`DEFAULT_CITADEL()`, `DEFAULT_MATERIALS()`) nos três pontos de carregamento de save (`loadSavedGame`, `loadGameFromSlot`, `importSave`), preservando total retrocompatibilidade com saves anteriores à v5.1.0. A produção passiva de todas as estruturas é centralizada na ação `tickCitadelProduction()`, chamada uma vez ao montar `GameUI.tsx` (recuperando o tempo offline via delta de `Date.now()` contra `lastTick`) e repetida a cada 60 segundos enquanto o jogo está aberto.
-
-### C. Desbloqueio e o Centro de Comando (v5.1.0)
-A aba da Cidadela é liberada automaticamente na primeira Ascensão do jogador (`ascensionCount` passa de 0 para 1 dentro de `performPrestige`), iniciando com o **Centro de Comando (Nível 1)** liberado gratuitamente. Três novos materiais passam a ser dropados por monstros da campanha, sem influência da Sorte:
-$$\text{Quantidade Ganha} = \max(1, \lfloor \text{Fase} \times 0.5 \rfloor) \times \text{Multiplicador de Elite } (2.0 \text{ ou } 1.0)$$
-*   **Madeira (`wood`)**: Inimigos de terreno Floresta e Deserto.
-*   **Pedra (`stone`)**: Golens, Gárgulas e Armaduras Possuídas.
-*   **Carne (`meat`)**: Lobos, Serpentes e Escorpiões.
-Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materialDrops?: ('wood'|'stone'|'meat')[]`, permitindo que um mesmo monstro conceda mais de um material simultaneamente.
-
-### D. Depósito / Almoxarifado
-*   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
-*   **Função**: Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de inventário causado pela Ascensão. Itens Místicos (refinados na Forja) são bloqueados do depósito.
-*   **Capacidade**: `min(10, nível × 2)` slots — de 2 (Nível 1) a 10 (Nível 5).
-*   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige` (Ascensão), que zera apenas `inventory` e `equipment`. **Não sobrevivem**, porém, ao Rito de Transcendência (`performTranscendence`, Seção 11.B): por ser um reset mais profundo, `storedItems` é esvaziado nesse momento, mesmo com as demais construções da Cidadela permanecendo intactas.
-
-### E. Quartel de Expedições e Academia Militar (v5.2.0)
-**Quartel de Expedições** — Custo base 150 Madeira / 200 Pedra / 100 Carne:
-*   Permite alocar classes já desbloqueadas e com nível registrado (`classLevels` local ou `medieval_idle_global_class_levels` global) — exceto a classe atualmente ativa (`character.classId`) — em expedições passivas.
-*   **Duração da Alocação**: cada classe enviada fica em expedição por **8 horas** (`EXPEDITION_ALLOCATION_DURATION_MS`), custando `20.000 × nível_do_Quartel` de Ouro no ato do envio. Ao expirar, a classe retorna automaticamente ao Quartel (liberando o slot) e um log de conclusão é emitido.
-*   Slots simultâneos: 1 (Nível 1) → 2 (Nível 3) → 3 (Nível 5).
-*   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` e pelo bônus de grupo de atributo da classe:
-    *   *Força* (Guerreiro, Paladino): +25% Pedra/h.
-    *   *Destreza* (Arqueiro, Ladrão): +25% Madeira e Carne/h.
-    *   *Magia* (Mago, Clérigo, Necromante, Avatar): +30% Insígnias de Estudo/h.
-
-**Academia Militar** — Custo base 200 Madeira / 300 Pedra / 50 Insígnias de Estudo:
-*   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em três pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6":
-    1.  *Táticas de Combate Avançadas*: `+1.5%` de Dano Geral por nível (`damageMultiplierPct`).
-    2.  *Condicionamento Físico Extremo*: `+2%` de Vida Máxima por nível (`maxHpPct`).
-    3.  *Exercícios de Agilidade*: `+1%` de Velocidade de Ataque por nível (`attackSpeedPct`).
-*   O teto de nível de cada pesquisa é `nível_da_Academia × 5` (de 5 no Nível 1 até 25 no Nível 5); custo de pesquisa: `20 × próximo_nível` Insígnias.
-
-### F. Torre de Vigia Astral e Oficina de Automação da Forja (v5.3.0)
-**Torre de Vigia Astral** — Custo base 500 Madeira / 500 Pedra / 300 Carne:
-*   Fabrica **Chaves da Torre Evoluída** (`tower_key_evolved` — ver Seção 13.D) de forma passiva (mesmo offline), a uma taxa de 24h/chave (Nível 1-2), 12h/chave (Nível 3-4) e 6h/chave (Nível 5).
-*   Possui um buffer interno de capacidade 1 (Nível 1-2), 2 (Nível 3-4) e 4 (Nível 5) chaves, garantindo uma janela de segurança de até 24h de ausência sem desperdício de produção em qualquer tier. As chaves acumuladas são automaticamente escoadas para o inventário assim que houver espaço.
-
-**Oficina de Automação da Forja** — Custo base 600 Madeira / 800 Pedra / 150 Insígnias de Estudo:
-*   Converte Ouro e Madeira excedentes em **Fragmentos de Forja** através de "ordens de serviço" passivas de 1 hora (200 Ouro + 50 Madeira → 15 Fragmentos por ordem), com o nível da Oficina determinando quantas ordens paralelas podem ser processadas por hora.
-*   **Nível 5 "Mestre Forjador"** desbloqueia o **Desmonte Automatizado**: equipamentos de raridade Comum ou Rara "puros" (sem pertencer a um conjunto Ancestral, Pandemoníaco ou Celestial) dropados em combate são convertidos instantaneamente em +1 Fragmento de Forja em segundo plano, sem nunca ocupar um slot do inventário (`CombatFSM.ts`, fluxo de drop de equipamento).
-
-### G. Sistemas de Fim de Jogo: Sifão, Altar e Laboratório (v5.4.0)
-**Sifão de Essência Cósmica** — Custo base 1500 Pedra / 1000 Madeira / 50 Essências de Transcendência:
-*   Mitiga as duas penalidades ambientais da Ecoterra (ver Seção 11.C) de forma linear por nível: a drenagem de mana de `1.5%/s` cai para `max(0, 1.5% - nível × 0.3%)`, e a erosão de recarga de `+15%` cai para `max(0, 15% - nível × 3%)`.
-*   No **Nível 5 "Sincronia Perfeita"**, ambas as penalidades são completamente neutralizadas, permitindo lutar na Ecoterra com 100% da capacidade técnica original.
-
-**Altar de Sincronia Elemental** — Custo base 2000 Pedra / 200 Essências de Transcendência / 500 Insígnias de Estudo:
-*   Eleva o teto de dano da classe Avatar, injetando uma fração dos atributos secundários no cálculo do Maior Atributo Ativo (ver Seção 11.E), centralizado no método `CombatFSM.getAvatarEffectiveAttribute()`:
-$$\text{Atributo Efetivo Final} = \max(\text{Str}, \text{Mag}, \text{Dex}, \text{Con}, \text{Luk}) + \lfloor \text{Soma dos Demais Atributos} \times (\text{Nível do Altar} \times 0.03) \rfloor$$
-*   No Nível 5, o Avatar soma **+15%** de toda a pontuação de seus atributos secundários ao valor do seu atributo principal ativo.
-
-**Laboratório de Relíquias Místicas** — Custo base 3000 Pedra / 2000 Madeira / 100 Fragmentos de Alma Instável:
-*   Libera 2 vagas de **Superaquecimento de Alma** por nível (até 10 vagas no Nível 5, cobrindo as 8 relíquias existentes), permitindo submeter qualquer relíquia já no Nível máximo (5) a um processo de amplificação de seu efeito Capstone, ao custo de 50.000 Ouro + 20 Fragmentos de Alma Instável por relíquia (`useRelicStore.spendFragments`).
-*   O Superaquecimento amplifica em ~2.5× a magnitude do bônus Capstone de cada uma das 8 relíquias, incluindo o exemplo de referência do design original — a *Luz da Alma Partida*, cujo Capstone de Multiplicador de Dano Crítico sobe de `+10%` para `+25%` — bem como Moeda do Ciclo Eterno, Símbolo do Aprendizado, Gema da Vontade, Núcleo do Pensamento, Foco da Precisão, Brasão da Devoção e Olho da Sobrevivência.
-
-### H. Sprites de Evolução das Construções (`EvolutionSprite.tsx`)
-A arte definitiva já está integrada (Versão 5.7.0), tanto em `CitadelSpriteStage.tsx` (pátio clicável, com background real) quanto em `CitadelOverview.tsx` (lista de status).
-*   **Componente**: `EvolutionSprite.tsx` recorta o quadrante correto de uma spritesheet **1024×1024 em grid 2×2** com base no nível atual da construção. A ordem do grid **não é leitura em linha** — foi confirmada visualmente nas artes geradas pela IA (a mesma construção fica mais elaborada ao longo de uma diagonal, não ao longo das linhas/colunas):
-    *   `[0,1]` (inferior-esquerdo) → **Bloqueado/Nível 1** — versão mais simples.
-    *   `[0,0]` (superior-esquerdo) → **Básico**.
-    *   `[1,1]` (inferior-direito) → **Avançado**.
-    *   `[1,0]` (superior-direito) → **Supremo** — versão mais elaborada.
-    O corte por terços de `maxLevel` (`getEvolutionTier`) segue o mesmo padrão de breakpoints já usado pela Torre de Vigia (níveis 1-2 / 3-4 / 5), mantendo a linguagem visual consistente mesmo entre construções com tetos de nível diferentes.
-*   **`fixedTier`**: construções sem progressão de nível (hoje, só o Centro de Comando — sempre Nível 1) usam essa prop para fixar um quadrante específico do grid (Avançado, `[1,1]`, o castelo cinza clássico) em vez de depender do resultado incidental de `getEvolutionTier` com `maxLevel = 1`.
-*   **Fallback automático**: enquanto o arquivo de uma construção não existir (ou falhar ao carregar), o componente recua sozinho para o ícone emoji atual — nenhuma outra parte do app precisa saber se a arte definitiva já foi adicionada.
-*   **Convenção de arquivos e nomes** (`citadelBuildingSprites.ts`, compartilhado pelos dois componentes): cada construção usa um arquivo próprio 1024×1024 em `public/assets/`, todos em grid 2×2 (inclusive o Centro de Comando, que também veio em grid apesar de não evoluir):
-    | Construção | Arquivo |
-    | :--- | :--- |
-    | Centro de Comando | `citadel_command_center.png` |
-    | Depósito | `citadel_vault.png` |
-    | Quartel de Expedições | `citadel_expeditions.png` |
-    | Academia Militar | `citadel_academy.png` |
-    | Torre de Vigia Astral | `citadel_watch_tower.png` |
-    | Oficina de Automação | `citadel_forge_workshop.png` |
-    | Sifão de Essência Cósmica | `citadel_cosmic_siphon.png` |
-    | Altar de Sincronia Elemental | `citadel_synchrony_altar.png` |
-    | Laboratório de Relíquias | `citadel_relic_lab.png` |
-    | Background do pátio | `citadel_background.png` (imagem única, sem grid — carregada diretamente em `CitadelSpriteStage.tsx`, não passa por `EvolutionSprite`) |
-*   **Remoção automática de fundo** (`imageBackgroundStrip.ts`): como as construções são renderizadas em React/DOM (não em Phaser), `EvolutionSprite` processa cada imagem por um canvas antes de exibir. Usa **chroma key explícito** (cor de chave fixa `DEFAULT_CHROMA_KEY = { r: 254, g: 2, b: 1 }`, o vermelho `#FE0201` usado nas artes atuais, com tolerância de soma-de-diferenças 50) em vez de auto-detectar a cor pela borda da imagem como `CombatScene.makeTextureTransparent` faz no Phaser — a auto-detecção por linha y=0 não funciona aqui porque as spritesheets 2x2 de evolução têm um contorno preto fino ao redor e entre os quadrantes, então a "cor de fundo" amostrada na borda seria esse preto do contorno, apagando todo o contorno preto real da arte pixel art (a maior parte do desenho) em vez do fundo vermelho. `getTransparentImageUrl(src, keyColor?, tolerance?)` aceita cor e tolerância customizadas para o caso de uma arte futura usar outra cor de fundo. O resultado é cacheado por `src`+`keyColor`+`tolerance` (`getTransparentImageUrl`), então cada imagem só é processada uma vez mesmo com múltiplos re-renders. Pode ser desligado por construção via a prop `stripBackground={false}` (útil se, no futuro, algum arquivo já vier com canal alfa real). O background do pátio (`citadel_background.png`) **não** passa por essa remoção — é opaco por natureza, cobrindo toda a área atrás dos marcadores.
-*   **Posições dos marcadores**: grid 3×3 (20%/50%/80% em cada eixo) calibrado para as 8 clareiras + 1 espaço central de `citadel_background.png`, definido em `buildings` dentro de `CitadelSpriteStage.tsx`. Se o background for regerado com um layout diferente, ajuste os valores `top`/`left` de cada entrada para acompanhar — nenhuma outra mudança de código é necessária.
