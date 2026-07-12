@@ -2362,7 +2362,7 @@ export const useGameStore = create<GameState>((set) => ({
       localStorage.removeItem('medieval_idle_save');
       localStorage.removeItem('medieval_idle_current_slot');
       localStorage.removeItem(GLOBAL_CLASS_LEVELS_KEY);
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 1; i <= 12; i++) {
         localStorage.removeItem(`medieval_idle_save_slot_${i}`);
       }
     } catch (e) {}

@@ -1119,7 +1119,12 @@ export class CombatFSM {
     const baseTouchDmg = effectiveTouch + (dpsPassivo * (effectiveTouch * 0.0005));
 
     // Multiplicador de combo só afeta cliques do jogador (não automáticos do robô assistente, mas do frenesi sim)
-    const comboMultiplier = 1.0 + Math.min(1.0, this.comboCount * 0.10);
+    let comboMultiplier = 1.0;
+    if (this.isFrenzyActive) {
+      comboMultiplier = 2.0; // Durante o frenesi (normal ou boost), o multiplicador é fixado no máximo (x2)
+    } else if (!isAuto) {
+      comboMultiplier = 1.0 + Math.min(1.0, this.comboCount * 0.10); // Capped at x2 at 10 combo
+    }
 
     let isCrit = false;
     let critMultiplier = 1.0;

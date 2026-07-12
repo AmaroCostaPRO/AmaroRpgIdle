@@ -31,7 +31,7 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   // Carrega as informações dos slots ao montar o componente
   const loadSlotsInfo = () => {
     const slotsInfo: SlotData[] = [];
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 12; i++) {
       try {
         const saved = localStorage.getItem(`medieval_idle_save_slot_${i}`);
         if (saved) {
