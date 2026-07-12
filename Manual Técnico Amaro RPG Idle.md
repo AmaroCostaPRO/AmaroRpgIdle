@@ -1133,7 +1133,7 @@ Os itens na Loja são adquiridos estritamente utilizando o **Ouro (Gold)** acumu
 *   **Boost de Toque (Touch Booster)**: Custa $1.000$ Ouro.
 *   **Baú de Equipamento Ancestral**: Custa $3.000$ Ouro.
 *   **Boost de Toque x3 (Touch Booster x3)**: Custa $5.000$ Ouro.
-*   **Baú de Relíquias (Relic Chest)**: Custa $50.000$ Ouro.
+*   **Baú de Relíquias (Relic Chest)**: Custa $500.000$ Ouro.
 *   **Espaço no Inventário (Inventory Slot Upgrade)**: Custa $100.000$ Ouro.
 
 ### B. Funcionamento dos Consumíveis e Upgrades

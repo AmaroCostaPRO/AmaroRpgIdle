@@ -3244,7 +3244,7 @@ export const useGameStore = create<GameState>((set) => ({
         chest_ancestral: 3000,
         boost_touch: 1000,
         boost_touch_x3: 5000,
-        relic_chest: 50000,
+        relic_chest: 500000,
         inventory_slot: 100000
       };
       const cost = costs[type];
