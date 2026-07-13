@@ -313,10 +313,10 @@ export class CombatScene extends Phaser.Scene {
 
     // Painel de Progresso do Estágio
     this.stageText = this.add.text(400, 35, 'Fase 1 - Progresso: 0/10', {
-      fontSize: '16px',
+      fontSize: '28px',
       color: '#f59e0b',
       fontStyle: 'bold',
-      fontFamily: 'serif',
+      fontFamily: 'monospace',
       stroke: '#000000',
       strokeThickness: 4,
       padding: { left: 10, right: 10, top: 4, bottom: 4 }
@@ -335,7 +335,7 @@ export class CombatScene extends Phaser.Scene {
     // sem pausar a lógica de combate (o herói continua lutando/dropando em background)
     const applyTargetFps = () => {
       const economyModeEnabled = useGameStore.getState().economyModeEnabled;
-      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 30 : 60);
+      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 15 : 60);
     };
     this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
       this.citadelActive = payload.tab === 'citadel';

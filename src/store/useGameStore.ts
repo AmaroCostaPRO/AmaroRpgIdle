@@ -124,7 +124,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Um combatente robusto especializado em combate corporal, cujo dano escala com Força.',
     baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
     growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
-    initialSkills: ['slash'],
+    initialSkills: ['slash', 'heal'],
     primaryStat: 'strength'
   },
   mage: {
@@ -132,7 +132,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Mestre das artes arcanas que conjura magias destrutivas de fogo, gelo e eletricidade.',
     baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
     growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
-    initialSkills: ['fireball'],
+    initialSkills: ['fireball', 'heal'],
     primaryStat: 'magic'
   },
   ranger: {
@@ -140,7 +140,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Atirador ágil que abate inimigos à distância com arco e flechas envenenadas.',
     baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8, touch: 10, critChance: 8, critDamage: 160, robotClicks: 0 },
     growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8, touch: 1.5, critChance: 0.2, critDamage: 1.5, robotClicks: 0 },
-    initialSkills: ['arrow_shot'],
+    initialSkills: ['arrow_shot', 'heal'],
     primaryStat: 'dexterity'
   },
   paladin: {
@@ -148,7 +148,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Guerreiro sagrado que defende a justiça divina. Seu dano escala com Constituição.',
     baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
     growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
-    initialSkills: ['holy_strike'],
+    initialSkills: ['holy_strike', 'heal'],
     primaryStat: 'constitution'
   },
   cleric: {
@@ -164,7 +164,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Assassino sorrateiro que ataca pelas sombras com adagas letais. Especialista em crítico.',
     baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10, touch: 10, critChance: 12, critDamage: 180, robotClicks: 0 },
     growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0, touch: 1.5, critChance: 0.3, critDamage: 2.0, robotClicks: 0 },
-    initialSkills: ['stab'],
+    initialSkills: ['stab', 'heal'],
     primaryStat: 'dexterity'
   },
   necromancer: {
@@ -172,7 +172,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'Mestre da morte que drena a vida dos vivos e comanda lacaios sombrios das profundezas.',
     baseStats: { strength: 5, magic: 15, dexterity: 6, constitution: 10, luck: 12, touch: 10, critChance: 6, critDamage: 150, robotClicks: 0 },
     growthRates: { strength: 0.8, magic: 3.2, dexterity: 0.8, constitution: 1.8, luck: 1.5, touch: 1.5, critChance: 0.15, critDamage: 1.2, robotClicks: 0 },
-    initialSkills: ['death_touch'],
+    initialSkills: ['death_touch', 'heal'],
     primaryStat: 'magic'
   },
   avatar: {
@@ -180,7 +180,7 @@ export const CLASS_CONFIGS: Record<string, {
     description: 'A fusão de todas as energias. Todo o seu dano escala com o maior atributo ativo.',
     baseStats: { strength: 15, magic: 15, dexterity: 15, constitution: 15, luck: 15, touch: 15, critChance: 10, critDamage: 180, robotClicks: 0 },
     growthRates: { strength: 2.5, magic: 2.5, dexterity: 2.5, constitution: 2.5, luck: 2.5, touch: 2.5, critChance: 0.25, critDamage: 2.0, robotClicks: 0 },
-    initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar', 'cosmic_convergence'],
+    initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar', 'cosmic_convergence', 'heal'],
     primaryStat: 'magic'
   }
 };
@@ -386,7 +386,7 @@ export const SKILLS_CATALOG: Record<string, {
   cosmic_convergence: { name: 'Convergência das Cinco Almas', description: 'Sintoniza permanentemente as cinco energias cardinais. Aumento passivo de +5 em Força, Magia, Destreza, Constituição e Sorte por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5, magic: 5, dexterity: 5, constitution: 5, luck: 5 }, requiredLevel: 1, classId: 'avatar' },
 
   // Comum
-  heal: { name: 'Cura', description: 'Restaura 30% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
+  heal: { name: 'Cura', description: 'Restaura 15% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
 };
 
 export const GLOBAL_CLASS_LEVELS_KEY = 'medieval_idle_global_class_levels';

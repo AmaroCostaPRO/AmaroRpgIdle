@@ -7,6 +7,7 @@ export const CharacterSelect: React.FC = () => {
   const setScreen = useGameStore((state) => state.setScreen);
   const startNewGame = useGameStore((state) => state.startNewGame);
   const classLevels = useGameStore((state) => state.character.classLevels || {});
+  const transcendenceUpgrades = useGameStore((state) => state.character.transcendenceUpgrades || {});
   
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
   const [characterName, setCharacterName] = useState<string>('');
@@ -103,6 +104,7 @@ export const CharacterSelect: React.FC = () => {
               if (classId === 'cleric') requirementText = 'Req: Mago Nvl 50';
               if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 50';
               if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 50';
+              if (classId === 'avatar') requirementText = 'Req: Talento "Avatar Pleno"';
 
               // Para classes com 1 pré-requisito
               let parentClass = '';
@@ -114,6 +116,7 @@ export const CharacterSelect: React.FC = () => {
               // Para Necromante (2 pré-requisitos)
               const clericLevel = classId === 'necromancer' ? getEffectiveLevel('cleric') : 0;
               const rogueLevel = classId === 'necromancer' ? getEffectiveLevel('rogue') : 0;
+              const hasAvatarPleno = classId === 'avatar' ? !!transcendenceUpgrades['avatar_pleno'] : false;
 
               return (
                 <button
@@ -130,9 +133,7 @@ export const CharacterSelect: React.FC = () => {
                     </div>
                   )}
                   {unlocked && isSelected && (
-                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', color: 'var(--gold-400)', fontSize: '0.6rem', fontFamily: 'var(--font-mono)', animation: 'glow-pulse 2s infinite' }}>
-                      ●
-                    </div>
+                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--gold-400)', animation: 'glow-pulse 2s infinite' }} />
                   )}
 
                   {/* Ícone da classe */}
@@ -156,6 +157,8 @@ export const CharacterSelect: React.FC = () => {
                           <>
                             <span className="font-mono" style={{ fontSize: '0.42rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevel, 50)}/50 | Ladrão: {Math.min(rogueLevel, 50)}/50</span>
                           </>
+                        ) : classId === 'avatar' ? (
+                          <span className="font-mono" style={{ fontSize: '0.42rem', color: '#64748b' }}>Avatar Pleno: {hasAvatarPleno ? 1 : 0}/1</span>
                         ) : (
                           <span className="font-mono" style={{ fontSize: '0.45rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 50)}/50</span>
                         )}
@@ -196,6 +199,7 @@ export const CharacterSelect: React.FC = () => {
                 if (classId === 'cleric') requirementText = 'Req: Mago Nvl 50';
                 if (classId === 'rogue') requirementText = 'Req: Arqueiro Nvl 50';
                 if (classId === 'necromancer') requirementText = 'Req: Clérigo + Ladrão Nvl 50';
+                if (classId === 'avatar') requirementText = 'Req: Talento "Avatar Pleno"';
 
                 let parentClass = '';
                 if (classId === 'paladin') parentClass = 'warrior';
@@ -205,6 +209,7 @@ export const CharacterSelect: React.FC = () => {
                 const currentParentLevel = parentClass ? getEffectiveLevelM(parentClass) : 0;
                 const clericLevelM = classId === 'necromancer' ? getEffectiveLevelM('cleric') : 0;
                 const rogueLevelM = classId === 'necromancer' ? getEffectiveLevelM('rogue') : 0;
+                const hasAvatarPlenoM = classId === 'avatar' ? !!transcendenceUpgrades['avatar_pleno'] : false;
 
                 return (
                   <button
@@ -225,9 +230,7 @@ export const CharacterSelect: React.FC = () => {
                       </div>
                     )}
                     {unlocked && isSelected && (
-                      <div style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', color: 'var(--gold-400)', fontSize: '0.6rem', animation: 'glow-pulse 2s infinite' }}>
-                        ●
-                      </div>
+                      <div style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--gold-400)', animation: 'glow-pulse 2s infinite' }} />
                     )}
 
                     {/* Ícone da classe */}
@@ -249,6 +252,8 @@ export const CharacterSelect: React.FC = () => {
                           <span style={{ fontSize: '0.62rem', color: '#f87171', fontWeight: 600 }}>{requirementText}</span>
                           {classId === 'necromancer' ? (
                             <span className="font-mono" style={{ fontSize: '0.52rem', color: '#64748b' }}>Clérigo: {Math.min(clericLevelM, 50)}/50 | Ladrão: {Math.min(rogueLevelM, 50)}/50</span>
+                          ) : classId === 'avatar' ? (
+                            <span className="font-mono" style={{ fontSize: '0.52rem', color: '#64748b' }}>Avatar Pleno: {hasAvatarPlenoM ? 1 : 0}/1</span>
                           ) : (
                             <span className="font-mono" style={{ fontSize: '0.58rem', color: '#64748b' }}>Progresso: {Math.min(currentParentLevel, 50)}/50</span>
                           )}
@@ -303,6 +308,7 @@ export const CharacterSelect: React.FC = () => {
                       cleric: 'Req: Mago Nvl 50',
                       rogue: 'Req: Arqueiro Nvl 50',
                       necromancer: 'Req: Clérigo + Ladrão Nvl 50',
+                      avatar: 'Req: Talento "Avatar Pleno" (Árvore de Transcendência)',
                     };
                     const reqText = reqMap[selectedClass] || '';
                     let progressText = '';
@@ -310,6 +316,7 @@ export const CharacterSelect: React.FC = () => {
                     if (selectedClass === 'cleric') progressText = `Mago: ${Math.min(getEL('mage'), 50)}/50`;
                     if (selectedClass === 'rogue') progressText = `Arqueiro: ${Math.min(getEL('ranger'), 50)}/50`;
                     if (selectedClass === 'necromancer') progressText = `Clérigo: ${Math.min(getEL('cleric'), 50)}/50 | Ladrão: ${Math.min(getEL('rogue'), 50)}/50`;
+                    if (selectedClass === 'avatar') progressText = `Avatar Pleno: ${transcendenceUpgrades['avatar_pleno'] ? 1 : 0}/1`;
                     return (
                       <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(248, 113, 113, 0.08)', border: '1px solid rgba(248, 113, 113, 0.2)', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ fontSize: '0.65rem', color: '#f87171', fontWeight: 600, marginBottom: '0.2rem' }}>{reqText}</div>

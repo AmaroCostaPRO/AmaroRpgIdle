@@ -2217,8 +2217,8 @@ export class CombatFSM {
     }
 
     if (skillId === 'heal' || skillId === 'holy_light' || skillId === 'ultimate_cleric') {
-      // Restaura 30% do HP máximo, mais 5% a cada nível adicional. A ultimate cura 100% da vida máxima.
-      const healAmount = skillId === 'ultimate_cleric' ? this.playerMaxHP : Math.floor(this.playerMaxHP * (0.30 + (skillLvl - 1) * 0.05));
+      // Restaura 15% do HP máximo, mais 2.5% a cada nível adicional (até 50% no nível 15). A ultimate cura 100% da vida máxima.
+      const healAmount = skillId === 'ultimate_cleric' ? this.playerMaxHP : Math.floor(this.playerMaxHP * (0.15 + (skillLvl - 1) * 0.025));
       this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
       this.scene.animateHealEffect();
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healAmount}`, '#10b981');

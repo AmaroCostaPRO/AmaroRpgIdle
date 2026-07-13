@@ -44,7 +44,7 @@ const PAGES: GuidePage[] = [
     accent: '#a78bfa',
     items: [
       { icon: '🌳', title: 'Árvore de Habilidades', desc: 'Compre e evolua habilidades ativas e passivas exclusivas da sua classe usando Pontos de Habilidade.' },
-      { icon: '💚', title: 'Cura', desc: 'Toda classe possui a habilidade comum de Cura, restaurando parte da vida máxima ao custo de mana.' },
+      { icon: '💚', title: 'Cura', desc: 'Toda classe já começa com a habilidade comum de Cura desbloqueada, restaurando parte da vida máxima ao custo de mana.' },
       { icon: '🤖', title: 'Conjuração Automática', desc: 'Ative o Auto-Cast para que o jogo use suas habilidades e cure automaticamente. Ajuste o limite de vida para curar na engrenagem ao lado.' },
       { icon: '💥', title: 'Habilidades Ultimate', desc: 'Liberadas no Inferno (Fase 11+) a partir do Nível 15, causam dano massivo com cooldowns longos e efeitos visuais únicos por classe.' },
     ],

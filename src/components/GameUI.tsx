@@ -2031,10 +2031,10 @@ const SkillsTreePanel: React.FC = () => {
 
                     if (selectedSkillId === 'heal') {
                       if (skillLvl > 0) {
-                        currentText = `Restaura ${(30 + (skillLvl - 1) * 5)}% do HP Máx`;
+                        currentText = `Restaura ${(15 + (skillLvl - 1) * 2.5)}% do HP Máx`;
                       }
                       if (skillLvl < getSkillMaxLevel(selectedSkillId, character.currentStage)) {
-                        nextText = `Restaura ${(30 + skillLvl * 5)}% do HP Máx`;
+                        nextText = `Restaura ${(15 + skillLvl * 2.5)}% do HP Máx`;
                       }
                     } else if (baseMult) {
                       if (skillLvl > 0) {
@@ -2236,10 +2236,10 @@ const SkillsTreePanel: React.FC = () => {
 
                       if (id === 'heal') {
                         if (currentLevel > 0) {
-                          currentText = `Restaura ${(30 + (currentLevel - 1) * 5)}% do HP Máx`;
+                          currentText = `Restaura ${(15 + (currentLevel - 1) * 2.5)}% do HP Máx`;
                         }
                         if (currentLevel < getSkillMaxLevel(id, character.currentStage)) {
-                          nextText = `Restaura ${(30 + currentLevel * 5)}% do HP Máx`;
+                          nextText = `Restaura ${(15 + currentLevel * 2.5)}% do HP Máx`;
                         }
                       } else if (baseMult) {
                         if (currentLevel > 0) {
@@ -3765,7 +3765,7 @@ const GuidePanel: React.FC = () => {
             <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">⚙️ Qualidade de Vida e Opções</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 30fps, prolongando a bateria em sessões longas.</span></li>
+                <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 15fps, prolongando a bateria em sessões longas.</span></li>
                 <li><span className="text-white font-semibold">Tela sempre ativa:</span> <span className="text-gray-400">enquanto você está na tela de combate, o jogo pede ao navegador para manter a tela do dispositivo ligada automaticamente, sem precisar tocar o celular a cada poucos minutos.</span></li>
                 <li><span className="text-white font-semibold">Pressionar e segurar:</span> <span className="text-gray-400">os botões de investir Pontos de Atributo e de aprimorar Habilidades podem ser mantidos pressionados para aplicar múltiplos níveis em sequência, sem precisar tocar repetidamente.</span></li>
                 <li><span className="text-white font-semibold">Nome do Personagem:</span> <span className="text-gray-400">escolhido na tela de criação de personagem, identifica seu herói no painel de Atributos e no combate, no lugar do nome genérico da classe.</span></li>
@@ -5865,7 +5865,7 @@ const OptionsPanel: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
             <div>
               <div style={{ fontWeight: 'bold' }}>Modo de Economia</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Oculta os números de dano na tela e reduz a animação para 30fps, economizando bateria.</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Oculta os números de dano na tela e reduz a animação para 15fps, economizando bateria.</div>
             </div>
             <button
               onClick={() => {
@@ -7032,17 +7032,24 @@ export default function GameUI() {
   useEffect(() => {
     if (character.introLoreShown === false) {
       const totalParagraphs = 7;
-      const timer = setInterval(() => {
-        setVisibleParagraphs((prev) => {
-          if (prev < totalParagraphs) {
-            return prev + 1;
-          } else {
-            clearInterval(timer);
-            return prev;
+      let current = 1;
+      let timeoutId: ReturnType<typeof setTimeout>;
+
+      const scheduleNext = () => {
+        // Parágrafos 3 e 4 ficam visíveis por mais tempo antes do próximo aparecer,
+        // pois costumam ter mais linhas de texto que os demais.
+        const delay = current === 3 || current === 4 ? 8000 : 4000;
+        timeoutId = setTimeout(() => {
+          current += 1;
+          setVisibleParagraphs(current);
+          if (current < totalParagraphs) {
+            scheduleNext();
           }
-        });
-      }, 4000);
-      return () => clearInterval(timer);
+        }, delay);
+      };
+
+      scheduleNext();
+      return () => clearTimeout(timeoutId);
     }
   }, [character.introLoreShown]);
 
