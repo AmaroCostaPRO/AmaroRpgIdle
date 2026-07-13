@@ -14,8 +14,8 @@ const isPercentStat = (stat: string) => {
     'attackSpeedPct', 
     'damageMultiplierPct',
     'touchDamageMult',
-    'touchCritChance',
-    'touchCritDamage'
+    'critChance',
+    'critDamage'
   ].includes(stat);
 };
 
@@ -57,8 +57,8 @@ export const ForgeView: React.FC = () => {
     constitution: 'Constituição',
     luck: 'Sorte',
     touch: 'Poder do Toque',
-    touchCritChance: 'Chance de Crítico',
-    touchCritDamage: 'Dano Crítico',
+    critChance: 'Chance de Crítico',
+    critDamage: 'Dano Crítico',
     robotClicks: 'Cliques do Robô',
     lifesteal: 'Roubo de Vida',
     touchDamageMult: 'Mult. Dano de Toque',

@@ -45,14 +45,14 @@ const STAT_LABELS: Record<string, string> = {
   constitution: 'Constituição',
   luck: 'Sorte',
   touch: 'Poder do Toque',
-  touchCritChance: 'Chance de Crítico',
-  touchCritDamage: 'Dano Crítico',
+  critChance: 'Chance de Crítico',
+  critDamage: 'Dano Crítico',
   robotClicks: 'Cliques do Robô',
   lifesteal: 'Roubo de Vida',
   touchDamageMult: 'Multiplicador de Toque',
 };
 
-const PERCENT_STATS = ['lifesteal', 'touchDamageMult', 'touchCritChance', 'touchCritDamage'];
+const PERCENT_STATS = ['lifesteal', 'touchDamageMult', 'critChance', 'critDamage'];
 
 const formatStatValue = (stat: string, val: number) => {
   if (PERCENT_STATS.includes(stat)) {
@@ -131,6 +131,8 @@ export const VaultPanel: React.FC = () => {
   const nextLevel = vault.level + 1;
   const maxSlots = Math.min(10, vault.level * 2);
   const cost = VAULT_UPGRADE_COST(nextLevel);
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
 
   const depositableItems = character.inventory.filter((item) => item.slot !== 'consumable');
 
@@ -176,14 +178,19 @@ export const VaultPanel: React.FC = () => {
       </div>
 
       {vault.level < VAULT_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={materials.wood < cost.wood || materials.stone < cost.stone}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={materials.wood < cost.wood || materials.stone < cost.stone || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Depósito no nível máximo.</p>
       )}

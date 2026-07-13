@@ -315,8 +315,8 @@ export class StatEngine {
       constitution: character.baseStats.constitution || 0,
       luck: character.baseStats.luck || 0,
       touch: character.baseStats.touch || 0,
-      touchCritChance: character.baseStats.touchCritChance || 0,
-      touchCritDamage: character.baseStats.touchCritDamage || 0,
+      critChance: character.baseStats.critChance || 0,
+      critDamage: character.baseStats.critDamage || 0,
       robotClicks: character.baseStats.robotClicks || 0,
       lifesteal: 0,
       touchDamageMult: 1,
@@ -431,14 +431,14 @@ export class StatEngine {
 
     // 3. Aplicar bônus do atributo Sorte (Luck) na chance e dano de crítico de toque
     const luckValue = finalStats.luck || 0;
-    finalStats.touchCritChance += luckValue * 0.05;
-    finalStats.touchCritDamage += luckValue * 0.2;
+    finalStats.critChance += luckValue * 0.05;
+    finalStats.critDamage += luckValue * 0.2;
 
     // 4. Aplicar bônus do acúmulo de ascensões (ascensionCount) nos atributos de toque
     const ascensionCount = character.ascensionCount || 0;
     finalStats.touch += ascensionCount * 5;
-    finalStats.touchCritChance += ascensionCount * 0.1;
-    finalStats.touchCritDamage += ascensionCount * 1.0;
+    finalStats.critChance += ascensionCount * 0.1;
+    finalStats.critDamage += ascensionCount * 1.0;
 
     // 4.5. Aplicar melhorias da Árvore de Transcendência
     const transUpgrades = character.transcendenceUpgrades || {};
@@ -467,6 +467,8 @@ export class StatEngine {
       finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + (academy.researchDmgLevel || 0) * 0.015;
       finalStats.maxHpPct = (finalStats.maxHpPct || 0) + (academy.researchHpLevel || 0) * 0.02;
       finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + (academy.researchSpeedLevel || 0) * 0.01;
+      finalStats.touchDamageMult = (finalStats.touchDamageMult || 1) * (1 + (academy.researchTouchDmgLevel || 0) * 0.02);
+      finalStats.critDamage = (finalStats.critDamage || 0) + (academy.researchCritDmgLevel || 0) * 2;
     }
 
     // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)

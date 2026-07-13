@@ -15,6 +15,8 @@ export const ForgeWorkshopPanel: React.FC = () => {
   const nextLevel = forgeWorkshop.level + 1;
   const cost = FORGE_WORKSHOP_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -35,14 +37,19 @@ export const ForgeWorkshopPanel: React.FC = () => {
       </div>
 
       {forgeWorkshop.level < FORGE_WORKSHOP_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Oficina'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Oficina'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Oficina no nível máximo — Mestre Forjador.</p>
       )}

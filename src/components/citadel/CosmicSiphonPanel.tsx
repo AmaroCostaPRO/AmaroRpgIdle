@@ -15,6 +15,8 @@ export const CosmicSiphonPanel: React.FC = () => {
   const nextLevel = siphon.level + 1;
   const cost = COSMIC_SIPHON_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && materials.wood >= cost.wood && essence >= cost.transcendenceEssence;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const manaDrainPct = Math.max(0, 1.5 - siphon.level * 0.3);
   const cooldownErosionPct = Math.max(0, 15 - siphon.level * 3);
 
@@ -37,14 +39,19 @@ export const CosmicSiphonPanel: React.FC = () => {
       </div>
 
       {siphon.level < COSMIC_SIPHON_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Sifão'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Sifão'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Sifão no nível máximo — Sincronia Perfeita.</p>
       )}

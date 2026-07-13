@@ -18,6 +18,8 @@ export const RelicLabPanel: React.FC = () => {
   const nextLevel = relicLab.level + 1;
   const cost = RELIC_LAB_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && materials.wood >= cost.wood && soulFragments >= cost.unstableSoulFragments;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const maxSlots = RELIC_LAB_OVERHEAT_SLOTS(relicLab.level);
 
   const handleUpgrade = () => {
@@ -39,14 +41,19 @@ export const RelicLabPanel: React.FC = () => {
       </div>
 
       {relicLab.level < RELIC_LAB_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Laboratório'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Laboratório'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Laboratório no nível máximo.</p>
       )}

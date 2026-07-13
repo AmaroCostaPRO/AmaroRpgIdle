@@ -14,6 +14,8 @@ export const WatchTowerPanel: React.FC = () => {
   const nextLevel = watchTower.level + 1;
   const cost = WATCH_TOWER_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(watchTower.level);
   const capacity = WATCH_TOWER_KEY_CAPACITY(watchTower.level);
 
@@ -36,14 +38,19 @@ export const WatchTowerPanel: React.FC = () => {
       </div>
 
       {watchTower.level < WATCH_TOWER_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Torre'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Torre'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Torre no nível máximo.</p>
       )}

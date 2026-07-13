@@ -22,7 +22,7 @@ export const BUILDING_SPRITE_SRC: Record<CitadelSubTab, string> = {
 
 /** Nível máximo de cada construção — usado para calcular o tier visual (0-3) em EvolutionSprite. */
 export const BUILDING_MAX_LEVEL: Record<CitadelSubTab, number> = {
-  overview: 1,
+  overview: 5,
   vault: 5,
   expeditions: 5,
   academy: 5,

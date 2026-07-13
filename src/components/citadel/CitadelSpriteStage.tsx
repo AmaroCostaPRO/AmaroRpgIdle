@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent } from '../../core/types';
@@ -39,9 +39,13 @@ interface BuildingData {
   left: number; // posição central em % (0-100), eixo horizontal
 }
 
-const BuildingMarker: React.FC<{ data: BuildingData }> = ({ data }) => {
+const BuildingMarker: React.FC<{ data: BuildingData; active: boolean }> = ({ data, active }) => {
   const { icon, label, level, maxLevel, built, top, left, id } = data;
   const [hasArt, setHasArt] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  // Mesmo efeito de "aumentar" do hover, mas mantido fixo enquanto essa construção for a
+  // sub-aba atualmente aberta — deixa claro qual prédio corresponde ao painel visível.
+  const highlighted = hovered || active;
 
   const restingBoxShadow = hasArt ? 'none' : built ? '0 0 16px rgba(245,158,11,0.18), inset 0 0 12px rgba(0,0,0,0.35)' : 'none';
 
@@ -100,28 +104,22 @@ const BuildingMarker: React.FC<{ data: BuildingData }> = ({ data }) => {
                 ? 'linear-gradient(155deg, var(--surface-3), var(--surface-2))'
                 : 'repeating-linear-gradient(135deg, var(--surface-1), var(--surface-1) 6px, rgba(255,255,255,0.02) 6px, rgba(255,255,255,0.02) 12px)',
             border: hasArt ? 'none' : `2px ${built ? 'solid' : 'dashed'} ${built ? 'var(--border-active)' : 'var(--border-dim)'}`,
-            boxShadow: restingBoxShadow,
+            boxShadow: highlighted ? '0 0 18px var(--gold-glow)' : restingBoxShadow,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             opacity: built ? 1 : 0.5,
+            transform: highlighted ? 'scale(1.08)' : 'scale(1)',
             transition: 'transform 0.15s ease, box-shadow 0.15s ease',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.08)';
-            e.currentTarget.style.boxShadow = '0 0 18px var(--gold-glow)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = restingBoxShadow;
-          }}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
         >
           <EvolutionSprite
             src={BUILDING_SPRITE_SRC[id]}
             level={level}
             maxLevel={maxLevel}
             fallbackIcon={icon}
-            fixedTier={id === 'overview' ? 2 : undefined}
             onResolvedChange={setHasArt}
           />
         </div>
@@ -183,10 +181,22 @@ export const CitadelSpriteStage: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const citadel = character.citadel;
 
+  // Espelha a sub-aba ativa da Cidadela (estado vive em GameUI.tsx, fora desta árvore de
+  // componentes) para destacar visualmente o prédio correspondente ao painel aberto.
+  const [activeSubTab, setActiveSubTab] = useState<CitadelSubTab>('overview');
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.CITADEL_SUBTAB_CHANGED, (payload: any) => {
+      if (payload?.subTab) {
+        setActiveSubTab(payload.subTab);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Grid 3x3 (20% / 50% / 80% em cada eixo), calibrado para as 8 clareiras +
   // 1 espaço central de citadel_background.png. Ver comentário de BACKGROUND_SRC.
   const buildings: BuildingData[] = [
-    { id: 'overview', icon: '🏛️', label: 'Centro de Comando', level: citadel?.commandCenter.level || 1, maxLevel: 1, built: true, top: 50, left: 50 },
+    { id: 'overview', icon: '🏛️', label: 'Centro de Comando', level: citadel?.commandCenter.level || 1, maxLevel: 5, built: true, top: 50, left: 50 },
     { id: 'watchTower', icon: '🗼', label: 'Torre de Vigia', level: citadel?.watchTower.level || 0, maxLevel: 5, built: (citadel?.watchTower.level || 0) > 0, top: 20, left: 20 },
     { id: 'cosmicSiphon', icon: '🌫️', label: 'Sifão Cósmico', level: citadel?.cosmicSiphon.level || 0, maxLevel: 5, built: (citadel?.cosmicSiphon.level || 0) > 0, top: 20, left: 50 },
     { id: 'academy', icon: '🎓', label: 'Academia', level: citadel?.academy.level || 0, maxLevel: 5, built: (citadel?.academy.level || 0) > 0, top: 20, left: 80 },
@@ -242,7 +252,7 @@ export const CitadelSpriteStage: React.FC = () => {
       />
 
       {buildings.map((b) => (
-        <BuildingMarker key={b.id} data={b} />
+        <BuildingMarker key={b.id} data={b} active={b.id === activeSubTab} />
       ))}
     </div>
   );

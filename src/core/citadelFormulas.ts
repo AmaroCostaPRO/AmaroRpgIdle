@@ -1,6 +1,18 @@
 // Fórmulas de custo/nível-máximo compartilhadas entre a lógica do store (useGameStore.ts)
 // e os painéis de UI da Citadel/Forja, que antes reimplementavam os mesmos valores só para preview.
 
+// Construção central da Cidadela — nunca fica "não construída" (começa no Nível 1) e seu
+// nível funciona como teto para o nível de todas as outras construções (ex: o Depósito só
+// pode subir para o Nível 2 depois que o Centro de Comando chegar ao Nível 2).
+export const COMMAND_CENTER_MAX_LEVEL = 5;
+export const COMMAND_CENTER_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
+  wood: Math.round(80 * Math.pow(1.7, nextLevel - 1)),
+  stone: Math.round(80 * Math.pow(1.7, nextLevel - 1)),
+  meat: Math.round(80 * Math.pow(1.7, nextLevel - 1)),
+});
+// +10% na quantidade de Madeira/Pedra/Carne dropada em combate por nível (até +50% no Nível 5)
+export const COMMAND_CENTER_MATERIAL_DROP_BONUS = (level: number): number => level * 0.10;
+
 export const VAULT_MAX_LEVEL = 5;
 export const VAULT_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number } => ({
   wood: Math.round(50 * Math.pow(1.8, nextLevel - 1)),

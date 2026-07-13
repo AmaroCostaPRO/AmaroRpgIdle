@@ -4,6 +4,7 @@ import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } fr
 import { useRelicStore } from '../store/useRelicStore';
 import { useTowerStore } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
+import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 
 
 export const ENEMY_TYPES: EnemyType[] = [
@@ -1124,12 +1125,12 @@ export class CombatFSM {
     const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
-      if (roll < this.playerFinalStats.touchCritChance) {
+      if (roll < this.playerFinalStats.critChance) {
         isCrit = true;
-        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+        critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
 
@@ -1242,12 +1243,12 @@ export class CombatFSM {
     const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
-      if (roll < this.playerFinalStats.touchCritChance) {
+      if (roll < this.playerFinalStats.critChance) {
         isCrit = true;
-        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+        critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
 
@@ -1604,12 +1605,14 @@ export class CombatFSM {
 
     // Drop de materiais da Cidadela (Madeira/Pedra/Carne), sem influência da Sorte
     if (this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
-      const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0);
+      const commandCenterLevel = char.citadel?.commandCenter.level || 1;
+      const commandCenterMult = 1 + COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenterLevel);
+      const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * commandCenterMult;
       const gainedMaterials = { wood: 0, stone: 0, meat: 0 };
       for (const material of this.currentEnemy.materialDrops) {
         gainedMaterials[material] += materialAmount;
       }
-      useGameStore.getState().addMaterials(gainedMaterials.wood, gainedMaterials.stone, gainedMaterials.meat);
+      useGameStore.getState().addMaterials(Math.round(gainedMaterials.wood), Math.round(gainedMaterials.stone), Math.round(gainedMaterials.meat));
     }
 
     // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
@@ -1635,8 +1638,10 @@ export class CombatFSM {
       return;
     }
 
-    // Drop raro de 5% de Fragmento de Alma Instável em Chefes de Fase
-    if (isBoss && Math.random() < 0.05) {
+    // Drop raro de 5% de Fragmento de Alma Instável em Chefes de Fase, aumentado pela pesquisa da Academia (Cidadela)
+    const soulFragmentResearchLevel = char.citadel?.academy.researchSoulFragmentLevel || 0;
+    const soulFragmentChance = 0.05 * (1 + soulFragmentResearchLevel * 0.02);
+    if (isBoss && Math.random() < soulFragmentChance) {
       const stage = char.currentStage;
       const classId = char.classId;
       const soulFragmentItem: EquipmentItem = {
@@ -1669,7 +1674,8 @@ export class CombatFSM {
 
     if (!isTower && !isDaily) {
       const keyDropChance = isBoss ? 0.0375 : (this.isElite ? 0.01875 : 0.00625);
-      const finalKeyChance = keyDropChance;
+      const towerKeyResearchLevel = char.citadel?.academy.researchTowerKeyLevel || 0;
+      const finalKeyChance = keyDropChance * (1 + towerKeyResearchLevel * 0.02);
 
       if (Math.random() < finalKeyChance) {
         const towerKeyItem: EquipmentItem = {
@@ -2292,12 +2298,12 @@ export class CombatFSM {
     const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
     if (this.isFrenzyActive) {
       isCrit = true;
-      critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
     } else {
       const roll = Math.random() * 100;
-      if (roll < this.playerFinalStats.touchCritChance) {
+      if (roll < this.playerFinalStats.critChance) {
         isCrit = true;
-        critMultiplier = (this.playerFinalStats.touchCritDamage + extraCritMult) / 100;
+        critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
 

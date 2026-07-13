@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getTransparentImageUrl } from '../../core/imageBackgroundStrip';
+import { getTransparentImageUrl, peekTransparentImageUrl } from '../../core/imageBackgroundStrip';
 
 /**
  * Renderiza o sprite de evolução de uma construção da Cidadela, recortando
@@ -63,13 +63,6 @@ interface EvolutionSpriteProps {
   fallbackClassName?: string;
   /** Imagem realmente única (sem grid 2x2) — raro; a maioria das artes geradas vem em grid mesmo para construções sem evolução. */
   singleFrame?: boolean;
-  /**
-   * Força um tier específico, ignorando o cálculo por `level`/`maxLevel`.
-   * Usado por construções sem progressão de nível (ex: Centro de Comando,
-   * que é sempre Nível 1) para fixar um quadrante específico do grid em vez
-   * de depender do resultado incidental de `getEvolutionTier`.
-   */
-  fixedTier?: EvolutionTier;
   /** Desliga a remoção de fundo (ex: se a imagem já vier com alpha real). Padrão: liga. */
   stripBackground?: boolean;
   /**
@@ -98,24 +91,31 @@ export const EvolutionSprite: React.FC<EvolutionSpriteProps> = ({
   fallbackIcon,
   fallbackClassName,
   singleFrame = false,
-  fixedTier,
   stripBackground = true,
   onResolvedChange,
 }) => {
-  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+  // Se a arte já foi processada antes (ex: preload no início do jogo, ou reabrir a mesma
+  // aba), começa direto com o resultado em cache — evita o "flash" do ícone de fallback
+  // enquanto a Promise de `getTransparentImageUrl` resolveria de novo à toa.
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() =>
+    stripBackground ? peekTransparentImageUrl(src) : src
+  );
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setResolvedSrc(null);
-    setFailed(false);
-    onResolvedChange?.(false);
 
     if (!stripBackground) {
       setResolvedSrc(src);
+      setFailed(false);
       onResolvedChange?.(true);
       return;
     }
+
+    const cached = peekTransparentImageUrl(src);
+    setResolvedSrc(cached);
+    setFailed(false);
+    onResolvedChange?.(!!cached);
 
     getTransparentImageUrl(src)
       .then((dataUrl) => {
@@ -153,7 +153,7 @@ export const EvolutionSprite: React.FC<EvolutionSpriteProps> = ({
     );
   }
 
-  const tier = fixedTier ?? getEvolutionTier(level, maxLevel);
+  const tier = getEvolutionTier(level, maxLevel);
   const col = TIER_COL[tier];
   const row = TIER_ROW[tier];
 

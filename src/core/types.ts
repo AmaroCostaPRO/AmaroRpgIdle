@@ -7,8 +7,8 @@ export interface BaseStats {
   constitution: number;
   luck: number;
   touch: number;
-  touchCritChance: number;
-  touchCritDamage: number;
+  critChance: number;
+  critDamage: number;
   robotClicks: number;
   lifesteal?: number;
   touchDamageMult?: number;
@@ -63,6 +63,10 @@ export interface CitadelState {
     researchDmgLevel: number;
     researchHpLevel: number;
     researchSpeedLevel: number;
+    researchTouchDmgLevel: number;
+    researchCritDmgLevel: number;
+    researchTowerKeyLevel: number;
+    researchSoulFragmentLevel: number;
   };
   watchTower: CitadelBuildingState & { storedKeys: number };
   forgeWorkshop: CitadelBuildingState;
@@ -170,6 +174,7 @@ export enum GameEvent {
   ITEM_DROPPED = 'ITEM_DROPPED',
   TAB_CHANGED = 'TAB_CHANGED',
   CITADEL_SUBTAB_REQUESTED = 'CITADEL_SUBTAB_REQUESTED',
+  CITADEL_SUBTAB_CHANGED = 'CITADEL_SUBTAB_CHANGED',
   SHOW_WELCOME_GUIDE = 'SHOW_WELCOME_GUIDE'
 }
 

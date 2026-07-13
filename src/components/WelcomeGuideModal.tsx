@@ -114,6 +114,7 @@ const PAGES: GuidePage[] = [
     accent: '#2dd4bf',
     items: [
       { icon: '🏯', title: 'Base de Gerenciamento', desc: 'Liberada na 1ª Ascensão, a Cidadela roda em segundo plano enquanto você combate, produzindo materiais e recursos passivamente.' },
+      { icon: '🏛️', title: 'Centro de Comando', desc: 'Construção central da Cidadela: cada nível aumenta a quantidade de Madeira, Pedra e Carne coletada em combate, e define o teto de nível que todas as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).' },
       { icon: '🏗️', title: 'Construções', desc: 'Depósito, Quartel de Expedições, Academia Militar, Torre de Vigia, Oficina da Forja, Sifão Cósmico, Altar de Sincronia e Laboratório de Relíquias.' },
       { icon: '💠', title: 'Sistema de Relíquias', desc: 'Colete Fragmentos de Alma Instável de chefes e forje-os no Altar da Alma para desbloquear relíquias com bônus permanentes.' },
     ],

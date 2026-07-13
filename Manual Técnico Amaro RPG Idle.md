@@ -216,11 +216,13 @@ O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados
     $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\% + \text{Bônus de Relíquia} + \text{Bônus de Colar (}dropChancePct\text{)}\right)$$
 *   **Multiplicador de Ouro** (escala por raiz quadrada, ver também Seção 13.B):
     $$\text{Bônus} = 1 + \frac{\sqrt{\text{Sorte Final}}}{10}$$
-*   **Chance de Crítico de Toque**:
-    Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
-*   **Dano Crítico de Toque**:
-    Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico ao toque do jogador (cumulativo com itens e upgrades de prestígio).
+*   **Chance de Crítico**:
+    Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico (cumulativo com itens e upgrades de prestígio).
+*   **Dano Crítico**:
+    Cada ponto de Sorte adiciona $+0.2\%$ de Dano Crítico (cumulativo com itens e upgrades de prestígio).
 *   **Multiplicador Especial do Necromante**: O Necromante possui um bônus que faz com que o dano de suas habilidades de combate aumente em $+0.1\%$ para cada 1 ponto de Sorte.
+
+> **Nota de nomenclatura (histórico, resolvido na v6.0.0)**: as stats `critChance`/`critDamage` (`BaseStats`) se chamavam `touchCritChance`/`touchCritDamage` até a v6.0.0 — resquício de quando o crítico só existia no clique/tap. Elas sempre foram, na prática, o **único sistema de crítico do jogo**: o mesmo roll e o mesmo multiplicador são reutilizados literalmente nos três pontos de cálculo de dano em `CombatFSM.ts` (toque, ataque básico e habilidades), nunca existiu uma stat de crítico separada para ataque básico/habilidades. O prefixo "touch" foi removido de `BaseStats`, `StatEngine.ts`, `CombatFSM.ts`, `useGameStore.ts` (incluindo os upgrades de prestígio `perm_touch_crit`/`perm_touch_crit_dmg`, cujo campo `stat:` interno passou de `'touchCritChance'`/`'touchCritDamage'` para `'critChance'`/`'critDamage'`), `GameUI.tsx`, `ForgeView.tsx` e `VaultPanel.tsx` (rótulos e `PERCENT_STATS`) para refletir isso — sem migração de saves (decisão consciente do desenvolvedor, projeto ainda em fase de testes internos). Já `touchDamageMult` continua com o nome original por ser genuinamente exclusivo do toque (não entra na fórmula de ataque básico nem de habilidades).
 
 #### 5. Penetração de Armadura e Dano Geral (Força)
 Além dos modificadores de classe e bônus secundários em ataques físicos, o atributo **Força** concede um aumento passivo global de dano:
@@ -1277,13 +1279,17 @@ citadel?: CitadelState;
 ```
 Todos os campos são opcionais e mesclados com valores padrão (`DEFAULT_CITADEL()`, `DEFAULT_MATERIALS()`) nos três pontos de carregamento de save (`loadSavedGame`, `loadGameFromSlot`, `importSave`), preservando total retrocompatibilidade com saves anteriores à v5.1.0. A produção passiva de todas as estruturas é centralizada na ação `tickCitadelProduction()`, chamada uma vez ao montar `GameUI.tsx` (recuperando o tempo offline via delta de `Date.now()` contra `lastTick`) e repetida a cada 60 segundos enquanto o jogo está aberto.
 
-### C. Desbloqueio e o Centro de Comando (v5.1.0)
-A aba da Cidadela é liberada automaticamente na primeira Ascensão do jogador (`ascensionCount` passa de 0 para 1 dentro de `performPrestige`), iniciando com o **Centro de Comando (Nível 1)** liberado gratuitamente. Três novos materiais passam a ser dropados por monstros da campanha, sem influência da Sorte:
-$$\text{Quantidade Ganha} = \max(1, \lfloor \text{Fase} \times 0.5 \rfloor) \times \text{Multiplicador de Elite } (2.0 \text{ ou } 1.0)$$
+### C. Desbloqueio e o Centro de Comando (v5.1.0; construção evoluível desde a v6.0.0)
+A aba da Cidadela é liberada automaticamente na primeira Ascensão do jogador (`ascensionCount` passa de 0 para 1 dentro de `performPrestige`), iniciando com o **Centro de Comando no Nível 1** liberado gratuitamente. Três novos materiais passam a ser dropados por monstros da campanha, sem influência da Sorte:
+$$\text{Quantidade Ganha} = \max(1, \lfloor \text{Fase} \times 0.5 \rfloor) \times \text{Multiplicador de Elite } (2.0 \text{ ou } 1.0) \times \big(1 + \text{Nível do Centro de Comando} \times 0.10\big)$$
 *   **Madeira (`wood`)**: Inimigos de terreno Floresta e Deserto.
 *   **Pedra (`stone`)**: Golens, Gárgulas e Armaduras Possuídas.
 *   **Carne (`meat`)**: Lobos, Serpentes e Escorpiões.
 Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materialDrops?: ('wood'|'stone'|'meat')[]`, permitindo que um mesmo monstro conceda mais de um material simultaneamente.
+
+Diferente das outras 8 construções, o Centro de Comando **nunca fica "não construído"** — começa direto no Nível 1 e pode ser melhorado até o Nível 5 (`buildOrUpgradeCommandCenter`, `useGameStore.ts`; custo base 80 Madeira / 80 Pedra / 80 Carne, escalando em `80 × 1.7^(nível-1)`, `COMMAND_CENTER_UPGRADE_COST` em `citadelFormulas.ts`). Ele cumpre duas funções centrais na economia da Cidadela:
+1.  **Bônus de coleta**: cada nível concede **+10% na quantidade de Madeira/Pedra/Carne** dropada em combate (fórmula acima, `COMMAND_CENTER_MATERIAL_DROP_BONUS`), até **+50%** no Nível 5 — aplicado em `CombatFSM.ts` no momento do drop de material.
+2.  **Teto de nível das demais construções**: o nível do Centro de Comando limita o nível máximo que **qualquer uma das outras 8 construções** pode alcançar (ex.: o Depósito só sobe ao Nível 2 depois que o Centro de Comando chegar ao Nível 2). Cada `buildOrUpgrade*` (Depósito, Quartel, Academia, Torre de Vigia, Oficina, Sifão, Altar, Laboratório) rejeita a melhoria com a mensagem "Requer o Centro de Comando no Nível X primeiro." quando esse teto é o fator limitante, e cada painel de construção (`VaultPanel.tsx` e os demais) desabilita o botão de melhoria e exibe esse aviso na UI. `CitadelOverview.tsx` ganhou um card dedicado ao Centro de Comando, com sprite, nível, bônus atual/próximo e botão de melhoria — já que ele não possui sub-aba própria na barra de navegação (fica hospedado na sub-aba "Visão Geral").
 
 ### D. Depósito / Almoxarifado
 *   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
@@ -1296,17 +1302,22 @@ Cada entrada de `ENEMY_TYPES` (`CombatFSM.ts`) recebeu uma tag opcional `materia
 *   Permite alocar classes já desbloqueadas e com nível registrado (`classLevels` local ou `medieval_idle_global_class_levels` global) — exceto a classe atualmente ativa (`character.classId`) — em expedições passivas.
 *   **Duração da Alocação**: cada classe enviada fica em expedição por **8 horas** (`EXPEDITION_ALLOCATION_DURATION_MS`), custando `20.000 × nível_do_Quartel` de Ouro no ato do envio. Ao expirar, a classe retorna automaticamente ao Quartel (liberando o slot) e um log de conclusão é emitido.
 *   Slots simultâneos: 1 (Nível 1) → 2 (Nível 3) → 3 (Nível 5).
-*   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` e pelo bônus de grupo de atributo da classe:
+*   Produção base por hora e por classe alocada: 20 Madeira / 20 Pedra / 20 Carne / 5 Insígnias de Estudo, multiplicada por `1 + (nível-1) × 0.15` (ou seja, **+15% de produção por nível do Quartel**, além do aumento de slots) e pelo bônus de grupo de atributo da classe:
     *   *Força* (Guerreiro, Paladino): +25% Pedra/h.
     *   *Destreza* (Arqueiro, Ladrão): +25% Madeira e Carne/h.
     *   *Magia* (Mago, Clérigo, Necromante, Avatar): +30% Insígnias de Estudo/h.
+*   **Confirmação obrigatória** (v6.0.0): tanto alocar uma classe (gasta Ouro) quanto retirá-la manualmente antes do prazo (perde o tempo restante) exigem um segundo clique de confirmação em `ExpeditionPanel.tsx` — o cartão da classe se transforma temporariamente em um par de botões Cancelar/Confirmar (estado local `pendingAction`) em vez de agir no primeiro toque, evitando gasto ou perda acidental por toque duplo no celular.
 
 **Academia Militar** — Custo base 200 Madeira / 300 Pedra / 50 Insígnias de Estudo:
-*   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em três pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6":
+*   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em sete pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6" (as quatro últimas, adicionadas na v6.0.0, cobrem sistemas antes fora do alcance da Academia — dano de Toque e as duas raridades de drop mais raras do jogo):
     1.  *Táticas de Combate Avançadas*: `+1.5%` de Dano Geral por nível (`damageMultiplierPct`).
     2.  *Condicionamento Físico Extremo*: `+2%` de Vida Máxima por nível (`maxHpPct`).
     3.  *Exercícios de Agilidade*: `+1%` de Velocidade de Ataque por nível (`attackSpeedPct`).
-*   O teto de nível de cada pesquisa é `nível_da_Academia × 5` (de 5 no Nível 1 até 25 no Nível 5); custo de pesquisa: `20 × próximo_nível` Insígnias.
+    4.  *Precisão de Toque*: `+2%` de Dano de Toque por nível, aplicado multiplicativamente (`touchDamageMult *= 1 + nível × 0.02`) — afeta qualquer fonte de dano de Toque (clique/tap base, Robô Assistente, etc.), igual ao multiplicador de Toque de equipamentos e relíquias.
+    5.  *Fúria Crítica*: `+2` pontos percentuais de **Dano Crítico** por nível, somado direto a `critDamage` (`researchCritDmgLevel` em `citadel.academy`) — vale para toque, ataque básico e habilidades por igual, já que é o único sistema de crítico do jogo (ver nota de nomenclatura na Seção 4). Não afeta a *chance* de crítico, só a magnitude do dano quando ele ocorre.
+    6.  *Cartografia da Torre*: `+2%` relativo na chance de drop da **Chave da Torre** comum (a dropada em combate na campanha, `CombatFSM.ts`, distinta da Chave da Torre Evoluída fabricada pela Torre de Vigia) por nível, multiplicando a chance base (`finalKeyChance = keyDropChance × (1 + nível × 0.02)`).
+    7.  *Ressonância de Almas*: `+2%` relativo na chance de drop do **Fragmento de Alma Instável** (base 5% em Chefes de Fase) por nível, mesma fórmula multiplicativa (`soulFragmentChance = 0.05 × (1 + nível × 0.02)`).
+*   O teto de nível de cada pesquisa é `nível_da_Academia × 5` (de 5 no Nível 1 até 25 no Nível 5); custo de pesquisa: `20 × próximo_nível` Insígnias — mesma fórmula para as sete pesquisas.
 
 ### F. Torre de Vigia Astral e Oficina de Automação da Forja (v5.3.0)
 **Torre de Vigia Astral** — Custo base 500 Madeira / 500 Pedra / 300 Carne:
@@ -1338,10 +1349,9 @@ A arte definitiva já está integrada (Versão 5.7.0), tanto em `CitadelSpriteSt
     *   `[0,0]` (superior-esquerdo) → **Básico**.
     *   `[1,1]` (inferior-direito) → **Avançado**.
     *   `[1,0]` (superior-direito) → **Supremo** — versão mais elaborada.
-    O corte por terços de `maxLevel` (`getEvolutionTier`) segue o mesmo padrão de breakpoints já usado pela Torre de Vigia (níveis 1-2 / 3-4 / 5), mantendo a linguagem visual consistente mesmo entre construções com tetos de nível diferentes.
-*   **`fixedTier`**: construções sem progressão de nível (hoje, só o Centro de Comando — sempre Nível 1) usam essa prop para fixar um quadrante específico do grid (Avançado, `[1,1]`, o castelo cinza clássico) em vez de depender do resultado incidental de `getEvolutionTier` com `maxLevel = 1`.
+    O corte por terços de `maxLevel` (`getEvolutionTier`) segue o mesmo padrão de breakpoints já usado pela Torre de Vigia (níveis 1-2 / 3-4 / 5), mantendo a linguagem visual consistente mesmo entre construções com tetos de nível diferentes. Desde a v6.0.0, o Centro de Comando também segue esse cálculo normalmente (`maxLevel = 5`, como as outras construções) em vez de ficar fixo num quadrante — a prop `fixedTier`, usada até então para fixá-lo sempre no quadrante Avançado, foi removida de `EvolutionSprite.tsx` por não ter mais nenhum consumidor.
 *   **Fallback automático**: enquanto o arquivo de uma construção não existir (ou falhar ao carregar), o componente recua sozinho para o ícone emoji atual — nenhuma outra parte do app precisa saber se a arte definitiva já foi adicionada.
-*   **Convenção de arquivos e nomes** (`citadelBuildingSprites.ts`, compartilhado pelos dois componentes): cada construção usa um arquivo próprio 1024×1024 em `public/assets/`, todos em grid 2×2 (inclusive o Centro de Comando, que também veio em grid apesar de não evoluir):
+*   **Convenção de arquivos e nomes** (`citadelBuildingSprites.ts`, compartilhado pelos dois componentes): cada construção usa um arquivo próprio 1024×1024 em `public/assets/`, todos em grid 2×2 (inclusive o Centro de Comando):
     | Construção | Arquivo |
     | :--- | :--- |
     | Centro de Comando | `citadel_command_center.png` |
@@ -1382,10 +1392,11 @@ Marco de lançamento que encerra o arco iniciado na Versão 5.1.0: a **Cidadela 
 #### 🏰 Expansão Completa: A Cidadela Astral
 *   **Nova aba de gerenciamento de base**: Desbloqueada na primeira Ascensão, a Cidadela roda como um overlay de tela cheia sobre o Canvas do Phaser, sem interromper o combate em segundo plano (o herói continua avançando, farmando e dropando itens enquanto o jogador organiza a base).
 *   **4 novos materiais de coleta**: Madeira, Pedra e Carne passam a ser dropados por monstros da campanha (sem influência da Sorte), e Insígnias de Estudo são geradas pelo Quartel de Expedições — todos consumidos na construção e evolução das 8 estruturas.
-*   **As 8 construções da Cidadela**, cada uma com sua própria árvore de níveis:
+*   **Centro de Comando** — a construção central da Cidadela, evoluível do Nível 1 ao 5 (custo base 80 Madeira / 80 Pedra / 80 Carne): cada nível concede +10% na quantidade de Madeira/Pedra/Carne coletada em combate (até +50% no Nível 5) e funciona como **teto de nível para as outras 8 construções** — nenhuma delas pode ultrapassar o nível atual do Centro de Comando (ex.: o Depósito só sobe ao Nível 2 depois do Centro de Comando).
+*   **As 8 construções subordinadas da Cidadela**, cada uma com sua própria árvore de níveis (limitada pelo Centro de Comando):
     1.  **Depósito (Almoxarifado)** — protege até 10 equipamentos do reset de inventário da Ascensão (itens Místicos ficam de fora).
-    2.  **Quartel de Expedições** — aloca classes já jogadas em missões passivas de coleta, com bônus de eficiência por grupo de atributo e expiração automática de 8h por alocação.
-    3.  **Academia Militar** — investe Insígnias de Estudo em pesquisas permanentes e universais de Dano Geral, Vida Máxima e Velocidade de Ataque.
+    2.  **Quartel de Expedições** — aloca classes já jogadas em missões passivas de coleta, com bônus de eficiência por grupo de atributo, +15% de produção por nível do Quartel, expiração automática de 8h por alocação, e confirmação obrigatória (Cancelar/Confirmar) tanto para alocar (gasta Ouro) quanto para retirar antes do prazo (perde o tempo restante), evitando toques acidentais.
+    3.  **Academia Militar** — investe Insígnias de Estudo em sete pesquisas permanentes e universais: Dano Geral, Vida Máxima, Velocidade de Ataque, Dano de Toque, Dano Crítico Geral, chance de drop de Chave da Torre e chance de drop de Fragmento de Alma Instável.
     4.  **Torre de Vigia Astral** — fabrica Chaves da Torre Infinita passivamente, mesmo offline, com taxa e capacidade escalando por nível.
     5.  **Oficina de Automação da Forja** — converte Ouro e Madeira em Fragmentos de Forja automaticamente, culminando no Desmonte Automatizado de itens Comuns/Raros no Nível 5 ("Mestre Forjador").
     6.  **Sifão de Essência Cósmica** — mitiga linearmente a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no Nível 5 ("Sincronia Perfeita").

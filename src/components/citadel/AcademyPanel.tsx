@@ -3,10 +3,20 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST } from '../../core/citadelFormulas';
 
-const RESEARCH_TYPES: { key: 'dmg' | 'hp' | 'speed'; levelField: 'researchDmgLevel' | 'researchHpLevel' | 'researchSpeedLevel'; label: string; description: string }[] = [
+type ResearchKey = 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment';
+type ResearchLevelField =
+  | 'researchDmgLevel' | 'researchHpLevel' | 'researchSpeedLevel'
+  | 'researchTouchDmgLevel' | 'researchCritDmgLevel'
+  | 'researchTowerKeyLevel' | 'researchSoulFragmentLevel';
+
+const RESEARCH_TYPES: { key: ResearchKey; levelField: ResearchLevelField; label: string; description: string }[] = [
   { key: 'dmg', levelField: 'researchDmgLevel', label: 'Táticas de Combate Avançadas', description: '+1.5% Dano Geral por nível' },
   { key: 'hp', levelField: 'researchHpLevel', label: 'Condicionamento Físico Extremo', description: '+2% Vida Máxima por nível' },
   { key: 'speed', levelField: 'researchSpeedLevel', label: 'Exercícios de Agilidade', description: '+1% Velocidade de Ataque por nível' },
+  { key: 'touchDmg', levelField: 'researchTouchDmgLevel', label: 'Precisão de Toque', description: '+2% Dano de Toque (clique/tap e Robô Assistente) por nível' },
+  { key: 'critDmg', levelField: 'researchCritDmgLevel', label: 'Fúria Crítica', description: '+2 pontos de Dano Crítico Geral por nível — vale para Toque, ataque básico e habilidades' },
+  { key: 'towerKey', levelField: 'researchTowerKeyLevel', label: 'Cartografia da Torre', description: '+2% na chance de drop de Chave da Torre por nível' },
+  { key: 'soulFragment', levelField: 'researchSoulFragmentLevel', label: 'Ressonância de Almas', description: '+2% na chance de drop de Fragmento de Alma Instável por nível' },
 ];
 
 export const AcademyPanel: React.FC = () => {
@@ -16,12 +26,19 @@ export const AcademyPanel: React.FC = () => {
 
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
-  const academy = citadel?.academy || { level: 0, lastTick: 0, researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0 };
+  const academy = citadel?.academy || {
+    level: 0, lastTick: 0,
+    researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0,
+    researchTouchDmgLevel: 0, researchCritDmgLevel: 0,
+    researchTowerKeyLevel: 0, researchSoulFragmentLevel: 0,
+  };
   const isBuilt = academy.level > 0;
   const nextLevel = academy.level + 1;
   const researchCap = ACADEMY_MAX_RESEARCH_LEVEL(academy.level);
   const cost = ACADEMY_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -42,14 +59,19 @@ export const AcademyPanel: React.FC = () => {
       </div>
 
       {academy.level < ACADEMY_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Academia no nível máximo.</p>
       )}
@@ -60,7 +82,7 @@ export const AcademyPanel: React.FC = () => {
             Pesquisas (limite atual: Nível {researchCap})
           </h3>
           {RESEARCH_TYPES.map(({ key, levelField, label, description }) => {
-            const level = academy[levelField];
+            const level = academy[levelField] || 0;
             const nextResearchLevel = level + 1;
             const researchCost = RESEARCH_COST(nextResearchLevel);
             const atCap = nextResearchLevel > researchCap;

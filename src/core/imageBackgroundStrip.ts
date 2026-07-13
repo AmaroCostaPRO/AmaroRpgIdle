@@ -26,6 +26,10 @@ export interface RgbColor {
 export const DEFAULT_CHROMA_KEY: RgbColor = { r: 254, g: 2, b: 1 };
 
 const cache = new Map<string, Promise<string>>();
+// Espelha `cache` com o valor já resolvido (síncrono), para que componentes que montam
+// depois do processamento (ex: reabrir a aba da Cidadela) possam pintar a arte real já
+// no primeiro render, sem o "flash" do ícone de fallback enquanto a Promise resolve de novo.
+const resolvedCache = new Map<string, string>();
 
 function stripBackground(image: HTMLImageElement, keyColor: RgbColor, tolerance: number): string {
   const canvas = document.createElement('canvas');
@@ -73,7 +77,9 @@ export function getTransparentImageUrl(
     image.crossOrigin = 'anonymous';
     image.onload = () => {
       try {
-        resolve(stripBackground(image, keyColor, tolerance));
+        const dataUrl = stripBackground(image, keyColor, tolerance);
+        resolvedCache.set(cacheKey, dataUrl);
+        resolve(dataUrl);
       } catch (e) {
         reject(e);
       }
@@ -84,4 +90,19 @@ export function getTransparentImageUrl(
 
   cache.set(cacheKey, promise);
   return promise;
+}
+
+/**
+ * Retorna a data URL já processada para `src`, se o processamento já tiver
+ * terminado antes (ex: por um `getTransparentImageUrl` anterior/preload).
+ * Não dispara nenhum carregamento — use para evitar o flash do ícone de
+ * fallback ao montar um componente cuja imagem já está pronta.
+ */
+export function peekTransparentImageUrl(
+  src: string,
+  keyColor: RgbColor = DEFAULT_CHROMA_KEY,
+  tolerance = 50
+): string | null {
+  const cacheKey = `${src}|${keyColor.r},${keyColor.g},${keyColor.b}|${tolerance}`;
+  return resolvedCache.get(cacheKey) ?? null;
 }

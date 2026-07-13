@@ -10,8 +10,10 @@ export function useHoldRepeat(callback: () => void, disabled: boolean = false) {
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeRef = useRef(false);
 
   const stop = useCallback(() => {
+    activeRef.current = false;
     if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -24,14 +26,16 @@ export function useHoldRepeat(callback: () => void, disabled: boolean = false) {
 
   const start = useCallback(() => {
     if (disabled) return;
-    stop();
+    // Evita disparo duplicado quando o toque gera também um mousedown sintético.
+    if (activeRef.current) return;
+    activeRef.current = true;
     callbackRef.current();
     timeoutRef.current = setTimeout(() => {
       intervalRef.current = setInterval(() => {
         callbackRef.current();
       }, REPEAT_INTERVAL_MS);
     }, INITIAL_DELAY_MS);
-  }, [disabled, stop]);
+  }, [disabled]);
 
   useEffect(() => {
     if (disabled) stop();

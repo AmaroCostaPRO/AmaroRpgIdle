@@ -15,6 +15,8 @@ export const SynchronyAltarPanel: React.FC = () => {
   const nextLevel = altar.level + 1;
   const cost = SYNCHRONY_ALTAR_UPGRADE_COST(nextLevel);
   const canAffordUpgrade = materials.stone >= cost.stone && essence >= cost.transcendenceEssence && materials.studyInsignias >= cost.studyInsignias;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+  const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const injectionPct = altar.level * 3;
 
   const handleUpgrade = () => {
@@ -36,14 +38,19 @@ export const SynchronyAltarPanel: React.FC = () => {
       </div>
 
       {altar.level < SYNCHRONY_ALTAR_MAX_LEVEL ? (
-        <button
-          onClick={handleUpgrade}
-          disabled={!canAffordUpgrade}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
-        >
-          {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Altar'} — 🪨 {cost.stone} / 🌌 {cost.transcendenceEssence} / 📜 {cost.studyInsignias}
-        </button>
+        <>
+          <button
+            onClick={handleUpgrade}
+            disabled={!canAffordUpgrade || lockedByCommandCenter}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Altar'} — 🪨 {cost.stone} / 🌌 {cost.transcendenceEssence} / 📜 {cost.studyInsignias}
+          </button>
+          {lockedByCommandCenter && (
+            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
+          )}
+        </>
       ) : (
         <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Altar no nível máximo.</p>
       )}

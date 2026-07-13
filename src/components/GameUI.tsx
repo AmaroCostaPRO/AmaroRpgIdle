@@ -779,8 +779,9 @@ const AttributePanel: React.FC = () => {
 
   const getAttrDetails = (attr: string, classId: string): string => {
     switch (attr) {
-      case 'strength': 
-        return classId === 'warrior' ? 'Aumenta consideravelmente o Dano Físico.' : 'Aumenta levemente o Dano Geral (+0.25 de Dano por ponto).';
+      case 'strength':
+        return (classId === 'warrior' ? 'Aumenta consideravelmente o Dano Físico. ' : 'Aumenta levemente o Dano Geral (+0.25 de Dano por ponto). ')
+          + 'Aumenta +0.05% de Penetração de Armadura por ponto (aumenta o dano final de ataques básicos e habilidades).';
       case 'magic': {
         const isPrimary = classId === 'mage' || classId === 'cleric';
         return isPrimary 
@@ -795,14 +796,15 @@ const AttributePanel: React.FC = () => {
       }
       case 'constitution': {
         const isPrimary = classId === 'paladin';
-        return isPrimary 
-          ? 'Vida Máxima +8 / Regen +0.03/s (Escala reduzida por ser primário)' 
-          : 'Vida Máxima +18 / Regen +0.08/s (Bônus secundário aumentado!)';
+        return (isPrimary
+          ? 'Vida Máxima +8 / Regen +0.03/s (Escala reduzida por ser primário). '
+          : 'Vida Máxima +18 / Regen +0.08/s (Bônus secundário aumentado!). ')
+          + 'Reduz o dano recebido de inimigos em 0.05% por ponto (até 95% de redução).';
       }
       case 'luck': 
         return 'Aumenta a chance e raridade dos drops de itens, ouro obtido, Chance de Crítico (+0.05%/pt) e Dano Crítico (+0.2%/pt).';
       case 'touch': 
-        return 'Aumenta o Dano de Clique (cada 2 pontos de Toque aumentam 1 de dano base).';
+        return 'Aumenta o Dano de Toque (+0.5 de Dano por ponto).';
       default: 
         return '';
     }
@@ -941,8 +943,8 @@ const statLabels: Record<string, string> = {
   constitution: 'Constituição',
   luck: 'Sorte',
   touch: 'Poder do Toque',
-  touchCritChance: 'Chance de Crítico',
-  touchCritDamage: 'Dano Crítico',
+  critChance: 'Chance de Crítico',
+  critDamage: 'Dano Crítico',
   robotClicks: 'Cliques do Robô',
   lifesteal: 'Roubo de Vida',
   touchDamageMult: 'Multiplicador de Toque',
@@ -966,8 +968,8 @@ const isPercentStat = (stat: string) => {
     'attackSpeedPct', 
     'damageMultiplierPct',
     'touchDamageMult',
-    'touchCritChance',
-    'touchCritDamage'
+    'critChance',
+    'critDamage'
   ].includes(stat);
 };
 
@@ -1225,7 +1227,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   const equipBonus = Math.max(0, finalVal - baseVal);
                   const hasAnyBonus = equipBonus > 0 || ascensionBonus > 0;
 
-                  const isPercent = statKey === 'touchCritChance' || statKey === 'touchCritDamage';
+                  const isPercent = statKey === 'critChance' || statKey === 'critDamage';
                   const formatVal = (val: number) => {
                     const rounded = Number(val.toFixed(2));
                     return isPercent ? `${rounded}%` : rounded.toString();
@@ -3690,12 +3692,13 @@ const GuidePanel: React.FC = () => {
             <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <p>
-                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir 8 construções:
+                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 8 construções:
               </p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
+                <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras 8 construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
                 <li><span className="text-white font-semibold">Depósito (Vault):</span> <span className="text-gray-400">armazenamento externo de equipamentos, fora do inventário normal — os itens guardados aqui sobrevivem à Ascensão.</span></li>
-                <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel.</span></li>
-                <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida e Velocidade globais.</span></li>
+                <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente, com +15% de produção por nível do Quartel. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel. Alocar (gasta Ouro) e retirar antes do prazo (perde o tempo restante) exigem confirmação.</span></li>
+                <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida, Velocidade, Dano de Toque e Dano Crítico (vale para toque, ataque básico e habilidades) globais, além da chance de drop de Chave da Torre e de Fragmento de Alma Instável.</span></li>
                 <li><span className="text-white font-semibold">Torre de Vigia Astral:</span> <span className="text-gray-400">produz passivamente Chaves da Torre, usadas para tentar subir andares na Torre Infinita.</span></li>
                 <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">automatiza a auto-venda/auto-desmonte de equipamentos comuns e raros conforme evolui de nível.</span></li>
                 <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
@@ -3787,7 +3790,7 @@ const GuidePanel: React.FC = () => {
                     <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
                   </li>
                   <li>
-                    <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico de Toque</strong>, <strong>+1% de Dano Crítico de Toque</strong> e <strong>+0.5% de Esquiva</strong>.
+                    <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico</strong>, <strong>+1% de Dano Crítico</strong> e <strong>+0.5% de Esquiva</strong>.
                   </li>
                   <li>
                     <span className="text-gray-400">Fórmula de PP obtido:</span>
@@ -4133,7 +4136,7 @@ const GuidePanel: React.FC = () => {
                       <code className="text-blue-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Bônus = 1.0 + (√Sorte / 10)</code>
                     </div>
                     <div>
-                      <span className="text-emerald-300 font-bold">Chance e Dano Crítico de Toque:</span>
+                      <span className="text-emerald-300 font-bold">Chance e Dano Crítico:</span>
                       <code className="text-emerald-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">Chance +0.05% e Dano Crítico +0.2% por ponto de Sorte</code>
                     </div>
                   </div>
@@ -6433,12 +6436,12 @@ const OptionsPanel: React.FC = () => {
                       <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>Chance Crit%:</span>
                       <input
                         type="number"
-                        value={character.baseStats.touchCritChance || 0}
+                        value={character.baseStats.critChance || 0}
                         onChange={(e) => {
                           const val = Math.max(0, Number(e.target.value) || 0);
                           setCharacter({
                             ...character,
-                            baseStats: { ...character.baseStats, touchCritChance: val }
+                            baseStats: { ...character.baseStats, critChance: val }
                           });
                         }}
                         style={{
@@ -6458,12 +6461,12 @@ const OptionsPanel: React.FC = () => {
                       <span style={{ fontWeight: 'bold', color: '#38bdf8' }}>Dano Crit%:</span>
                       <input
                         type="number"
-                        value={character.baseStats.touchCritDamage || 0}
+                        value={character.baseStats.critDamage || 0}
                         onChange={(e) => {
                           const val = Math.max(0, Number(e.target.value) || 0);
                           setCharacter({
                             ...character,
-                            baseStats: { ...character.baseStats, touchCritDamage: val }
+                            baseStats: { ...character.baseStats, critDamage: val }
                           });
                         }}
                         style={{
@@ -6547,8 +6550,8 @@ const OptionsPanel: React.FC = () => {
                             constitution: 15,
                             luck: 5,
                             touch: 10,
-                            touchCritChance: 5,
-                            touchCritDamage: 150,
+                            critChance: 5,
+                            critDamage: 150,
                             robotClicks: 0
                           },
                           attributePoints: 2000
@@ -7004,6 +7007,14 @@ export default function GameUI() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Avisa a área de sprites da Cidadela (renderizada em App.tsx, fora desta árvore) qual
+  // sub-aba está ativa agora — seja a mudança originada no clique de um prédio no mapa,
+  // seja pela barra de abas — para destacar (com o mesmo efeito de "aumentar" do hover)
+  // o prédio correspondente à construção que o jogador está vendo.
+  useEffect(() => {
+    bridge.emit(GameEvent.CITADEL_SUBTAB_CHANGED, { subTab: citadelSubTab });
+  }, [citadelSubTab]);
 
   const [visibleParagraphs, setVisibleParagraphs] = useState<number>(1);
   const loreContainerRef = useRef<HTMLDivElement>(null);

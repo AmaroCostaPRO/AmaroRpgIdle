@@ -6,6 +6,7 @@ import { useTowerStore } from './useTowerStore';
 import { StatEngine } from '../core/StatEngine';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 import {
+  COMMAND_CENTER_MAX_LEVEL, COMMAND_CENTER_UPGRADE_COST,
   VAULT_MAX_LEVEL, VAULT_UPGRADE_COST,
   EXPEDITIONS_MAX_LEVEL, ACADEMY_MAX_LEVEL,
   EXPEDITION_ALLOCATION_GOLD_COST, EXPEDITION_ALLOCATION_DURATION_MS,
@@ -121,64 +122,64 @@ export const CLASS_CONFIGS: Record<string, {
   warrior: {
     name: 'Guerreiro',
     description: 'Um combatente robusto especializado em combate corporal, cujo dano escala com Força.',
-    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
-    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
+    baseStats: { strength: 12, magic: 4, dexterity: 8, constitution: 14, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 2, magic: 0.5, dexterity: 1, constitution: 2.5, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
     initialSkills: ['slash'],
     primaryStat: 'strength'
   },
   mage: {
     name: 'Mago',
     description: 'Mestre das artes arcanas que conjura magias destrutivas de fogo, gelo e eletricidade.',
-    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
-    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
+    baseStats: { strength: 4, magic: 15, dexterity: 7, constitution: 8, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 0.5, magic: 3, dexterity: 1, constitution: 1, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
     initialSkills: ['fireball'],
     primaryStat: 'magic'
   },
   ranger: {
     name: 'Arqueiro',
     description: 'Atirador ágil que abate inimigos à distância com arco e flechas envenenadas.',
-    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8, touch: 10, touchCritChance: 8, touchCritDamage: 160, robotClicks: 0 },
-    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8, touch: 1.5, touchCritChance: 0.2, touchCritDamage: 1.5, robotClicks: 0 },
+    baseStats: { strength: 6, magic: 5, dexterity: 15, constitution: 9, luck: 8, touch: 10, critChance: 8, critDamage: 160, robotClicks: 0 },
+    growthRates: { strength: 1, magic: 0.5, dexterity: 3, constitution: 1.5, luck: 0.8, touch: 1.5, critChance: 0.2, critDamage: 1.5, robotClicks: 0 },
     initialSkills: ['arrow_shot'],
     primaryStat: 'dexterity'
   },
   paladin: {
     name: 'Paladino',
     description: 'Guerreiro sagrado que defende a justiça divina. Seu dano escala com Constituição.',
-    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
-    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
+    baseStats: { strength: 10, magic: 6, dexterity: 5, constitution: 16, luck: 5, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 1.5, magic: 1, dexterity: 0.5, constitution: 3, luck: 0.5, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
     initialSkills: ['holy_strike'],
     primaryStat: 'constitution'
   },
   cleric: {
     name: 'Clérigo',
     description: 'Servo dos deuses encarregado de curar aliados e punir infiéis com a ira divina.',
-    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11, luck: 6, touch: 10, touchCritChance: 5, touchCritDamage: 150, robotClicks: 0 },
-    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2, luck: 0.6, touch: 1.5, touchCritChance: 0.1, touchCritDamage: 1.0, robotClicks: 0 },
+    baseStats: { strength: 7, magic: 13, dexterity: 5, constitution: 11, luck: 6, touch: 10, critChance: 5, critDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 1, magic: 2.5, dexterity: 0.5, constitution: 2, luck: 0.6, touch: 1.5, critChance: 0.1, critDamage: 1.0, robotClicks: 0 },
     initialSkills: ['holy_smite', 'heal'],
     primaryStat: 'magic'
   },
   rogue: {
     name: 'Ladrão',
     description: 'Assassino sorrateiro que ataca pelas sombras com adagas letais. Especialista em crítico.',
-    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10, touch: 10, touchCritChance: 12, touchCritDamage: 180, robotClicks: 0 },
-    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0, touch: 1.5, touchCritChance: 0.3, touchCritDamage: 2.0, robotClicks: 0 },
+    baseStats: { strength: 8, magic: 3, dexterity: 16, constitution: 8, luck: 10, touch: 10, critChance: 12, critDamage: 180, robotClicks: 0 },
+    growthRates: { strength: 1.5, magic: 0.5, dexterity: 3, constitution: 1, luck: 1.0, touch: 1.5, critChance: 0.3, critDamage: 2.0, robotClicks: 0 },
     initialSkills: ['stab'],
     primaryStat: 'dexterity'
   },
   necromancer: {
     name: 'Necromante',
     description: 'Mestre da morte que drena a vida dos vivos e comanda lacaios sombrios das profundezas.',
-    baseStats: { strength: 5, magic: 15, dexterity: 6, constitution: 10, luck: 12, touch: 10, touchCritChance: 6, touchCritDamage: 150, robotClicks: 0 },
-    growthRates: { strength: 0.8, magic: 3.2, dexterity: 0.8, constitution: 1.8, luck: 1.5, touch: 1.5, touchCritChance: 0.15, touchCritDamage: 1.2, robotClicks: 0 },
+    baseStats: { strength: 5, magic: 15, dexterity: 6, constitution: 10, luck: 12, touch: 10, critChance: 6, critDamage: 150, robotClicks: 0 },
+    growthRates: { strength: 0.8, magic: 3.2, dexterity: 0.8, constitution: 1.8, luck: 1.5, touch: 1.5, critChance: 0.15, critDamage: 1.2, robotClicks: 0 },
     initialSkills: ['death_touch'],
     primaryStat: 'magic'
   },
   avatar: {
     name: 'Avatar',
     description: 'A fusão de todas as energias. Todo o seu dano escala com o maior atributo ativo.',
-    baseStats: { strength: 15, magic: 15, dexterity: 15, constitution: 15, luck: 15, touch: 15, touchCritChance: 10, touchCritDamage: 180, robotClicks: 0 },
-    growthRates: { strength: 2.5, magic: 2.5, dexterity: 2.5, constitution: 2.5, luck: 2.5, touch: 2.5, touchCritChance: 0.25, touchCritDamage: 2.0, robotClicks: 0 },
+    baseStats: { strength: 15, magic: 15, dexterity: 15, constitution: 15, luck: 15, touch: 15, critChance: 10, critDamage: 180, robotClicks: 0 },
+    growthRates: { strength: 2.5, magic: 2.5, dexterity: 2.5, constitution: 2.5, luck: 2.5, touch: 2.5, critChance: 0.25, critDamage: 2.0, robotClicks: 0 },
     initialSkills: ['unified_echo', 'prismatic_barrier', 'ultimate_avatar', 'cosmic_convergence'],
     primaryStat: 'magic'
   }
@@ -192,8 +193,8 @@ export const PRESTIGE_UPGRADES_CATALOG: Record<string, { name: string; descripti
   perm_con: { name: 'Vigor Eterno', description: 'Aumento definitivo de +18 em Constitution por nível', stat: 'constitution', bonusPerLevel: 18, costPerLevel: 3, maxLevel: 10 },
   perm_luk: { name: 'Bênção da Sorte', description: 'Aumento definitivo de +6 em Luck por nível', stat: 'luck', bonusPerLevel: 6, costPerLevel: 3, maxLevel: 10 },
   perm_touch: { name: 'Toque Divino', description: 'Aumento definitivo de +8 em Poder do Toque por nível', stat: 'touch', bonusPerLevel: 8, costPerLevel: 3, maxLevel: 10 },
-  perm_touch_crit: { name: 'Foco Crítico', description: 'Aumento de +3% na Chance de Crítico por nível', stat: 'touchCritChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
-  perm_touch_crit_dmg: { name: 'Poder Devastador', description: 'Aumento de +15% no Dano Crítico por nível', stat: 'touchCritDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit: { name: 'Foco Crítico', description: 'Aumento de +3% na Chance de Crítico por nível', stat: 'critChance', bonusPerLevel: 3, costPerLevel: 3, maxLevel: 10 },
+  perm_touch_crit_dmg: { name: 'Poder Devastador', description: 'Aumento de +15% no Dano Crítico por nível', stat: 'critDamage', bonusPerLevel: 15, costPerLevel: 3, maxLevel: 10 },
   perm_robot: { name: 'Robô Assistente', description: 'Invoca um assistente automático que desfere +1 Toque por segundo por nível', stat: 'robotClicks', bonusPerLevel: 1, costPerLevel: 5, maxLevel: 5 }
 };
 
@@ -514,6 +515,7 @@ interface GameState {
   addForgeFragments(amount: number): void;
   addTranscendenceEssence(amount: number): void;
   addMaterials(wood: number, stone: number, meat: number): void;
+  buildOrUpgradeCommandCenter(): { success: boolean; message: string };
   buildOrUpgradeVault(): { success: boolean; message: string };
   depositItemToVault(itemId: string): { success: boolean; message: string };
   withdrawItemFromVault(itemId: string): { success: boolean; message: string };
@@ -522,7 +524,7 @@ interface GameState {
   allocateClassToExpedition(classId: string): { success: boolean; message: string };
   deallocateClassFromExpedition(classId: string): { success: boolean; message: string };
   buildOrUpgradeAcademy(): { success: boolean; message: string };
-  upgradeAcademyResearch(type: 'dmg' | 'hp' | 'speed'): { success: boolean; message: string };
+  upgradeAcademyResearch(type: 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment'): { success: boolean; message: string };
   buildOrUpgradeWatchTower(): { success: boolean; message: string };
   buildOrUpgradeForgeWorkshop(): { success: boolean; message: string };
   buildOrUpgradeCosmicSiphon(): { success: boolean; message: string };
@@ -630,7 +632,12 @@ const DEFAULT_CITADEL = () => ({
   commandCenter: { level: 1, lastTick: Date.now() },
   vault: { level: 0, lastTick: Date.now(), storedItems: [] as EquipmentItem[] },
   expeditions: { level: 0, lastTick: Date.now(), allocatedClasses: [] as { classId: string; expiresAt: number }[] },
-  academy: { level: 0, lastTick: Date.now(), researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0 },
+  academy: {
+    level: 0, lastTick: Date.now(),
+    researchDmgLevel: 0, researchHpLevel: 0, researchSpeedLevel: 0,
+    researchTouchDmgLevel: 0, researchCritDmgLevel: 0,
+    researchTowerKeyLevel: 0, researchSoulFragmentLevel: 0,
+  },
   watchTower: { level: 0, lastTick: Date.now(), storedKeys: 0 },
   forgeWorkshop: { level: 0, lastTick: Date.now() },
   cosmicSiphon: { level: 0, lastTick: Date.now() },
@@ -948,6 +955,43 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  buildOrUpgradeCommandCenter: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.commandCenter.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (nextLevel > COMMAND_CENTER_MAX_LEVEL) {
+        result = { success: false, message: 'O Centro de Comando já está no nível máximo.' };
+        return state;
+      }
+
+      const cost = COMMAND_CENTER_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || materials.meat < cost.meat) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.meat} Carne.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
+        citadel: {
+          ...citadel,
+          commandCenter: { ...citadel.commandCenter, level: nextLevel, lastTick: Date.now() }
+        }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Centro de Comando melhorado para o Nível ${nextLevel}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
   buildOrUpgradeVault: () => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     set((state) => {
@@ -961,6 +1005,10 @@ export const useGameStore = create<GameState>((set) => ({
       }
       if (nextLevel > VAULT_MAX_LEVEL) {
         result = { success: false, message: 'O Depósito já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
         return state;
       }
 
@@ -1182,6 +1230,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'O Quartel de Expedições já está no nível máximo.' };
         return state;
       }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
       const cost = EXPEDITIONS_UPGRADE_COST(nextLevel);
       if (materials.wood < cost.wood || materials.stone < cost.stone || materials.meat < cost.meat) {
         result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.meat} Carne.` };
@@ -1290,6 +1342,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Academia Militar já está no nível máximo.' };
         return state;
       }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
       const cost = ACADEMY_UPGRADE_COST(nextLevel);
       if (materials.wood < cost.wood || materials.stone < cost.stone || materials.studyInsignias < cost.studyInsignias) {
         result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.studyInsignias} Insígnias de Estudo.` };
@@ -1320,8 +1376,14 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
-      const levelKey = type === 'dmg' ? 'researchDmgLevel' : type === 'hp' ? 'researchHpLevel' : 'researchSpeedLevel';
-      const currentLevel = academy[levelKey];
+      const levelKey = type === 'dmg' ? 'researchDmgLevel'
+        : type === 'hp' ? 'researchHpLevel'
+        : type === 'speed' ? 'researchSpeedLevel'
+        : type === 'touchDmg' ? 'researchTouchDmgLevel'
+        : type === 'critDmg' ? 'researchCritDmgLevel'
+        : type === 'towerKey' ? 'researchTowerKeyLevel'
+        : 'researchSoulFragmentLevel';
+      const currentLevel = academy[levelKey] || 0;
       const nextLevel = currentLevel + 1;
       const cap = ACADEMY_MAX_RESEARCH_LEVEL(academy.level);
 
@@ -1363,6 +1425,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Torre de Vigia Astral já está no nível máximo.' };
         return state;
       }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
       const cost = WATCH_TOWER_UPGRADE_COST(nextLevel);
       if (materials.wood < cost.wood || materials.stone < cost.stone || materials.meat < cost.meat) {
         result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.meat} Carne.` };
@@ -1395,6 +1461,10 @@ export const useGameStore = create<GameState>((set) => ({
       }
       if (nextLevel > FORGE_WORKSHOP_MAX_LEVEL) {
         result = { success: false, message: 'A Oficina de Automação da Forja já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
         return state;
       }
       const cost = FORGE_WORKSHOP_UPGRADE_COST(nextLevel);
@@ -1446,6 +1516,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'O Sifão de Essência Cósmica já está no nível máximo.' };
         return state;
       }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
       const cost = COSMIC_SIPHON_UPGRADE_COST(nextLevel);
       if (materials.stone < cost.stone || materials.wood < cost.wood || essence < cost.transcendenceEssence) {
         result = { success: false, message: `Materiais insuficientes: requer ${cost.stone} Pedra, ${cost.wood} Madeira e ${cost.transcendenceEssence} Essências de Transcendência.` };
@@ -1488,6 +1562,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'O Altar de Sincronia Elemental já está no nível máximo.' };
         return state;
       }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
       const cost = SYNCHRONY_ALTAR_UPGRADE_COST(nextLevel);
       if (materials.stone < cost.stone || essence < cost.transcendenceEssence || materials.studyInsignias < cost.studyInsignias) {
         result = { success: false, message: `Materiais insuficientes: requer ${cost.stone} Pedra, ${cost.transcendenceEssence} Essências de Transcendência e ${cost.studyInsignias} Insígnias de Estudo.` };
@@ -1521,6 +1599,10 @@ export const useGameStore = create<GameState>((set) => ({
       }
       if (nextLevel > RELIC_LAB_MAX_LEVEL) {
         result = { success: false, message: 'O Laboratório de Relíquias Místicas já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
         return state;
       }
       const cost = RELIC_LAB_UPGRADE_COST(nextLevel);

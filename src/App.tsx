@@ -11,6 +11,8 @@ import { AudioManager } from './core/AudioManager';
 import { bridge } from './bridge/GameBridge';
 import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
+import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites';
+import { getTransparentImageUrl } from './core/imageBackgroundStrip';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
 import { useWakeLock } from './hooks/useWakeLock';
 
@@ -104,6 +106,16 @@ const App: React.FC = () => {
   // Inicializa o gerenciador de áudio na montagem do App
   useEffect(() => {
     AudioManager.getInstance();
+  }, []);
+
+  // Pré-processa (remove fundo via canvas) os sprites das construções da Cidadela assim
+  // que o App monta, bem antes do jogador entrar na aba pela primeira vez — sem isso, o
+  // primeiro acesso à Cidadela mostrava rapidamente os ícones de emoji de fallback antes
+  // da arte real (processamento assíncrono) ficar pronta.
+  useEffect(() => {
+    Object.values(BUILDING_SPRITE_SRC).forEach((src) => {
+      getTransparentImageUrl(src).catch(() => {});
+    });
   }, []);
 
   // Controla o overflow e a altura do body para permitir scroll nativo nas telas de menu
