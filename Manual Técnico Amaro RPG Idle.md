@@ -146,6 +146,17 @@ Para evitar que o dispositivo móvel apague ou bloqueie a tela durante sessões 
 *   **Ativação Condicionada à Tela de Jogo**: O lock é solicitado apenas enquanto `screen === 'playing'`, sendo liberado (`sentinel.release()`) automaticamente ao retornar ao Menu, à Seleção de Classe ou aos Saves, evitando manter a tela ligada desnecessariamente fora do combate.
 *   **Reaquisição em `visibilitychange`**: O sistema operacional libera o wake lock automaticamente sempre que a aba fica oculta (troca de app, tela bloqueada manualmente). O hook escuta o evento `visibilitychange` do documento e readquire o lock assim que a aba volta a ficar visível, sem exigir nenhuma ação do jogador.
 
+### I. Sistema de Música de Fundo (BGM) Temática por Fase
+A trilha sonora do jogo é inteiramente sintetizada em tempo real via Web Audio API (`AudioManager.ts`, `bgmThemes.ts`), sem uso de arquivos de áudio externos. Seis temas distintos, cada um com sua própria progressão de acordes, timbres de osciladores (`sine`/`triangle`/`square`/`sawtooth` por camada de baixo, arpejo e melodia) e andamento, são associados às fases de dificuldade da campanha:
+*   **Normal (Fases 1-5)** — "Fantasia Sombria (Lá Menor)": tema original do jogo, arpejo sereno em Lá Menor Natural.
+*   **Pesadelo (Fases 6-10)** — "Vigília Amaldiçoada (Lá Menor Diminuta)": progressão diminuta e dissonante, andamento levemente acelerado.
+*   **Inferno (Fases 11-15)** — "Fornalha Abissal (Mi Menor Grave)": acordes graves e pesados com sub-bass reforçado, osciladores mais densos.
+*   **Apocalipse (Fases 16-20)** — "Corrida do Juízo Final (Ré Menor Urgente)": staccato urgente e andamento acelerado, timbres em `square`/`sawtooth`.
+*   **Purgatório (Fases 21-30)** — "Véu Suspenso (Sol Sus Etéreo)": intervalos abertos e suspensos (sus2/sus4), andamento mais lento e atmosfera etérea.
+*   **Pandemônio (Fase 31+)** — "Caos Primordial (Cluster Dissonante)": clusters de semitons em dissonância máxima, andamento bem acelerado.
+*   **Seleção de Fase**: a função `getPhaseForStage(character.currentStage)` (`bgmThemes.ts`) determina o tema ativo a partir do estágio de combate atual do personagem, usando os mesmos limiares de fase do `CombatFSM.ts` (Normal 1-5, Pesadelo 6-10, Inferno 11-15, Apocalipse 16-20, Purgatório 21-30, Pandemônio 31+). A troca de tema é detectada reativamente via `useGameStore.subscribe` dentro do `AudioManager`, reiniciando o loop de BGM (`stopBGM()` + `startBGM()`) sempre que a fase muda enquanto a música está tocando.
+*   **Torre Infinita e Cidadela**: como a seleção de tema depende exclusivamente do `currentStage` do personagem — não da tela ativa — tanto a Torre Infinita quanto a Cidadela automaticamente herdam a música da fase vigente do jogador, sem trilha sonora própria.
+
 ---
 
 ## 4. Sistema de Classes e Maestria
@@ -434,6 +445,9 @@ Introduzido na v5.0.0, o Colar é o **sexto slot de equipamento** (junto a Cabe�
     *Nota: `dropChancePct` alimenta a fórmula normal de chance de drop (Seção 7.F) mas não afeta a rolagem fixa de $5\%$ do próprio Colar.*
 *   **Participação em Bônus de Conjunto**: O Colar possui `setName` como qualquer outro equipamento e conta normalmente para os limiares de 2/3/5 peças descritos na Seção 5.B. Como o jogador agora possui **6 slots equipáveis** em vez de 5, é possível equipar 3 peças de um conjunto (ex: Cabeça, Peito, Pernas) e 3 peças de outro conjunto (ex: Luvas, Arma, Colar) simultaneamente, ativando **dois bônus de 3 peças distintos ao mesmo tempo** — algo impossível antes da v5.0.0, quando o máximo alcançável era 3+2 peças entre dois conjuntos.
 *   **Fusão na Forja (Altar de Fusão Mística)**: O Colar pode ser fundido normalmente com outro Colar do mesmo conjunto (`setName`) na Grande Forja Arcana, seguindo as mesmas regras de custo, limite de Nível Místico ($+8$) e chance de "Forja Lendária" ($5\%$ de bônus de $+50\%$) dos demais slots. Diferente dos atributos primários (que são somados e arredondados para cima como inteiros), os passivos percentuais do Colar são somados e arredondados com **3 casas decimais de precisão**, exibindo corretamente a prévia de fusão em formato percentual.
+
+### E. Módulo Visual Compartilhado de Itens
+A apresentação visual de um item (borda/glow por conjunto — Ancestral, Pandemoníaco, Celestial —, cor e fundo por raridade, overlay de nível de forja/místico `+N` e a tradução em português de todos os atributos, incluindo os passivos exclusivos do Colar) é centralizada em `src/components/shared/itemVisuals.ts`. Tanto a grade de Inventário/Equipamentos (`GameUI.tsx`) quanto o Depósito da Cidadela (`VaultPanel.tsx`, Seção 18.D) consomem este mesmo módulo, garantindo que um item guardado no Depósito seja exibido com exatamente a mesma fidelidade visual de um item no inventário ativo.
 
 ---
 
@@ -862,6 +876,7 @@ Ao atingir barreiras de avanço, o jogador pode realizar a Ascensão, zerando se
 *   **Requisito Mínimo de PP**: Acumular XP suficiente para obter pelo menos o número de Pontos de Prestígio (PP) exigido pelo número de ascensões já efetuadas:
     $$\text{Requisito de PP} = \begin{cases} 1 & \text{se Ascensões} = 0 \\ 3 + 2 \times \text{Ascensões} & \text{se Ascensões} \ge 1 \end{cases}$$
 *   **Elementos Resetados**: Nível do personagem (retorna a 1), XP acumulada (retorna a 0), fase ativa (retorna a 1), contagem de monstros derrotados no estágio (retorna a 0), pontos de atributos normais distribuídos, saldo de ouro acumulado (retorna a 0) e os equipamentos do inventário. *Nota especial: se o Modo Pandemônio estiver desbloqueado, os equipamentos equipados no personagem NÃO sofrem reset na ascensão, apenas os itens do inventário de armazenamento.*
+*   **Redução de Materiais de Expedição**: Os recursos farmados via Quartel de Expedições da Cidadela (Madeira, Pedra, Carne e Insígnia de Estudo) não são zerados, mas têm seu saldo reduzido para **apenas 10% do valor acumulado** na Ascensão, evitando o acúmulo exagerado desses materiais ao longo de múltiplas runs. Essa redução se aplica somente à Ascensão — a Transcendência (Seção 11) possui suas próprias regras de retenção, descritas separadamente.
 *   **Elementos Mantidos**: Nível das habilidades destravadas e upgrades adquiridos nas árvores, classe ativa e suas maestrias desbloqueadas, melhorias permanentes de prestígio e o estado de desbloqueio/ativação do Modo Pandemônio.
 
 ### B. Fórmulas de Recompensa de Prestígio
@@ -1259,6 +1274,7 @@ O estado da Cidadela é serializado dentro do nó do personagem ativo, em dois n
 interface CitadelBuildingState {
   level: number;
   lastTick: number; // Timestamp Unix do último processamento de produção offline
+  upgradeInProgress?: { targetLevel: number; startedAt: number; completesAt: number }; // Upgrade em tempo real (v6.1.0+), ver Seção 18.I
 }
 
 interface CitadelState {
@@ -1367,6 +1383,18 @@ A arte definitiva já está integrada (Versão 5.7.0), tanto em `CitadelSpriteSt
     | Background do pátio | `citadel_background.png` (imagem única, sem grid — carregada diretamente em `CitadelSpriteStage.tsx`, não passa por `EvolutionSprite`) |
 *   **Remoção automática de fundo** (`imageBackgroundStrip.ts`): como as construções são renderizadas em React/DOM (não em Phaser), `EvolutionSprite` processa cada imagem por um canvas antes de exibir. Usa **chroma key explícito** (cor de chave fixa `DEFAULT_CHROMA_KEY = { r: 254, g: 2, b: 1 }`, o vermelho `#FE0201` usado nas artes atuais, com tolerância de soma-de-diferenças 50) em vez de auto-detectar a cor pela borda da imagem como `CombatScene.makeTextureTransparent` faz no Phaser — a auto-detecção por linha y=0 não funciona aqui porque as spritesheets 2x2 de evolução têm um contorno preto fino ao redor e entre os quadrantes, então a "cor de fundo" amostrada na borda seria esse preto do contorno, apagando todo o contorno preto real da arte pixel art (a maior parte do desenho) em vez do fundo vermelho. `getTransparentImageUrl(src, keyColor?, tolerance?)` aceita cor e tolerância customizadas para o caso de uma arte futura usar outra cor de fundo. O resultado é cacheado por `src`+`keyColor`+`tolerance` (`getTransparentImageUrl`), então cada imagem só é processada uma vez mesmo com múltiplos re-renders. Pode ser desligado por construção via a prop `stripBackground={false}` (útil se, no futuro, algum arquivo já vier com canal alfa real). O background do pátio (`citadel_background.png`) **não** passa por essa remoção — é opaco por natureza, cobrindo toda a área atrás dos marcadores.
 *   **Posições dos marcadores**: grid 3×3 (20%/50%/80% em cada eixo) calibrado para as 8 clareiras + 1 espaço central de `citadel_background.png`, definido em `buildings` dentro de `CitadelSpriteStage.tsx`. Se o background for regerado com um layout diferente, ajuste os valores `top`/`left` de cada entrada para acompanhar — nenhuma outra mudança de código é necessária.
+
+### I. Tempo Real de Construção e Melhoria das Estruturas
+A partir da v6.1.0, toda melhoria de estrutura da Cidadela (as 9 construções, incluindo o Centro de Comando) passou a levar um tempo real para ser concluída, em vez de aplicar o novo nível instantaneamente:
+*   **Fórmula de Duração** (`getStructureUpgradeDurationMs`, `citadelFormulas.ts`):
+    *   **Centro de Comando** (já começa no Nível 1): melhorar para o Nível 2 leva **5h**, e cada melhoria seguinte soma **+2h** (Nível 2→3 = 7h, 3→4 = 9h, 4→5 = 11h).
+    *   **Demais 8 construções** (começam "não construídas", Nível 0): construir/melhorar para o Nível 1 leva **1h**, e cada nível seguinte soma **+1h** (1→2 = 2h, 2→3 = 3h, 3→4 = 4h, 4→5 = 5h).
+*   **Fluxo**: ao clicar em "Melhorar"/"Construir", a ação correspondente (`buildOrUpgrade*`, `useGameStore.ts`) valida os requisitos e deduz o custo em materiais normalmente, mas em vez de aplicar `level: nextLevel` de imediato, grava `upgradeInProgress: { targetLevel, startedAt, completesAt }` na construção. O nível efetivo (e todos os benefícios que dependem dele) só muda quando o upgrade é resolvido.
+*   **Resolução (Offline-Safe)**: a resolução dos upgrades concluídos é feita no início de `tickCitadelProduction()` — a mesma ação já responsável pela produção passiva de Expedições, Torre de Vigia e Oficina de Forja (Seção 18.B), chamada automaticamente ao carregar a Cidadela e a cada 60 segundos. Qualquer construção cujo `completesAt` já tenha passado (inclusive por tempo decorrido enquanto o jogador estava offline) tem seu nível aplicado e o `upgradeInProgress` removido nesse momento, com um log de conclusão (`🏗️ <Construção> alcançou o Nível X!`) emitido via `GameBridge`. Os efeitos colaterais de nível 5 que antes disparavam no clique do botão (Desmonte Automatizado da Oficina de Forja; neutralização das penalidades da Ecoterra pelo Sifão Cósmico) agora só são aplicados quando o upgrade correspondente efetivamente é resolvido.
+*   **Upgrades Paralelos entre Construções**: como cada construção tem seu próprio campo `upgradeInProgress`, o jogador pode ter melhorias em andamento em várias construções diferentes ao mesmo tempo (ex.: Depósito e Academia melhorando simultaneamente). Uma mesma construção, porém, só permite **1 melhoria em andamento por vez** — uma nova tentativa de melhoria é rejeitada com a mensagem "já está em melhoria" enquanto o timer não conclui.
+*   **Sem Aceleração**: não há mecanismo de gasto de recursos para concluir um upgrade instantaneamente — o jogador precisa aguardar o tempo real passar (a contagem prossegue normalmente mesmo com o jogo fechado).
+*   **Interface**: cada painel de construção (`CitadelOverview.tsx` para o Centro de Comando e os 8 `*Panel.tsx` das demais) usa o hook compartilhado `useCountdown` (`src/hooks/useCountdown.ts`) para exibir uma contagem regressiva (`🏗️ Melhorando para Nível X... (Yh Zm)`) no lugar do botão de melhoria enquanto `upgradeInProgress` está ativo naquela construção específica.
+*   **Retrocompatibilidade**: como `upgradeInProgress` é um campo opcional, saves anteriores à v6.1.0 continuam carregando normalmente (nenhuma construção é interpretada como "em melhoria" até que o jogador inicie um novo upgrade).
 
 ---
 

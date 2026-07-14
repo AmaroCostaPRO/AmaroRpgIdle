@@ -196,8 +196,7 @@ export const TowerPanel: React.FC = () => {
                 width: '100%',
                 padding: '0.6rem 0.75rem',
                 fontWeight: 800,
-                background: towerKeys > 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.05)',
-                boxShadow: towerKeys > 0 ? '0 4px 15px rgba(245, 158, 11, 0.25)' : 'none',
+                boxShadow: towerKeys > 0 ? '0 4px 15px rgba(180, 83, 9, 0.25)' : 'none',
                 border: 'none',
                 color: towerKeys > 0 ? '#fff' : '#64748b',
                 cursor: towerKeys > 0 ? 'pointer' : 'not-allowed',
@@ -234,7 +233,7 @@ export const TowerPanel: React.FC = () => {
                 lineHeight: 1.2
               }}
             >
-              <span style={{ fontSize: '0.85rem' }}>🗝️ SUBIDA COM CHAVE EVOLUÍDA (3x Ouro/XP)</span>
+              <span style={{ fontSize: '0.85rem' }}>🗝️ SUBIDA COM CHAVE EVOLUÍDA (3x)</span>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: evolvedTowerKeys > 0 ? '#e9d5ff' : '#64748b', opacity: 0.85 }}>(Consome 1 🗝️)</span>
             </button>
 
@@ -293,7 +292,7 @@ export const TowerPanel: React.FC = () => {
             }}>
               <span>🎁</span>
               <div>
-                <strong>Prêmios da Torre:</strong> Cada andar vencido concede <strong>🔩 Fragmentos de Forja</strong> (escala com o andar). A cada 5 andares concluídos, você ganha adicionalmente <strong>✨ 1 Fragmento de Alma Instável</strong>! Subidas com a <strong>🗝️ Chave da Torre Evoluída</strong> (produzida pela Torre de Vigia Astral da Cidadela) concedem <strong>3x Ouro e XP</strong> durante toda a subida.
+                <strong>Prêmios da Torre:</strong> Cada andar vencido concede <strong>🔩 Fragmentos de Forja</strong> (escala com o andar). A cada 5 andares concluídos, você ganha adicionalmente <strong>✨ 1 Fragmento de Alma Instável</strong>! Subidas com a <strong>🗝️ Chave da Torre Evoluída</strong> (produzida pela Torre de Vigia Astral da Cidadela) concedem <strong>3x Ouro, XP e Fragmentos de Forja</strong> durante toda a subida.
               </div>
             </div>
           </>

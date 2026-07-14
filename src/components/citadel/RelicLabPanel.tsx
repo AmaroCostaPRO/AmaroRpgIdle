@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { useRelicStore } from '../../store/useRelicStore';
 import { AudioManager } from '../../core/AudioManager';
 import { RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 export const RelicLabPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -21,6 +22,8 @@ export const RelicLabPanel: React.FC = () => {
   const commandCenterLevel = citadel?.commandCenter.level || 1;
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const maxSlots = RELIC_LAB_OVERHEAT_SLOTS(relicLab.level);
+  const upgrading = relicLab.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -42,14 +45,20 @@ export const RelicLabPanel: React.FC = () => {
 
       {relicLab.level < RELIC_LAB_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={!canAffordUpgrade || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Laboratório'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={!canAffordUpgrade || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Laboratório'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}

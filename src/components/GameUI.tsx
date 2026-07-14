@@ -26,6 +26,7 @@ import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
+import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual } from './shared/itemVisuals';
 
 // Toggle para reexibir o Modo de Teste (5x) na UI, usado apenas em testes internos.
 const SHOW_TEST_MODE_TOGGLE = false;
@@ -878,116 +879,6 @@ const AttributePanel: React.FC = () => {
   );
 };
 
-const getRarityColor = (rarity: string) => {
-  switch (rarity) {
-    case 'rare':
-    case 'raro': 
-      return '#3b82f6';
-    case 'epic':
-    case 'épico':
-      return '#a855f7';
-    case 'legendary':
-    case 'lendário': 
-      return '#f59e0b';
-    case 'mystic':
-    case 'místico':
-    case 'mística':
-      return '#d946ef';
-    case 'consumable':
-      return '#06b6d4';
-    default: 
-      return '#94a3b8';
-  }
-};
-
-const getRarityBg = (rarity: string) => {
-  switch (rarity) {
-    case 'rare':
-    case 'raro': 
-      return 'rgba(59, 130, 246, 0.15)';
-    case 'epic':
-    case 'épico':
-      return 'rgba(168, 85, 247, 0.15)';
-    case 'legendary':
-    case 'lendário': 
-      return 'rgba(245, 158, 11, 0.15)';
-    case 'mystic':
-    case 'místico':
-    case 'mística':
-      return 'rgba(217, 70, 239, 0.2)';
-    case 'consumable':
-      return 'rgba(6, 182, 212, 0.15)';
-    default: 
-      return 'rgba(148, 163, 184, 0.1)';
-  }
-};
-
-const slotLabels: Record<string, string> = {
-  head: 'Cabeça',
-  chest: 'Peito',
-  legs: 'Pernas',
-  gloves: 'Luvas',
-  weapon: 'Arma',
-  necklace: 'Colar',
-  consumable: 'Consumível'
-};
-
-const slotIcons: Record<string, string> = {
-  head: '🪖',
-  chest: '👕',
-  legs: '👖',
-  gloves: '🧤',
-  weapon: '⚔️',
-  necklace: '📿',
-  consumable: '📦'
-};
-
-const statLabels: Record<string, string> = {
-  strength: 'Força',
-  magic: 'Magia',
-  dexterity: 'Destreza',
-  constitution: 'Constituição',
-  luck: 'Sorte',
-  touch: 'Poder do Toque',
-  critChance: 'Chance de Crítico',
-  critDamage: 'Dano Crítico',
-  robotClicks: 'Cliques do Robô',
-  lifesteal: 'Roubo de Vida',
-  touchDamageMult: 'Multiplicador de Toque',
-  damageMultiplierPct: 'Bônus de Dano',
-  maxHpPct: 'Bônus de HP',
-  attackSpeedPct: 'Velocidade de Ataque',
-  maxManaPct: 'Bônus de Mana',
-  dropChancePct: 'Chance de Drop',
-  damageReductionPct: 'Redução de Dano',
-  frenzyChancePct: 'Chance de Frenesi'
-};
-
-const isPercentStat = (stat: string) => {
-  return [
-    'lifesteal', 
-    'damageReductionPct', 
-    'frenzyChancePct', 
-    'dropChancePct', 
-    'maxHpPct', 
-    'maxManaPct', 
-    'attackSpeedPct', 
-    'damageMultiplierPct',
-    'touchDamageMult',
-    'critChance',
-    'critDamage'
-  ].includes(stat);
-};
-
-const formatStatValue = (stat: string, val: number) => {
-  if (isPercentStat(stat)) {
-    const pct = val * 100;
-    const rounded = Number(pct.toFixed(2));
-    return `+${rounded}%`;
-  }
-  return `+${val}`;
-};
-
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
@@ -1471,32 +1362,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 );
               }
 
-              const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
-              const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
-              const isCelestial = !!(item.setName && item.setName.startsWith('Set Celestial'));
-              const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
-              const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
-
-              let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
-              let itemShadow = 'none';
-              let itemBg = getRarityBg(item.rarity);
-
-              if (isAncestral) {
-                itemBorder = '2px dashed #a78bfa';
-                itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
-              } else if (isPandemonium) {
-                itemBorder = '2px dashed #10b981';
-                itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
-                if (isPandemoniumBase) {
-                  itemBg = 'rgba(16, 185, 129, 0.15)';
-                } else if (isPandemoniumMystic) {
-                  itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
-                }
-              } else if (isCelestial) {
-                itemBorder = '2px dashed #38bdf8';
-                itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
-                itemBg = 'rgba(56, 189, 248, 0.15)';
-              }
+              const { isAncestral, isPandemonium, border: itemBorder, shadow: itemShadow, bg: itemBg } = getSetVisual(item);
 
               return (
                 <button
@@ -1707,34 +1573,15 @@ const EquipmentSlot: React.FC<{
   getRarityColor: (rarity: string) => string;
   getRarityBg: (rarity: string) => string;
 }> = ({ slot, item, onClick, icons, labels, getRarityColor, getRarityBg }) => {
-  const isAncestral = !!(item && item.setName && item.setName.startsWith('Set Ancestral'));
-  const isPandemonium = !!(item && item.setName && item.setName.startsWith('Set Pandemoníaco'));
-  const isCelestial = !!(item && item.setName && item.setName.startsWith('Set Celestial'));
-  const isPandemoniumMystic = isPandemonium && item?.rarity === 'mystic';
-  const isPandemoniumBase = isPandemonium && item?.rarity !== 'mystic';
-
-  let itemBorder = item ? `2px solid ${getRarityColor(item.rarity)}` : '1px dashed rgba(255,255,255,0.08)';
-  let itemShadow = 'none';
-  let itemBg = item ? getRarityBg(item.rarity) : 'rgba(0,0,0,0.4)';
-
-  if (item) {
-    if (isAncestral) {
-      itemBorder = '2px dashed #a78bfa';
-      itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
-    } else if (isPandemonium) {
-      itemBorder = '2px dashed #10b981';
-      itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
-      if (isPandemoniumBase) {
-        itemBg = 'rgba(16, 185, 129, 0.15)';
-      } else if (isPandemoniumMystic) {
-        itemBg = 'rgba(124, 58, 237, 0.2)'; // Violeta escuro
-      }
-    } else if (isCelestial) {
-      itemBorder = '2px dashed #38bdf8';
-      itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
-      itemBg = 'rgba(56, 189, 248, 0.15)';
-    }
-  }
+  const {
+    isAncestral,
+    isPandemonium,
+    isPandemoniumMystic,
+    isPandemoniumBase,
+    border: itemBorder,
+    shadow: itemShadow,
+    bg: itemBg
+  } = getSetVisual(item);
 
   return (
     <button
@@ -7518,21 +7365,19 @@ export default function GameUI() {
 
         {/* Modais de Equipamento e Bestiário agora posicionados de forma absoluta no wrapper relativo */}
         {activeTab === 'equipment' && selectedItem && (() => {
-          const isAncestral = !!(selectedItem.setName && selectedItem.setName.startsWith('Set Ancestral'));
-          const isPandemonium = !!(selectedItem.setName && selectedItem.setName.startsWith('Set Pandemoníaco'));
-          const isPandemoniumMystic = isPandemonium && selectedItem.rarity === 'mystic';
-          const isPandemoniumBase = isPandemonium && selectedItem.rarity !== 'mystic';
+          const {
+            isAncestral,
+            isPandemonium,
+            isPandemoniumMystic,
+            isPandemoniumBase,
+            border: itemBorder,
+            shadow: itemShadow
+          } = getSetVisual(selectedItem);
 
-          let itemBorder = `2px solid ${getRarityColor(selectedItem.rarity)}`;
           let itemNameColor = getRarityColor(selectedItem.rarity);
-          let itemShadow = 'none';
           if (isAncestral) {
-            itemBorder = '2px dashed #a78bfa';
             itemNameColor = '#c084fc';
-            itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
           } else if (isPandemonium) {
-            itemBorder = '2px dashed #10b981';
-            itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
             if (isPandemoniumBase) {
               itemNameColor = '#10b981';
             } else if (isPandemoniumMystic) {
@@ -7745,31 +7590,27 @@ export default function GameUI() {
           }} onClick={() => setSelectedSlot(null)}>
             {(() => {
               const item = character.equipment[selectedSlot]!;
-              const isAncestral = !!(item.setName && item.setName.startsWith('Set Ancestral'));
-              const isPandemonium = !!(item.setName && item.setName.startsWith('Set Pandemoníaco'));
-              const isCelestial = !!(item.setName && item.setName.startsWith('Set Celestial'));
-              const isPandemoniumMystic = isPandemonium && item.rarity === 'mystic';
-              const isPandemoniumBase = isPandemonium && item.rarity !== 'mystic';
+              const {
+                isAncestral,
+                isPandemonium,
+                isCelestial,
+                isPandemoniumMystic,
+                isPandemoniumBase,
+                border: itemBorder,
+                shadow: itemShadow
+              } = getSetVisual(item);
 
-              let itemBorder = `2px solid ${getRarityColor(item.rarity)}`;
               let itemNameColor = getRarityColor(item.rarity);
-              let itemShadow = 'none';
               if (isAncestral) {
-                itemBorder = '2px dashed #a78bfa';
                 itemNameColor = '#c084fc';
-                itemShadow = '0 0 10px rgba(167, 139, 250, 0.8)';
               } else if (isPandemonium) {
-                itemBorder = '2px dashed #10b981';
-                itemShadow = '0 0 10px rgba(16, 185, 129, 0.8)';
                 if (isPandemoniumBase) {
                   itemNameColor = '#10b981';
                 } else if (isPandemoniumMystic) {
                   itemNameColor = '#8b5cf6'; // Violeta escuro
                 }
               } else if (isCelestial) {
-                itemBorder = '2px dashed #38bdf8';
                 itemNameColor = '#38bdf8';
-                itemShadow = '0 0 10px rgba(56, 189, 248, 0.8)';
               }
 
               return (

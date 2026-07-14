@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 export const CosmicSiphonPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -19,6 +20,8 @@ export const CosmicSiphonPanel: React.FC = () => {
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const manaDrainPct = Math.max(0, 1.5 - siphon.level * 0.3);
   const cooldownErosionPct = Math.max(0, 15 - siphon.level * 3);
+  const upgrading = siphon.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -40,14 +43,20 @@ export const CosmicSiphonPanel: React.FC = () => {
 
       {siphon.level < COSMIC_SIPHON_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={!canAffordUpgrade || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Sifão'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={!canAffordUpgrade || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Sifão'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}

@@ -1,9 +1,10 @@
 import { useGameStore } from '../store/useGameStore';
+import { BGM_THEMES, BgmPhase, getPhaseForStage } from './bgmThemes';
 
 export class AudioManager {
   private static instance: AudioManager;
   private ctx: AudioContext | null = null;
-  
+
   // Volumes padrão
   private sfxVolume = 0.25;
   private bgmVolume = 0.12;
@@ -13,6 +14,10 @@ export class AudioManager {
   private currentBgmNodes: Set<AudioNode> = new Set();
   private bgmBeat = 0;
   private bgmChordIdx = 0;
+  // Fase atual do BGM (Normal/Pesadelo/Inferno/Apocalipse/Purgatório/Pandemônio), definida pelo
+  // estágio de combate atual do personagem. Torre Infinita e Cidadela herdam a mesma trilha da
+  // fase vigente, já que a seleção depende apenas de `character.currentStage`, não da tela ativa.
+  private currentPhase: BgmPhase = 'normal';
 
   private constructor() {
     let prevLevel = 1;
@@ -26,6 +31,7 @@ export class AudioManager {
     const initialState = useGameStore.getState();
     this.sfxVolume = (initialState.sfxVolume ?? 0.5) * 0.5;
     this.bgmVolume = (initialState.bgmVolume ?? 0.5) * 0.25;
+    this.currentPhase = getPhaseForStage(initialState.character?.currentStage ?? 1);
     this.updateSettings(initialState.sfxEnabled ?? true, initialState.bgmEnabled ?? true);
 
     // Ouvintes globais para resumir o contexto de áudio no primeiro clique ou interação na página (Autoplay Policy)
@@ -49,6 +55,17 @@ export class AudioManager {
       this.updateSettings(state.sfxEnabled ?? true, state.bgmEnabled ?? true);
 
       if (!state.character) return;
+
+      // Troca de tema de BGM quando a fase (estágio de combate) muda — a Torre Infinita e a
+      // Cidadela não têm trilha própria, então herdam automaticamente a música da fase atual.
+      const newPhase = getPhaseForStage(state.character.currentStage);
+      if (newPhase !== this.currentPhase) {
+        this.currentPhase = newPhase;
+        if (this.bgmIntervalId) {
+          this.stopBGM();
+          this.startBGM();
+        }
+      }
 
       const currentLevel = state.character.level;
       const currentAttrPoints = state.character.attributePoints;
@@ -527,17 +544,13 @@ export class AudioManager {
     // Inicializa o contexto caso ainda não tenha sido
     this.initCtx();
 
-    // Notas de acordes (Escala Lá Menor Natural para Fantasia Sombria)
-    const chords = [
-      [110.00, 220.00, 261.63, 329.63, 440.00], // Am (A2, A3, C4, E4, A4)
-      [87.31, 174.61, 261.63, 349.23, 440.00],  // Fmaj (F2, F3, C4, F4, A4)
-      [130.81, 261.63, 329.63, 392.00, 523.25], // Cmaj (C3, C4, E4, G4, C5)
-      [98.00, 196.00, 246.94, 293.66, 392.00]   // Gmaj (G2, G3, B3, D4, G4)
-    ];
+    // Progressão de acordes do tema da fase atual (Normal/Pesadelo/Inferno/Apocalipse/Purgatório/Pandemônio)
+    const theme = BGM_THEMES[this.currentPhase];
+    const chords = theme.chords;
 
     const playBgmStep = () => {
       if (!this.ctx || this.ctx.state === 'suspended') return;
-      
+
       const enabled = useGameStore.getState().bgmEnabled ?? true;
       if (!enabled) {
         this.stopBGM();
@@ -551,21 +564,21 @@ export class AudioManager {
       if (this.bgmBeat % 8 === 0) {
         // Tocar a nota base grave (sub-bass) sustentada no início de cada acorde
         const bassFreq = currentChord[0];
-        this.playSynthNote(bassFreq, 'sine', 1.8, this.bgmVolume * 0.65, now);
+        this.playSynthNote(bassFreq, theme.bassOscType, theme.bassDuration, this.bgmVolume * 0.65, now);
       }
 
       // Arpejo melódico suave (toca notas individuais do acorde atual)
       // Usamos posições pseudo-aleatórias/sequenciais das notas harmônicas
       const noteIdx = (this.bgmBeat * 2) % (currentChord.length - 1) + 1;
       const noteFreq = currentChord[noteIdx];
-      
-      // Notas do arpejo com oscilador triangular (som suave de flauta/flauta doce antiga)
-      this.playSynthNote(noteFreq, 'triangle', 0.8, this.bgmVolume * 0.45, now);
+
+      // Notas do arpejo com o timbre definido pelo tema da fase atual
+      this.playSynthNote(noteFreq, theme.arpOscType, theme.arpDuration, this.bgmVolume * 0.45, now);
 
       // Adiciona uma nota melódica aguda decorativa de vez em quando
       if (this.bgmBeat % 4 === 2) {
         const leadFreq = currentChord[currentChord.length - 1] * (this.bgmBeat % 8 === 2 ? 1 : 1.2);
-        this.playSynthNote(leadFreq, 'sine', 1.2, this.bgmVolume * 0.25, now);
+        this.playSynthNote(leadFreq, theme.leadOscType, theme.leadDuration, this.bgmVolume * 0.25, now);
       }
 
       // Incrementar batida
@@ -575,8 +588,8 @@ export class AudioManager {
       }
     };
 
-    // Um beat a cada 450ms (~133 BPM em arpejo curto)
-    this.bgmIntervalId = setInterval(playBgmStep, 450);
+    // Andamento (batida) definido pelo tema da fase atual
+    this.bgmIntervalId = setInterval(playBgmStep, theme.beatMs);
   }
 
   /**

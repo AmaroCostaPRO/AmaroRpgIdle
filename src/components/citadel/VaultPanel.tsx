@@ -3,63 +3,8 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { EquipmentItem } from '../../core/types';
 import { VAULT_MAX_LEVEL, VAULT_UPGRADE_COST } from '../../core/citadelFormulas';
-
-const RARITY_COLOR: Record<string, string> = {
-  common: '#94a3b8',
-  rare: '#3b82f6',
-  epic: '#a855f7',
-  legendary: '#f59e0b',
-  mystic: '#d946ef',
-};
-
-const RARITY_BG: Record<string, string> = {
-  common: 'rgba(148, 163, 184, 0.1)',
-  rare: 'rgba(59, 130, 246, 0.15)',
-  epic: 'rgba(168, 85, 247, 0.15)',
-  legendary: 'rgba(245, 158, 11, 0.15)',
-  mystic: 'rgba(217, 70, 239, 0.15)',
-};
-
-const SLOT_ICONS: Record<string, string> = {
-  head: '🪖',
-  chest: '👕',
-  legs: '👖',
-  gloves: '🧤',
-  weapon: '⚔️',
-  necklace: '📿',
-};
-
-const SLOT_LABELS: Record<string, string> = {
-  head: 'Cabeça',
-  chest: 'Peito',
-  legs: 'Pernas',
-  gloves: 'Luvas',
-  weapon: 'Arma',
-  necklace: 'Colar',
-};
-
-const STAT_LABELS: Record<string, string> = {
-  strength: 'Força',
-  magic: 'Magia',
-  dexterity: 'Destreza',
-  constitution: 'Constituição',
-  luck: 'Sorte',
-  touch: 'Poder do Toque',
-  critChance: 'Chance de Crítico',
-  critDamage: 'Dano Crítico',
-  robotClicks: 'Cliques do Robô',
-  lifesteal: 'Roubo de Vida',
-  touchDamageMult: 'Multiplicador de Toque',
-};
-
-const PERCENT_STATS = ['lifesteal', 'touchDamageMult', 'critChance', 'critDamage'];
-
-const formatStatValue = (stat: string, val: number) => {
-  if (PERCENT_STATS.includes(stat)) {
-    return `+${Number((val * 100).toFixed(2))}%`;
-  }
-  return `+${val}`;
-};
+import { getRarityColor, slotLabels as SLOT_LABELS, slotIcons as SLOT_ICONS, statLabels as STAT_LABELS, formatStatValue, getSetVisual, getSetPrefixAndColor } from '../shared/itemVisuals';
+import { useCountdown } from '../../hooks/useCountdown';
 
 interface SelectedVaultItem {
   item: EquipmentItem;
@@ -88,24 +33,44 @@ const ItemSlot: React.FC<{ item: EquipmentItem | null; index: number; onClick: (
     );
   }
 
+  const { border, shadow, bg } = getSetVisual(item);
+
   return (
     <button
       onClick={onClick}
       style={{
         aspectRatio: '1',
-        background: RARITY_BG[item.rarity] || RARITY_BG.common,
-        border: `2px solid ${RARITY_COLOR[item.rarity] || RARITY_COLOR.common}`,
+        background: bg,
+        border,
+        boxShadow: shadow,
         borderRadius: 'var(--radius-md)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
         padding: 0,
+        position: 'relative',
         transition: 'transform 0.15s ease',
       }}
       title={item.name}
     >
       <span style={{ fontSize: '1.2rem' }}>{SLOT_ICONS[item.slot] || '❔'}</span>
+      {item.rarity === 'mystic' && item.mysticLevel && (
+        <div style={{
+          position: 'absolute',
+          top: '1px',
+          left: '1px',
+          fontSize: '10px',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#e879f9',
+          textShadow: '0 0 4px #a21caf',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          +{item.mysticLevel}
+        </div>
+      )}
     </button>
   );
 };
@@ -162,6 +127,8 @@ export const VaultPanel: React.FC = () => {
   };
 
   const vaultGrid = Array.from({ length: maxSlots }, (_, i) => vault.storedItems[i] || null);
+  const upgrading = vault.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   return (
     <>
@@ -179,14 +146,20 @@ export const VaultPanel: React.FC = () => {
 
       {vault.level < VAULT_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={materials.wood < cost.wood || materials.stone < cost.stone || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={materials.wood < cost.wood || materials.stone < cost.stone || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}
@@ -252,7 +225,15 @@ export const VaultPanel: React.FC = () => {
 
     {selected && (() => {
         const { item, source } = selected;
-        const nameColor = RARITY_COLOR[item.rarity] || RARITY_COLOR.common;
+        const { isAncestral, isPandemonium, isCelestial, isPandemoniumMystic, isPandemoniumBase, border: itemBorder, shadow: itemShadow } = getSetVisual(item);
+        let nameColor = getRarityColor(item.rarity);
+        if (isAncestral) {
+          nameColor = '#c084fc';
+        } else if (isPandemonium) {
+          nameColor = isPandemoniumBase ? '#10b981' : (isPandemoniumMystic ? '#8b5cf6' : nameColor);
+        } else if (isCelestial) {
+          nameColor = '#38bdf8';
+        }
         const vaultFull = vault.storedItems.length >= maxSlots;
 
         return (
@@ -272,7 +253,8 @@ export const VaultPanel: React.FC = () => {
             <div
               style={{
                 background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
-                border: `2px solid ${nameColor}`,
+                border: itemBorder,
+                boxShadow: itemShadow,
                 borderRadius: 'var(--radius-lg)',
                 padding: '1.25rem',
                 width: '100%',
@@ -311,11 +293,14 @@ export const VaultPanel: React.FC = () => {
                 </div>
               </div>
 
-              {item.setName && (
-                <div style={{ fontSize: '0.6rem', color: 'var(--gold-400)', fontWeight: 600 }}>
-                  Conjunto: {item.setName}
-                </div>
-              )}
+              {item.setName && (() => {
+                const { setTextColor, setShadow, prefix } = getSetPrefixAndColor(item.setName);
+                return (
+                  <div style={{ fontSize: '0.6rem', color: setTextColor, fontWeight: 600, textShadow: setShadow }}>
+                    {prefix} {item.setName}
+                  </div>
+                );
+              })()}
 
               {actionError && (
                 <div style={{ fontSize: '0.65rem', color: '#f87171', background: 'rgba(127,29,29,0.25)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-sm)', padding: '0.5rem' }}>

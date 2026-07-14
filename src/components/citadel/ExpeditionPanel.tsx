@@ -5,6 +5,7 @@ import {
   EXPEDITIONS_MAX_LEVEL, EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
   EXPEDITION_ALLOCATION_GOLD_COST, computeClassExpeditionProduction,
 } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 const GROUP_LABEL: Record<string, string> = {
   warrior: 'Força', paladin: 'Força',
@@ -53,6 +54,8 @@ export const ExpeditionPanel: React.FC = () => {
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const allocationGoldCost = EXPEDITION_ALLOCATION_GOLD_COST(expeditions.level);
   const allocatedClassIds = expeditions.allocatedClasses.map((a) => a.classId);
+  const upgrading = expeditions.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   const globalLevels = getGlobalClassLevels();
   const eligibleClasses = Object.keys(CLASS_CONFIGS).filter((classId) => {
@@ -82,14 +85,20 @@ export const ExpeditionPanel: React.FC = () => {
 
       {expeditions.level < EXPEDITIONS_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={!canAffordUpgrade || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Quartel'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={!canAffordUpgrade || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Quartel'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 type ResearchKey = 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment';
 type ResearchLevelField =
@@ -39,6 +40,8 @@ export const AcademyPanel: React.FC = () => {
   const canAffordUpgrade = materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
   const commandCenterLevel = citadel?.commandCenter.level || 1;
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
+  const upgrading = academy.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -60,14 +63,20 @@ export const AcademyPanel: React.FC = () => {
 
       {academy.level < ACADEMY_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={!canAffordUpgrade || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={!canAffordUpgrade || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}

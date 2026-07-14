@@ -52,6 +52,8 @@ export interface EnemyType {
 export interface CitadelBuildingState {
   level: number;
   lastTick: number; // Timestamp Unix do último processamento (fundação para produção offline em v5.2+)
+  // Upgrade de estrutura em andamento (tempo real, resolvido em tickCitadelProduction, inclusive offline)
+  upgradeInProgress?: { targetLevel: number; startedAt: number; completesAt: number };
 }
 
 export interface CitadelState {

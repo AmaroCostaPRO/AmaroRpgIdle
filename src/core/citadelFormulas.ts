@@ -99,6 +99,28 @@ export const RELIC_LAB_OVERHEAT_SLOTS = (labLevel: number): number => labLevel *
 export const RELIC_OVERHEAT_GOLD_COST = 50000;
 export const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
 
+// Tempo real de construção/melhoria de cada estrutura da Cidadela.
+// Centro de Comando (já começa no Nível 1): Nível 2 leva 5h, +2h por upgrade seguinte (2→3=7h, 3→4=9h, 4→5=11h).
+// Demais estruturas (começam no Nível 0/não construídas): Nível 1 leva 1h, +1h por nível (1→2=2h ... 4→5=5h).
+export type CitadelStructureKey =
+  | 'commandCenter'
+  | 'vault'
+  | 'expeditions'
+  | 'academy'
+  | 'watchTower'
+  | 'forgeWorkshop'
+  | 'cosmicSiphon'
+  | 'synchronyAltar'
+  | 'relicLab';
+
+export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
+  const HOUR = 60 * 60 * 1000;
+  if (structureKey === 'commandCenter') {
+    return (5 + (nextLevel - 2) * 2) * HOUR;
+  }
+  return nextLevel * HOUR;
+};
+
 export const computeClassExpeditionProduction = (classId: string, expeditionLevel: number, hours: number) => {
   const levelMult = 1 + (Math.max(expeditionLevel, 1) - 1) * 0.15;
   const group = EXPEDITION_CLASS_GROUP[classId];

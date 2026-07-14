@@ -5,6 +5,7 @@ import { CitadelSubTab } from './CitadelTabsBar';
 import { EvolutionSprite } from './EvolutionSprite';
 import { BUILDING_SPRITE_SRC, BUILDING_MAX_LEVEL } from './citadelBuildingSprites';
 import { COMMAND_CENTER_MAX_LEVEL, COMMAND_CENTER_UPGRADE_COST, COMMAND_CENTER_MATERIAL_DROP_BONUS } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 export const CitadelOverview: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -13,6 +14,8 @@ export const CitadelOverview: React.FC = () => {
   const citadel = character.citadel;
 
   const commandCenter = citadel?.commandCenter || { level: 1, lastTick: 0 };
+  const ccUpgrading = commandCenter.upgradeInProgress;
+  const ccCountdown = useCountdown(ccUpgrading?.completesAt);
   const ccNextLevel = commandCenter.level + 1;
   const ccMaxed = commandCenter.level >= COMMAND_CENTER_MAX_LEVEL;
   const ccCost = COMMAND_CENTER_UPGRADE_COST(ccNextLevel);
@@ -80,14 +83,20 @@ export const CitadelOverview: React.FC = () => {
 
         {!ccMaxed ? (
           <>
-            <button
-              onClick={handleUpgradeCommandCenter}
-              disabled={!ccCanAfford}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Melhorar para Nível {ccNextLevel} (+{ccBonusNext}% materiais) — 🪵 {ccCost.wood} / 🪨 {ccCost.stone} / 🥩 {ccCost.meat}
-            </button>
+            {ccUpgrading ? (
+              <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+                🏗️ Melhorando para Nível {ccUpgrading.targetLevel}... ({ccCountdown})
+              </button>
+            ) : (
+              <button
+                onClick={handleUpgradeCommandCenter}
+                disabled={!ccCanAfford}
+                className="btn btn-gold"
+                style={{ alignSelf: 'flex-start' }}
+              >
+                Melhorar para Nível {ccNextLevel} (+{ccBonusNext}% materiais) — 🪵 {ccCost.wood} / 🪨 {ccCost.stone} / 🥩 {ccCost.meat}
+              </button>
+            )}
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>
               As outras construções não podem ultrapassar o nível atual do Centro de Comando.
             </p>

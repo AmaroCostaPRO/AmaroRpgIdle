@@ -2,6 +2,7 @@ import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY } from '../../core/citadelFormulas';
+import { useCountdown } from '../../hooks/useCountdown';
 
 export const WatchTowerPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -18,6 +19,8 @@ export const WatchTowerPanel: React.FC = () => {
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(watchTower.level);
   const capacity = WATCH_TOWER_KEY_CAPACITY(watchTower.level);
+  const upgrading = watchTower.upgradeInProgress;
+  const countdown = useCountdown(upgrading?.completesAt);
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -32,21 +35,27 @@ export const WatchTowerPanel: React.FC = () => {
             🗼 Torre de Vigia Astral {isBuilt ? `— Nível ${watchTower.level}` : '(Não construída)'}
           </h2>
           <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Fabrica passivamente Chaves da Torre Evoluída (3x Ouro e XP na subida), mesmo offline.
+            Fabrica passivamente Chaves da Torre Evoluída (3x Ouro, XP e Fragmentos de Forja na subida), mesmo offline.
           </p>
         </div>
       </div>
 
       {watchTower.level < WATCH_TOWER_MAX_LEVEL ? (
         <>
-          <button
-            onClick={handleUpgrade}
-            disabled={!canAffordUpgrade || lockedByCommandCenter}
-            className="btn btn-gold"
-            style={{ alignSelf: 'flex-start' }}
-          >
-            {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Torre'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
-          </button>
+          {upgrading ? (
+            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
+              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
+            </button>
+          ) : (
+            <button
+              onClick={handleUpgrade}
+              disabled={!canAffordUpgrade || lockedByCommandCenter}
+              className="btn btn-gold"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Torre'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
+            </button>
+          )}
           {lockedByCommandCenter && (
             <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
           )}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, BaseStats, EquipmentItem, GameEvent } from '../core/types';
+import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
@@ -18,6 +18,7 @@ import {
   SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
   RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
   computeClassExpeditionProduction, getMysticFusionCost,
+  getStructureUpgradeDurationMs, CitadelStructureKey,
 } from '../core/citadelFormulas';
 
 export const calculateItemSellValue = (item: EquipmentItem): number => {
@@ -627,7 +628,7 @@ export const savePersonalRecords = (records: PersonalRecords): void => {
   localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
 };
 
-const DEFAULT_CITADEL = () => ({
+const DEFAULT_CITADEL = (): CitadelState => ({
   unlocked: false,
   commandCenter: { level: 1, lastTick: Date.now() },
   vault: { level: 0, lastTick: Date.now(), storedItems: [] as EquipmentItem[] },
@@ -966,6 +967,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.commandCenter.upgradeInProgress) {
+        result = { success: false, message: 'O Centro de Comando já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > COMMAND_CENTER_MAX_LEVEL) {
         result = { success: false, message: 'O Centro de Comando já está no nível máximo.' };
         return state;
@@ -977,16 +982,18 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('commandCenter', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
         citadel: {
           ...citadel,
-          commandCenter: { ...citadel.commandCenter, level: nextLevel, lastTick: Date.now() }
+          commandCenter: { ...citadel.commandCenter, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } }
         }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: `Centro de Comando melhorado para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria do Centro de Comando iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1001,6 +1008,10 @@ export const useGameStore = create<GameState>((set) => ({
 
       if (!citadel.unlocked) {
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (citadel.vault.upgradeInProgress) {
+        result = { success: false, message: 'O Depósito já está em melhoria.' };
         return state;
       }
       if (nextLevel > VAULT_MAX_LEVEL) {
@@ -1018,16 +1029,18 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('vault', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone },
         citadel: {
           ...citadel,
-          vault: { ...citadel.vault, level: nextLevel, lastTick: Date.now() }
+          vault: { ...citadel.vault, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } }
         }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Depósito construído!' : `Depósito melhorado para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria do Depósito iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1099,17 +1112,54 @@ export const useGameStore = create<GameState>((set) => ({
   },
 
   tickCitadelProduction: () => set((state) => {
-    const citadel = state.character.citadel;
+    let citadel = state.character.citadel;
     if (!citadel || !citadel.unlocked) return state;
     const now = Date.now();
     let materials = state.character.materials || DEFAULT_MATERIALS();
     let gold = state.character.gold;
     let inventory = state.character.inventory;
+    let forgeFragments = state.character.forgeFragments || 0;
+    let changed = false;
+    let autoSellCommon: boolean | undefined;
+    let autoSellRare: boolean | undefined;
+
+    // Resolve upgrades de estruturas cujo tempo de melhoria já decorreu (inclusive contando o tempo offline)
+    const structureLabels: Record<CitadelStructureKey, string> = {
+      commandCenter: 'Centro de Comando',
+      vault: 'Depósito',
+      expeditions: 'Quartel de Expedições',
+      academy: 'Academia Militar',
+      watchTower: 'Torre de Vigia Astral',
+      forgeWorkshop: 'Oficina de Automação da Forja',
+      cosmicSiphon: 'Sifão de Essência Cósmica',
+      synchronyAltar: 'Altar de Sincronia Elemental',
+      relicLab: 'Laboratório de Relíquias Místicas',
+    };
+    (Object.keys(structureLabels) as CitadelStructureKey[]).forEach((key) => {
+      const building = citadel![key];
+      if (building.upgradeInProgress && now >= building.upgradeInProgress.completesAt) {
+        const targetLevel = building.upgradeInProgress.targetLevel;
+        citadel = { ...citadel!, [key]: { ...building, level: targetLevel, upgradeInProgress: undefined } };
+        changed = true;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🏗️ ${structureLabels[key]} alcançou o Nível ${targetLevel}!` });
+        if (key === 'forgeWorkshop' && targetLevel >= 5) {
+          try {
+            localStorage.setItem('rpg_auto_sell_common', 'false');
+            localStorage.setItem('rpg_auto_sell_rare', 'false');
+          } catch (e) {}
+          autoSellCommon = false;
+          autoSellRare = false;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '🔨 Mestre Forjador! Desmonte Automatizado ativado. Auto-venda de itens Comuns e Raros foi desativada.' });
+        }
+        if (key === 'cosmicSiphon' && targetLevel >= 5) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '🌌 Sincronia Perfeita! Penalidades da Ecoterra neutralizadas.' });
+        }
+      }
+    });
+
     let nextExpeditions = citadel.expeditions;
     let nextWatchTower = citadel.watchTower;
     let nextForgeWorkshop = citadel.forgeWorkshop;
-    let forgeFragments = state.character.forgeFragments || 0;
-    let changed = false;
 
     // Quartel de Expedições: materiais e Insígnias de Estudo por hora; cada classe expira 8h após ser alocada
     if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClasses.length > 0) {
@@ -1211,7 +1261,7 @@ export const useGameStore = create<GameState>((set) => ({
       citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop }
     };
     saveToLocalStorage(updated);
-    return { character: updated };
+    return { character: updated, ...(autoSellCommon !== undefined ? { autoSellCommon, autoSellRare } : {}) };
   }),
 
   buildOrUpgradeExpeditions: () => {
@@ -1224,6 +1274,10 @@ export const useGameStore = create<GameState>((set) => ({
 
       if (!citadel.unlocked) {
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (citadel.expeditions.upgradeInProgress) {
+        result = { success: false, message: 'O Quartel de Expedições já está em melhoria.' };
         return state;
       }
       if (nextLevel > EXPEDITIONS_MAX_LEVEL) {
@@ -1240,13 +1294,15 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('expeditions', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
-        citadel: { ...citadel, expeditions: { ...citadel.expeditions, level: nextLevel } }
+        citadel: { ...citadel, expeditions: { ...citadel.expeditions, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Quartel de Expedições construído!' : `Quartel melhorado para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria do Quartel de Expedições iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1338,6 +1394,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.academy.upgradeInProgress) {
+        result = { success: false, message: 'A Academia Militar já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > ACADEMY_MAX_LEVEL) {
         result = { success: false, message: 'A Academia Militar já está no nível máximo.' };
         return state;
@@ -1352,13 +1412,15 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('academy', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
-        citadel: { ...citadel, academy: { ...citadel.academy, level: nextLevel } }
+        citadel: { ...citadel, academy: { ...citadel.academy, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Academia Militar construída!' : `Academia melhorada para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria da Academia Militar iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1421,6 +1483,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.watchTower.upgradeInProgress) {
+        result = { success: false, message: 'A Torre de Vigia Astral já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > WATCH_TOWER_MAX_LEVEL) {
         result = { success: false, message: 'A Torre de Vigia Astral já está no nível máximo.' };
         return state;
@@ -1435,13 +1501,15 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('watchTower', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, meat: materials.meat - cost.meat },
-        citadel: { ...citadel, watchTower: { ...citadel.watchTower, level: nextLevel } }
+        citadel: { ...citadel, watchTower: { ...citadel.watchTower, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Torre de Vigia Astral construída!' : `Torre melhorada para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria da Torre de Vigia Astral iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1459,6 +1527,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.forgeWorkshop.upgradeInProgress) {
+        result = { success: false, message: 'A Oficina de Automação da Forja já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > FORGE_WORKSHOP_MAX_LEVEL) {
         result = { success: false, message: 'A Oficina de Automação da Forja já está no nível máximo.' };
         return state;
@@ -1473,28 +1545,15 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('forgeWorkshop', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
-        citadel: { ...citadel, forgeWorkshop: { ...citadel.forgeWorkshop, level: nextLevel } }
+        citadel: { ...citadel, forgeWorkshop: { ...citadel.forgeWorkshop, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = {
-        success: true,
-        message: nextLevel === 1
-          ? 'Oficina de Automação da Forja construída!'
-          : nextLevel === 5
-            ? 'Oficina melhorada para o Nível 5 — Mestre Forjador! Desmonte Automatizado ativado. Auto-venda de itens Comuns e Raros foi desativada.'
-            : `Oficina melhorada para o Nível ${nextLevel}!`
-      };
-
-      if (nextLevel >= 5) {
-        try {
-          localStorage.setItem('rpg_auto_sell_common', 'false');
-          localStorage.setItem('rpg_auto_sell_rare', 'false');
-        } catch (e) {}
-        return { character: updated, autoSellCommon: false, autoSellRare: false };
-      }
+      result = { success: true, message: `Melhoria da Oficina de Automação da Forja iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1512,6 +1571,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.cosmicSiphon.upgradeInProgress) {
+        result = { success: false, message: 'O Sifão de Essência Cósmica já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > COSMIC_SIPHON_MAX_LEVEL) {
         result = { success: false, message: 'O Sifão de Essência Cósmica já está no nível máximo.' };
         return state;
@@ -1526,21 +1589,16 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('cosmicSiphon', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, stone: materials.stone - cost.stone, wood: materials.wood - cost.wood },
         transcendenceEssence: essence - cost.transcendenceEssence,
-        citadel: { ...citadel, cosmicSiphon: { ...citadel.cosmicSiphon, level: nextLevel } }
+        citadel: { ...citadel, cosmicSiphon: { ...citadel.cosmicSiphon, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = {
-        success: true,
-        message: nextLevel === 1
-          ? 'Sifão de Essência Cósmica construído!'
-          : nextLevel === 5
-            ? 'Sifão melhorado para o Nível 5 — Sincronia Perfeita! Penalidades da Ecoterra neutralizadas.'
-            : `Sifão melhorado para o Nível ${nextLevel}!`
-      };
+      result = { success: true, message: `Melhoria do Sifão de Essência Cósmica iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1558,6 +1616,10 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
         return state;
       }
+      if (citadel.synchronyAltar.upgradeInProgress) {
+        result = { success: false, message: 'O Altar de Sincronia Elemental já está em melhoria.' };
+        return state;
+      }
       if (nextLevel > SYNCHRONY_ALTAR_MAX_LEVEL) {
         result = { success: false, message: 'O Altar de Sincronia Elemental já está no nível máximo.' };
         return state;
@@ -1572,14 +1634,16 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('synchronyAltar', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, stone: materials.stone - cost.stone, studyInsignias: materials.studyInsignias - cost.studyInsignias },
         transcendenceEssence: essence - cost.transcendenceEssence,
-        citadel: { ...citadel, synchronyAltar: { ...citadel.synchronyAltar, level: nextLevel } }
+        citadel: { ...citadel, synchronyAltar: { ...citadel.synchronyAltar, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Altar de Sincronia Elemental construído!' : `Altar melhorado para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria do Altar de Sincronia Elemental iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1595,6 +1659,10 @@ export const useGameStore = create<GameState>((set) => ({
 
       if (!citadel.unlocked) {
         result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (citadel.relicLab.upgradeInProgress) {
+        result = { success: false, message: 'O Laboratório de Relíquias Místicas já está em melhoria.' };
         return state;
       }
       if (nextLevel > RELIC_LAB_MAX_LEVEL) {
@@ -1615,13 +1683,15 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('relicLab', nextLevel);
       const updated = {
         ...state.character,
         materials: { ...materials, stone: materials.stone - cost.stone, wood: materials.wood - cost.wood },
-        citadel: { ...citadel, relicLab: { ...citadel.relicLab, level: nextLevel } }
+        citadel: { ...citadel, relicLab: { ...citadel.relicLab, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: nextLevel === 1 ? 'Laboratório de Relíquias Místicas construído!' : `Laboratório melhorado para o Nível ${nextLevel}!` };
+      result = { success: true, message: `Melhoria do Laboratório de Relíquias Místicas iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
     });
     return result;
@@ -1859,7 +1929,14 @@ export const useGameStore = create<GameState>((set) => ({
       activePandemonium: false,
       runStartTime: Date.now(),
       ascensionNotified: false,
-      citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true }
+      citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true },
+      // Ascensão retém apenas 10% dos materiais farmados na run, evitando acúmulo exagerado entre runs
+      materials: {
+        wood: Math.floor((state.character.materials?.wood || 0) * 0.1),
+        stone: Math.floor((state.character.materials?.stone || 0) * 0.1),
+        meat: Math.floor((state.character.materials?.meat || 0) * 0.1),
+        studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.1),
+      },
     };
 
     // Processa os recordes pessoais
