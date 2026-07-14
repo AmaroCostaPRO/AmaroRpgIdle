@@ -575,10 +575,12 @@ export class AudioManager {
       // Notas do arpejo com o timbre definido pelo tema da fase atual
       this.playSynthNote(noteFreq, theme.arpOscType, theme.arpDuration, this.bgmVolume * 0.45, now);
 
-      // Adiciona uma nota melódica aguda decorativa de vez em quando
+      // Adiciona uma nota melódica aguda decorativa de vez em quando (o multiplicador é limitado
+      // a um teto absoluto para nenhum tema produzir uma nota excessivamente aguda/estridente)
       if (this.bgmBeat % 4 === 2) {
-        const leadFreq = currentChord[currentChord.length - 1] * (this.bgmBeat % 8 === 2 ? 1 : 1.2);
-        this.playSynthNote(leadFreq, theme.leadOscType, theme.leadDuration, this.bgmVolume * 0.25, now);
+        const rawLeadFreq = currentChord[currentChord.length - 1] * (this.bgmBeat % 8 === 2 ? 1 : 1.1);
+        const leadFreq = Math.min(rawLeadFreq, 780);
+        this.playSynthNote(leadFreq, theme.leadOscType, theme.leadDuration, this.bgmVolume * 0.22, now);
       }
 
       // Incrementar batida
@@ -609,7 +611,19 @@ export class AudioManager {
     gain.gain.linearRampToValueAtTime(volume, startTime + 0.1);
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
-    osc.connect(gain);
+    // Osciladores 'square'/'sawtooth' têm harmônicos agudos muito ricos, que soam estridentes
+    // em temas de BGM mais densos (Apocalipse, Pandemônio, Inferno). Um filtro passa-baixas suave
+    // corta esses harmônicos mais altos sem perder o timbre "áspero" característico do tema.
+    if (type === 'square' || type === 'sawtooth') {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(Math.min(3200, Math.max(1600, freq * 3.5)), startTime);
+      filter.Q.setValueAtTime(0.6, startTime);
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      osc.connect(gain);
+    }
     gain.connect(this.ctx.destination);
 
     osc.start(startTime);

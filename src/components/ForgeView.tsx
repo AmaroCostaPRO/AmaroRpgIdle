@@ -40,6 +40,49 @@ const getSlotEmoji = (slot: string) => {
   }
 };
 
+// Soquete de entrada do altar (Item A / Item B) — encaixe místico com profundidade 3D via .forge-socket
+const ForgeInputSocket: React.FC<{
+  item: EquipmentItem | null;
+  label: string;
+  rarityColor?: string;
+  onSelect: () => void;
+  onRemove: () => void;
+}> = ({ item, label, rarityColor, onSelect, onRemove }) => (
+  <div className="flex flex-col items-center">
+    <div className="relative group">
+      <button
+        onClick={onSelect}
+        className={`forge-socket forge-socket--clickable flex items-center justify-center ${item ? 'forge-socket--filled' : 'forge-socket--empty'}`}
+        style={item ? { borderColor: rarityColor } : undefined}
+      >
+        {item ? (
+          <>
+            <span className="forge-socket-icon text-2xl">
+              {getSlotEmoji(item.slot)}
+            </span>
+            <span className="text-[9px] font-bold text-gray-400 truncate max-w-[56px] mt-1 px-1">
+              {item.name}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-xl text-[var(--gold-400)]/60 font-bold group-hover:text-[var(--gold-300)] transition-colors">+</span>
+            <span className="forge-socket-label group-hover:text-[var(--gold-300)] mt-1">{label}</span>
+          </>
+        )}
+      </button>
+      {item && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600/90 text-white font-bold text-[10px] flex items-center justify-center hover:bg-red-500 border border-[#161717] transition-all"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  </div>
+);
+
 export const ForgeView: React.FC = () => {
   const { character, reforgeItems, abbreviateNumbers } = useGameStore();
   const [slot1, setSlot1] = useState<EquipmentItem | null>(null);
@@ -240,8 +283,9 @@ export const ForgeView: React.FC = () => {
 
   const getMergedItemName = (): string => {
     if (!slot1) return '';
-    const lvl1 = slot1.mysticLevel || 1;
-    const targetMysticLevel = lvl1 + 1;
+    // Usa o mesmo nível calculado por checkReforgeValidity (fonte única de verdade):
+    // normal+normal -> nível 1; místico+místico -> nível atual + 1.
+    const targetMysticLevel = reforgeState.nextLevel;
     const slotNamesMap: Record<string, string> = {
       weapon: 'Arma Mística',
       head: 'Elmo Místico',
@@ -343,7 +387,7 @@ export const ForgeView: React.FC = () => {
         <div className="p-3 sm:p-4 border-b border-[var(--border-subtle)] flex justify-between items-center bg-[var(--surface-1)]/60 backdrop-blur-md z-10 gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-lg sm:text-xl flex-shrink-0">⚒️</span>
-            <h2 className="section-title truncate whitespace-nowrap" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>Grande Forja Arcana</h2>
+            <h2 className="forge-title truncate whitespace-nowrap">Grande Forja Arcana</h2>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex items-center px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full whitespace-nowrap">
@@ -358,31 +402,20 @@ export const ForgeView: React.FC = () => {
         {/* ÁREA TRIANGULAR DO ALTAR DE FUSÃO */}
         <div className="flex-1 flex flex-col justify-center items-center p-4 relative z-10">
           
-          {/* Triângulo / Pirâmide de Slots */}
-          <div className="relative w-full max-w-[340px] aspect-[4/3] flex flex-col justify-between items-center py-3">
-            
-            {/* Linhas de conexão (Efeito visual) */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
-              {/* Linha esquerda */}
-              <line x1="50" y1="20" x2="20" y2="80" stroke="#d946ef" strokeWidth="2" strokeDasharray="3" />
-              {/* Linha direita */}
-              <line x1="50" y1="20" x2="80" y2="80" stroke="#d946ef" strokeWidth="2" strokeDasharray="3" />
-              {/* Linha base */}
-              <line x1="20" y1="80" x2="80" y2="80" stroke="#52525b" strokeWidth="1" />
-            </svg>
+          {/* Altar de Fusão: soquete de resultado + correntes místicas + soquetes de entrada */}
+          <div className="forge-altar">
 
             {/* SLOT RESULTADO (CENTRO SUPERIOR) */}
-            <div className="relative z-10 flex flex-col items-center">
-              <div 
-                className={`w-20 h-20 rounded-xl flex items-center justify-center border-2 transition-all duration-300 shadow-[0_0_20px_rgba(217,70,239,0.15)] ${
-                  slot1 && slot2 && reforgeState.nextLevel
-                    ? 'border-[#d946ef] animate-pulse shadow-[0_0_25px_rgba(217,70,239,0.4)] bg-[var(--surface-2)]/90'
-                    : 'border-[var(--border-subtle)] border-dashed text-gray-500 bg-[var(--surface-1)]/90'
-                }`}
+            <div className="forge-result-zone">
+              <div
+                className={`forge-socket forge-socket--result flex items-center justify-center ${
+                  slot1 && slot2 ? 'forge-socket--filled' : 'forge-socket--empty'
+                } ${slot1 && slot2 && reforgeState.nextLevel ? 'forge-socket--ready' : ''}`}
+                style={slot1 && slot2 ? { borderColor: '#d946ef' } : undefined}
               >
                 {slot1 && slot2 ? (
                   <div className="flex flex-col items-center">
-                    <span className="text-3xl text-[#d946ef] drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]">
+                    <span className="forge-socket-icon text-3xl text-[#d946ef]">
                       {getSlotEmoji(slot1.slot)}
                     </span>
                     <span className="text-[10px] font-extrabold text-[#d946ef] bg-[#d946ef]/10 px-1 rounded mt-1">
@@ -390,91 +423,51 @@ export const ForgeView: React.FC = () => {
                     </span>
                   </div>
                 ) : (
-                  <span className="text-2xl font-light opacity-50">?</span>
+                  <span className="text-2xl font-light text-gray-500 opacity-50">?</span>
                 )}
               </div>
-              <span className="text-[11px] font-semibold text-[#d946ef] mt-2 tracking-wide uppercase">Resultado Místico</span>
+              <span className="forge-result-label">Resultado Místico</span>
             </div>
 
-            {/* SLOTS DE ENTRADA (BASE DO TRIÂNGULO) */}
-            <div className="w-full flex justify-between px-6 z-10 mt-6">
-              
-              {/* SLOT 1 */}
-              <div className="flex flex-col items-center">
-                <div className="relative group">
-                  <button
-                    onClick={() => setActiveSelectionSlot(1)}
-                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
-                      slot1 
-                        ? 'bg-[var(--surface-1)] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
-                        : 'bg-[var(--surface-2)]/75 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
-                    }`}
-                  >
-                    {slot1 ? (
-                      <>
-                        <span className="text-2xl mt-1">
-                          {getSlotEmoji(slot1.slot)}
-                        </span>
-                        <span className="text-[9px] font-bold text-gray-400 truncate max-w-[56px] mt-1 px-1">
-                          {slot1.name}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-xl text-purple-400 font-bold group-hover:text-purple-300 transition-colors">+</span>
-                        <span className="text-[9px] font-bold text-purple-400/80 group-hover:text-purple-300 mt-1">Item A</span>
-                      </>
-                    )}
-                  </button>
-                  {slot1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSlot1(null); }}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600/90 text-white font-bold text-[10px] flex items-center justify-center hover:bg-red-500 border border-[#161717] transition-all"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              </div>
+            {/* CORRENTES DE ENERGIA ARCANA (conectores) — fluxo animado sobe dos itens até o resultado */}
+            <svg
+              className="forge-connector-svg"
+              viewBox="0 0 200 100"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="forge-chain-gradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stopColor="#d946ef" />
+                  <stop offset="100%" stopColor="#f59e0b" />
+                </linearGradient>
+              </defs>
+              {/* Início no topo-centro do soquete de entrada (base), fim no soquete de resultado (topo) */}
+              <path
+                d="M 42 97 Q 70 45, 100 3"
+                className={`forge-chain-path ${slot1 && slot2 ? 'forge-chain-path--active' : ''}`}
+              />
+              <path
+                d="M 158 97 Q 130 45, 100 3"
+                className={`forge-chain-path ${slot1 && slot2 ? 'forge-chain-path--active' : ''}`}
+              />
+            </svg>
 
-              {/* SLOT 2 */}
-              <div className="flex flex-col items-center">
-                <div className="relative group">
-                  <button
-                    onClick={() => setActiveSelectionSlot(2)}
-                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center border-2 transition-all duration-200 ${
-                      slot2 
-                        ? 'bg-[var(--surface-1)] border-purple-500 hover:border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.2)]' 
-                        : 'bg-[var(--surface-2)]/75 border-dashed border-purple-500/40 text-purple-400/70 hover:border-purple-400 hover:text-purple-300 hover:bg-purple-950/10 hover:scale-105 active:scale-95 animate-pulse shadow-[0_0_15px_rgba(168,85,247,0.1)]'
-                    }`}
-                  >
-                    {slot2 ? (
-                      <>
-                        <span className="text-2xl mt-1">
-                          {getSlotEmoji(slot2.slot)}
-                        </span>
-                        <span className="text-[9px] font-bold text-gray-400 truncate max-w-[56px] mt-1 px-1">
-                          {slot2.name}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-xl text-purple-400 font-bold group-hover:text-purple-300 transition-colors">+</span>
-                        <span className="text-[9px] font-bold text-purple-400/80 group-hover:text-purple-300 mt-1">Item B</span>
-                      </>
-                    )}
-                  </button>
-                  {slot2 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSlot2(null); }}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600/90 text-white font-bold text-[10px] flex items-center justify-center hover:bg-red-500 border border-[#161717] transition-all"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              </div>
-
+            {/* SLOTS DE ENTRADA (BASE DO ALTAR) */}
+            <div className="forge-sockets-row">
+              <ForgeInputSocket
+                item={slot1}
+                label="Item A"
+                rarityColor={slot1 ? rarityColors[slot1.rarity] : undefined}
+                onSelect={() => setActiveSelectionSlot(1)}
+                onRemove={() => setSlot1(null)}
+              />
+              <ForgeInputSocket
+                item={slot2}
+                label="Item B"
+                rarityColor={slot2 ? rarityColors[slot2.rarity] : undefined}
+                onSelect={() => setActiveSelectionSlot(2)}
+                onRemove={() => setSlot2(null)}
+              />
             </div>
           </div>
 
@@ -484,19 +477,19 @@ export const ForgeView: React.FC = () => {
               <div className="w-full bg-[var(--surface-1)]/80 backdrop-blur-sm border border-[var(--border-subtle)] rounded-lg p-4 flex flex-col items-center">
                 <div className="flex flex-col gap-2 w-full mb-3">
                   <div className="flex justify-between w-full text-sm">
-                    <span className="text-gray-400">Custo de Ouro:</span>
+                    <span className="forge-cost-label text-gray-400">Custo de Ouro:</span>
                     <span className={`font-bold ${character.gold >= reforgeState.cost ? 'text-yellow-400' : 'text-red-500'}`}>
                       🪙 {formatNumber(reforgeState.cost || 0, abbreviateNumbers)} Ouro
                     </span>
                   </div>
                   <div className="flex justify-between w-full text-sm">
-                    <span className="text-gray-400">Custo de Fragmentos:</span>
+                    <span className="forge-cost-label text-gray-400">Custo de Fragmentos:</span>
                     <span className={`font-bold ${(character.forgeFragments || 0) >= (reforgeState.fragmentCost || 0) ? 'text-purple-400' : 'text-red-500'}`}>
                       🔩 {formatNumber(reforgeState.fragmentCost || 0, abbreviateNumbers)} Fragmentos
                     </span>
                   </div>
                 </div>
-                
+
                 {reforgeState.reason && (
                   <div className="text-xs text-red-400/90 text-center bg-red-950/20 border border-red-900/30 rounded p-2 mb-3 w-full">
                     ⚠️ {reforgeState.reason}
@@ -506,7 +499,7 @@ export const ForgeView: React.FC = () => {
                 <button
                   onClick={handleForge}
                   disabled={!reforgeState.valid}
-                  className={`w-full py-2.5 rounded-lg font-bold text-sm tracking-wide transition-all shadow-md ${
+                  className={`forge-forge-button w-full py-2.5 rounded-lg font-bold text-sm transition-all shadow-md ${
                     reforgeState.valid
                       ? 'bg-gradient-to-r from-purple-700 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-500 text-white cursor-pointer active:scale-95 shadow-purple-900/30'
                       : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'
@@ -530,7 +523,7 @@ export const ForgeView: React.FC = () => {
         {/* COMPARAÇÃO LADO A LADO */}
         <div className="panel w-full p-5 flex flex-col min-h-[300px] z-10 bg-[var(--surface-1)]/80 backdrop-blur-md border border-[var(--border-subtle)] rounded-xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 opacity-60" />
-          <h3 className="text-md font-bold text-gray-200 border-b border-[var(--border-subtle)] pb-3 mb-4 flex items-center gap-2">
+          <h3 className="forge-card-title text-md font-bold text-gray-200 border-b border-[var(--border-subtle)] pb-3 mb-4 flex items-center gap-2">
             <span>⚖️</span> Comparação de Equipamentos e Resultado Estimado
           </h3>
           
@@ -545,8 +538,8 @@ export const ForgeView: React.FC = () => {
                     {getSlotEmoji(slot1.slot)}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot1.rarity] }}>{slot1.name}</h4>
-                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wide">Sacrifício A ({rarityNames[slot1.rarity]}{slot1.mysticLevel ? ` +${slot1.mysticLevel}` : ''})</span>
+                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot1.rarity] }}>{slot1.name}</h4>
+                    <span className="forge-card-subtitle text-[9px] text-gray-500 font-bold">Sacrifício A ({rarityNames[slot1.rarity]}{slot1.mysticLevel ? ` +${slot1.mysticLevel}` : ''})</span>
                   </div>
                 </div>
                 <div className="space-y-2 flex-1 overflow-y-auto pr-1">
@@ -572,10 +565,10 @@ export const ForgeView: React.FC = () => {
                     {getSlotEmoji(slot1.slot)}
                   </div>
                   <div>
-                    <h4 className="text-xs font-extrabold text-[#d946ef] truncate max-w-[150px]">
+                    <h4 className="forge-card-title text-xs font-extrabold text-[#d946ef] truncate max-w-[150px]">
                       {getMergedItemName()}
                     </h4>
-                    <span className="text-[9px] text-[#d946ef] font-extrabold uppercase tracking-widest">Previsão de Fusão</span>
+                    <span className="forge-card-subtitle text-[9px] text-[#d946ef] font-extrabold">Previsão de Fusão</span>
                   </div>
                 </div>
                 <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
@@ -615,8 +608,8 @@ export const ForgeView: React.FC = () => {
                     {getSlotEmoji(slot2.slot)}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot2.rarity] }}>{slot2.name}</h4>
-                    <span className="text-[9px] text-gray-500 uppercase font-bold tracking-wide">Sacrifício B ({rarityNames[slot2.rarity]}{slot2.mysticLevel ? ` +${slot2.mysticLevel}` : ''})</span>
+                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot2.rarity] }}>{slot2.name}</h4>
+                    <span className="forge-card-subtitle text-[9px] text-gray-500 font-bold">Sacrifício B ({rarityNames[slot2.rarity]}{slot2.mysticLevel ? ` +${slot2.mysticLevel}` : ''})</span>
                   </div>
                 </div>
                 <div className="space-y-2 flex-1 overflow-y-auto pr-1">
@@ -638,7 +631,7 @@ export const ForgeView: React.FC = () => {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-[var(--border-subtle)] rounded-xl bg-[var(--surface-1)]/40 min-h-[220px]">
               <span className="text-4xl mb-3">⚖️</span>
-              <p className="text-sm font-semibold text-gray-300">Pronto para Comparação</p>
+              <p className="forge-card-title text-sm font-semibold text-gray-300">Pronto para Comparação</p>
               <p className="text-xs text-gray-500 max-w-sm mt-1.5">
                 Selecione os dois itens de sacrifício no altar acima para ativar a visualização de comparação lado a lado em tempo real.
               </p>
@@ -651,7 +644,7 @@ export const ForgeView: React.FC = () => {
           <div className="panel w-full bg-gradient-to-b from-[var(--surface-glass)] to-[#2e1065]/15 border border-purple-500/30 p-5 shadow-lg animate-tabFade relative overflow-hidden rounded-xl">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
             <div className="flex justify-between items-center mb-3">
-              <span className={`text-xs font-extrabold uppercase tracking-widest ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
+              <span className={`forge-card-subtitle text-xs font-extrabold ${isLegendarySuccess ? 'text-yellow-400' : 'text-purple-400'}`}>
                 {isLegendarySuccess ? '⚡ Forja Lendária!' : 'Equipamento Forjado com Sucesso!'}
               </span>
               <button 
@@ -666,7 +659,7 @@ export const ForgeView: React.FC = () => {
                 {getSlotEmoji(successItem.slot)}
               </div>
               <div>
-                <h4 className="text-md font-extrabold text-[#d946ef]">{successItem.name}</h4>
+                <h4 className="forge-card-title text-md font-extrabold text-[#d946ef]">{successItem.name}</h4>
                 <p className="text-xs text-gray-400 font-medium">Equipamento Místico nível +{successItem.mysticLevel}</p>
                 {successItem.setName && (
                   <p className="text-[11px] text-yellow-400/90 mt-1 flex items-center gap-1">

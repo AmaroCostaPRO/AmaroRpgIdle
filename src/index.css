@@ -591,6 +591,209 @@ input, textarea, [contenteditable="true"] {
   filter: grayscale(0.3);
 }
 
+/* ── Grande Forja Arcana — Altar de Fusão ── */
+.forge-altar {
+  --forge-socket-size: 72px;
+  --forge-result-size: 96px;
+  --forge-connector-height: 70px;
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.forge-result-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.forge-connector-svg {
+  position: relative;
+  width: 100%;
+  height: var(--forge-connector-height);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.forge-sockets-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12%;
+  position: relative;
+  z-index: 10;
+}
+
+.forge-socket {
+  width: var(--forge-socket-size);
+  height: var(--forge-socket-size);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border-accent);
+  background: radial-gradient(circle at 50% 40%, var(--surface-3) 0%, var(--surface-1) 65%, #0a0806 100%);
+  box-shadow:
+    inset 0 3px 6px rgba(0,0,0,0.75),
+    inset 0 -1px 0 rgba(255,255,255,0.04),
+    inset 2px 0 4px rgba(0,0,0,0.4),
+    inset -2px 0 4px rgba(0,0,0,0.4),
+    0 1px 0 rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.forge-socket--result {
+  width: var(--forge-result-size);
+  height: var(--forge-result-size);
+}
+
+.forge-socket--result::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(217,70,239,0.5), rgba(245,158,11,0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.forge-socket--empty {
+  animation: forge-socket-breathe 3s ease-in-out infinite;
+}
+
+@keyframes forge-socket-breathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      inset 0 -1px 0 rgba(255,255,255,0.04),
+      0 0 6px rgba(245,158,11,0.12);
+  }
+  50% {
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      inset 0 -1px 0 rgba(255,255,255,0.04),
+      0 0 14px rgba(245,158,11,0.22);
+  }
+}
+
+.forge-socket--clickable:hover {
+  border-color: var(--border-active);
+  transform: scale(1.03);
+}
+
+.forge-socket--filled {
+  background: radial-gradient(circle at 50% 40%, var(--surface-4) 0%, var(--surface-2) 65%, var(--surface-1) 100%);
+}
+
+.forge-socket--result.forge-socket--ready {
+  animation: forge-result-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes forge-result-glow {
+  0%, 100% {
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      inset 0 -1px 0 rgba(255,255,255,0.06),
+      0 0 22px rgba(217,70,239,0.45),
+      0 0 40px rgba(245,158,11,0.2);
+  }
+  50% {
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.75),
+      inset 0 -1px 0 rgba(255,255,255,0.06),
+      0 0 32px rgba(217,70,239,0.65),
+      0 0 55px rgba(245,158,11,0.3);
+  }
+}
+
+.forge-socket-icon {
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6));
+}
+
+.forge-chain-path {
+  fill: none;
+  stroke: url(#forge-chain-gradient);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(217,70,239,0.45));
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.forge-chain-path--active {
+  opacity: 0.9;
+  stroke-dasharray: 6 6;
+  animation: forge-chain-flow 1.4s linear infinite;
+}
+
+@keyframes forge-chain-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+.forge-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--gold-300);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.forge-result-label {
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 0.6rem;
+  background: linear-gradient(90deg, #d946ef, var(--gold-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.forge-socket-label {
+  font-family: var(--font-heading);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 158, 11, 0.65);
+}
+
+.forge-card-title {
+  font-family: var(--font-heading);
+  letter-spacing: 0.03em;
+}
+
+.forge-card-subtitle {
+  font-family: var(--font-heading);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.forge-cost-label {
+  font-family: var(--font-heading);
+  letter-spacing: 0.04em;
+}
+
+.forge-forge-button {
+  font-family: var(--font-heading);
+  letter-spacing: 0.08em;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+
 /* Indicador de Combate sem caixa preta e com text-shadow suave */
 .combat-indicator {
   font-family: var(--font-mono);
@@ -1181,6 +1384,20 @@ input, textarea, [contenteditable="true"] {
     padding: 0 0 1rem 0 !important;
   }
 
+  .forge-altar {
+    --forge-socket-size: 60px;
+    --forge-result-size: 80px;
+    --forge-connector-height: 56px;
+  }
+
+  .forge-result-label {
+    font-size: 0.6rem;
+  }
+
+  .forge-chain-path {
+    stroke-width: 2.2;
+  }
+
   /* Estilos Mobile para Visualizações Alternativas (Task 3) */
   .tree-view-desktop {
     display: none !important;
@@ -1206,6 +1423,14 @@ input, textarea, [contenteditable="true"] {
   }
 
   /* Console Colapsável unificado globalmente */
+}
+
+@media (max-width: 380px) {
+  .forge-altar {
+    --forge-socket-size: 52px;
+    --forge-result-size: 70px;
+    --forge-connector-height: 48px;
+  }
 }
 
 /* ── HUD de Status do Personagem (barras de HP e Mana) ── */
