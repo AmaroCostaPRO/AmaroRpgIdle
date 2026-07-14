@@ -209,7 +209,7 @@ A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
     *   Regeneração de Mana ganha por ponto de Magia: $0.02\text{ Mana/s}$
 *   **Outras Classes (Guerreiro, Arqueiro, Paladino, Ladrão)**:
     *   Mana Máxima ganha por ponto de Magia: $18\text{ Mana}$ (torna viável conjurar habilidades táticas com poucos pontos investidos)
-    *   Regeneração de Mana ganha por ponto de Magia: $0.09\text{ Mana/s}$
+    *   Regeneração de Mana ganha por ponto de Magia: $0.05\text{ Mana/s}$
 
 #### 3. Velocidade de Ataque (Attack Speed) e Esquiva (Dodge)
 A velocidade com que o herói realiza ataques básicos e sua chance de se esquivar de ataques inimigos escalam a partir do atributo **Destreza**, através de uma **raiz quadrada** (para evitar crescimento linear descontrolado em fases avançadas):
@@ -476,35 +476,35 @@ As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada
 
 #### Catálogo de Habilidades Ultimate por Classe
 1.  **Guerreiro**: *Cólera dos Titãs* (`ultimate_warrior`)
-    *   *Dano*: Causa $1200\%$ de dano físico baseado em Força.
+    *   *Dano*: Causa $2400\%$ de dano físico baseado em Força.
     *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Impacto titânico com grandes rachaduras de fogo e forte tremor contínuo de tela.
 2.  **Mago**: *Supernova* (`ultimate_mage`)
-    *   *Dano*: Causa $1500\%$ de dano mágico baseado em Magia.
+    *   *Dano*: Causa $3000\%$ de dano mágico baseado em Magia.
     *   *Custo de Mana*: $80$ Mana | *Tempo de Recarga*: $70.000$ ms (70s)
     *   *Efeito Visual*: Explosão estelar expansiva cobrindo a tela inteira em tons brilhantes de azul e branco.
 3.  **Arqueiro**: *Flecha do Juízo Final* (`ultimate_ranger`)
-    *   *Dano*: Causa $1100\%$ de dano de perfuração baseado em Destreza.
+    *   *Dano*: Causa $2200\%$ de dano de perfuração baseado em Destreza.
     *   *Custo de Mana*: $45$ Mana | *Tempo de Recarga*: $55.000$ ms (55s)
     *   *Efeito Visual*: Raio de energia verde esmeralda de alta velocidade cortando a tela horizontalmente com múltiplos feixes adicionais.
 4.  **Paladino**: *Julgamento Sagrado* (`ultimate_paladin`)
-    *   *Dano*: Causa $1000\%$ de dano sagrado baseado em Constituição.
+    *   *Dano*: Causa $2000\%$ de dano sagrado baseado em Constituição.
     *   *Custo de Mana*: $60$ Mana | *Tempo de Recarga*: $65.000$ ms (65s)
     *   *Efeito Visual*: Três pilares gigantes dourados atingindo o monstro consecutivamente com explosões de luz divina.
 5.  **Clérigo**: *Ascensão Celestial* (`ultimate_cleric`)
-    *   *Dano e Efeito*: Causa $900\%$ de dano sagrado baseado em Magia e **cura 100% da Vida Máxima** do herói.
+    *   *Dano e Efeito*: Causa $1800\%$ de dano sagrado baseado em Magia e **cura 100% da Vida Máxima** do herói.
     *   *Custo de Mana*: $70$ Mana | *Tempo de Recarga*: $80.000$ ms (80s)
     *   *Efeito Visual*: Anjos de luz cruzam a tela com ondas curativas verdejantes e chuva de faíscas brilhantes.
 6.  **Ladrão**: *Lâmina da Aniquilação* (`ultimate_rogue`)
-    *   *Dano*: Causa $1400\%$ de dano físico baseado em Destreza.
+    *   *Dano*: Causa $2800\%$ de dano físico baseado em Destreza.
     *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $50.000$ ms (50s)
     *   *Efeito Visual*: Animação de corte sombrio em X na cor vermelha com desfoque de movimento, tremor e partículas de sombras.
 7.  **Necromante**: *Ceifa das Almas Perdidas* (`ultimate_necromancer`)
-    *   *Dano*: Causa $1300\%$ de dano mágico baseado em Magia e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
+    *   *Dano*: Não causa dano direto — ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos, cujos ataques causam o **dobro** do dano que o monstro causava em vida.
     *   *Custo de Mana*: $75$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Foice gigante que corta a tela com explosão de névoa escura e invoca um monstro lacaio.
 8.  **Avatar**: *Coro da Alma Inteira* (`ultimate_avatar`)
-    *   *Dano*: Causa dano imediato calculado sobre a soma de todos os atributos primários: $(\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 5.0$.
+    *   *Dano*: Causa dano imediato calculado sobre a soma de todos os atributos primários: $(\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 10.0$.
     *   *Custo de Mana*: $100$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Reúne a força de todos os cacos de memórias passadas do herói em um único golpe unificado.
 
@@ -998,7 +998,7 @@ A Loja Celestial (acessível na sub-aba *Loja Celestial*) permite ao jogador gas
     1.  *Eco Unificado* (Ativa): Causa $250\%$ do maior atributo como dano do tipo elemental do inimigo.
     2.  *Barreira Prismática* (Ativa): Concede um escudo de absorção equivalente a $30\%$ do maior atributo por 5 segundos.
     3.  *Coro da Alma Inteira* (Ultimate): Reúne a força de todos os cacos de memórias passadas, desferindo dano imediato calculado sobre a soma de todos os atributos primários:
-        $$\text{Dano do Coro} = (\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 5.0$$
+        $$\text{Dano do Coro} = (\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 10.0$$
         *Custo: 100 Mana | Cooldown: 60 segundos*
 *   **Conjuntos de Equipamento Especiais**:
     O Avatar possui quatro conjuntos de equipamentos customizados e integrados ao sistema de bônus do `StatEngine`:
@@ -1324,6 +1324,7 @@ Diferente das outras 8 construções, o Centro de Comando **nunca fica "não con
     *   *Destreza* (Arqueiro, Ladrão): +25% Madeira e Carne/h.
     *   *Magia* (Mago, Clérigo, Necromante, Avatar): +30% Insígnias de Estudo/h.
 *   **Confirmação obrigatória** (v6.0.0): tanto alocar uma classe (gasta Ouro) quanto retirá-la manualmente antes do prazo (perde o tempo restante) exigem um segundo clique de confirmação em `ExpeditionPanel.tsx` — o cartão da classe se transforma temporariamente em um par de botões Cancelar/Confirmar (estado local `pendingAction`) em vez de agir no primeiro toque, evitando gasto ou perda acidental por toque duplo no celular.
+*   **Identidade por Save**: cada entrada de classe elegível/alocada na expedição é identificada pelo par (classe, slot de save) — não apenas pela classe — permitindo que a mesma classe apareça múltiplas vezes na lista quando nivelada em saves diferentes, cada uma rotulada com o nome do personagem de origem (ex.: "Amaro (Guerreiro)"). Um novo registro `medieval_idle_global_class_characters` (paralelo ao registro de níveis globais existente, que segue sendo usado para o gating de desbloqueio de classes) mantém, por slot, o nome do personagem e o nível mais recente de cada classe jogada.
 
 **Academia Militar** — Custo base 200 Madeira / 300 Pedra / 50 Insígnias de Estudo:
 *   Consome a nova moeda **Insígnias de Estudo** (`materials.studyInsignias`) em sete pesquisas permanentes e universais (válidas para qualquer classe do save), injetadas em `StatEngine.calculateFinalStats` como um novo passo "4.6" (as quatro últimas, adicionadas na v6.0.0, cobrem sistemas antes fora do alcance da Academia — dano de Toque e as duas raridades de drop mais raras do jogo):
@@ -1632,7 +1633,7 @@ Marco de lançamento que encerra o arco iniciado na Versão 5.1.0: a **Cidadela 
             4. *Sifão de Almas* (Nvl. 7): Causa 320% de dano mágico e regenera 20% da mana se o alvo expirar sob o efeito.
             5. *Ecos da Tumba* (Nvl. 9): +5 Constituição por nível de habilidade (Passiva).
             6. *Exército de Esqueletos* (Nvl. 11): Conjura dois servos que desferem 120% de dano por segundo por 8 segundos.
-            7. *Ceifa das Almas Perdidas* (Nvl. 15 - Ultimate): Causa 1300% de dano mágico e ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos.
+            7. *Ceifa das Almas Perdidas* (Nvl. 15 - Ultimate): Não causa dano direto — ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos, cujos ataques causam o dobro do dano que o monstro causava em vida.
     *   **Expansão de Relíquias (8 Relíquias, Nível Máximo 5)**:
         *   Total de relíquias aumentado para 8, com novo limite máximo de nível 5. Atingir o nível máximo (5) destrava uma habilidade passiva única (Capstone):
             1. *Luz da Alma Partida*: +3% Dano Geral por nível | Capstone: +10% Multiplicador de Dano Crítico.

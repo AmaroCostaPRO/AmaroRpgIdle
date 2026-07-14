@@ -60,7 +60,7 @@ export interface CitadelState {
   unlocked: boolean;
   commandCenter: CitadelBuildingState;
   vault: CitadelBuildingState & { storedItems: EquipmentItem[] };
-  expeditions: CitadelBuildingState & { allocatedClasses: { classId: string; expiresAt: number }[] };
+  expeditions: CitadelBuildingState & { allocatedClasses: { classId: string; slotIndex: number; characterName: string; expiresAt: number }[] };
   academy: CitadelBuildingState & {
     researchDmgLevel: number;
     researchHpLevel: number;

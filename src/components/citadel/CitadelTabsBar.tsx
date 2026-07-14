@@ -53,7 +53,9 @@ export const CitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex((prev) => (prev === 0 ? CITADEL_SUB_TABS.length - 5 : prev - 1));
+            const currentIndex = CITADEL_SUB_TABS.findIndex((t) => t.id === subTab);
+            const nextIndex = currentIndex <= 0 ? CITADEL_SUB_TABS.length - 1 : currentIndex - 1;
+            setSubTab(CITADEL_SUB_TABS[nextIndex].id);
           }}
           className="tab-carousel-arrow-btn"
           style={{
@@ -96,7 +98,9 @@ export const CitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex((prev) => (prev >= CITADEL_SUB_TABS.length - 5 ? 0 : prev + 1));
+            const currentIndex = CITADEL_SUB_TABS.findIndex((t) => t.id === subTab);
+            const nextIndex = currentIndex === -1 || currentIndex >= CITADEL_SUB_TABS.length - 1 ? 0 : currentIndex + 1;
+            setSubTab(CITADEL_SUB_TABS[nextIndex].id);
           }}
           className="tab-carousel-arrow-btn"
           style={{

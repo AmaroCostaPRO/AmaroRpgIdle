@@ -130,7 +130,7 @@ export const TowerPanel: React.FC = () => {
 
         {/* Recorde Semanal */}
         <div style={{
-          background: 'rgba(30, 41, 59, 0.4)',
+          background: 'var(--surface-2)',
           border: '1px solid var(--border-dim)',
           borderRadius: 'var(--radius-lg)',
           padding: '0.85rem',
@@ -143,21 +143,21 @@ export const TowerPanel: React.FC = () => {
 
         {/* Recorde Histórico */}
         <div style={{
-          background: 'rgba(30, 41, 59, 0.4)',
+          background: 'var(--surface-2)',
           border: '1px solid var(--border-dim)',
           borderRadius: 'var(--radius-lg)',
           padding: '0.85rem',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorde Histórico</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#60a5fa', margin: '0.2rem 0' }}>{historicalHighestFloor}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', margin: '0.2rem 0' }}>{historicalHighestFloor}</div>
           <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Melhor marca de sempre</div>
         </div>
       </div>
 
       {/* Box de Título Honorífico Ativo */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.4)',
+        background: 'var(--surface-1)',
         border: '1px solid var(--border-dim)',
         borderRadius: 'var(--radius-lg)',
         padding: '0.75rem 1rem',
@@ -317,12 +317,12 @@ export const TowerPanel: React.FC = () => {
               🚪 CONCLUIR SUBIDA & SAIR
             </button>
             <div style={{
-              background: 'rgba(59, 130, 246, 0.08)',
-              border: '1px solid rgba(59, 130, 246, 0.2)',
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
               borderRadius: 'var(--radius-md)',
               padding: '0.6rem 0.8rem',
               fontSize: '0.62rem',
-              color: '#60a5fa',
+              color: '#fbbf24',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '6px',
@@ -353,11 +353,11 @@ export const TowerPanel: React.FC = () => {
               <div
                 key={title.name}
                 style={{
-                  background: isEquipped 
-                    ? 'rgba(168, 85, 247, 0.08)' 
-                    : isUnlocked 
-                      ? 'rgba(30, 41, 59, 0.3)' 
-                      : 'rgba(15, 23, 42, 0.5)',
+                  background: isEquipped
+                    ? 'rgba(168, 85, 247, 0.08)'
+                    : isUnlocked
+                      ? 'var(--surface-2)'
+                      : 'var(--surface-1)',
                   border: isEquipped
                     ? '1px solid rgba(168, 85, 247, 0.4)'
                     : isUnlocked

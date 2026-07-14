@@ -417,8 +417,8 @@ export class CombatFSM {
 
   private getManaRegen(magic: number, classId: string): number {
     // Se magia é o atributo primário (Mago, Clérigo), escala menos: 0.02 por ponto
-    // Se NÃO é o atributo primário (outras classes), escala mais: 0.09 por ponto
-    const regenPerMagic = (classId === 'mage' || classId === 'cleric') ? 0.02 : 0.09;
+    // Se NÃO é o atributo primário (outras classes), escala mais: 0.05 por ponto
+    const regenPerMagic = (classId === 'mage' || classId === 'cleric') ? 0.02 : 0.05;
     return magic * regenPerMagic;
   }
 
@@ -753,7 +753,8 @@ export class CombatFSM {
         if (this.summonedAllyAttackCooldown <= 0 && this.enemyHP > 0) {
           const dmgScale = Math.pow(1.25, this.enemyLevel - 1);
           const dmgBoost = this.enemyLevel >= 31 ? 22.0 : this.enemyLevel >= 21 ? 18.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
-          let summonDmg = Math.floor((10 + this.enemyLevel * 4.0) * dmgScale * this.summonedAlly.damageMultiplier * dmgBoost);
+          // x2: dano do servo ressuscitado pela ultimate do Necromante foi dobrado junto com as demais ultimates
+          let summonDmg = Math.floor((10 + this.enemyLevel * 4.0) * dmgScale * this.summonedAlly.damageMultiplier * dmgBoost * 2);
           
           if (this.characterData && this.characterData.classId === 'necromancer') {
             const luckBonus = 1 + (this.playerFinalStats.luck * 0.001);
@@ -2321,7 +2322,7 @@ export class CombatFSM {
         (this.playerFinalStats.constitution || 0) +
         (this.playerFinalStats.luck || 0)
       );
-      const baseMult = 5.0 * 3.0; // 5.0 base x 3.0 scale
+      const baseMult = 10.0 * 3.0; // 10.0 base (dano da ultimate dobrado) x 3.0 scale
       dmg = Math.floor(sumStats * baseMult * levelMultiplier + Math.random() * 5);
       damageType = 'prismático';
     } else {

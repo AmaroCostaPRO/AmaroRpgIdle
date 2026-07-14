@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore, formatNumber } from '../store/useGameStore';
 import { EquipmentItem, BaseStats } from '../core/types';
 import { getMysticFusionCost } from '../core/citadelFormulas';
+import { getRarityColor, getSetVisual } from './shared/itemVisuals';
 
 const isPercentStat = (stat: string) => {
   return [
@@ -44,16 +45,17 @@ const getSlotEmoji = (slot: string) => {
 const ForgeInputSocket: React.FC<{
   item: EquipmentItem | null;
   label: string;
-  rarityColor?: string;
   onSelect: () => void;
   onRemove: () => void;
-}> = ({ item, label, rarityColor, onSelect, onRemove }) => (
+}> = ({ item, label, onSelect, onRemove }) => {
+  const visual = item ? getSetVisual(item) : null;
+  return (
   <div className="flex flex-col items-center">
     <div className="relative group">
       <button
         onClick={onSelect}
         className={`forge-socket forge-socket--clickable flex items-center justify-center ${item ? 'forge-socket--filled' : 'forge-socket--empty'}`}
-        style={item ? { borderColor: rarityColor } : undefined}
+        style={visual ? { border: visual.border, boxShadow: visual.shadow, background: visual.bg } : undefined}
       >
         {item ? (
           <>
@@ -81,7 +83,8 @@ const ForgeInputSocket: React.FC<{
       )}
     </div>
   </div>
-);
+  );
+};
 
 export const ForgeView: React.FC = () => {
   const { character, reforgeItems, abbreviateNumbers } = useGameStore();
@@ -121,14 +124,6 @@ export const ForgeView: React.FC = () => {
     gloves: 'Luvas',
     weapon: 'Arma',
     necklace: 'Colar'
-  };
-
-  const rarityColors: Record<string, string> = {
-    common: '#9ca3af', // Cinza
-    rare: '#3b82f6',   // Azul
-    epic: '#a855f7',   // Roxo
-    legendary: '#eab308', // Dourado
-    mystic: '#d946ef'  // Lilás/Rosa vibrante
   };
 
   const rarityNames: Record<string, string> = {
@@ -457,14 +452,12 @@ export const ForgeView: React.FC = () => {
               <ForgeInputSocket
                 item={slot1}
                 label="Item A"
-                rarityColor={slot1 ? rarityColors[slot1.rarity] : undefined}
                 onSelect={() => setActiveSelectionSlot(1)}
                 onRemove={() => setSlot1(null)}
               />
               <ForgeInputSocket
                 item={slot2}
                 label="Item B"
-                rarityColor={slot2 ? rarityColors[slot2.rarity] : undefined}
                 onSelect={() => setActiveSelectionSlot(2)}
                 onRemove={() => setSlot2(null)}
               />
@@ -538,7 +531,7 @@ export const ForgeView: React.FC = () => {
                     {getSlotEmoji(slot1.slot)}
                   </div>
                   <div>
-                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot1.rarity] }}>{slot1.name}</h4>
+                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: getRarityColor(slot1.rarity) }}>{slot1.name}</h4>
                     <span className="forge-card-subtitle text-[9px] text-gray-500 font-bold">Sacrifício A ({rarityNames[slot1.rarity]}{slot1.mysticLevel ? ` +${slot1.mysticLevel}` : ''})</span>
                   </div>
                 </div>
@@ -608,7 +601,7 @@ export const ForgeView: React.FC = () => {
                     {getSlotEmoji(slot2.slot)}
                   </div>
                   <div>
-                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: rarityColors[slot2.rarity] }}>{slot2.name}</h4>
+                    <h4 className="forge-card-title text-xs font-bold truncate max-w-[150px]" style={{ color: getRarityColor(slot2.rarity) }}>{slot2.name}</h4>
                     <span className="forge-card-subtitle text-[9px] text-gray-500 font-bold">Sacrifício B ({rarityNames[slot2.rarity]}{slot2.mysticLevel ? ` +${slot2.mysticLevel}` : ''})</span>
                   </div>
                 </div>
@@ -703,7 +696,9 @@ export const ForgeView: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {getEligibleItems().length > 0 ? (
-                getEligibleItems().map((item) => (
+                getEligibleItems().map((item) => {
+                  const visual = getSetVisual(item);
+                  return (
                   <div
                     key={item.id}
                     onClick={() => {
@@ -714,14 +709,15 @@ export const ForgeView: React.FC = () => {
                       }
                       setActiveSelectionSlot(null);
                     }}
-                    className="flex items-center justify-between p-3 bg-[var(--surface-1)]/55 hover:bg-[var(--surface-2)] border border-[var(--border-subtle)] rounded-lg cursor-pointer transition-all hover:border-purple-500/40 group"
+                    className="flex items-center justify-between p-3 hover:bg-[var(--surface-2)] rounded-lg cursor-pointer transition-all hover:border-purple-500/40 group"
+                    style={{ background: visual.bg, border: visual.border, boxShadow: visual.shadow }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-md bg-[var(--surface-1)] border border-[var(--border-subtle)] flex items-center justify-center text-xl group-hover:border-purple-500/20">
                         {getSlotEmoji(item.slot)}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-gray-200" style={{ color: rarityColors[item.rarity] }}>
+                        <h4 className="text-xs font-bold text-gray-200" style={{ color: getRarityColor(item.rarity) }}>
                           {item.name}
                         </h4>
                         <p className="text-[10px] text-gray-500">
@@ -741,7 +737,8 @@ export const ForgeView: React.FC = () => {
                       {Object.keys(item.stats).length > 2 && <div>...</div>}
                     </div>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-xs text-gray-500 space-y-1">
                   <p>Nenhum equipamento compatível no inventário.</p>

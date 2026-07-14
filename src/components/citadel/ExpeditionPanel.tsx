@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGameStore, CLASS_CONFIGS, isClassUnlocked, getGlobalClassLevels } from '../../store/useGameStore';
+import { useGameStore, CLASS_CONFIGS, isClassUnlocked, getGlobalClassCharacters } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import {
   EXPEDITIONS_MAX_LEVEL, EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
@@ -40,7 +40,7 @@ export const ExpeditionPanel: React.FC = () => {
 
   // Exige confirmação explícita antes de alocar (gasta ouro) ou retirar (perde o tempo
   // restante) uma classe, para evitar toques/cliques acidentais nesses cartões.
-  const [pendingAction, setPendingAction] = useState<{ type: 'allocate' | 'deallocate'; classId: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: 'allocate' | 'deallocate'; classId: string; slotIndex: number } | null>(null);
 
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
@@ -53,17 +53,30 @@ export const ExpeditionPanel: React.FC = () => {
   const commandCenterLevel = citadel?.commandCenter.level || 1;
   const lockedByCommandCenter = nextLevel > commandCenterLevel;
   const allocationGoldCost = EXPEDITION_ALLOCATION_GOLD_COST(expeditions.level);
-  const allocatedClassIds = expeditions.allocatedClasses.map((a) => a.classId);
   const upgrading = expeditions.upgradeInProgress;
   const countdown = useCountdown(upgrading?.completesAt);
 
-  const globalLevels = getGlobalClassLevels();
-  const eligibleClasses = Object.keys(CLASS_CONFIGS).filter((classId) => {
-    if (classId === character.classId) return false;
-    if (!isClassUnlocked(classId, character.classLevels || {})) return false;
-    const level = Math.max(character.classLevels?.[classId] || 0, globalLevels[classId] || 0);
-    return level > 0;
+  // Cada entrada elegível é um par (classe, slot de save) com nível > 0 — permite que a
+  // mesma classe apareça mais de uma vez quando nivelada em saves diferentes.
+  const currentSlotRaw = localStorage.getItem('medieval_idle_current_slot');
+  const currentSlotIndex = currentSlotRaw ? Number(currentSlotRaw) : -1;
+  const globalCharacters = getGlobalClassCharacters();
+  interface ExpeditionEntry { classId: string; slotIndex: number; characterName: string; level: number }
+  const eligibleEntries: ExpeditionEntry[] = Object.keys(CLASS_CONFIGS).flatMap((classId) => {
+    if (!isClassUnlocked(classId, character.classLevels || {})) return [];
+    const entries: ExpeditionEntry[] = [];
+    const ownLevel = character.classLevels?.[classId] || 0;
+    if (ownLevel > 0 && classId !== character.classId) {
+      entries.push({ classId, slotIndex: currentSlotIndex, characterName: character.name, level: ownLevel });
+    }
+    (globalCharacters[classId] || []).forEach((e) => {
+      if (e.slotIndex === currentSlotIndex) return; // já coberto pela entrada "ao vivo" acima
+      entries.push({ classId, slotIndex: e.slotIndex, characterName: e.characterName, level: e.level });
+    });
+    return entries;
   });
+  const allocatedPairs = expeditions.allocatedClasses.map((a) => `${a.classId}:${a.slotIndex}`);
+  const visibleEntries = eligibleEntries.filter((e) => !allocatedPairs.includes(`${e.classId}:${e.slotIndex}`));
 
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
@@ -116,15 +129,16 @@ export const ExpeditionPanel: React.FC = () => {
             {expeditions.allocatedClasses.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Nenhuma classe alocada.</p>
             )}
-            {expeditions.allocatedClasses.map(({ classId, expiresAt }) => {
+            {expeditions.allocatedClasses.map(({ classId, slotIndex, characterName, expiresAt }) => {
               const prod = getClassHourlyProduction(classId, expeditions.level);
               const remainingMs = expiresAt - Date.now();
-              const isConfirming = pendingAction?.type === 'deallocate' && pendingAction.classId === classId;
+              const isConfirming = pendingAction?.type === 'deallocate' && pendingAction.classId === classId && pendingAction.slotIndex === slotIndex;
+              const entryKey = `${classId}-${slotIndex}`;
 
               if (isConfirming) {
                 return (
                   <div
-                    key={classId}
+                    key={entryKey}
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: 'var(--radius-sm)',
@@ -138,7 +152,7 @@ export const ExpeditionPanel: React.FC = () => {
                       maxWidth: '220px',
                     }}
                   >
-                    <div>Retornar {CLASS_CONFIGS[classId]?.name || classId} agora? Perde o tempo restante ({formatRemaining(remainingMs)}).</div>
+                    <div>Retornar {characterName} ({CLASS_CONFIGS[classId]?.name || classId}) agora? Perde o tempo restante ({formatRemaining(remainingMs)}).</div>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <button
                         onClick={() => { AudioManager.getInstance().playClick(); setPendingAction(null); }}
@@ -148,7 +162,7 @@ export const ExpeditionPanel: React.FC = () => {
                         Cancelar
                       </button>
                       <button
-                        onClick={() => { AudioManager.getInstance().playClick(); deallocateClassFromExpedition(classId); setPendingAction(null); }}
+                        onClick={() => { AudioManager.getInstance().playClick(); deallocateClassFromExpedition(classId, slotIndex); setPendingAction(null); }}
                         className="btn btn-danger btn-sm"
                         style={{ flex: 1, fontSize: '0.65rem' }}
                       >
@@ -161,8 +175,8 @@ export const ExpeditionPanel: React.FC = () => {
 
               return (
                 <button
-                  key={classId}
-                  onClick={() => { AudioManager.getInstance().playClick(); setPendingAction({ type: 'deallocate', classId }); }}
+                  key={entryKey}
+                  onClick={() => { AudioManager.getInstance().playClick(); setPendingAction({ type: 'deallocate', classId, slotIndex }); }}
                   title="Clique para retornar a classe agora (perde o tempo restante)"
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -176,7 +190,7 @@ export const ExpeditionPanel: React.FC = () => {
                     textAlign: 'left',
                   }}
                 >
-                  <div>{CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span></div>
+                  <div>{characterName} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({CLASS_CONFIGS[classId]?.name || classId} · {GROUP_LABEL[classId]})</span></div>
                   <div style={{ fontSize: '0.62rem', color: 'var(--gold-300)', marginTop: '0.2rem' }}>
                     🪵{prod.wood.toFixed(1)} · 🪨{prod.stone.toFixed(1)} · 🥩{prod.meat.toFixed(1)} · 📜{prod.studyInsignias.toFixed(1)} /h
                   </div>
@@ -192,20 +206,21 @@ export const ExpeditionPanel: React.FC = () => {
             Classes disponíveis
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {eligibleClasses.filter(id => !allocatedClassIds.includes(id)).length === 0 && (
+            {visibleEntries.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Nenhuma classe disponível para expedição.</p>
             )}
-            {eligibleClasses.filter(id => !allocatedClassIds.includes(id)).map((classId) => {
+            {visibleEntries.map(({ classId, slotIndex, characterName }) => {
               const slotsFull = expeditions.allocatedClasses.length >= maxSlots;
               const canAffordAllocation = character.gold >= allocationGoldCost;
               const disabled = slotsFull || !canAffordAllocation;
               const prod = getClassHourlyProduction(classId, expeditions.level);
-              const isConfirming = pendingAction?.type === 'allocate' && pendingAction.classId === classId;
+              const isConfirming = pendingAction?.type === 'allocate' && pendingAction.classId === classId && pendingAction.slotIndex === slotIndex;
+              const entryKey = `${classId}-${slotIndex}`;
 
               if (isConfirming) {
                 return (
                   <div
-                    key={classId}
+                    key={entryKey}
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: 'var(--radius-sm)',
@@ -219,7 +234,7 @@ export const ExpeditionPanel: React.FC = () => {
                       maxWidth: '220px',
                     }}
                   >
-                    <div>Enviar {CLASS_CONFIGS[classId]?.name || classId} em expedição por {EXPEDITION_ALLOCATION_DURATION_HOURS}h? Custa 🪙 {allocationGoldCost}.</div>
+                    <div>Enviar {characterName} ({CLASS_CONFIGS[classId]?.name || classId}) em expedição por {EXPEDITION_ALLOCATION_DURATION_HOURS}h? Custa 🪙 {allocationGoldCost}.</div>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <button
                         onClick={() => { AudioManager.getInstance().playClick(); setPendingAction(null); }}
@@ -229,7 +244,7 @@ export const ExpeditionPanel: React.FC = () => {
                         Cancelar
                       </button>
                       <button
-                        onClick={() => { AudioManager.getInstance().playClick(); allocateClassToExpedition(classId); setPendingAction(null); }}
+                        onClick={() => { AudioManager.getInstance().playClick(); allocateClassToExpedition(classId, slotIndex); setPendingAction(null); }}
                         className="btn btn-gold btn-sm"
                         style={{ flex: 1, fontSize: '0.65rem' }}
                       >
@@ -242,8 +257,8 @@ export const ExpeditionPanel: React.FC = () => {
 
               return (
                 <button
-                  key={classId}
-                  onClick={() => { if (!disabled) { AudioManager.getInstance().playClick(); setPendingAction({ type: 'allocate', classId }); } }}
+                  key={entryKey}
+                  onClick={() => { if (!disabled) { AudioManager.getInstance().playClick(); setPendingAction({ type: 'allocate', classId, slotIndex }); } }}
                   disabled={disabled}
                   title={slotsFull ? 'Sem slots disponíveis' : !canAffordAllocation ? 'Ouro insuficiente' : `Clique para alocar por ${EXPEDITION_ALLOCATION_DURATION_HOURS}h`}
                   style={{
@@ -259,7 +274,7 @@ export const ExpeditionPanel: React.FC = () => {
                     textAlign: 'left',
                   }}
                 >
-                  <div>{CLASS_CONFIGS[classId]?.name || classId} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({GROUP_LABEL[classId]})</span></div>
+                  <div>{characterName} <span style={{ color: 'rgba(255,255,255,0.5)' }}>({CLASS_CONFIGS[classId]?.name || classId} · {GROUP_LABEL[classId]})</span></div>
                   <div style={{ fontSize: '0.62rem', color: '#94a3b8', marginTop: '0.2rem' }}>
                     🪵{prod.wood.toFixed(1)} · 🪨{prod.stone.toFixed(1)} · 🥩{prod.meat.toFixed(1)} · 📜{prod.studyInsignias.toFixed(1)} /h
                   </div>

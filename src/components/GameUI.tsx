@@ -3896,7 +3896,7 @@ const GuidePanel: React.FC = () => {
                     <div className="text-[8px] text-gray-500 mt-1 flex justify-between">
                       <span>Requer Level {skill.requiredLevel}</span>
                       {skill.type === 'active' && (
-                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : (skill.requiredLevel <= 1 ? '6s' : (skill.requiredLevel <= 3 ? '10s' : (skill.requiredLevel <= 7 ? '16s' : '24s')))}</span>
+                        <span className="text-amber-500">Recarga: {id === 'heal' ? '10s' : skill.cooldown ? `${Math.round(skill.cooldown / 1000)}s` : (skill.requiredLevel <= 1 ? '6s' : (skill.requiredLevel <= 3 ? '10s' : (skill.requiredLevel <= 7 ? '16s' : '24s')))}</span>
                       )}
                     </div>
                   </div>
@@ -7198,7 +7198,12 @@ export default function GameUI() {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex(prev => (prev === 0 ? tabs.length - 5 : prev - 1));
+            const currentIndex = tabs.findIndex(t => t.id === activeTab);
+            let nextIndex = currentIndex <= 0 ? tabs.length - 1 : currentIndex - 1;
+            while (tabs[nextIndex]?.disabled && nextIndex !== currentIndex) {
+              nextIndex = nextIndex === 0 ? tabs.length - 1 : nextIndex - 1;
+            }
+            setActiveTab(tabs[nextIndex].id);
           }}
           className="tab-carousel-arrow-btn"
           style={{
@@ -7244,7 +7249,12 @@ export default function GameUI() {
         <button
           onClick={() => {
             AudioManager.getInstance().playClick();
-            setDesktopStartIndex(prev => (prev >= tabs.length - 5 ? 0 : prev + 1));
+            const currentIndex = tabs.findIndex(t => t.id === activeTab);
+            let nextIndex = currentIndex === -1 || currentIndex >= tabs.length - 1 ? 0 : currentIndex + 1;
+            while (tabs[nextIndex]?.disabled && nextIndex !== currentIndex) {
+              nextIndex = nextIndex >= tabs.length - 1 ? 0 : nextIndex + 1;
+            }
+            setActiveTab(tabs[nextIndex].id);
           }}
           className="tab-carousel-arrow-btn"
           style={{

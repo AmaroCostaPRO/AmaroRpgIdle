@@ -64,6 +64,11 @@ export const ProgressNotifications: React.FC = () => {
       
       setNotifications((prev) => [...prev, newNotif]);
       AudioManager.getInstance().playCoin(); // Se houver som de item, tocar
+
+      // Notificações de bestiário desaparecem sozinhas após 5s (diferente das demais, que exigem dispensa manual)
+      setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+      }, 5000);
     });
 
     const unsubAscension = bridge.subscribe(GameEvent.ASCENSION_AVAILABLE, () => {
