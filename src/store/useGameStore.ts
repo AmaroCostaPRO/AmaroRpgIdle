@@ -491,12 +491,17 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
 let savedStageBeforeChallenge = 1;
 let savedEnemiesDefeatedBeforeChallenge = 0;
 
+// Versão do formato de save — incrementar ao introduzir uma mudança de formato que precise de
+// migração explícita em mergeLoadedCharacter (hoje nenhuma migração depende disso ainda).
+const CURRENT_SAVE_VERSION = 1;
+
 const saveToLocalStorage = (char: Character) => {
   try {
     // Adiciona carimbo de data/hora do salvamento
     const updatedChar = {
       ...char,
-      lastSaved: new Date().toISOString()
+      lastSaved: new Date().toISOString(),
+      saveVersion: CURRENT_SAVE_VERSION,
     };
     
     // Se o salvamento ocorrer durante o Desafio Diário, restaura os dados originais no JSON salvo
@@ -684,7 +689,11 @@ export const getPersonalRecords = (): PersonalRecords => {
 };
 
 export const savePersonalRecords = (records: PersonalRecords): void => {
-  localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
+  try {
+    localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
+  } catch (e) {
+    console.error('Erro ao salvar recordes pessoais:', e);
+  }
 };
 
 const DEFAULT_CITADEL = (): CitadelState => ({
@@ -757,6 +766,91 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     materials: DEFAULT_MATERIALS(),
     citadel: DEFAULT_CITADEL(),
   };
+};
+
+const clampNonNegativeFinite = (value: number | undefined, fallback: number): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.max(0, value);
+};
+
+// Reconstrói um Character salvo (localStorage, slot ou import) aplicando os defaults da classe
+// para qualquer campo ausente/corrompido. Usado por loadSavedGame, loadGameFromSlot e importSave
+// para evitar que a lógica de merge divirja entre os três caminhos de carregamento.
+const mergeLoadedCharacter = (char: Character): Character => {
+  const defaults = DEFAULT_CHARACTER(char.classId);
+  const hasProgress = (char.level && char.level > 1) ||
+                      (char.highestStageReached && char.highestStageReached > 1) ||
+                      (char.gold && char.gold > 0) ||
+                      (char.ascensionCount && char.ascensionCount > 0);
+  const merged: Character = {
+    ...defaults,
+    ...char,
+    introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
+    lastCompletedDailyChallenge: char.lastCompletedDailyChallenge || '',
+    activeDailyChallenge: false,
+    runStartTime: char.runStartTime !== undefined ? char.runStartTime : Date.now(),
+    gold: clampNonNegativeFinite(char.gold, defaults.gold),
+    level: clampNonNegativeFinite(char.level, defaults.level) || 1,
+    currentStage: clampNonNegativeFinite(char.currentStage, defaults.currentStage) || 1,
+    attributePoints: clampNonNegativeFinite(char.attributePoints, defaults.attributePoints),
+    skillPoints: clampNonNegativeFinite(char.skillPoints, defaults.skillPoints),
+    baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
+    growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
+    skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
+    prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
+    classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
+    unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
+    killCount: { ...defaults.killCount, ...(char.killCount || {}) },
+    equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
+    inventory: char.inventory || defaults.inventory,
+    inventorySlots: char.inventorySlots || defaults.inventorySlots,
+    forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
+    transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
+    transcendenceUpgrades: char.transcendenceUpgrades || {},
+    transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
+    transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
+    activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
+    transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
+    materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+    citadel: {
+      ...defaults.citadel,
+      ...(char.citadel || {}),
+      // Retrocompatibilidade: saves que já haviam ascendido antes da v5.1.0 desbloqueiam a Cidadela retroativamente
+      unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
+      commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
+      vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
+      expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: normalizeAllocatedClasses(char.citadel?.expeditions?.allocatedClasses) },
+      academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
+      watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
+      forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
+      cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel?.cosmicSiphon || {}) },
+      synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
+      relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
+    },
+    totalXpEarned: char.totalXpEarned !== undefined
+      ? char.totalXpEarned
+      : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
+    lifetimePrestigePointsAccumulated: (() => {
+      if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
+      const curPP = char.prestigePoints || 0;
+      const spentPP = Object.entries(char.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
+        const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
+        if (upgrade && lvl > 0) {
+          for (let i = 1; i <= lvl; i++) {
+            sum += upgrade.costPerLevel * i;
+          }
+        }
+        return sum;
+      }, 0);
+      return curPP + spentPP;
+    })(),
+  };
+
+  if (merged.classLevels) {
+    updateGlobalClassLevels(merged.classLevels);
+  }
+
+  return merged;
 };
 
 export const useGameStore = create<GameState>((set) => ({
@@ -2314,69 +2408,7 @@ export const useGameStore = create<GameState>((set) => ({
       if (saved) {
         const char = JSON.parse(saved) as Character;
         if (char && char.classId) {
-          const defaults = DEFAULT_CHARACTER(char.classId);
-          const hasProgress = (char.level && char.level > 1) || 
-                              (char.highestStageReached && char.highestStageReached > 1) || 
-                              (char.gold && char.gold > 0) || 
-                              (char.ascensionCount && char.ascensionCount > 0);
-          const merged: Character = {
-            ...defaults,
-            ...char,
-            introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
-            lastCompletedDailyChallenge: char.lastCompletedDailyChallenge || '',
-            activeDailyChallenge: false,
-            runStartTime: char.runStartTime !== undefined ? char.runStartTime : Date.now(),
-            baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
-            growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
-            skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
-            prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
-            classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
-            unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
-            killCount: { ...defaults.killCount, ...(char.killCount || {}) },
-            equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
-            inventory: char.inventory || defaults.inventory,
-            inventorySlots: char.inventorySlots || defaults.inventorySlots,
-            forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
-            transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
-            transcendenceUpgrades: char.transcendenceUpgrades || {},
-            transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
-            transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
-            activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
-            transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
-            materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
-            citadel: {
-              ...defaults.citadel,
-              ...(char.citadel || {}),
-              // Retrocompatibilidade: saves que já haviam ascendido antes da v5.1.0 desbloqueiam a Cidadela retroativamente
-              unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
-              commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
-              vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: normalizeAllocatedClasses(char.citadel?.expeditions?.allocatedClasses) },
-              academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
-              watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
-              forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
-              cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel?.cosmicSiphon || {}) },
-              synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
-              relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
-            },
-            totalXpEarned: char.totalXpEarned !== undefined
-              ? char.totalXpEarned
-              : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
-            lifetimePrestigePointsAccumulated: (() => {
-              if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
-              const curPP = char.prestigePoints || 0;
-              const spentPP = Object.entries(char.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
-                const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
-                if (upgrade && lvl > 0) {
-                  for (let i = 1; i <= lvl; i++) {
-                    sum += upgrade.costPerLevel * i;
-                  }
-                }
-                return sum;
-              }, 0);
-              return curPP + spentPP;
-            })(),
-          };
+          const merged = mergeLoadedCharacter(char);
 
           const currentSlotVal = (() => {
             try {
@@ -2386,10 +2418,6 @@ export const useGameStore = create<GameState>((set) => ({
               return null;
             }
           })();
-
-          if (merged.classLevels) {
-            updateGlobalClassLevels(merged.classLevels);
-          }
 
           set({ character: merged, currentSlot: currentSlotVal, screen: 'playing' });
           return true;
@@ -2747,7 +2775,8 @@ export const useGameStore = create<GameState>((set) => ({
   saveGameToSlot: (slotIndex) => set((state) => {
     const updatedChar = {
       ...state.character,
-      lastSaved: new Date().toISOString()
+      lastSaved: new Date().toISOString(),
+      saveVersion: CURRENT_SAVE_VERSION,
     };
     try {
       localStorage.setItem(`medieval_idle_save_slot_${slotIndex}`, JSON.stringify(updatedChar));
@@ -2769,70 +2798,7 @@ export const useGameStore = create<GameState>((set) => ({
       if (saved) {
         const char = JSON.parse(saved) as Character;
         if (char && char.classId) {
-          const defaults = DEFAULT_CHARACTER(char.classId);
-          const hasProgress = (char.level && char.level > 1) || 
-                              (char.highestStageReached && char.highestStageReached > 1) || 
-                              (char.gold && char.gold > 0) || 
-                              (char.ascensionCount && char.ascensionCount > 0);
-          const merged: Character = {
-            ...defaults,
-            ...char,
-            introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
-            baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
-            growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
-            skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
-            prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
-            classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
-            unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
-            killCount: { ...defaults.killCount, ...(char.killCount || {}) },
-            equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
-            inventory: char.inventory || defaults.inventory,
-            inventorySlots: char.inventorySlots || defaults.inventorySlots,
-            forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
-            transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
-            transcendenceUpgrades: char.transcendenceUpgrades || {},
-            transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
-            transcendenceLoreShown: char.transcendenceLoreShown !== undefined ? char.transcendenceLoreShown : false,
-            activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
-            transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
-            materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
-            citadel: {
-              ...defaults.citadel,
-              ...(char.citadel || {}),
-              // Retrocompatibilidade: saves que já haviam ascendido antes da v5.1.0 desbloqueiam a Cidadela retroativamente
-              unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
-              commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
-              vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-              expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: normalizeAllocatedClasses(char.citadel?.expeditions?.allocatedClasses) },
-              academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
-              watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
-              forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
-              cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel?.cosmicSiphon || {}) },
-              synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
-              relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
-            },
-            totalXpEarned: char.totalXpEarned !== undefined
-              ? char.totalXpEarned
-              : legacyReconstructTotalXp(char.level || 1, char.xp || 0),
-            lifetimePrestigePointsAccumulated: (() => {
-              if (char.lifetimePrestigePointsAccumulated !== undefined) return char.lifetimePrestigePointsAccumulated;
-              const curPP = char.prestigePoints || 0;
-              const spentPP = Object.entries(char.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
-                const upgrade = PRESTIGE_UPGRADES_CATALOG[id];
-                if (upgrade && lvl > 0) {
-                  for (let i = 1; i <= lvl; i++) {
-                    sum += upgrade.costPerLevel * i;
-                  }
-                }
-                return sum;
-              }, 0);
-              return curPP + spentPP;
-            })(),
-          };
-
-          if (merged.classLevels) {
-            updateGlobalClassLevels(merged.classLevels);
-          }
+          const merged = mergeLoadedCharacter(char);
 
           localStorage.setItem('medieval_idle_save', JSON.stringify(merged));
           localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
@@ -2866,48 +2832,11 @@ export const useGameStore = create<GameState>((set) => ({
       const decodedStr = atob(rawData.trim());
       const char = JSON.parse(decodedStr) as Character;
       if (char && char.classId && typeof char.level === 'number') {
-        const defaults = DEFAULT_CHARACTER(char.classId);
-        const hasProgress = (char.level && char.level > 1) || 
-                            (char.highestStageReached && char.highestStageReached > 1) || 
-                            (char.gold && char.gold > 0) || 
-                            (char.ascensionCount && char.ascensionCount > 0);
         const merged: Character = {
-          ...defaults,
-          ...char,
-          introLoreShown: char.introLoreShown !== undefined ? char.introLoreShown : (hasProgress ? true : false),
-          baseStats: { ...defaults.baseStats, ...(char.baseStats || {}) },
-          growthRates: { ...defaults.growthRates, ...(char.growthRates || {}) },
-          skillLevels: { ...defaults.skillLevels, ...(char.skillLevels || {}) },
-          prestigeUpgrades: { ...defaults.prestigeUpgrades, ...(char.prestigeUpgrades || {}) },
-          classLevels: { ...defaults.classLevels, ...(char.classLevels || {}) },
-          unlockedSkills: char.unlockedSkills || defaults.unlockedSkills,
-          killCount: { ...defaults.killCount, ...(char.killCount || {}) },
-          equipment: char.equipment ? { ...defaults.equipment, ...char.equipment } : defaults.equipment,
-          inventory: char.inventory || defaults.inventory,
-          inventorySlots: char.inventorySlots || defaults.inventorySlots,
-          forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
-          materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
-          citadel: {
-            ...defaults.citadel,
-            ...(char.citadel || {}),
-            // Retrocompatibilidade: saves que já haviam ascendido antes da v5.1.0 desbloqueiam a Cidadela retroativamente
-            unlocked: (char.citadel?.unlocked || false) || (char.ascensionCount || 0) >= 1,
-            commandCenter: { ...defaults.citadel!.commandCenter, ...(char.citadel?.commandCenter || {}) },
-            vault: { ...defaults.citadel!.vault, ...(char.citadel?.vault || {}), storedItems: char.citadel?.vault?.storedItems || [] },
-            expeditions: { ...defaults.citadel!.expeditions, ...(char.citadel?.expeditions || {}), allocatedClasses: normalizeAllocatedClasses(char.citadel?.expeditions?.allocatedClasses) },
-            academy: { ...defaults.citadel!.academy, ...(char.citadel?.academy || {}) },
-            watchTower: { ...defaults.citadel!.watchTower, ...(char.citadel?.watchTower || {}) },
-            forgeWorkshop: { ...defaults.citadel!.forgeWorkshop, ...(char.citadel?.forgeWorkshop || {}) },
-            cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel?.cosmicSiphon || {}) },
-            synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
-            relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
-          },
-          lastSaved: new Date().toISOString()
+          ...mergeLoadedCharacter(char),
+          lastSaved: new Date().toISOString(),
+          saveVersion: CURRENT_SAVE_VERSION,
         };
-
-        if (merged.classLevels) {
-          updateGlobalClassLevels(merged.classLevels);
-        }
 
         localStorage.setItem(`medieval_idle_save_slot_${slotIndex}`, JSON.stringify(merged));
         
@@ -3807,7 +3736,7 @@ export const useGameStore = create<GameState>((set) => ({
             const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
             const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos
 
-            const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+            const pickedStats = StatEngine.pickRandomElements(possibleStats, numAttributes);
             pickedStats.forEach((statKey) => {
               const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
               itemStats[statKey as keyof BaseStats] = val;

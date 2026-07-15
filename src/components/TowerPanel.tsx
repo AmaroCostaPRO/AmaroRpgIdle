@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTowerStore } from '../store/useTowerStore';
 import { useGameStore } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
@@ -22,12 +22,16 @@ export const TowerPanel: React.FC = () => {
   const activeKeyType = useTowerStore((state) => state.activeKeyType);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
-  const towerKeys = character.inventory.filter(item =>
-    item.slot === 'consumable' && item.consumableType === 'tower_key'
-  ).length;
-  const evolvedTowerKeys = character.inventory.filter(item =>
-    item.slot === 'consumable' && item.consumableType === 'tower_key_evolved'
-  ).length;
+  const { towerKeys, evolvedTowerKeys } = useMemo(() => {
+    let towerKeysCount = 0;
+    let evolvedTowerKeysCount = 0;
+    for (const item of character.inventory) {
+      if (item.slot !== 'consumable') continue;
+      if (item.consumableType === 'tower_key') towerKeysCount++;
+      else if (item.consumableType === 'tower_key_evolved') evolvedTowerKeysCount++;
+    }
+    return { towerKeys: towerKeysCount, evolvedTowerKeys: evolvedTowerKeysCount };
+  }, [character.inventory]);
 
   // Títulos disponíveis e seus andares de desbloqueio
   const titlesConfig = [

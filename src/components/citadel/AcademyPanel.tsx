@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST, ResearchKey, getResearchTotalBonusLabel } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
+import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 type ResearchLevelField =
   | 'researchDmgLevel' | 'researchHpLevel' | 'researchSpeedLevel'
@@ -48,43 +49,24 @@ export const AcademyPanel: React.FC = () => {
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            🎓 Academia Militar {isBuilt ? `— Nível ${academy.level}` : '(Não construída)'}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Consome Insígnias de Estudo em pesquisas permanentes, universais para todas as classes do save.
-          </p>
-        </div>
-      </div>
-
-      {academy.level < ACADEMY_MAX_LEVEL ? (
-        <>
-          {upgrading ? (
-            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
-              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={!canAffordUpgrade || lockedByCommandCenter}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Academia'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}
-            </button>
-          )}
-          {lockedByCommandCenter && (
-            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
-          )}
-        </>
-      ) : (
-        <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Academia no nível máximo.</p>
-      )}
-
-      {isBuilt && (
+    <CitadelBuildingPanel
+      icon="🎓"
+      title="Academia Militar"
+      subtitle="Consome Insígnias de Estudo em pesquisas permanentes, universais para todas as classes do save."
+      isBuilt={isBuilt}
+      level={academy.level}
+      maxLevel={ACADEMY_MAX_LEVEL}
+      nextLevel={nextLevel}
+      notBuiltLabel="(Não construída)"
+      buildLabel="Construir Academia"
+      costDisplay={<>🪵 {cost.wood} / 🪨 {cost.stone} / 📜 {cost.studyInsignias}</>}
+      maxLevelLabel="Academia no nível máximo."
+      upgrading={upgrading}
+      countdown={countdown}
+      canAffordUpgrade={canAffordUpgrade}
+      lockedByCommandCenter={lockedByCommandCenter}
+      onUpgrade={handleUpgrade}
+    >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Pesquisas (limite atual: Nível {researchCap})
@@ -131,7 +113,6 @@ export const AcademyPanel: React.FC = () => {
             );
           })}
         </div>
-      )}
-    </div>
+    </CitadelBuildingPanel>
   );
 };

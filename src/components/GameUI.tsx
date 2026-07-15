@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
 import { getXpNeededForLevel, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
@@ -183,11 +183,23 @@ const GameHUD: React.FC = () => {
         if (logs.length > 4) {
           logs.shift();
         }
-        logRef.current.innerHTML = logs.map((log, idx) => {
+        while (logRef.current.firstChild) {
+          logRef.current.removeChild(logRef.current.firstChild);
+        }
+        logs.forEach((log, idx) => {
           const isLatest = idx === logs.length - 1;
-          return `<div style="font-family: var(--font-mono); font-size: 0.62rem; line-height: 1.4; margin-bottom: 0.2rem; color: ${isLatest ? '#fff' : '#94a3b8'}; text-shadow: ${isLatest ? '0 0 4px rgba(255,255,255,0.2)' : 'none'}; opacity: ${isLatest ? 1 : 0.45 + idx * 0.12}">${log}</div>`;
-        }).join('');
-        
+          const line = document.createElement('div');
+          line.style.fontFamily = 'var(--font-mono)';
+          line.style.fontSize = '0.62rem';
+          line.style.lineHeight = '1.4';
+          line.style.marginBottom = '0.2rem';
+          line.style.color = isLatest ? '#fff' : '#94a3b8';
+          line.style.textShadow = isLatest ? '0 0 4px rgba(255,255,255,0.2)' : 'none';
+          line.style.opacity = String(isLatest ? 1 : 0.45 + idx * 0.12);
+          line.textContent = log;
+          logRef.current!.appendChild(line);
+        });
+
         logRef.current.scrollTop = logRef.current.scrollHeight;
       }
     });
@@ -963,7 +975,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   const sellAllCommonAndRare = useGameStore((state) => state.sellAllCommonAndRare);
   const sellAllLegendary = useGameStore((state) => state.sellAllLegendary);
 
-  const finalStats = StatEngine.calculateFinalStats(character);
+  const finalStats = useMemo(() => StatEngine.calculateFinalStats(character), [character]);
   const baseStats = character.baseStats;
 
   // Contabilizar peças dos conjuntos equipados
@@ -4863,15 +4875,9 @@ interface BestiaryPanelProps {
   setSelectedEnemy: (enemy: any) => void;
 }
 
-const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
-  selectedEnemy,
-  setSelectedEnemy
-}) => {
-  const character = useGameStore((state) => state.character);
-  const killCount = character.killCount || {};
-  const [hoveredEnemyId, setHoveredEnemyId] = useState<string | null>(null);
-
-  // Agrupar inimigos por Fase (4 por fase)
+// Agrupamento de inimigos por Fase (4 por fase) — dado estático (ENEMY_TYPES/BIOME_NAMES não
+// mudam em runtime), calculado uma única vez em vez de a cada render do BestiaryPanel.
+const BESTIARY_PHASES = (() => {
   const phases = [];
   for (let i = 0; i < 6; i++) {
     const startIdx = i * 4;
@@ -4882,6 +4888,17 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
       enemies: ENEMY_TYPES.slice(startIdx, endIdx)
     });
   }
+  return phases;
+})();
+
+const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
+  selectedEnemy,
+  setSelectedEnemy
+}) => {
+  const character = useGameStore((state) => state.character);
+  const killCount = character.killCount || {};
+  const [hoveredEnemyId, setHoveredEnemyId] = useState<string | null>(null);
+  const phases = BESTIARY_PHASES;
 
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -5411,6 +5428,7 @@ const OptionsPanel: React.FC = () => {
       const originalSetItem = localStorage.setItem;
       localStorage.setItem = function(key, value) {
         if ((window as any).isDevModeActive && (key.startsWith('medieval_idle_') || key === 'global_class_levels')) {
+          console.warn(`[DevMode] Save bloqueado (localStorage.setItem para "${key}" ignorado enquanto o modo dev está ativo).`);
           return;
         }
         originalSetItem.call(this, key, value);
@@ -5895,7 +5913,7 @@ const OptionsPanel: React.FC = () => {
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
+                        if (import.meta.env.DEV && (password === 'devmode' || password === 'amaro123' || password === 'antigravity')) {
                           enableDevMode();
                           playClick();
                         } else {
@@ -5906,7 +5924,7 @@ const OptionsPanel: React.FC = () => {
                   />
                   <button
                     onClick={() => {
-                      if (password === 'devmode' || password === 'amaro123' || password === 'antigravity') {
+                      if (import.meta.env.DEV && (password === 'devmode' || password === 'amaro123' || password === 'antigravity')) {
                         enableDevMode();
                         playClick();
                       } else {
@@ -6800,19 +6818,23 @@ export default function GameUI() {
   const dismantleItem = useGameStore((state) => state.dismantleItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
 
-  const towerKeyCount = character.inventory.filter(item =>
-    item.slot === 'consumable' && item.consumableType === 'tower_key'
-  ).length;
-  const evolvedTowerKeyCount = character.inventory.filter(item =>
-    item.slot === 'consumable' && item.consumableType === 'tower_key_evolved'
-  ).length;
+  const { towerKeyCount, evolvedTowerKeyCount } = useMemo(() => {
+    let towerKeys = 0;
+    let evolvedTowerKeys = 0;
+    for (const item of character.inventory) {
+      if (item.slot !== 'consumable') continue;
+      if (item.consumableType === 'tower_key') towerKeys++;
+      else if (item.consumableType === 'tower_key_evolved') evolvedTowerKeys++;
+    }
+    return { towerKeyCount: towerKeys, evolvedTowerKeyCount: evolvedTowerKeys };
+  }, [character.inventory]);
 
   const citadelMaterials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
   const citadelSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
 
   // Cada sub-aba da Cidadela mostra, no cabeçalho, apenas os recursos que ela de fato consome —
   // igual ao que cada painel exibia antes de sua própria barra de recursos ser centralizada aqui.
-  const CITADEL_HEADER_RESOURCES: Record<CitadelSubTab, { icon: string; value: number; color: string; label: string }[]> = {
+  const CITADEL_HEADER_RESOURCES: Record<CitadelSubTab, { icon: string; value: number; color: string; label: string }[]> = useMemo(() => ({
     overview: [],
     vault: [
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
@@ -6857,7 +6879,7 @@ export default function GameUI() {
       { icon: '💠', value: citadelSoulFragments, color: '#67e8f9', label: 'Fragmentos de Alma Instável' },
       { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
     ],
-  };
+  }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments]);
 
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);

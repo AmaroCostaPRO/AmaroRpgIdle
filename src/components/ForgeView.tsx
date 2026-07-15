@@ -695,8 +695,10 @@ export const ForgeView: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {getEligibleItems().length > 0 ? (
-                getEligibleItems().map((item) => {
+              {(() => {
+                const eligibleItems = getEligibleItems();
+                return eligibleItems.length > 0 ? (
+                eligibleItems.map((item) => {
                   const visual = getSetVisual(item);
                   return (
                   <div
@@ -749,7 +751,8 @@ export const ForgeView: React.FC = () => {
                     }
                   </p>
                 </div>
-              )}
+                );
+              })()}
             </div>
 
             <div className="p-3 border-t border-[var(--border-subtle)] bg-[var(--surface-1)]/60 flex justify-end">

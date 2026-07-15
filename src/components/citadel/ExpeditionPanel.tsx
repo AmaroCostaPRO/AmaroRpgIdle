@@ -6,6 +6,7 @@ import {
   EXPEDITION_ALLOCATION_GOLD_COST, computeClassExpeditionProduction,
 } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
+import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 const GROUP_LABEL: Record<string, string> = {
   warrior: 'Força', paladin: 'Força',
@@ -84,43 +85,24 @@ export const ExpeditionPanel: React.FC = () => {
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            🎖️ Quartel de Expedições {isBuilt ? `— Nível ${expeditions.level}` : '(Não construído)'}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Pague ouro para enviar uma classe inativa em expedição por {EXPEDITION_ALLOCATION_DURATION_HOURS}h, gerando materiais e Insígnias de Estudo por hora automaticamente. Cada nível do Quartel aumenta a produção por hora em +15% (além de liberar mais slots).
-          </p>
-        </div>
-      </div>
-
-      {expeditions.level < EXPEDITIONS_MAX_LEVEL ? (
-        <>
-          {upgrading ? (
-            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
-              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={!canAffordUpgrade || lockedByCommandCenter}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Quartel'} — 🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}
-            </button>
-          )}
-          {lockedByCommandCenter && (
-            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
-          )}
-        </>
-      ) : (
-        <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Quartel no nível máximo.</p>
-      )}
-
-      {isBuilt && (
+    <CitadelBuildingPanel
+      icon="🎖️"
+      title="Quartel de Expedições"
+      subtitle={`Pague ouro para enviar uma classe inativa em expedição por ${EXPEDITION_ALLOCATION_DURATION_HOURS}h, gerando materiais e Insígnias de Estudo por hora automaticamente. Cada nível do Quartel aumenta a produção por hora em +15% (além de liberar mais slots).`}
+      isBuilt={isBuilt}
+      level={expeditions.level}
+      maxLevel={EXPEDITIONS_MAX_LEVEL}
+      nextLevel={nextLevel}
+      notBuiltLabel="(Não construído)"
+      buildLabel="Construir Quartel"
+      costDisplay={<>🪵 {cost.wood} / 🪨 {cost.stone} / 🥩 {cost.meat}</>}
+      maxLevelLabel="Quartel no nível máximo."
+      upgrading={upgrading}
+      countdown={countdown}
+      canAffordUpgrade={canAffordUpgrade}
+      lockedByCommandCenter={lockedByCommandCenter}
+      onUpgrade={handleUpgrade}
+    >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Classes em expedição ({expeditions.allocatedClasses.length}/{maxSlots})
@@ -290,7 +272,6 @@ export const ExpeditionPanel: React.FC = () => {
             Cada classe alocada custa 🪙 {allocationGoldCost} e produz os valores acima por hora (mesmo offline) durante {EXPEDITION_ALLOCATION_DURATION_HOURS}h, retornando automaticamente ao fim do prazo. Grupo <strong>Força</strong>: +25% Pedra · <strong>Destreza</strong>: +25% Madeira e Carne · <strong>Magia</strong>: +30% Insígnias de Estudo — bônus de grupo e de nível do Quartel (+15%/nível) já incluídos nos números mostrados.
           </p>
         </div>
-      )}
-    </div>
+    </CitadelBuildingPanel>
   );
 };

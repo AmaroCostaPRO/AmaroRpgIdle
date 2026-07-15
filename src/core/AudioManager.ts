@@ -44,9 +44,29 @@ export class AudioManager {
     window.addEventListener('click', resumeAudio);
     window.addEventListener('keydown', resumeAudio);
 
-    // Escuta mudanças no Zustand store para atualizar configurações e tocar efeitos reativos
+    // Escuta mudanças no Zustand store para atualizar configurações e tocar efeitos reativos.
+    // Ignora mutações que não afetam áudio/personagem (ex: ouro/inventário mudando durante o
+    // combate) comparando a referência do personagem e as configurações de áudio com a última
+    // execução, em vez de reprocessar tudo a cada mutação do store.
+    let lastCharacterRef = useGameStore.getState().character;
+    let lastSfxVolume = initialState.sfxVolume;
+    let lastBgmVolume = initialState.bgmVolume;
+    let lastSfxEnabled = initialState.sfxEnabled;
+    let lastBgmEnabled = initialState.bgmEnabled;
     useGameStore.subscribe((state) => {
-      if (!state) return;
+      const settingsChanged =
+        state.sfxVolume !== lastSfxVolume ||
+        state.bgmVolume !== lastBgmVolume ||
+        state.sfxEnabled !== lastSfxEnabled ||
+        state.bgmEnabled !== lastBgmEnabled;
+      const characterChanged = state.character !== lastCharacterRef;
+      if (!settingsChanged && !characterChanged) return;
+
+      lastSfxVolume = state.sfxVolume;
+      lastBgmVolume = state.bgmVolume;
+      lastSfxEnabled = state.sfxEnabled;
+      lastBgmEnabled = state.bgmEnabled;
+      lastCharacterRef = state.character;
 
       // Atualiza volumes dinamicamente
       this.sfxVolume = (state.sfxVolume ?? 0.5) * 0.5;

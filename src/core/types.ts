@@ -126,6 +126,7 @@ export interface Character {
   autoCastDisabledSkills?: string[]; // Habilidades desativadas na conjuração automática
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
+  saveVersion?: number; // Versão do formato do save, usada para futuras migrações
   equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;

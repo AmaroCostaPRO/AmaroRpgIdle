@@ -99,16 +99,25 @@ const saveRelicsToStorage = (fragments: number, relics: Record<string, Relic>) =
   }
 };
 
+const cloneDefaultRelics = (): Record<string, Relic> => {
+  const clone: Record<string, Relic> = {};
+  for (const key in DEFAULT_RELICS) {
+    clone[key] = { ...DEFAULT_RELICS[key] };
+  }
+  return clone;
+};
+
 const loadRelicsFromStorage = (): { unstableSoulFragments: number; relics: Record<string, Relic> } => {
   try {
     const saved = localStorage.getItem('medieval_idle_relics');
     if (saved) {
       const parsed = JSON.parse(saved);
-      const mergedRelics = { ...DEFAULT_RELICS };
+      const mergedRelics = cloneDefaultRelics();
       if (parsed.relics) {
         Object.keys(parsed.relics).forEach((key) => {
           if (mergedRelics[key]) {
-            mergedRelics[key].level = parsed.relics[key].level || 0;
+            const rawLevel = parsed.relics[key].level || 0;
+            mergedRelics[key].level = Math.min(mergedRelics[key].maxLevel, Math.max(0, rawLevel));
           }
         });
       }
@@ -122,7 +131,7 @@ const loadRelicsFromStorage = (): { unstableSoulFragments: number; relics: Recor
   }
   return {
     unstableSoulFragments: 0,
-    relics: { ...DEFAULT_RELICS },
+    relics: cloneDefaultRelics(),
   };
 };
 
@@ -208,7 +217,7 @@ export const useRelicStore = create<RelicStoreState>((set, get) => ({
   },
 
   resetRelics: () => {
-    const freshRelics = { ...DEFAULT_RELICS };
+    const freshRelics = cloneDefaultRelics();
     saveRelicsToStorage(0, freshRelics);
     set({ unstableSoulFragments: 0, relics: freshRelics });
   },

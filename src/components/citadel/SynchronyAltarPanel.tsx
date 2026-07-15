@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
+import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 export const SynchronyAltarPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -28,47 +29,27 @@ export const SynchronyAltarPanel: React.FC = () => {
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            🔯 Altar de Sincronia Elemental {isBuilt ? `— Nível ${altar.level}` : '(Não construído)'}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Maximiza o teto de dano da classe Avatar, injetando parte dos atributos secundários no Maior Atributo Ativo.
-          </p>
-        </div>
-      </div>
-
-      {altar.level < SYNCHRONY_ALTAR_MAX_LEVEL ? (
-        <>
-          {upgrading ? (
-            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
-              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={!canAffordUpgrade || lockedByCommandCenter}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Altar'} — 🪨 {cost.stone} / 🌌 {cost.transcendenceEssence} / 📜 {cost.studyInsignias}
-            </button>
-          )}
-          {lockedByCommandCenter && (
-            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
-          )}
-        </>
-      ) : (
-        <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Altar no nível máximo.</p>
-      )}
-
-      {isBuilt && (
-        <p style={{ fontSize: '0.85rem' }}>
-          Injeção atual: +{injectionPct}% da soma dos atributos secundários somada ao Maior Atributo Ativo do Avatar.
-        </p>
-      )}
-    </div>
+    <CitadelBuildingPanel
+      icon="🔯"
+      title="Altar de Sincronia Elemental"
+      subtitle="Maximiza o teto de dano da classe Avatar, injetando parte dos atributos secundários no Maior Atributo Ativo."
+      isBuilt={isBuilt}
+      level={altar.level}
+      maxLevel={SYNCHRONY_ALTAR_MAX_LEVEL}
+      nextLevel={nextLevel}
+      notBuiltLabel="(Não construído)"
+      buildLabel="Construir Altar"
+      costDisplay={<>🪨 {cost.stone} / 🌌 {cost.transcendenceEssence} / 📜 {cost.studyInsignias}</>}
+      maxLevelLabel="Altar no nível máximo."
+      upgrading={upgrading}
+      countdown={countdown}
+      canAffordUpgrade={canAffordUpgrade}
+      lockedByCommandCenter={lockedByCommandCenter}
+      onUpgrade={handleUpgrade}
+    >
+      <p style={{ fontSize: '0.85rem' }}>
+        Injeção atual: +{injectionPct}% da soma dos atributos secundários somada ao Maior Atributo Ativo do Avatar.
+      </p>
+    </CitadelBuildingPanel>
   );
 };

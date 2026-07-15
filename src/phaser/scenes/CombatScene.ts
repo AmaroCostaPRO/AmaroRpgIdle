@@ -9,6 +9,13 @@ import { getXpNeededForLevel } from '../../core/XpEngine';
 
 export const ZOOM_FACTOR = 1.35;
 
+// Cache do resultado do processamento de transparência de textura, guardado fora do ciclo de
+// vida da Scene/Game. O Phaser.Game é destruído e recriado em perda de contexto WebGL e ao
+// voltar de aba oculta (ver App.tsx), o que recriava um TextureManager vazio e forçava o scan
+// de pixels (custoso) a rodar de novo a cada vez. Como ImageData é um buffer de dados simples
+// (não preso a um canvas/contexto), pode ser reaproveitado entre instâncias do Game.
+const transparentImageDataCache = new Map<string, ImageData>();
+
 export class CombatScene extends Phaser.Scene {
   private fsm!: CombatFSM;
   private background!: Phaser.GameObjects.TileSprite;
@@ -105,16 +112,32 @@ export class CombatScene extends Phaser.Scene {
     if (this.textures.exists(outputKey)) {
       return;
     }
+
+    // Se já processamos essa textura numa instância anterior do Game, reaproveita o resultado
+    // em vez de escanear os pixels de novo.
+    const cached = transparentImageDataCache.get(outputKey);
+    if (cached) {
+      const canvas = document.createElement('canvas');
+      canvas.width = cached.width;
+      canvas.height = cached.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.putImageData(cached, 0, 0);
+        this.textures.addCanvas(outputKey, canvas);
+        return;
+      }
+    }
+
     const texture = this.textures.get(textureKey);
     if (!texture) return;
-    
+
     const source = texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
     if (!source) return;
 
     const canvas = document.createElement('canvas');
     canvas.width = source.width;
     canvas.height = source.height;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -125,13 +148,13 @@ export class CombatScene extends Phaser.Scene {
 
     // Coleta as cores exclusivas que aparecem na primeira linha de pixels (y = 0)
     const backgroundColors: { r: number; g: number; b: number }[] = [];
-    
+
     for (let x = 0; x < canvas.width; x++) {
       const idx = x * 4;
       const r = data[idx];
       const g = data[idx + 1];
       const b = data[idx + 2];
-      
+
       const exists = backgroundColors.some(c => Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < 10);
       if (!exists) {
         backgroundColors.push({ r, g, b });
@@ -156,6 +179,7 @@ export class CombatScene extends Phaser.Scene {
 
     ctx.putImageData(imageData, 0, 0);
     this.textures.addCanvas(outputKey, canvas);
+    transparentImageDataCache.set(outputKey, imageData);
   }
 
   create(): void {

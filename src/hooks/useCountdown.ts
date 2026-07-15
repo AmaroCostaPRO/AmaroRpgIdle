@@ -6,8 +6,14 @@ export const useCountdown = (completesAt: number | undefined): string | null => 
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!completesAt) return;
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    if (!completesAt || completesAt <= Date.now()) return;
+    const interval = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= completesAt) {
+        clearInterval(interval);
+      }
+    }, 1000);
     return () => clearInterval(interval);
   }, [completesAt]);
 

@@ -54,13 +54,6 @@ class GameBridge {
   registerDomUpdate(id: string, updater: (...args: any[]) => void): void {
     this.domUpdates.set(id, updater);
   }
-
-  /**
-   * Send a command from React to the Phaser engine.
-   */
-  sendCommand(event: GameEvent, payload: GameEventPayload): void {
-    // Logic to be implemented when Phaser is initialized to listen for these commands
-  }
 }
 
 export const bridge = new GameBridge();

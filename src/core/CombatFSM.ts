@@ -369,6 +369,11 @@ export class CombatFSM {
   private cooldownEmitTimer: number = 0;
   private autoCastTimer: number = 0;
 
+  // Cache do multiplicador de dano do bestiário — só é recalculado quando `killCount` muda de
+  // referência (ou seja, quando um abate é registrado), em vez de a cada tap/ataque.
+  private cachedBestiaryKillCount: Record<string, number> | null = null;
+  private cachedBestiaryMult: number = 1;
+
   private storeUnsubscribe?: () => void;
   private unsubscribeStartCombat?: () => void;
   private lastEmitHP: number = -1;
@@ -464,8 +469,12 @@ export class CombatFSM {
     }
     this.updateStatsFromStore();
 
-    this.storeUnsubscribe = useGameStore.subscribe(() => {
-      this.updateStatsFromStore();
+    let lastCharacterRef = useGameStore.getState().character;
+    this.storeUnsubscribe = useGameStore.subscribe((state) => {
+      if (state.character !== lastCharacterRef) {
+        lastCharacterRef = state.character;
+        this.updateStatsFromStore();
+      }
     });
 
     this.unsubscribeStartCombat = bridge.subscribe(GameEvent.START_COMBAT, (payload) => {
@@ -678,6 +687,24 @@ export class CombatFSM {
       this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
       this.enemyHP = this.enemyMaxHP;
     }
+  }
+
+  private getBestiaryMultiplier(killCount: Record<string, number>): number {
+    if (killCount !== this.cachedBestiaryKillCount) {
+      this.cachedBestiaryKillCount = killCount;
+      this.cachedBestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(killCount);
+    }
+    return this.cachedBestiaryMult;
+  }
+
+  // Custo de mana de uma habilidade — usado tanto no disparo manual (triggerSkill) quanto na IA
+  // de auto-cast (runAutoCastAI), para as duas fórmulas não divergirem entre si.
+  private getSkillManaCost(skillId: string, skill: any): number {
+    if (skill.isUltimate) return skill.manaCost || 50;
+    if (skillId === 'heal') return 12;
+    if (skillId === 'slash') return 8;
+    if (skillId === 'fireball') return 15;
+    return 10 + skill.requiredLevel * 1.5;
   }
 
   private updateStatsFromStore() {
@@ -1047,7 +1074,7 @@ export class CombatFSM {
       primaryStatVal = finalStats.constitution;
     }
 
-    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(char.killCount || {});
+    const bestiaryMult = this.getBestiaryMultiplier(char.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult;
     const basicDmg = primaryStatVal * 3.0 * damageBoost;
     
@@ -1136,7 +1163,7 @@ export class CombatFSM {
       }
     }
 
-    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    const bestiaryMult = this.getBestiaryMultiplier(this.characterData.killCount || {});
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
@@ -1235,7 +1262,7 @@ export class CombatFSM {
     // Inimigo sob status EXPOSTO sofre 20% a mais de dano
     const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
-    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    const bestiaryMult = this.getBestiaryMultiplier(this.characterData.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
     // Chance de Crítico global no Ataque Básico
@@ -1799,7 +1826,7 @@ export class CombatFSM {
       } else {
         const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
         const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
-        const pickedStats = [...possibleStats].sort(() => 0.5 - Math.random()).slice(0, numAttributes);
+        const pickedStats = StatEngine.pickRandomElements(possibleStats, numAttributes);
         pickedStats.forEach((statKey) => {
           const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
           itemStats[statKey as keyof BaseStats] = val;
@@ -2176,7 +2203,7 @@ export class CombatFSM {
     }
 
     // Custo de mana dinâmico com base no nível requerido ou custo fixo da Ultimate
-    const manaCost = skill.isUltimate ? (skill.manaCost || 50) : (skillId === 'heal' ? 12 : (skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5)));
+    const manaCost = this.getSkillManaCost(skillId, skill);
     if (this.playerMana < manaCost) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Mana insuficiente para ${skill.name}! (Requer ${Math.floor(manaCost)})` });
       return;
@@ -2307,7 +2334,7 @@ export class CombatFSM {
     }
 
     const ascensionCount = this.characterData.ascensionCount || 0;
-    const bestiaryMult = StatEngine.calculateBestiaryDamageMultiplier(this.characterData.killCount || {});
+    const bestiaryMult = this.getBestiaryMultiplier(this.characterData.killCount || {});
     const damageBoost = (1 + (ascensionCount * 0.05)) * bestiaryMult; // +5% por ascensão e bônus do bestiário
 
     // Chance de Crítico global nas Habilidades
@@ -2620,7 +2647,7 @@ export class CombatFSM {
       const healSkillId = activeSkills.find((id: string) => id === 'heal');
       if (healSkillId) {
         const cooldown = this.skillCooldowns[healSkillId] || 0;
-        const manaCost = 12; // Custo do heal base
+        const manaCost = this.getSkillManaCost(healSkillId, SKILLS_CATALOG[healSkillId]);
         if (cooldown <= 0 && this.playerMana >= manaCost) {
           this.triggerSkill(healSkillId);
           return;
@@ -2636,7 +2663,7 @@ export class CombatFSM {
       if (!skill) continue;
 
       const cooldown = this.skillCooldowns[skillId] || 0;
-      const manaCost = skill.isUltimate ? (skill.manaCost || 50) : (skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5));
+      const manaCost = this.getSkillManaCost(skillId, skill);
 
       if (cooldown <= 0 && this.playerMana >= manaCost) {
         this.triggerSkill(skillId);

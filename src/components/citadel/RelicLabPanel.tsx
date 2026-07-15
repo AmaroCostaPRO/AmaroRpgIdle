@@ -4,6 +4,7 @@ import { useRelicStore } from '../../store/useRelicStore';
 import { AudioManager } from '../../core/AudioManager';
 import { RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
+import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 export const RelicLabPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -31,43 +32,24 @@ export const RelicLabPanel: React.FC = () => {
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            🧪 Laboratório de Relíquias Místicas {isBuilt ? `— Nível ${relicLab.level}` : '(Não construído)'}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Submete relíquias no Nível máximo (5) ao Superaquecimento de Alma, amplificando seus efeitos Capstone.
-          </p>
-        </div>
-      </div>
-
-      {relicLab.level < RELIC_LAB_MAX_LEVEL ? (
-        <>
-          {upgrading ? (
-            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
-              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={!canAffordUpgrade || lockedByCommandCenter}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Laboratório'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}
-            </button>
-          )}
-          {lockedByCommandCenter && (
-            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
-          )}
-        </>
-      ) : (
-        <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Laboratório no nível máximo.</p>
-      )}
-
-      {isBuilt && (
+    <CitadelBuildingPanel
+      icon="🧪"
+      title="Laboratório de Relíquias Místicas"
+      subtitle="Submete relíquias no Nível máximo (5) ao Superaquecimento de Alma, amplificando seus efeitos Capstone."
+      isBuilt={isBuilt}
+      level={relicLab.level}
+      maxLevel={RELIC_LAB_MAX_LEVEL}
+      nextLevel={nextLevel}
+      notBuiltLabel="(Não construído)"
+      buildLabel="Construir Laboratório"
+      costDisplay={<>🪨 {cost.stone} / 🪵 {cost.wood} / 💠 {cost.unstableSoulFragments}</>}
+      maxLevelLabel="Laboratório no nível máximo."
+      upgrading={upgrading}
+      countdown={countdown}
+      canAffordUpgrade={canAffordUpgrade}
+      lockedByCommandCenter={lockedByCommandCenter}
+      onUpgrade={handleUpgrade}
+    >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Superaquecimento ({relicLab.overheatedRelicIds.length}/{maxSlots} vagas usadas) — custo por relíquia: 🪙 {RELIC_OVERHEAT_GOLD_COST} / 💠 {RELIC_OVERHEAT_SOUL_FRAGMENT_COST}
@@ -112,7 +94,6 @@ export const RelicLabPanel: React.FC = () => {
             })}
           </div>
         </div>
-      )}
-    </div>
+    </CitadelBuildingPanel>
   );
 };

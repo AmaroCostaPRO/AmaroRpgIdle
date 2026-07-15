@@ -1,4 +1,6 @@
-const CACHE_NAME = 'amaro-rpg-idle-v1';
+// Lembre de atualizar esta versão a cada deploy que altere os assets cacheados (ver package.json),
+// caso contrário clientes antigos podem continuar servindo JS/HTML desatualizado do cache.
+const CACHE_NAME = 'amaro-rpg-idle-v6.0.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameStore, CLASS_CONFIGS } from '../store/useGameStore';
 import { Character } from '../core/types';
 import { AudioManager } from '../core/AudioManager';
@@ -24,9 +24,9 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   const exportSave = useGameStore((state) => state.exportSave);
 
   const [slots, setSlots] = useState<SlotData[]>([]);
-  const [importText, setImportText] = useState('');
-  const [activeImportSlot, setActiveImportSlot] = useState<number | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | '' }>({ text: '', type: '' });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const importTargetSlot = useRef<number | null>(null);
 
   // Carrega as informações dos slots ao montar o componente
   const loadSlotsInfo = () => {
@@ -108,45 +108,59 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
   const handleExport = (slotIndex: number) => {
     playClick();
     const encoded = exportSave(slotIndex);
-    if (encoded) {
-      navigator.clipboard.writeText(encoded)
-        .then(() => {
-          showFeedback(`Código do Save ${slotIndex} copiado para a área de transferência!`, 'success');
-        })
-        .catch(() => {
-          // Fallback caso clipboard API falhe
-          const textElement = document.createElement('textarea');
-          textElement.value = encoded;
-          document.body.appendChild(textElement);
-          textElement.select();
-          try {
-            document.execCommand('copy');
-            showFeedback(`Código do Save ${slotIndex} copiado!`, 'success');
-          } catch (err) {
-            showFeedback('Erro ao copiar código. Use a caixa de texto manualmente.', 'error');
-          }
-          document.body.removeChild(textElement);
-        });
-    } else {
+    if (!encoded) {
       showFeedback('Erro ao exportar o save.', 'error');
-    }
-  };
-
-  const handleImport = (slotIndex: number) => {
-    playClick();
-    if (!importText.trim()) {
-      showFeedback('Por favor, cole um código de save válido.', 'error');
       return;
     }
-    const success = importSave(slotIndex, importText);
-    if (success) {
-      setImportText('');
-      setActiveImportSlot(null);
-      loadSlotsInfo();
-      showFeedback(`Save importado com sucesso no Slot ${slotIndex}!`, 'success');
-    } else {
-      showFeedback('Código de save inválido ou corrompido.', 'error');
-    }
+    const char = slots.find((s) => s.slotIndex === slotIndex)?.character;
+    const classPart = char ? (CLASS_CONFIGS[char.classId]?.name || char.classId).toLowerCase().replace(/\s+/g, '-') : 'save';
+    const datePart = new Date().toISOString().slice(0, 10);
+    const filename = `amaro-rpg-idle_slot${slotIndex}_${classPart}_${datePart}.sav`;
+
+    const blob = new Blob([encoded], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showFeedback(`Save do Slot ${slotIndex} baixado como "${filename}"!`, 'success');
+  };
+
+  const handleImportClick = (slotIndex: number) => {
+    playClick();
+    importTargetSlot.current = slotIndex;
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const slotIndex = importTargetSlot.current;
+    e.target.value = ''; // permite selecionar o mesmo arquivo de novo em uma próxima tentativa
+    if (!file || slotIndex === null) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = typeof reader.result === 'string' ? reader.result.trim() : '';
+      if (!content) {
+        showFeedback('Arquivo de save vazio ou ilegível.', 'error');
+        return;
+      }
+      const success = importSave(slotIndex, content);
+      if (success) {
+        loadSlotsInfo();
+        showFeedback(`Save importado com sucesso no Slot ${slotIndex}!`, 'success');
+      } else {
+        showFeedback('Arquivo de save inválido ou corrompido.', 'error');
+      }
+    };
+    reader.onerror = () => {
+      showFeedback('Erro ao ler o arquivo de save.', 'error');
+    };
+    reader.readAsText(file);
   };
 
   const showFeedback = (text: string, type: 'success' | 'error') => {
@@ -183,6 +197,15 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
 
   return (
     <div className={`panel ${isInGame ? '' : 'animate-slideUp'}`} style={{ padding: isInGame ? '1.5rem 1rem' : '2.5rem 1.5rem', minHeight: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden', position: 'relative', width: '100%', boxSizing: 'border-box' }}>
+      {/* Input de arquivo oculto e compartilhado — acionado via handleImportClick para cada slot */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".sav,.txt,text/plain,application/octet-stream"
+        onChange={handleImportFileSelected}
+        style={{ display: 'none' }}
+      />
+
       {/* Glow de fundo */}
       {!isInGame && (
         <>
@@ -354,8 +377,8 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
                       >
                         📤 Exportar
                       </button>
-                      <button 
-                        onClick={() => { playClick(); setActiveImportSlot(activeImportSlot === slot.slotIndex ? null : slot.slotIndex); }} 
+                      <button
+                        onClick={() => handleImportClick(slot.slotIndex)}
                         className="btn btn-ghost"
                         style={{ flex: 1, padding: '0.4rem', fontSize: '0.6rem' }}
                       >
@@ -365,73 +388,21 @@ export const SavesMenu: React.FC<SavesMenuProps> = ({ isInGame = false, onBackTo
                   </>
                 ) : (
                   <>
-                    <button 
-                      onClick={() => handleNewGame(slot.slotIndex)} 
+                    <button
+                      onClick={() => handleNewGame(slot.slotIndex)}
                       className="btn btn-gold"
                       style={{ width: '100%', padding: '0.5rem', fontSize: '0.62rem' }}
                     >
                       ✦ Criar Novo Jogo
                     </button>
-                    <button 
-                      onClick={() => { playClick(); setActiveImportSlot(activeImportSlot === slot.slotIndex ? null : slot.slotIndex); }} 
+                    <button
+                      onClick={() => handleImportClick(slot.slotIndex)}
                       className="btn btn-ghost"
                       style={{ width: '100%', padding: '0.4rem', fontSize: '0.6rem' }}
                     >
-                      📥 Importar Código
+                      📥 Importar Arquivo de Save
                     </button>
                   </>
-                )}
-
-                {/* Caixa de Entrada de Importação */}
-                {activeImportSlot === slot.slotIndex && (
-                  <div 
-                    className="animate-tabFade" 
-                    style={{ 
-                      marginTop: '0.5rem', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: '0.5rem', 
-                      background: 'rgba(0,0,0,0.2)', 
-                      padding: '0.75rem', 
-                      borderRadius: 'var(--radius-md)', 
-                      border: '1px solid var(--border-dim)' 
-                    }}
-                  >
-                    <textarea
-                      placeholder="Cole o código do save aqui..."
-                      value={importText}
-                      onChange={(e) => setImportText(e.target.value)}
-                      style={{
-                        width: '100%',
-                        height: '4rem',
-                        background: 'rgba(0,0,0,0.4)',
-                        border: '1px solid var(--border-dim)',
-                        borderRadius: '4px',
-                        color: '#fff',
-                        fontSize: '0.55rem',
-                        padding: '0.3rem',
-                        fontFamily: 'var(--font-mono)',
-                        resize: 'none',
-                        outline: 'none'
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => { playClick(); setActiveImportSlot(null); setImportText(''); }} 
-                        className="btn btn-ghost btn-sm" 
-                        style={{ flex: 1, fontSize: '0.55rem', padding: '0.2rem' }}
-                      >
-                        Cancelar
-                      </button>
-                      <button 
-                        onClick={() => handleImport(slot.slotIndex)} 
-                        className="btn btn-emerald btn-sm" 
-                        style={{ flex: 1, fontSize: '0.55rem', padding: '0.2rem' }}
-                      >
-                        Confirmar
-                      </button>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>

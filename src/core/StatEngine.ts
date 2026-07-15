@@ -305,6 +305,21 @@ export const SET_BONUSES: Record<string, {
  */
 export class StatEngine {
   /**
+   * Sorteia `count` elementos distintos de `pool` sem repetição, com distribuição uniforme
+   * (Fisher-Yates parcial). Substitui o padrão `array.sort(() => 0.5 - Math.random())`, que tem
+   * viés conhecido e não sorteia os itens com probabilidade igual.
+   */
+  static pickRandomElements<T>(pool: T[], count: number): T[] {
+    const arr = [...pool];
+    const n = Math.min(count, arr.length);
+    for (let i = 0; i < n; i++) {
+      const j = i + Math.floor(Math.random() * (arr.length - i));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, n);
+  }
+
+  /**
    * Calcula o valor final consolidado dos atributos de um personagem.
    */
   static calculateFinalStats(character: Character): BaseStats {
@@ -495,30 +510,6 @@ export class StatEngine {
   }
 
   /**
-   * Mantido para retrocompatibilidade da assinatura original.
-   */
-  static calculateStat(
-    baseStats: BaseStats,
-    growthRates: Record<keyof BaseStats, number> | BaseStats,
-    skillMultipliers: Partial<BaseStats>,
-    prestigeMultipliers: Partial<BaseStats>,
-    statKey: keyof BaseStats
-  ): number {
-    const base = baseStats[statKey] || 0;
-    const totalGrowth = growthRates[statKey] || 0;
-
-    let multiplierSum = 1.0;
-    if (skillMultipliers[statKey]) {
-      multiplierSum += skillMultipliers[statKey]!;
-    }
-    if (prestigeMultipliers[statKey]) {
-      multiplierSum += prestigeMultipliers[statKey]!;
-    }
-
-    return Math.floor((base + totalGrowth) * multiplierSum);
-  }
-
-  /**
    * Calcula o multiplicador de dano acumulado do bestiário.
    * +1% por monstro com abates suficientes (+2% no Purgatório).
    * +2% adicionais por fase completada (+7% no Purgatório).
@@ -563,26 +554,6 @@ export class StatEngine {
     return 1.0 + (bonusPct / 100);
   }
 
-  /**
-   * Mantido para retrocompatibilidade da assinatura original.
-   */
-  static calculateAllStats(
-    character: any,
-    prestigeMultipliers: Partial<BaseStats>
-  ): Record<keyof BaseStats, number> {
-    const stats = {} as Record<keyof BaseStats, number>;
-    for (const key of Object.keys(character.baseStats) as Array<keyof BaseStats>) {
-      stats[key] = this.calculateStat(
-        character.baseStats,
-        character.growthRates,
-        {},
-        prestigeMultipliers,
-        key
-      );
-    }
-    return stats;
-  }
-
   static generateNecklaceStats(stage: number, mult: number, rarity: string): Partial<BaseStats> {
     const pool: Array<keyof BaseStats> = [
       'damageMultiplierPct',
@@ -598,7 +569,7 @@ export class StatEngine {
     ];
     
     const numBonuses = rarity === 'common' ? 1 : (rarity === 'rare' ? 2 : 3);
-    const selectedKeys = [...pool].sort(() => 0.5 - Math.random()).slice(0, numBonuses);
+    const selectedKeys = StatEngine.pickRandomElements(pool, numBonuses);
     
     const stats: Partial<BaseStats> = {};
     selectedKeys.forEach((key) => {

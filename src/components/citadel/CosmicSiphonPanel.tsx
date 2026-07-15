@@ -3,6 +3,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
+import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 export const CosmicSiphonPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -29,48 +30,28 @@ export const CosmicSiphonPanel: React.FC = () => {
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            🌫️ Sifão de Essência Cósmica {isBuilt ? `— Nível ${siphon.level}` : '(Não construído)'}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            Neutraliza as penalidades ambientais sofridas na zona espelho da Ecoterra.
-          </p>
-        </div>
+    <CitadelBuildingPanel
+      icon="🌫️"
+      title="Sifão de Essência Cósmica"
+      subtitle="Neutraliza as penalidades ambientais sofridas na zona espelho da Ecoterra."
+      isBuilt={isBuilt}
+      level={siphon.level}
+      maxLevel={COSMIC_SIPHON_MAX_LEVEL}
+      nextLevel={nextLevel}
+      notBuiltLabel="(Não construído)"
+      buildLabel="Construir Sifão"
+      costDisplay={<>🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}</>}
+      maxLevelLabel="Sifão no nível máximo — Sincronia Perfeita."
+      upgrading={upgrading}
+      countdown={countdown}
+      canAffordUpgrade={canAffordUpgrade}
+      lockedByCommandCenter={lockedByCommandCenter}
+      onUpgrade={handleUpgrade}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <p style={{ fontSize: '0.85rem' }}>Drenagem de mana ambiental na Ecoterra: {manaDrainPct.toFixed(1)}%/s (base 1.5%/s)</p>
+        <p style={{ fontSize: '0.85rem' }}>Erosão de recarga de habilidades na Ecoterra: +{cooldownErosionPct.toFixed(0)}% (base +15%)</p>
       </div>
-
-      {siphon.level < COSMIC_SIPHON_MAX_LEVEL ? (
-        <>
-          {upgrading ? (
-            <button disabled className="btn btn-disabled" style={{ alignSelf: 'flex-start' }}>
-              🏗️ Melhorando para Nível {upgrading.targetLevel}... ({countdown})
-            </button>
-          ) : (
-            <button
-              onClick={handleUpgrade}
-              disabled={!canAffordUpgrade || lockedByCommandCenter}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Sifão'} — 🪨 {cost.stone} / 🪵 {cost.wood} / 🌌 {cost.transcendenceEssence}
-            </button>
-          )}
-          {lockedByCommandCenter && (
-            <p style={{ fontSize: '0.68rem', color: '#f87171', margin: 0 }}>🏛️ Requer o Centro de Comando no Nível {nextLevel}.</p>
-          )}
-        </>
-      ) : (
-        <p style={{ color: 'var(--gold-300)', fontSize: '0.85rem' }}>Sifão no nível máximo — Sincronia Perfeita.</p>
-      )}
-
-      {isBuilt && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <p style={{ fontSize: '0.85rem' }}>Drenagem de mana ambiental na Ecoterra: {manaDrainPct.toFixed(1)}%/s (base 1.5%/s)</p>
-          <p style={{ fontSize: '0.85rem' }}>Erosão de recarga de habilidades na Ecoterra: +{cooldownErosionPct.toFixed(0)}% (base +15%)</p>
-        </div>
-      )}
-    </div>
+    </CitadelBuildingPanel>
   );
 };

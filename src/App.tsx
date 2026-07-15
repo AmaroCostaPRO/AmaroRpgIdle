@@ -369,6 +369,14 @@ const App: React.FC = () => {
                         O XP por inimigo na Torre deixou de escalar com a fase/nível fora da torre e passou a ser fixo em 1% do XP necessário para o próximo nível (mantendo os bônus de Chefe, Elite e Chave Evoluída). Equipamentos, consumíveis e materiais deixaram de dropar na Torre — a recompensa de combate ali agora é exclusivamente Fragmentos de Forja.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f472b6', fontSize: '0.72rem' }}>
+                        💾 Exportar/Importar Save agora por Arquivo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Exportar um slot agora baixa um arquivo <code>.sav</code> em vez de copiar um código de letras para a área de transferência. Importar abre o seletor de arquivos do sistema para escolher esse arquivo, no lugar de colar o código manualmente.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
