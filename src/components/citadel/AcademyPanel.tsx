@@ -1,10 +1,9 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST } from '../../core/citadelFormulas';
+import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST, ResearchKey, getResearchTotalBonusLabel } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 
-type ResearchKey = 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment';
 type ResearchLevelField =
   | 'researchDmgLevel' | 'researchHpLevel' | 'researchSpeedLevel'
   | 'researchTouchDmgLevel' | 'researchCritDmgLevel'
@@ -114,6 +113,11 @@ export const AcademyPanel: React.FC = () => {
                 <div>
                   <div style={{ fontSize: '0.9rem', color: '#fff' }}>{label} — Nível {level}</div>
                   <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{description}</div>
+                  {level > 0 && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gold-300)' }}>
+                      Total atual: {getResearchTotalBonusLabel(key, level)}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => { AudioManager.getInstance().playClick(); upgradeAcademyResearch(key); }}

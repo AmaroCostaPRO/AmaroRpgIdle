@@ -1986,21 +1986,22 @@ export const useGameStore = create<GameState>((set) => ({
       baseStats: newBaseStats,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: (state.character.pandemoniumUnlocked) 
-        ? state.character.equipment 
+      equipment: (state.character.pandemoniumUnlocked)
+        ? state.character.equipment
         : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
-      inventory: [],
+      // Chaves da Torre Evoluídas sobrevivem à Ascensão; demais itens do inventário são zerados
+      inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
       runStartTime: Date.now(),
       ascensionNotified: false,
       citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true },
-      // Ascensão retém apenas 10% dos materiais farmados na run, evitando acúmulo exagerado entre runs
+      // Ascensão retém apenas 2% dos materiais farmados na run, evitando acúmulo exagerado entre runs
       materials: {
-        wood: Math.floor((state.character.materials?.wood || 0) * 0.1),
-        stone: Math.floor((state.character.materials?.stone || 0) * 0.1),
-        meat: Math.floor((state.character.materials?.meat || 0) * 0.1),
-        studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.1),
+        wood: Math.floor((state.character.materials?.wood || 0) * 0.02),
+        stone: Math.floor((state.character.materials?.stone || 0) * 0.02),
+        meat: Math.floor((state.character.materials?.meat || 0) * 0.02),
+        studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.02),
       },
     };
 
@@ -2071,7 +2072,8 @@ export const useGameStore = create<GameState>((set) => ({
       currentStage: 1,
       enemiesDefeatedInStage: 0,
       equipment: state.character.equipment,
-      inventory: [],
+      // Chaves da Torre Evoluídas sobrevivem ao desbloqueio do Pandemônio
+      inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       pandemoniumUnlocked: true,
       activePandemonium: false,
       ascensionNotified: false,
@@ -2158,7 +2160,8 @@ export const useGameStore = create<GameState>((set) => ({
       currentStage: 1,
       enemiesDefeatedInStage: 0,
       equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
-      inventory: [],
+      // Chaves da Torre Evoluídas sobrevivem à Transcendência
+      inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       pandemoniumUnlocked: false,
       activePandemonium: false,
       purgatoryCompleted: false,

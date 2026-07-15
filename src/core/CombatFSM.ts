@@ -1566,9 +1566,9 @@ export class CombatFSM {
       gainedXp *= 3;
     }
 
-    // Escala de Gold por fase e sorte (reduzida para conter o acúmulo em fases avançadas)
+    // Escala de Gold por fase e sorte (reduzida para conter o acúmulo em fases avançadas; fator 0.5 aplica uma redução adicional de 50%)
     const goldScale = Math.pow(1.085, char.currentStage - 1);
-    const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale);
+    const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale * 0.5);
     let gainedGold = isBoss ? baseGainedGold * 3.5 : baseGainedGold;
 
     // Inimigos Elite concedem 2.0x mais Ouro (acumula com multiplicador base)

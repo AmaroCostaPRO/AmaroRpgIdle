@@ -53,6 +53,27 @@ export const ACADEMY_UPGRADE_COST = (nextLevel: number): { wood: number; stone: 
 export const ACADEMY_MAX_RESEARCH_LEVEL = (academyLevel: number): number => academyLevel * 5;
 export const RESEARCH_COST = (nextLevel: number): number => 20 * nextLevel;
 
+export type ResearchKey = 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment';
+
+// Valor aplicado por nível de cada pesquisa da Academia Militar (StatEngine.ts e CombatFSM.ts).
+// Todas escalam linearmente com o nível (nível × valor), seja como pontos percentuais somados
+// direto na stat, seja como acréscimo relativo multiplicando uma chance/valor base.
+export const RESEARCH_PER_LEVEL: Record<ResearchKey, number> = {
+  dmg: 0.015,
+  hp: 0.02,
+  speed: 0.01,
+  touchDmg: 0.02,
+  critDmg: 2,
+  towerKey: 0.02,
+  soulFragment: 0.02,
+};
+
+// Formata o bônus total atualmente acumulado por uma pesquisa em um dado nível, para exibição na UI.
+export const getResearchTotalBonusLabel = (key: ResearchKey, level: number): string => {
+  const total = level * RESEARCH_PER_LEVEL[key];
+  return key === 'critDmg' ? `+${total.toFixed(0)} pts` : `+${total.toFixed(1)}%`;
+};
+
 export const WATCH_TOWER_MAX_LEVEL = 5;
 export const WATCH_TOWER_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; meat: number } => ({
   wood: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
