@@ -57,7 +57,7 @@ export const ShopPanel: React.FC = () => {
     {
       id: 'relic_chest' as const,
       name: 'Baú de Relíquias',
-      description: 'Contém 3 Fragmentos de Alma Instável para uso no Altar de Relíquias. Forje e aprimore suas relíquias mais rapidamente.',
+      description: 'Contém de 1 a 3 Fragmentos de Alma Instável para uso no Altar de Relíquias. Forje e aprimore suas relíquias mais rapidamente.',
       cost: 500000,
       icon: '💜🏺💜',
       color: '#c084fc',

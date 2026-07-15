@@ -1567,7 +1567,7 @@ export class CombatFSM {
     }
 
     // Escala de Gold por fase e sorte (reduzida para conter o acúmulo em fases avançadas)
-    const goldScale = Math.pow(1.15, char.currentStage - 1);
+    const goldScale = Math.pow(1.085, char.currentStage - 1);
     const baseGainedGold = Math.floor((10 + Math.floor(char.currentStage * 1.5)) * goldScale);
     let gainedGold = isBoss ? baseGainedGold * 3.5 : baseGainedGold;
 
@@ -1605,7 +1605,9 @@ export class CombatFSM {
     useGameStore.getState().addGold(gainedGold);
 
     // Drop de materiais da Cidadela (Madeira/Pedra/Carne), sem influência da Sorte
-    if (this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
+    // Só dropam após a 1ª Ascensão, que é quando a Cidadela é desbloqueada
+    const isCitadelUnlockedForDrops = char.citadel?.unlocked || (char.ascensionCount || 0) >= 1;
+    if (isCitadelUnlockedForDrops && this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
       const commandCenterLevel = char.citadel?.commandCenter.level || 1;
       const commandCenterMult = 1 + COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenterLevel);
       const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * commandCenterMult;

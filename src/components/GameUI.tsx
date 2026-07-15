@@ -339,6 +339,19 @@ const ActiveSkillsPanel: React.FC = () => {
   const [isAutoCastModalOpen, setIsAutoCastModalOpen] = useState(false);
   const [tempHealPercent, setTempHealPercent] = useState<number>(50);
   const [tempDisabledSkills, setTempDisabledSkills] = useState<string[]>([]);
+  const [speedTooltip, setSpeedTooltip] = useState<{ speed: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
+
+  // Fecha o balão de velocidade bloqueada ao clicar em qualquer outro lugar da tela
+  useEffect(() => {
+    if (!speedTooltip) return;
+    const closeTooltip = () => setSpeedTooltip(null);
+    window.addEventListener('click', closeTooltip, true);
+    window.addEventListener('scroll', closeTooltip, true);
+    return () => {
+      window.removeEventListener('click', closeTooltip, true);
+      window.removeEventListener('scroll', closeTooltip, true);
+    };
+  }, [speedTooltip]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe(GameEvent.COOLDOWNS_CHANGED, (payload: any) => {
@@ -651,17 +664,34 @@ const ActiveSkillsPanel: React.FC = () => {
             return (
               <button
                 key={speed}
-                onClick={() => {
-                  if (isSpeedLocked) return;
+                onClick={(e) => {
+                  if (isSpeedLocked) {
+                    e.stopPropagation();
+                    AudioManager.getInstance().playClick();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const fitsBelow = window.innerHeight - rect.bottom > 50;
+                    setSpeedTooltip((prev) =>
+                      prev?.speed === speed
+                        ? null
+                        : {
+                            speed,
+                            label: getSpeedTooltip() || '',
+                            x: rect.left + rect.width / 2,
+                            y: fitsBelow ? rect.bottom + 6 : rect.top - 6,
+                            placement: fitsBelow ? 'below' : 'above',
+                          }
+                    );
+                    return;
+                  }
                   AudioManager.getInstance().playClick();
                   setGameSpeed(speed);
                 }}
                 className={`btn btn-sm ${isActive ? 'btn-gold' : 'btn-ghost'}`}
-                style={{ 
-                  minWidth: '1.8rem', 
-                  height: '1.3rem', 
-                  padding: 0, 
-                  fontSize: '0.55rem', 
+                style={{
+                  minWidth: '1.8rem',
+                  height: '1.3rem',
+                  padding: 0,
+                  fontSize: '0.55rem',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -671,7 +701,6 @@ const ActiveSkillsPanel: React.FC = () => {
                   opacity: isSpeedLocked ? 0.3 : 1,
                   cursor: isSpeedLocked ? 'not-allowed' : 'pointer'
                 }}
-                disabled={isSpeedLocked}
                 title={getSpeedTooltip()}
               >
                 {isSpeedLocked ? '🔒' : (speed === 0 ? '⏸' : `${speed}x`)}
@@ -680,6 +709,31 @@ const ActiveSkillsPanel: React.FC = () => {
           })}
         </div>
       </div>
+
+      {speedTooltip && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: speedTooltip.y,
+            left: speedTooltip.x,
+            transform: speedTooltip.placement === 'above' ? 'translate(-50%, -100%)' : 'translateX(-50%)',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.25rem 0.6rem',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            color: '#fff',
+            whiteSpace: 'nowrap',
+            boxShadow: 'var(--shadow-panel)',
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        >
+          {speedTooltip.label}
+        </div>,
+        document.body
+      )}
 
       {/* Modo de Teste (Cheat Mode) - desativado, era apenas para testes internos.
           Para reativar, troque `SHOW_TEST_MODE_TOGGLE` para true. */}
@@ -3737,7 +3791,7 @@ const GuidePanel: React.FC = () => {
                 <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
                   <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
                   <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
-                  <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 5.000 Ouro para obter instantaneamente 3 fragmentos garantidos ao consumi-lo.</li>
+                  <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 500.000 Ouro para obter instantaneamente de 1 a 3 fragmentos aleatórios ao consumi-lo.</li>
                 </ul>
               </div>
               <div>
@@ -4854,7 +4908,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
           </span>
         </div>
         <p style={{ fontSize: '0.52rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-          Cada monstro com 100+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong> (Fases 1-5) e <strong className="text-white">+2%</strong> no Purgatório. 
+          Cada monstro com 200+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong> (Fases 1-5) e <strong className="text-white">+2%</strong> no Purgatório.
           Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong> (Fases 1-5) e <strong className="text-white">+7%</strong> no Purgatório. 
           Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +65% de Dano).
         </p>
@@ -4874,7 +4928,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
               {phase.enemies.map((enemy) => {
                 const kills = killCount[enemy.id] || 0;
                 const isBoss = enemy.id.startsWith('boss_');
-                const reqKills = enemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
+                const reqKills = enemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
                 const isUnlocked = kills >= reqKills;
                 const isHovered = hoveredEnemyId === enemy.id;
 
@@ -6920,6 +6974,10 @@ export default function GameUI() {
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [confirmSellItem, setConfirmSellItem] = useState(false);
+  const [confirmDismantleItem, setConfirmDismantleItem] = useState(false);
+  const [depositButtonState, setDepositButtonState] = useState<'default' | 'success' | 'full'>('default');
+  const depositItemToVault = useGameStore((state) => state.depositItemToVault);
   const [selectedEnemy, setSelectedEnemy] = useState<any | null>(null);
 
   const sfxEnabled = useGameStore((state) => state.sfxEnabled);
@@ -7405,7 +7463,7 @@ export default function GameUI() {
               justifyContent: 'center',
               zIndex: 99,
               padding: '1rem'
-            }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); }}>
+            }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); setConfirmSellItem(false); setConfirmDismantleItem(false); setDepositButtonState('default'); }}>
               <div style={{
                 background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
                 border: itemBorder,
@@ -7419,15 +7477,55 @@ export default function GameUI() {
                 gap: '1rem',
                 position: 'relative'
               }} onClick={(e) => e.stopPropagation()}>
-                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedItem(null)}>✕</button>
+                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); setConfirmSellItem(false); setConfirmDismantleItem(false); setDepositButtonState('default'); }}>✕</button>
 
                 <div>
                   <span className="font-mono" style={{ fontSize: '0.5rem', color: itemNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     {selectedItem.rarity} • {slotLabels[selectedItem.slot]}
                   </span>
-                  <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: '0.1rem 0 0.5rem 0', color: itemNameColor }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', margin: '0.1rem 0 0.5rem 0' }}>
+                  <h4 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: itemNameColor }}>
                     {selectedItem.name}
                   </h4>
+                  {selectedItem.slot !== 'consumable' && (
+                    <button
+                      title="Enviar ao Depósito"
+                      onClick={() => {
+                        if (depositButtonState !== 'default') return;
+                        AudioManager.getInstance().playClick();
+                        const res = depositItemToVault(selectedItem.id);
+                        if (res.success) {
+                          setDepositButtonState('success');
+                          setTimeout(() => {
+                            setSelectedItem(null);
+                            setDepositButtonState('default');
+                          }, 900);
+                        } else {
+                          setDepositButtonState('full');
+                          setTimeout(() => setDepositButtonState('default'), 3000);
+                        }
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s, border-color 0.2s, color 0.2s',
+                        background: depositButtonState === 'success' ? 'rgba(16, 185, 129, 0.2)' : (depositButtonState === 'full' ? 'rgba(248, 113, 113, 0.2)' : 'rgba(255,255,255,0.06)'),
+                        border: `1px solid ${depositButtonState === 'success' ? '#10b981' : (depositButtonState === 'full' ? '#f87171' : 'rgba(255,255,255,0.15)')}`,
+                        color: depositButtonState === 'success' ? '#10b981' : (depositButtonState === 'full' ? '#f87171' : '#94a3b8')
+                      }}
+                    >
+                      {depositButtonState === 'success' ? '✓' : (depositButtonState === 'full' ? '✕' : '↑')}
+                    </button>
+                  )}
+                  </div>
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
@@ -7439,7 +7537,7 @@ export default function GameUI() {
                         {selectedItem.consumableType === 'boost_touch_x3' && '⚡3 Ativa instantaneamente o Frenesi de Toques Críticos automáticos por 3 minutos.'}
                         {selectedItem.consumableType === 'chest_legendary' && '🎁 Contém de 1 a 3 equipamentos Lendários aleatórios adequados para a sua classe atual.'}
                         {selectedItem.consumableType === 'chest_ancestral' && '✨ Contém de 1 a 3 equipamentos Ancestrais aleatórios de extremo poder para a sua classe atual.'}
-                        {selectedItem.consumableType === 'relic_chest' && '💜 Ao abrir, concede +3 Fragmentos de Alma Instável diretamente no seu Altar de Relíquias.'}
+                        {selectedItem.consumableType === 'relic_chest' && '💜 Ao abrir, concede de 1 a 3 Fragmentos de Alma Instável diretamente no seu Altar de Relíquias.'}
                         {selectedItem.consumableType === 'unstable_soul_fragment' && '🔮 Fragmento de Alma absorvido no Altar de Relíquias: +1 Fragmento.'}
                         {selectedItem.consumableType === 'tower_key' && '🔑 Chave de acesso para a Torre Infinita. Consumida ao iniciar uma tentativa de subida a partir do painel da Torre.'}
                         {selectedItem.consumableType === 'tower_key_evolved' && '🗝️ Chave Evoluída de acesso à Torre Infinita. Concede +200% de Ouro e XP na subida. Consumida ao iniciar uma tentativa a partir do painel da Torre.'}
@@ -7481,7 +7579,7 @@ export default function GameUI() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                   {selectedItem.slot === 'consumable' ? (
                     selectedItem.consumableType !== 'tower_key' && selectedItem.consumableType !== 'tower_key_evolved' && (
-                      <button 
+                      <button
                         onClick={() => {
                           AudioManager.getInstance().playClick();
                           const res = useConsumable(selectedItem.id);
@@ -7491,20 +7589,22 @@ export default function GameUI() {
                             alert(res.message);
                           }
                         }}
-                        className="btn btn-sm btn-gold" 
+                        className="btn btn-sm btn-gold"
                         style={{ width: '100%', background: 'linear-gradient(to right, #0891b2, #06b6d4)', borderColor: '#06b6d4', color: '#fff' }}
                       >
                         Usar Item
                       </button>
                     )
                   ) : (
-                    <button 
+                    <button
                       onClick={() => {
                         AudioManager.getInstance().playClick();
+                        setConfirmSellItem(false);
+                        setConfirmDismantleItem(false);
                         equipItem(selectedItem.id);
                         setSelectedItem(null);
                       }}
-                      className="btn btn-sm btn-gold" 
+                      className="btn btn-sm btn-gold"
                       style={{ width: '100%' }}
                     >
                       Equipar Item
@@ -7536,18 +7636,26 @@ export default function GameUI() {
                     )
                   ) : (
                     <>
-                      <button 
+                      <button
                         onClick={() => {
-                          AudioManager.getInstance().playCoin();
-                          sellItem(selectedItem.id);
-                          setSelectedItem(null);
+                          setConfirmDismantleItem(false);
+                          if (confirmSellItem) {
+                            AudioManager.getInstance().playCoin();
+                            sellItem(selectedItem.id);
+                            setSelectedItem(null);
+                            setConfirmSellItem(false);
+                          } else {
+                            AudioManager.getInstance().playClick();
+                            setConfirmSellItem(true);
+                            setTimeout(() => setConfirmSellItem(false), 3000);
+                          }
                         }}
-                        className="btn btn-sm" 
-                        style={{ 
-                          width: '100%', 
-                          background: 'linear-gradient(to right, #fbbf24, #d97706)', 
-                          borderColor: '#d97706', 
-                          color: '#000',
+                        className="btn btn-sm"
+                        style={{
+                          width: '100%',
+                          background: confirmSellItem ? 'linear-gradient(to right, rgba(16, 185, 129, 0.85), rgba(5, 150, 105, 0.85))' : 'linear-gradient(to right, #fbbf24, #d97706)',
+                          borderColor: confirmSellItem ? '#059669' : '#d97706',
+                          color: confirmSellItem ? '#fff' : '#000',
                           fontWeight: 'bold',
                           display: 'flex',
                           alignItems: 'center',
@@ -7555,20 +7663,28 @@ export default function GameUI() {
                           gap: '0.25rem'
                         }}
                       >
-                        <span>🪙 Vender por {formatNumber(calculateItemSellValue(selectedItem), abbreviateNumbers)} Ouro</span>
+                        <span>{confirmSellItem ? '⚠️ Tem Certeza?' : `🪙 Vender por ${formatNumber(calculateItemSellValue(selectedItem), abbreviateNumbers)} Ouro`}</span>
                       </button>
 
-                      <button 
+                      <button
                         onClick={() => {
-                          AudioManager.getInstance().playClick();
-                          dismantleItem(selectedItem.id);
-                          setSelectedItem(null);
+                          setConfirmSellItem(false);
+                          if (confirmDismantleItem) {
+                            AudioManager.getInstance().playClick();
+                            dismantleItem(selectedItem.id);
+                            setSelectedItem(null);
+                            setConfirmDismantleItem(false);
+                          } else {
+                            AudioManager.getInstance().playClick();
+                            setConfirmDismantleItem(true);
+                            setTimeout(() => setConfirmDismantleItem(false), 3000);
+                          }
                         }}
-                        className="btn btn-sm" 
-                        style={{ 
-                          width: '100%', 
-                          background: 'linear-gradient(to right, #a855f7, #7c3aed)', 
-                          borderColor: '#7c3aed', 
+                        className="btn btn-sm"
+                        style={{
+                          width: '100%',
+                          background: confirmDismantleItem ? 'linear-gradient(to right, rgba(16, 185, 129, 0.85), rgba(5, 150, 105, 0.85))' : 'linear-gradient(to right, #a855f7, #7c3aed)',
+                          borderColor: confirmDismantleItem ? '#059669' : '#7c3aed',
                           color: '#fff',
                           fontWeight: 'bold',
                           display: 'flex',
@@ -7577,7 +7693,7 @@ export default function GameUI() {
                           gap: '0.25rem'
                         }}
                       >
-                        <span>🛠️ Desmontar</span>
+                        <span>{confirmDismantleItem ? '⚠️ Tem Certeza?' : '🛠️ Desmontar'}</span>
                       </button>
                     </>
                   )}
@@ -7701,7 +7817,7 @@ export default function GameUI() {
           (() => {
             const kills = (character.killCount || {})[selectedEnemy.id] || 0;
             const isBoss = selectedEnemy.id.startsWith('boss_');
-            const reqKills = selectedEnemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
+            const reqKills = selectedEnemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
             const isPurgatory = ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian'].includes(selectedEnemy.id);
             const enemyBonus = isPurgatory ? 2 : 1;
 

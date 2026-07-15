@@ -2710,7 +2710,7 @@ export const useGameStore = create<GameState>((set) => ({
     const newKills = prevKills + 1;
 
     const isBoss = enemyId.startsWith('boss_');
-    const reqKills = enemyId === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 100);
+    const reqKills = enemyId === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
 
     if (prevKills < reqKills && newKills >= reqKills) {
       setTimeout(() => {
@@ -3550,14 +3550,15 @@ export const useGameStore = create<GameState>((set) => ({
       const nextInventory = state.character.inventory.filter(i => i.id !== itemId);
 
       if (item.consumableType === 'relic_chest') {
-        useRelicStore.getState().addFragments(3);
-        
+        const fragmentsGained = Math.floor(Math.random() * 3) + 1;
+        useRelicStore.getState().addFragments(fragmentsGained);
+
         const updated = {
           ...state.character,
           inventory: nextInventory
         };
         saveToLocalStorage(updated);
-        result = { success: true, message: 'Baú de Relíquias aberto! +3 Fragmentos de Alma Instável no Altar de Relíquias.' };
+        result = { success: true, message: `Baú de Relíquias aberto! +${fragmentsGained} Fragmento(s) de Alma Instável no Altar de Relíquias.` };
         return { character: updated };
       }
 

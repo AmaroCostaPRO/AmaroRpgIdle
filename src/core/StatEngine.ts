@@ -543,7 +543,7 @@ export class StatEngine {
 
       phaseEnemies.forEach((enemyId) => {
         const kills = killCount[enemyId] || 0;
-        const requiredKills = enemyId === 'boss_crystal_guardian' ? 20 : (enemyId.startsWith('boss_') ? 50 : 100);
+        const requiredKills = enemyId === 'boss_crystal_guardian' ? 20 : (enemyId.startsWith('boss_') ? 50 : 200);
         if (kills >= requiredKills) {
           bonusPct += isPurgatory ? 2 : 1;
           completedInPhase++;
