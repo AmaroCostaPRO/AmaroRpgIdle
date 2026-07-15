@@ -197,7 +197,7 @@ export const ForgeView: React.FC = () => {
       return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0, fragmentCost: 0, nextLevel: 1 };
     }
     let cost = 500;
-    let fragmentCost = 100;
+    let fragmentCost = 250;
     let nextLevel = 1;
 
     if (isBothMystic) {

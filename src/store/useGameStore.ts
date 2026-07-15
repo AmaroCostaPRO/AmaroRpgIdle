@@ -3187,7 +3187,7 @@ export const useGameStore = create<GameState>((set) => ({
       }
 
       let cost = 500;
-      let fragmentCost = 100;
+      let fragmentCost = 250;
       let targetMysticLevel = 1;
 
       if (isBothMystic) {

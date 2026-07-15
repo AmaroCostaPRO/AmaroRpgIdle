@@ -3760,14 +3760,14 @@ const GuidePanel: React.FC = () => {
                 <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷):</strong>
                 <div className="mt-1 space-y-0.5">
                   {[
-                    { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '100' },
-                    { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '250' },
-                    { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '500' },
-                    { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '1.000' },
-                    { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '2.500' },
-                    { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '5.000' },
-                    { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '10.000' },
-                    { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '20.000' },
+                    { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '250' },
+                    { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '625' },
+                    { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '1.250' },
+                    { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '2.500' },
+                    { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '6.250' },
+                    { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '12.500' },
+                    { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '25.000' },
+                    { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '50.000' },
                   ].map((row) => (
                     <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
                       <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>

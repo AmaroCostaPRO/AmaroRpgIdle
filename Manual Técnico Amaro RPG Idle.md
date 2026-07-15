@@ -939,6 +939,11 @@ O modo **Torre Infinita** (v4.1.0) consiste em uma arena de desafios verticais c
 *   **Escalonamento**: A quantidade de Fragmentos de Forja concedida cresce progressivamente a cada andar superado, incentivando o avanço vertical e a progressão contínua.
 *   **Exibição na HUD**: O saldo acumulado de Fragmentos de Forja é persistido no save do jogador e exibido dinamicamente no cabeçalho superior do jogo (ao lado do Ouro e das Chaves), provendo feedback visual constante sobre a economia do herói.
 
+### F. Economia de Combate: XP Fixo e Ausência de Outros Drops
+*   **XP Fixo por Inimigo**: Diferente da campanha normal (onde o XP escala com `xpValue` do inimigo e a fase atual do herói), cada inimigo comum derrotado dentro da Torre Infinita concede um XP fixo equivalente a **1% do XP necessário para o próximo nível** do herói (`XpEngine.getXpNeededForLevel(nível, fase) × 0.01`, calculado em `CombatFSM.ts`). Isso desacopla o ganho de XP na Torre da fase/nível do personagem fora dela, evitando que a farm da Torre acelere artificialmente a curva de evolução do herói.
+*   **Multiplicadores Mantidos**: Sobre essa base de 1%, os multiplicadores especiais de XP continuam se aplicando normalmente: Chefe de andar concede **3x**, inimigos Elite concedem **2x** adicional, e a Chave da Torre Evoluída mantém seu bônus de **3x** XP (ver Seção 13.D).
+*   **Nenhum Drop de Equipamento, Consumível ou Material**: Dentro da Torre Infinita, inimigos **não** dropam equipamentos (elmo, armadura, arma, colar etc.), consumíveis (incluindo o raro Fragmento de Alma Instável) nem materiais da Cidadela (Madeira, Pedra, Carne). A única recompensa de combate na Torre, além do XP fixo acima, são os **Fragmentos de Forja** concedidos por andar superado (Seção 10.E) — o objetivo é que a Torre sirva como fonte dedicada de Fragmentos de Forja, sem inflar o inventário do jogador com itens redundantes.
+
 ---
 
 ## 11. O Segundo Ciclo: Transcendência, Loja Celestial e a Ecoterra
@@ -1133,20 +1138,20 @@ Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatori
 
 ### B. Custo de Fusão
 A fusão exige o pagamento de uma taxa combinada de Ouro e **Fragmentos de Forja** que aumenta progressivamente dependendo do nível místico resultante:
-*   **Fusão Inicial** (Gera Místico +1): $500$ Ouro e $100$ Fragmentos de Forja.
+*   **Fusão Inicial** (Gera Místico +1): $500$ Ouro e $250$ Fragmentos de Forja.
 *   **Fusão de Itens Místicos até +5** (Místico $+2$ até $+5$): custos fixos em tabela (abaixo).
-*   **Fusão de Itens Místicos +6 a +8**: Ouro escalado pela fórmula $100 \times 5^L$ (onde $L$ é o nível místico de origem) e Fragmentos de Forja fixos por patamar (5.000 / 10.000 / 20.000).
+*   **Fusão de Itens Místicos +6 a +8**: Ouro escalado pela fórmula $100 \times 5^L$ (onde $L$ é o nível místico de origem) e Fragmentos de Forja fixos por patamar (12.500 / 25.000 / 50.000).
 
 | Nível de Origem | Nível Resultante | Custo em Ouro | Custo em Fragmentos de Forja |
 | :--- | :--- | :--- | :--- |
-| Convencional + Convencional | Místico +1 | $500$ Ouro | $100$ Fragmentos |
-| Místico +1 + Místico +1 | Místico +2 | $1.000$ Ouro | $250$ Fragmentos |
-| Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro | $500$ Fragmentos |
-| Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro | $1.000$ Fragmentos |
-| Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro | $2.500$ Fragmentos |
-| Místico +5 + Místico +5 | Místico +6 | $312.500$ Ouro | $5.000$ Fragmentos |
-| Místico +6 + Místico +6 | Místico +7 | $1.562.500$ Ouro | $10.000$ Fragmentos |
-| Místico +7 + Místico +7 | Místico +8 | $7.812.500$ Ouro | $20.000$ Fragmentos |
+| Convencional + Convencional | Místico +1 | $500$ Ouro | $250$ Fragmentos |
+| Místico +1 + Místico +1 | Místico +2 | $1.000$ Ouro | $625$ Fragmentos |
+| Místico +2 + Místico +2 | Místico +3 | $2.500$ Ouro | $1.250$ Fragmentos |
+| Místico +3 + Místico +3 | Místico +4 | $12.500$ Ouro | $2.500$ Fragmentos |
+| Místico +4 + Místico +4 | Místico +5 | $62.500$ Ouro | $6.250$ Fragmentos |
+| Místico +5 + Místico +5 | Místico +6 | $312.500$ Ouro | $12.500$ Fragmentos |
+| Místico +6 + Místico +6 | Místico +7 | $1.562.500$ Ouro | $25.000$ Fragmentos |
+| Místico +7 + Místico +7 | Místico +8 | $7.812.500$ Ouro | $50.000$ Fragmentos |
 
 ### C. Regras de Fusão — Fórmula Assimétrica de Atributos
 Quando o Altar da Forja processa a fusão, os atributos dos dois itens de origem são combinados no novo item místico seguindo uma **fórmula assimétrica** que recompensa o uso de itens complementares em vez de penalizar o item mais valioso:
@@ -1423,6 +1428,8 @@ Esta seção consolida as principais melhorias técnicas, balanceamentos e corre
 *   **📊 Indicador de Bônus Total na Academia Militar**: `AcademyPanel.tsx` agora exibe, além do bônus por nível, o **total atual** acumulado em cada uma das sete pesquisas (`nível × valor_por_nível`), via a nova função `getResearchTotalBonusLabel` em `citadelFormulas.ts`.
 *   **📉 Redução Adicional na Retenção de Materiais de Expedição**: o percentual de Madeira/Pedra/Carne/Insígnia de Estudo mantido após a Ascensão caiu de 10% para **2%** do valor acumulado na run (Seção 11.B).
 *   **💰 Nova Redução na Escala de Ouro em Combate**: sobre a fórmula já reduzida anteriormente, foi aplicado um fator adicional de **-50%** no Ouro Base por abate (`CombatFSM.ts`), reduzindo o ritmo de acúmulo de Ouro em todas as fases (Seção 13.A).
+*   **🔨 Aumento do Custo Inicial da Grande Forja**: o custo em Fragmentos de Forja da fusão inicial (Convencional → Místico +1) subiu de 100 para **250**, com toda a tabela de níveis seguintes escalada na mesma proporção (×2.5): 250 → 625 → 1.250 → 2.500 → 6.250 → 12.500 → 25.000 → 50.000 (Seção 11.B).
+*   **🗼 Reformulação da Torre Infinita — XP Fixo e Sem Drops de Item**: o XP por inimigo na Torre deixou de escalar com a fase/nível do herói fora da torre e passou a ser fixo em **1% do XP necessário para o próximo nível** (mantendo os multiplicadores de Chefe/Elite/Chave Evoluída); equipamentos, consumíveis e materiais da Cidadela deixaram de dropar dentro da Torre — a única recompensa de combate ali, além do XP fixo, são os Fragmentos de Forja por andar (Seção 10.F).
 
 ### Versão 6.0.0 "O Despertar da Cidadela"
 Marco de lançamento que encerra o arco iniciado na Versão 5.1.0: a **Cidadela Astral** está agora completa, com as 8 construções, os 4 materiais de base e a arte definitiva todos em produção estável. Esta versão consolida o trabalho das Versões 5.1.0 a 5.7.0 como release oficial e acrescenta um conjunto menor de ajustes gerais de qualidade de vida e balanceamento (Versões 5.5.0, 5.8.0 e 5.9.0).

@@ -5,6 +5,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { useTowerStore } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
+import { getXpNeededForLevel } from './XpEngine';
 
 
 export const ENEMY_TYPES: EnemyType[] = [
@@ -1546,9 +1547,18 @@ export class CombatFSM {
       this.lastCommonEnemyDefeated = this.currentEnemy;
     }
 
-    // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
-    const xpScale = Math.pow(1.35, char.currentStage - 1);
-    const baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
+    // Torre Infinita: gate reutilizado pelos blocos de XP e de drops abaixo
+    const isTower = useTowerStore.getState().towerActive;
+
+    let baseGainedXp: number;
+    if (isTower) {
+      // Torre Infinita: XP fixo de 1% do XP necessário para o próximo nível, independente da fase/nível do jogador
+      baseGainedXp = Math.floor(getXpNeededForLevel(char.level, char.currentStage) * 0.01);
+    } else {
+      // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
+      const xpScale = Math.pow(1.35, char.currentStage - 1);
+      baseGainedXp = Math.floor((this.currentEnemy.xpValue + Math.floor(char.currentStage * 2.0)) * xpScale);
+    }
     let gainedXp = isBoss ? baseGainedXp * 3 : baseGainedXp;
     
     // Inimigos Elite concedem 2.0x mais XP
@@ -1605,17 +1615,19 @@ export class CombatFSM {
     useGameStore.getState().addGold(gainedGold);
 
     // Drop de materiais da Cidadela (Madeira/Pedra/Carne), sem influência da Sorte
-    // Só dropam após a 1ª Ascensão, que é quando a Cidadela é desbloqueada
-    const isCitadelUnlockedForDrops = char.citadel?.unlocked || (char.ascensionCount || 0) >= 1;
-    if (isCitadelUnlockedForDrops && this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
-      const commandCenterLevel = char.citadel?.commandCenter.level || 1;
-      const commandCenterMult = 1 + COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenterLevel);
-      const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * commandCenterMult;
-      const gainedMaterials = { wood: 0, stone: 0, meat: 0 };
-      for (const material of this.currentEnemy.materialDrops) {
-        gainedMaterials[material] += materialAmount;
+    // Só dropam após a 1ª Ascensão, que é quando a Cidadela é desbloqueada, e nunca dentro da Torre Infinita
+    if (!isTower) {
+      const isCitadelUnlockedForDrops = char.citadel?.unlocked || (char.ascensionCount || 0) >= 1;
+      if (isCitadelUnlockedForDrops && this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
+        const commandCenterLevel = char.citadel?.commandCenter.level || 1;
+        const commandCenterMult = 1 + COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenterLevel);
+        const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * commandCenterMult;
+        const gainedMaterials = { wood: 0, stone: 0, meat: 0 };
+        for (const material of this.currentEnemy.materialDrops) {
+          gainedMaterials[material] += materialAmount;
+        }
+        useGameStore.getState().addMaterials(Math.round(gainedMaterials.wood), Math.round(gainedMaterials.stone), Math.round(gainedMaterials.meat));
       }
-      useGameStore.getState().addMaterials(Math.round(gainedMaterials.wood), Math.round(gainedMaterials.stone), Math.round(gainedMaterials.meat));
     }
 
     // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
@@ -1642,38 +1654,40 @@ export class CombatFSM {
     }
 
     // Drop raro de 5% de Fragmento de Alma Instável em Chefes de Fase, aumentado pela pesquisa da Academia (Cidadela)
-    const soulFragmentResearchLevel = char.citadel?.academy.researchSoulFragmentLevel || 0;
-    const soulFragmentChance = 0.05 * (1 + soulFragmentResearchLevel * 0.02);
-    if (isBoss && Math.random() < soulFragmentChance) {
-      const stage = char.currentStage;
-      const classId = char.classId;
-      const soulFragmentItem: EquipmentItem = {
-        id: `soul_fragment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        name: 'Fragmento de Alma Instável',
-        slot: 'consumable',
-        rarity: 'epic',
-        classId: classId,
-        spriteName: 'unstable_soul_fragment',
-        consumableType: 'unstable_soul_fragment',
-        stage: stage,
-        stats: {}
-      };
-      const addedFragment = useGameStore.getState().addItemToInventory(soulFragmentItem);
-      if (addedFragment) {
-        bridge.emit(GameEvent.LOG_EMITTED, { 
-          message: `✨ Você encontrou um [${soulFragmentItem.name}] raro ao derrotar o Chefe!` 
-        });
-        bridge.emit(GameEvent.ITEM_DROPPED, { item: soulFragmentItem });
-      } else {
-        bridge.emit(GameEvent.LOG_EMITTED, { 
-          message: `Um [${soulFragmentItem.name}] caiu do Chefe, mas seu inventário está cheio!` 
-        });
+    // Nunca dropa dentro da Torre Infinita (só Fragmentos de Forja dropam lá)
+    if (!isTower) {
+      const soulFragmentResearchLevel = char.citadel?.academy.researchSoulFragmentLevel || 0;
+      const soulFragmentChance = 0.05 * (1 + soulFragmentResearchLevel * 0.02);
+      if (isBoss && Math.random() < soulFragmentChance) {
+        const stage = char.currentStage;
+        const classId = char.classId;
+        const soulFragmentItem: EquipmentItem = {
+          id: `soul_fragment-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: 'Fragmento de Alma Instável',
+          slot: 'consumable',
+          rarity: 'epic',
+          classId: classId,
+          spriteName: 'unstable_soul_fragment',
+          consumableType: 'unstable_soul_fragment',
+          stage: stage,
+          stats: {}
+        };
+        const addedFragment = useGameStore.getState().addItemToInventory(soulFragmentItem);
+        if (addedFragment) {
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `✨ Você encontrou um [${soulFragmentItem.name}] raro ao derrotar o Chefe!`
+          });
+          bridge.emit(GameEvent.ITEM_DROPPED, { item: soulFragmentItem });
+        } else {
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `Um [${soulFragmentItem.name}] caiu do Chefe, mas seu inventário está cheio!`
+          });
+        }
       }
     }
 
     // Lógica de drop da Chave da Torre (apenas na campanha normal, não na torre e nem no desafio diário)
     const isDaily = char.activeDailyChallenge;
-    const isTower = useTowerStore.getState().towerActive;
 
     if (!isTower && !isDaily) {
       const keyDropChance = isBoss ? 0.0375 : (this.isElite ? 0.01875 : 0.00625);
@@ -1702,7 +1716,8 @@ export class CombatFSM {
       }
     }
 
-    // === SISTEMA DE DROP DE EQUIPAMENTOS ===
+    // === SISTEMA DE DROP DE EQUIPAMENTOS === (nunca dropa dentro da Torre Infinita — só Fragmentos de Forja)
+    if (!isTower) {
     const luck = this.playerFinalStats.luck || 0;
     const baseDropChance = 0.05;
     // Elites e Chefes têm 100% de chance de drop de equipamento
@@ -1970,6 +1985,7 @@ export class CombatFSM {
           });
         }
       }
+    }
     }
 
     if (this.characterData.activeDailyChallenge) {

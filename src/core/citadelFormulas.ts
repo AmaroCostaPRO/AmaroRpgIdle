@@ -71,7 +71,7 @@ export const RESEARCH_PER_LEVEL: Record<ResearchKey, number> = {
 // Formata o bônus total atualmente acumulado por uma pesquisa em um dado nível, para exibição na UI.
 export const getResearchTotalBonusLabel = (key: ResearchKey, level: number): string => {
   const total = level * RESEARCH_PER_LEVEL[key];
-  return key === 'critDmg' ? `+${total.toFixed(0)} pts` : `+${total.toFixed(1)}%`;
+  return key === 'critDmg' ? `+${total.toFixed(0)} pts` : `+${(total * 100).toFixed(1)}%`;
 };
 
 export const WATCH_TOWER_MAX_LEVEL = 5;
@@ -157,15 +157,15 @@ export const computeClassExpeditionProduction = (classId: string, expeditionLeve
 export const getMysticFusionCost = (currentMysticLevel: number): { cost: number; fragmentCost: number } => {
   if (currentMysticLevel < 5) {
     const costs = [0, 1000, 2500, 12500, 62500];
-    const fragmentCosts = [0, 250, 500, 1000, 2500];
+    const fragmentCosts = [0, 625, 1250, 2500, 6250];
     return {
       cost: costs[currentMysticLevel] || 500,
-      fragmentCost: fragmentCosts[currentMysticLevel] || 250,
+      fragmentCost: fragmentCosts[currentMysticLevel] || 625,
     };
   }
-  const extraFragmentCosts: Record<number, number> = { 5: 5000, 6: 10000, 7: 20000 };
+  const extraFragmentCosts: Record<number, number> = { 5: 12500, 6: 25000, 7: 50000 };
   return {
     cost: 100 * Math.pow(5, currentMysticLevel),
-    fragmentCost: extraFragmentCosts[currentMysticLevel] || 20000,
+    fragmentCost: extraFragmentCosts[currentMysticLevel] || 50000,
   };
 };

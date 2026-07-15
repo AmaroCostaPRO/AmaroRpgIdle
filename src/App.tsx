@@ -323,19 +323,58 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v6.0.0 — O Despertar da Cidadela!
+              🔔 Atualização v6.1.0 — Ajustes de Balanceamento Pós-Cidadela!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A Cidadela Astral chega ao seu lançamento completo! As versões v5.1.0 a v5.7.0 construíram, peça por peça, uma nova aba de tela cheia de gerenciamento de base — e a v6.0.0 marca esse arco como oficialmente concluído, junto com uma leva de ajustes gerais.
+                Com a Cidadela Astral completa desde a v6.0.0, chegou a hora de recalibrar a economia do jogo: chaves da Torre, materiais, Ouro, Fragmentos de Forja e a própria Torre Infinita recebem ajustes de equilíbrio nesta versão.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v6.1.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.1.0 (Atual) — Ajustes de Balanceamento Pós-Cidadela:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        🔑 Chaves da Torre e Materiais na Ascensão
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Chaves da Torre Evoluídas agora sobrevivem à Ascensão, ao Pandemônio e à Transcendência (só a Chave comum continua sendo zerada). A retenção de Madeira/Pedra/Carne/Insígnia de Estudo na Ascensão caiu de 10% para 2%, reduzindo o acúmulo excessivo entre runs.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📊 Indicador de Bônus Total na Academia Militar
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada pesquisa agora mostra o bônus total já acumulado no nível atual, além do valor por nível, facilitando ver o efeito real de cada investimento.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>
+                        💰 Ouro em Combate e Custo da Grande Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A escala de Ouro por abate caiu mais 50% para conter o acúmulo em fases avançadas. Em compensação, a fusão inicial da Grande Forja subiu de 100 para 250 Fragmentos de Forja, com toda a tabela de níveis seguintes escalada na mesma proporção.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#34d399', fontSize: '0.72rem' }}>
+                        🗼 Torre Infinita Reformulada
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O XP por inimigo na Torre deixou de escalar com a fase/nível fora da torre e passou a ser fixo em 1% do XP necessário para o próximo nível (mantendo os bônus de Chefe, Elite e Chave Evoluída). Equipamentos, consumíveis e materiais deixaram de dropar na Torre — a recompensa de combate ali agora é exclusivamente Fragmentos de Forja.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v6.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.0.0 (Atual) — O Despertar da Cidadela:</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.0.0 — O Despertar da Cidadela:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
