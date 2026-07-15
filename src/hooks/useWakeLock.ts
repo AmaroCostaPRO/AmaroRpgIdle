@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 interface WakeLockSentinelLike {
   release: () => Promise<void>;
+  addEventListener: (type: 'release', listener: () => void) => void;
 }
 
 // Mantém a tela ligada enquanto `active` for true, usando a Screen Wake Lock
@@ -23,6 +24,14 @@ export function useWakeLock(active: boolean) {
           return;
         }
         sentinelRef.current = sentinel;
+        // O SO/navegador pode liberar o lock sozinho (ex.: Android após um
+        // tempo) sem disparar visibilitychange; sem isso a ref fica presa
+        // num sentinela já liberado e nunca é readquirido.
+        sentinel.addEventListener('release', () => {
+          if (sentinelRef.current === sentinel) {
+            sentinelRef.current = null;
+          }
+        });
       } catch (e) {
         console.warn('[useWakeLock] Falha ao adquirir wake lock:', e);
       }
@@ -37,9 +46,21 @@ export function useWakeLock(active: boolean) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Reforço: readquire o lock em qualquer toque na tela caso o SO tenha
+    // liberado o lock sem que a aba tenha ficado invisível.
+    const handleUserGesture = () => {
+      if (document.visibilityState === 'visible' && !sentinelRef.current) {
+        requestLock();
+      }
+    };
+    document.addEventListener('touchstart', handleUserGesture, { passive: true });
+    document.addEventListener('pointerdown', handleUserGesture);
+
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('touchstart', handleUserGesture);
+      document.removeEventListener('pointerdown', handleUserGesture);
       if (sentinelRef.current) {
         sentinelRef.current.release().catch(() => {});
         sentinelRef.current = null;

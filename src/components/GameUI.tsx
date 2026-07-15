@@ -1247,17 +1247,17 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   let bonusText5 = '(5) +35 Atrib.';
 
                   if (isPandemonium) {
-                    bonusText2 = '(2) +250 Atrib.';
-                    bonusText3 = '(3) +300 Con/For +150 Sorte e +5% Roubo de Vida';
-                    bonusText5 = '(5) +600 Atrib., +25% Dano e +10% HP';
+                    bonusText2 = '(2) +160 Atrib.';
+                    bonusText3 = '(3) +200 Con/For +100 Sorte e +5% Roubo de Vida';
+                    bonusText5 = '(5) +400 Atrib., +25% Dano e +10% HP';
                   } else if (isAncestral) {
                     bonusText2 = '(2) +80 Atrib.';
                     bonusText3 = '(3) +100 Con/For +50 Sorte e Dano de Toque x2';
                     bonusText5 = '(5) +200 Atrib. e +15% Dano';
                   } else if (isCelestial) {
-                    bonusText2 = '(2) +160 Atrib.';
-                    bonusText3 = '(3) +200 Con/For +100 Sorte e +2 Cliques do Robô';
-                    bonusText5 = '(5) +400 Atrib., +40% Dano, +20% HP e +10% Vel. Atq.';
+                    bonusText2 = '(2) +250 Atrib.';
+                    bonusText3 = '(3) +300 Con/For +150 Sorte, +2 Cliques do Robô e +5% Roubo de Vida';
+                    bonusText5 = '(5) +600 Atrib., +40% Dano, +20% HP e +10% Vel. Atq.';
                   }
 
                   const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : ''));

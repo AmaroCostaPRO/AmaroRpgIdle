@@ -1498,9 +1498,15 @@ export class CombatFSM {
       }
     }
 
-    // Roubo de Vida (Lifesteal) do Set Pandemônio (3 peças)
+    // Roubo de Vida (Lifesteal) dos Sets Pandemônio/Celestial (3 peças)
     if (isDirect && this.playerFinalStats && this.playerFinalStats.lifesteal && this.playerFinalStats.lifesteal > 0 && this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
-      const drainAmount = Math.floor(amount * this.playerFinalStats.lifesteal);
+      // Cura = lifesteal% do MENOR entre o dano causado e a vida máxima do jogador.
+      // Sem isso, dano de fim de jogo (ordens de magnitude maior que o HP do
+      // próprio jogador) faria o roubo de vida curar milhões por acerto — aqui
+      // ele fica preso a, no máximo, lifesteal% da vida máxima por acerto.
+      const rawDrain = amount * this.playerFinalStats.lifesteal;
+      const hpBasedCap = this.playerMaxHP * this.playerFinalStats.lifesteal;
+      const drainAmount = Math.floor(Math.min(rawDrain, hpBasedCap));
       if (drainAmount > 0) {
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
         if (this.scene && typeof this.scene.spawnDamageText === 'function') {
@@ -1804,8 +1810,8 @@ export class CombatFSM {
       // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial e nem Pandemônio)
       const isAncestralDrop = !isCelestialDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
       
-      // Se for drop Celestial o multiplicador é 6.0; se for Pandemônio é 7.0; se for Ancestral é 4.5; senão segue o padrão
-      const mult = isCelestialDrop ? 6.0 : (isPandemoniumDrop ? 7.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0))));
+      // Se for drop Celestial o multiplicador é 7.0; se for Pandemônio é 6.0; se for Ancestral é 4.5; senão segue o padrão
+      const mult = isCelestialDrop ? 7.0 : (isPandemoniumDrop ? 6.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0))));
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],

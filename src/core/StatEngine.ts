@@ -122,54 +122,54 @@ export const SET_BONUSES: Record<string, {
     name: 'Set Pandemoníaco do Destruidor',
     classId: 'warrior',
     bonuses: {
-      2: { strength: 250 },
-      3: { constitution: 300, luck: 150 },
-      5: { strength: 600 }
+      2: { strength: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { strength: 400 }
     }
   },
   'Set Pandemoníaco do Feiticeiro do Vazio': {
     name: 'Set Pandemoníaco do Feiticeiro do Vazio',
     classId: 'mage',
     bonuses: {
-      2: { magic: 250 },
-      3: { constitution: 300, luck: 150 },
-      5: { magic: 600 }
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
     }
   },
   'Set Pandemoníaco do Franco-Atirador': {
     name: 'Set Pandemoníaco do Franco-Atirador',
     classId: 'ranger',
     bonuses: {
-      2: { dexterity: 250 },
-      3: { constitution: 300, luck: 150 },
-      5: { dexterity: 600 }
+      2: { dexterity: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { dexterity: 400 }
     }
   },
   'Set Pandemoníaco do Vingador Sagrado': {
     name: 'Set Pandemoníaco do Vingador Sagrado',
     classId: 'paladin',
     bonuses: {
-      2: { constitution: 250 },
-      3: { strength: 300, luck: 150 },
-      5: { constitution: 600 }
+      2: { constitution: 160 },
+      3: { strength: 200, luck: 100 },
+      5: { constitution: 400 }
     }
   },
   'Set Pandemoníaco do Sumo-Inquisidor': {
     name: 'Set Pandemoníaco do Sumo-Inquisidor',
     classId: 'cleric',
     bonuses: {
-      2: { magic: 250 },
-      3: { constitution: 300, luck: 150 },
-      5: { magic: 600 }
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
     }
   },
   'Set Pandemoníaco do Executor': {
     name: 'Set Pandemoníaco do Executor',
     classId: 'rogue',
     bonuses: {
-      2: { dexterity: 250 },
-      3: { strength: 300, luck: 150 },
-      5: { dexterity: 600 }
+      2: { dexterity: 160 },
+      3: { strength: 200, luck: 100 },
+      5: { dexterity: 400 }
     }
   },
   'Set do Arauto da Ceifa': {
@@ -194,72 +194,72 @@ export const SET_BONUSES: Record<string, {
     name: 'Set Pandemoníaco do Devorador de Almas',
     classId: 'necromancer',
     bonuses: {
-      2: { magic: 250 },
-      3: { constitution: 300, luck: 150 },
-      5: { magic: 600 }
+      2: { magic: 160 },
+      3: { constitution: 200, luck: 100 },
+      5: { magic: 400 }
     }
   },
   'Set Celestial do Semideus': {
     name: 'Set Celestial do Semideus',
     classId: 'warrior',
     bonuses: {
-      2: { strength: 160 },
-      3: { constitution: 200, luck: 100 },
-      5: { strength: 400 }
+      2: { strength: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { strength: 600 }
     }
   },
   'Set Celestial do Senhor do Tempo': {
     name: 'Set Celestial do Senhor do Tempo',
     classId: 'mage',
     bonuses: {
-      2: { magic: 160 },
-      3: { constitution: 200, luck: 100 },
-      5: { magic: 400 }
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
     }
   },
   'Set Celestial do Observador Estelar': {
     name: 'Set Celestial do Observador Estelar',
     classId: 'ranger',
     bonuses: {
-      2: { dexterity: 160 },
-      3: { constitution: 200, luck: 100 },
-      5: { dexterity: 400 }
+      2: { dexterity: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { dexterity: 600 }
     }
   },
   'Set Celestial do Arcanjo': {
     name: 'Set Celestial do Arcanjo',
     classId: 'paladin',
     bonuses: {
-      2: { constitution: 160 },
-      3: { strength: 200, luck: 100 },
-      5: { constitution: 400 }
+      2: { constitution: 250 },
+      3: { strength: 300, luck: 150 },
+      5: { constitution: 600 }
     }
   },
   'Set Celestial do Serafim': {
     name: 'Set Celestial do Serafim',
     classId: 'cleric',
     bonuses: {
-      2: { magic: 160 },
-      3: { constitution: 200, luck: 100 },
-      5: { magic: 400 }
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
     }
   },
   'Set Celestial do Espectro Astral': {
     name: 'Set Celestial do Espectro Astral',
     classId: 'rogue',
     bonuses: {
-      2: { dexterity: 160 },
-      3: { strength: 200, luck: 100 },
-      5: { dexterity: 400 }
+      2: { dexterity: 250 },
+      3: { strength: 300, luck: 150 },
+      5: { dexterity: 600 }
     }
   },
   'Set Celestial do Ceifador de Estrelas': {
     name: 'Set Celestial do Ceifador de Estrelas',
     classId: 'necromancer',
     bonuses: {
-      2: { magic: 160 },
-      3: { constitution: 200, luck: 100 },
-      5: { magic: 400 }
+      2: { magic: 250 },
+      3: { constitution: 300, luck: 150 },
+      5: { magic: 600 }
     }
   },
   'Set do Avatar Celestizado': {
@@ -284,18 +284,18 @@ export const SET_BONUSES: Record<string, {
     name: 'Set Pandemoníaco do Eco Supremo',
     classId: 'avatar',
     bonuses: {
-      2: { strength: 150, magic: 150, dexterity: 150 },
-      3: { constitution: 200, luck: 200 },
-      5: { strength: 350, magic: 350, dexterity: 350, constitution: 350, luck: 350 }
+      2: { strength: 100, magic: 100, dexterity: 100 },
+      3: { constitution: 150, luck: 150 },
+      5: { strength: 250, magic: 250, dexterity: 250, constitution: 250, luck: 250 }
     }
   },
   'Set Celestial do Avatar Supremo': {
     name: 'Set Celestial do Avatar Supremo',
     classId: 'avatar',
     bonuses: {
-      2: { strength: 100, magic: 100, dexterity: 100 },
-      3: { constitution: 150, luck: 150 },
-      5: { strength: 250, magic: 250, dexterity: 250, constitution: 250, luck: 250 }
+      2: { strength: 150, magic: 150, dexterity: 150 },
+      3: { constitution: 200, luck: 200 },
+      5: { strength: 350, magic: 350, dexterity: 350, constitution: 350, luck: 350 }
     }
   }
 };
@@ -422,6 +422,7 @@ export class StatEngine {
 
       if (celestialCount >= 3) {
         finalStats.robotClicks = (finalStats.robotClicks || 0) + 2;
+        finalStats.lifesteal = (finalStats.lifesteal || 0) + 0.05;
       }
       if (celestialCount >= 5) {
         finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.40;

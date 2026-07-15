@@ -61,7 +61,7 @@ export const calculateItemSellValue = (item: EquipmentItem): number => {
     }
   }
 
-  return Math.floor(finalValue);
+  return Math.floor(Math.min(finalValue, 5000));
 };
 
 export const formatNumber = (num: number, abbreviate: boolean = false): string => {

@@ -377,6 +377,38 @@ const App: React.FC = () => {
                         Exportar um slot agora baixa um arquivo <code>.sav</code> em vez de copiar um código de letras para a área de transferência. Importar abre o seletor de arquivos do sistema para escolher esse arquivo, no lugar de colar o código manualmente.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        🐛 Set Celestial Corrigido (estava mais fraco que o Pandemoníaco)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Itens do Set Celestial dropavam com status base e bônus de conjunto menores que o Set Pandemoníaco, mesmo sendo o tier acima. Corrigido para o Celestial voltar a superar o Pandemoníaco em atributos e bônus de conjunto completo, em todas as classes.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        💰 Teto de 5.000 Ouro na Venda de Equipamentos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Equipamentos de fases avançadas estavam vendendo por valores exagerados de Ouro. Nenhum item agora vende por mais de 5.000 Ouro, independente de raridade, fase ou set.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#22d3ee', fontSize: '0.72rem' }}>
+                        🔋 Correção do Wake Lock (Tela Apagando em Combate)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Em alguns celulares a tela voltava a apagar durante o combate mesmo com a função de Tela Sempre Ativa ligada. Corrigido um caso em que o jogo não percebia quando o sistema liberava o bloqueio sozinho e deixava de tentar religá-lo.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🩸 Roubo de Vida Rebalanceado
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Set Celestial (3 peças) agora também concede +5% de Roubo de Vida, além dos +2 Cliques do Robô. A cura do Roubo de Vida deixou de ser só baseada no dano causado — em fases avançadas, dano altíssimo estava gerando curas de milhões de vida por acerto. Agora a cura por acerto fica limitada à porcentagem de Roubo de Vida sobre a sua própria vida máxima, evitando curas desproporcionais.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
