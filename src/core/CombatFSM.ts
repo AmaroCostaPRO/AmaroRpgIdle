@@ -576,7 +576,11 @@ export class CombatFSM {
         this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.skillCooldowns = {};
-        this.currentState = CombatState.IDLE;
+        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante
+        // (nesse caso ele já deixou currentState em MERCHANT_ENCOUNTER, que não pode ser sobrescrito aqui).
+        if (!this.isMerchantEncounter) {
+          this.currentState = CombatState.IDLE;
+        }
 
         if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
           this.scene.respawnEnemyAt(900, this.currentEnemy);
@@ -598,11 +602,15 @@ export class CombatFSM {
         const activeChar = useGameStore.getState().character;
         this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
       }
-      if (this.currentState !== CombatState.MERCHANT_ENCOUNTER) {
+      // `setupEnemyForLevel` só escreve em `currentState` quando sorteia OUTRO Mercador (MERCHANT_ENCOUNTER);
+      // no caminho normal ele não mexe em `currentState`, então precisamos setar IDLE explicitamente aqui
+      // sempre que `isMerchantEncounter` não ficou true de novo — e chamar `respawnEnemyAt` incondicionalmente
+      // para garantir que o sprite/nome/HP na cena sejam atualizados para o novo inimigo em qualquer caso.
+      if (!this.isMerchantEncounter) {
         this.currentState = CombatState.IDLE;
-        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
-          this.scene.respawnEnemyAt(900, this.currentEnemy);
-        }
+      }
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
       }
     });
   }
@@ -889,9 +897,13 @@ export class CombatFSM {
           this.playerHP = this.playerMaxHP;
         }
         this.playerMana = this.playerMaxMana;
-        this.currentState = CombatState.IDLE;
+        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante
+        // (nesse caso ele já deixou currentState em MERCHANT_ENCOUNTER, que não pode ser sobrescrito aqui).
+        if (!this.isMerchantEncounter) {
+          this.currentState = CombatState.IDLE;
+        }
         this.skillCooldowns = {};
-        
+
         if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
           this.scene.respawnEnemyAt(900, this.currentEnemy);
           this.scene.respawnPlayer();

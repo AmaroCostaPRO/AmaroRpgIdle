@@ -8131,6 +8131,92 @@ export default function GameUI() {
             );
           })()
         )}
+
+        {/* Painel do Mercador Ambulante (v7.0.0 "Ecos que Despertam") — substitui um inimigo no combate.
+            Posicionado como os demais modais locais (absolute dentro do wrapper relativo, não fixed em
+            tela cheia), para que fique confinado à área de UI (abaixo das abas / ao lado do canvas de
+            combate no desktop) em vez de cobrir a tela inteira. */}
+        {merchantOffer && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(3, 2, 6, 0.85)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.5rem'
+            }}
+            onClick={handleMerchantDismiss}
+          >
+            <div
+              className="panel"
+              style={{
+                background: 'linear-gradient(135deg, rgba(12, 8, 20, 0.99), rgba(24, 18, 36, 1))',
+                border: '2px solid rgba(251, 191, 36, 0.4)',
+                boxShadow: '0 0 30px rgba(251, 191, 36, 0.15)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.5rem',
+                width: '100%',
+                maxWidth: '420px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '2rem' }}>🛒</span>
+                <h2 className="font-heading" style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--gold-400)', margin: '0.4rem 0 0 0' }}>
+                  Mercador Ambulante
+                </h2>
+                <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: '0.3rem 0 0 0' }}>
+                  Um eco nascido do excedente de desejo e comércio de incontáveis vidas passadas. Não luta — só barganha.
+                </p>
+              </div>
+
+              {merchantFeedback && (
+                <div style={{
+                  padding: '0.4rem 0.6rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.6rem',
+                  textAlign: 'center',
+                  background: 'rgba(251, 191, 36, 0.1)',
+                  border: '1px solid rgba(251, 191, 36, 0.25)',
+                  color: '#fbbf24'
+                }}>
+                  {merchantFeedback}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {merchantOffer.map((offer) => {
+                  const cost = offer.consumableType === 'boost_touch' ? 1000 : 5000;
+                  const canAfford = (character.gold || 0) >= cost;
+                  return (
+                    <button
+                      key={offer.consumableType}
+                      onClick={() => handleMerchantBuy(offer.consumableType)}
+                      disabled={!canAfford}
+                      className={`btn btn-sm ${canAfford ? 'btn-gold' : 'btn-disabled'}`}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', opacity: canAfford ? 1 : 0.5 }}
+                    >
+                      <span>{offer.name}</span>
+                      <span>🪙 {formatNumber(cost, abbreviateNumbers)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleMerchantDismiss}>
+                Continuar Jornada
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Overlay de Transição de Ascensão */}
@@ -8326,87 +8412,6 @@ export default function GameUI() {
               }}
             >
               {visibleParagraphs >= 7 ? 'Aceitar o Destino' : 'Pular Introdução'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Painel do Mercador Ambulante (v7.0.0 "Ecos que Despertam") — substitui um inimigo no combate */}
-      {merchantOffer && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(3, 2, 6, 0.85)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            zIndex: 999998,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.5rem'
-          }}
-        >
-          <div
-            className="panel"
-            style={{
-              background: 'linear-gradient(135deg, rgba(12, 8, 20, 0.99), rgba(24, 18, 36, 1))',
-              border: '2px solid rgba(251, 191, 36, 0.4)',
-              boxShadow: '0 0 30px rgba(251, 191, 36, 0.15)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '1.5rem',
-              width: '100%',
-              maxWidth: '420px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem'
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '2rem' }}>🛒</span>
-              <h2 className="font-heading" style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--gold-400)', margin: '0.4rem 0 0 0' }}>
-                Mercador Ambulante
-              </h2>
-              <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: '0.3rem 0 0 0' }}>
-                Um eco nascido do excedente de desejo e comércio de incontáveis vidas passadas. Não luta — só barganha.
-              </p>
-            </div>
-
-            {merchantFeedback && (
-              <div style={{
-                padding: '0.4rem 0.6rem',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.6rem',
-                textAlign: 'center',
-                background: 'rgba(251, 191, 36, 0.1)',
-                border: '1px solid rgba(251, 191, 36, 0.25)',
-                color: '#fbbf24'
-              }}>
-                {merchantFeedback}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {merchantOffer.map((offer) => {
-                const cost = offer.consumableType === 'boost_touch' ? 1000 : 5000;
-                const canAfford = (character.gold || 0) >= cost;
-                return (
-                  <button
-                    key={offer.consumableType}
-                    onClick={() => handleMerchantBuy(offer.consumableType)}
-                    disabled={!canAfford}
-                    className={`btn btn-sm ${canAfford ? 'btn-gold' : 'btn-disabled'}`}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', opacity: canAfford ? 1 : 0.5 }}
-                  >
-                    <span>{offer.name}</span>
-                    <span>🪙 {formatNumber(cost, abbreviateNumbers)}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleMerchantDismiss}>
-              Continuar Jornada
             </button>
           </div>
         </div>
