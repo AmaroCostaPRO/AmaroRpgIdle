@@ -362,7 +362,7 @@ export class CombatScene extends Phaser.Scene {
       this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 15 : 60);
     };
     this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
-      this.citadelActive = payload.tab === 'citadel';
+      this.citadelActive = payload.tab === 'citadel' && !!payload.citadelEntered;
       applyTargetFps();
     });
     this.unsubscribeEconomyMode = useGameStore.subscribe((state) => {

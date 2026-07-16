@@ -6,7 +6,7 @@ import { AudioManager } from '../core/AudioManager';
 
 interface ProgressNotificationItem {
   id: string;
-  type: 'class' | 'bestiary' | 'ascension';
+  type: 'class' | 'bestiary' | 'ascension' | 'citadel';
   title: string;
   description: string;
   icon: string;
@@ -71,6 +71,30 @@ export const ProgressNotifications: React.FC = () => {
       }, 5000);
     });
 
+    const unsubCitadel = bridge.subscribe(GameEvent.CITADEL_BUILDING_UPGRADED, (payload) => {
+      const buildingName = payload.buildingName as string;
+      const newLevel = payload.newLevel as number;
+
+      const newNotif: ProgressNotificationItem = {
+        id: `citadel-${payload.buildingKey}-${newLevel}-${Date.now()}`,
+        type: 'citadel',
+        title: '🏗️ Construção Concluída!',
+        description: `${buildingName} alcançou o Nível ${newLevel}!`,
+        icon: '🏛️',
+        borderColor: 'rgba(16, 185, 129, 0.4)', // Esmeralda
+        titleColor: '#34d399',
+        glowColor: 'rgba(16, 185, 129, 0.25)'
+      };
+
+      setNotifications((prev) => [...prev, newNotif]);
+      AudioManager.getInstance().playUpgrade();
+
+      // Notificações de construção desaparecem sozinhas após 5s, igual bestiário
+      setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+      }, 5000);
+    });
+
     const unsubAscension = bridge.subscribe(GameEvent.ASCENSION_AVAILABLE, () => {
       const newNotif: ProgressNotificationItem = {
         id: `ascension-${Date.now()}`,
@@ -90,6 +114,7 @@ export const ProgressNotifications: React.FC = () => {
     return () => {
       unsubClass();
       unsubBestiary();
+      unsubCitadel();
       unsubAscension();
     };
   }, []);

@@ -1295,6 +1295,7 @@ export const useGameStore = create<GameState>((set) => ({
         citadel = { ...citadel!, [key]: { ...building, level: targetLevel, upgradeInProgress: undefined } };
         changed = true;
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🏗️ ${structureLabels[key]} alcançou o Nível ${targetLevel}!` });
+        bridge.emit(GameEvent.CITADEL_BUILDING_UPGRADED, { buildingKey: key, buildingName: structureLabels[key], newLevel: targetLevel });
         if (key === 'forgeWorkshop' && targetLevel >= 5) {
           try {
             localStorage.setItem('rpg_auto_sell_common', 'false');

@@ -429,6 +429,28 @@ input, textarea, [contenteditable="true"] {
   padding: 0.35rem 0.75rem;
 }
 
+.modal-close-btn {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: rgba(20, 16, 10, 0.55);
+  border: 1px solid var(--border-subtle);
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+.modal-close-btn:hover {
+  color: var(--gold-100);
+  border-color: var(--gold-400);
+  background: rgba(217, 119, 6, 0.25);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+.modal-close-btn:active { transform: scale(0.92); }
+
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

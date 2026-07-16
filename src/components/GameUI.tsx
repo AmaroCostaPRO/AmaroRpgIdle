@@ -27,6 +27,7 @@ import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual } from './shared/itemVisuals';
+import { ModalCloseButton } from './shared/ModalCloseButton';
 
 // Toggle para reexibir o Modo de Teste (5x) na UI, usado apenas em testes internos.
 const SHOW_TEST_MODE_TOGGLE = false;
@@ -520,12 +521,7 @@ const ActiveSkillsPanel: React.FC = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(217, 119, 6, 0.15)', paddingBottom: '0.4rem' }}>
                 <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--gold-400)', letterSpacing: '0.04em' }}>⚙️ CONFIGURAÇÃO DE CONJURAÇÃO</span>
-                <button 
-                  onClick={handleCancelSettings}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '0.7rem', cursor: 'pointer', padding: '0 2px' }}
-                >
-                  ✕
-                </button>
+                <ModalCloseButton size={22} style={{ position: 'static' }} onClick={handleCancelSettings} />
               </div>
 
               {/* Escolha de Habilidades */}
@@ -1910,27 +1906,7 @@ const SkillsTreePanel: React.FC = () => {
               }}
             >
               {/* Botão de Fechar Modal (X) */}
-              <button 
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setShowSkillModal(false);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '1.25rem',
-                  right: '1.25rem',
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '1.4rem',
-                  cursor: 'pointer',
-                  padding: '0.25rem',
-                  lineHeight: 1
-                }}
-                className="hover:text-white"
-              >
-                ✕
-              </button>
+              <ModalCloseButton style={{ top: '1.25rem', right: '1.25rem' }} onClick={() => setShowSkillModal(false)} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '36rem', margin: '0 auto' }}>
                 <div>
@@ -2995,27 +2971,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
               }}
             >
               {/* Botão de Fechar Modal (X) */}
-              <button 
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setShowPrestigeModal(false);
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '1.25rem',
-                  right: '1.25rem',
-                  background: 'none',
-                  border: 'none',
-                  color: '#c4b5fd',
-                  fontSize: '1.4rem',
-                  cursor: 'pointer',
-                  padding: '0.25rem',
-                  lineHeight: 1
-                }}
-                className="hover:text-white"
-              >
-                ✕
-            </button>
+              <ModalCloseButton style={{ top: '1.25rem', right: '1.25rem' }} onClick={() => setShowPrestigeModal(false)} />
 
             {(() => {
               if (selectedUpgradeId === 'alma_pandemonium') {
@@ -7499,7 +7455,7 @@ export default function GameUI() {
                 gap: '1rem',
                 position: 'relative'
               }} onClick={(e) => e.stopPropagation()}>
-                <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); setConfirmSellItem(false); setConfirmDismantleItem(false); setDepositButtonState('default'); }}>✕</button>
+                <ModalCloseButton style={{ top: '0.5rem', right: '0.5rem' }} onClick={() => { setSelectedItem(null); setShowDiscardConfirm(false); setConfirmSellItem(false); setConfirmDismantleItem(false); setDepositButtonState('default'); }} />
 
                 <div>
                   <span className="font-mono" style={{ fontSize: '0.5rem', color: itemNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -7775,7 +7731,7 @@ export default function GameUI() {
                   gap: '1rem',
                   position: 'relative'
                 }} onClick={(e) => e.stopPropagation()}>
-                  <button style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} onClick={() => setSelectedSlot(null)}>✕</button>
+                  <ModalCloseButton style={{ top: '0.5rem', right: '0.5rem' }} onClick={() => setSelectedSlot(null)} />
 
                   <div>
                     <span className="font-mono" style={{ fontSize: '0.5rem', color: itemNameColor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -7878,25 +7834,7 @@ export default function GameUI() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Fechar modal */}
-                  <button 
-                    onClick={() => {
-                      AudioManager.getInstance().playClick();
-                      setSelectedEnemy(null);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      right: '0.75rem',
-                      background: 'none',
-                      border: 'none',
-                      color: '#64748b',
-                      fontSize: '1.2rem',
-                      cursor: 'pointer'
-                    }}
-                    className="hover:text-white"
-                  >
-                    ✕
-                  </button>
+                  <ModalCloseButton style={{ top: '0.75rem', right: '0.75rem' }} onClick={() => setSelectedEnemy(null)} />
 
                   {/* Cabeçalho */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
