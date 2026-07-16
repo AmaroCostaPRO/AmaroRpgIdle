@@ -619,7 +619,18 @@ interface GameState {
   toggleTestMode(): void;
   toggleEcoterra(): void;
   registerEnemyKill(enemyId: string): void;
-  
+
+  // Estatísticas completas: recordes de combate (v)
+  updateBestCombatStats(stats: {
+    damageDealt?: number;
+    maxHP?: number;
+    critChance?: number;
+    dropChancePct?: number;
+    damageReductionPct?: number;
+    attackSpeedMultiplier?: number;
+    dodgeChance?: number;
+  }): void;
+
   // Novos métodos de gerenciamento de save slots
   setCurrentSlot(slot: number | null): void;
   saveGameToSlot(slotIndex: number): void;
@@ -765,6 +776,23 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     transcendenceEssence: 0,
     materials: DEFAULT_MATERIALS(),
     citadel: DEFAULT_CITADEL(),
+    bestDamageDealt: 0,
+    bestMaxHP: 0,
+    bestCritChance: 0,
+    bestDropChancePct: 0,
+    bestDamageReductionPct: 0,
+    bestAttackSpeedMultiplier: 0,
+    bestDodgeChance: 0,
+    totalEnemiesKilledLifetime: 0,
+    totalEquipmentDropped: 0,
+    totalFragmentsDropped: 0,
+    totalTowerKeysDropped: 0,
+    fastestAscensionSeconds: undefined,
+    totalForgeFragmentsSpent: 0,
+    totalGoldSpentInForge: 0,
+    totalGoldEarnedLifetime: 0,
+    totalXpEarnedLifetime: 0,
+    totalMaterialsFarmedByCitadel: DEFAULT_MATERIALS(),
   };
 };
 
@@ -812,6 +840,9 @@ const mergeLoadedCharacter = (char: Character): Character => {
     activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
     transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
     materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+    // Estatísticas completas: contadores novos, sem forma de reconstruir retroativamente o histórico
+    // de saves anteriores a esta versão — começam do zero via defaults.
+    totalMaterialsFarmedByCitadel: { ...(defaults.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS()), ...(char.totalMaterialsFarmedByCitadel || {}) },
     citadel: {
       ...defaults.citadel,
       ...(char.citadel || {}),
@@ -1070,7 +1101,10 @@ export const useGameStore = create<GameState>((set) => ({
   addGold: (amount) => set((state) => {
     const updated = {
       ...state.character,
-      gold: (state.character.gold || 0) + amount
+      gold: (state.character.gold || 0) + amount,
+      totalGoldEarnedLifetime: amount > 0
+        ? (state.character.totalGoldEarnedLifetime || 0) + amount
+        : (state.character.totalGoldEarnedLifetime || 0)
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1096,6 +1130,7 @@ export const useGameStore = create<GameState>((set) => ({
 
   addMaterials: (wood, stone, meat) => set((state) => {
     const current = state.character.materials || DEFAULT_MATERIALS();
+    const farmedLifetime = state.character.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS();
     const updated = {
       ...state.character,
       materials: {
@@ -1103,6 +1138,12 @@ export const useGameStore = create<GameState>((set) => ({
         wood: current.wood + wood,
         stone: current.stone + stone,
         meat: current.meat + meat,
+      },
+      totalMaterialsFarmedByCitadel: {
+        ...farmedLifetime,
+        wood: farmedLifetime.wood + wood,
+        stone: farmedLifetime.stone + stone,
+        meat: farmedLifetime.meat + meat,
       }
     };
     saveToLocalStorage(updated);
@@ -1272,6 +1313,7 @@ export const useGameStore = create<GameState>((set) => ({
     let gold = state.character.gold;
     let inventory = state.character.inventory;
     let forgeFragments = state.character.forgeFragments || 0;
+    let farmedByCitadel = state.character.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS();
     let changed = false;
     let autoSellCommon: boolean | undefined;
     let autoSellRare: boolean | undefined;
@@ -1344,6 +1386,12 @@ export const useGameStore = create<GameState>((set) => ({
           meat: materials.meat + Math.floor(totalMeat),
           studyInsignias: materials.studyInsignias + Math.floor(totalStudy),
         };
+        farmedByCitadel = {
+          wood: farmedByCitadel.wood + Math.floor(totalWood),
+          stone: farmedByCitadel.stone + Math.floor(totalStone),
+          meat: farmedByCitadel.meat + Math.floor(totalMeat),
+          studyInsignias: farmedByCitadel.studyInsignias + Math.floor(totalStudy),
+        };
         nextExpeditions = { ...citadel.expeditions, allocatedClasses: stillActive, lastTick: now };
         changed = true;
         if (returnedClassIds.length > 0) {
@@ -1412,6 +1460,7 @@ export const useGameStore = create<GameState>((set) => ({
       materials,
       inventory,
       forgeFragments,
+      totalMaterialsFarmedByCitadel: farmedByCitadel,
       citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop }
     };
     saveToLocalStorage(updated);
@@ -1983,6 +2032,7 @@ export const useGameStore = create<GameState>((set) => ({
       level: newLevel,
       xp: newXp,
       totalXpEarned: newTotalXpEarned,
+      totalXpEarnedLifetime: (state.character.totalXpEarnedLifetime || 0) + amount,
       attributePoints: newPoints,
       skillPoints: newSkillPoints,
       baseStats: stats,
@@ -2052,7 +2102,14 @@ export const useGameStore = create<GameState>((set) => ({
     if (pointsEarned < requiredPP) return state;
 
     const config = CLASS_CONFIGS[state.character.classId] || CLASS_CONFIGS.warrior;
-    
+
+    // Duração desta ascensão, usada para atualizar o recorde de ascensão mais rápida
+    const ascensionDurationSeconds = (Date.now() - (state.character.runStartTime || Date.now())) / 1000;
+    const prevFastest = state.character.fastestAscensionSeconds;
+    const newFastestAscensionSeconds = (prevFastest === undefined || ascensionDurationSeconds < prevFastest)
+      ? ascensionDurationSeconds
+      : prevFastest;
+
     // Recalcular os novos stats iniciais com base nos upgrades de prestígio permanentes já adquiridos
     const newBaseStats = { ...config.baseStats };
     const upgrades = state.character.prestigeUpgrades || {};
@@ -2078,6 +2135,7 @@ export const useGameStore = create<GameState>((set) => ({
       lifetimePrestigePointsAccumulated: (state.character.lifetimePrestigePointsAccumulated || 0) + pointsEarned,
       prestigeUpgrades: upgrades,
       ascensionCount: ascensionCount + 1,
+      fastestAscensionSeconds: newFastestAscensionSeconds,
       baseStats: newBaseStats,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
@@ -2756,8 +2814,37 @@ export const useGameStore = create<GameState>((set) => ({
     };
     const updated = {
       ...state.character,
-      killCount: updatedKills
+      killCount: updatedKills,
+      totalEnemiesKilledLifetime: (state.character.totalEnemiesKilledLifetime || 0) + 1
     };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  updateBestCombatStats: (stats) => set((state) => {
+    const char = state.character;
+    const patch: Partial<Character> = {};
+    let changed = false;
+
+    const maybeUpdate = (field: keyof Character, value: number | undefined) => {
+      if (value === undefined) return;
+      const prev = (char[field] as number | undefined) || 0;
+      if (value > prev) {
+        (patch as any)[field] = value;
+        changed = true;
+      }
+    };
+
+    maybeUpdate('bestDamageDealt', stats.damageDealt);
+    maybeUpdate('bestMaxHP', stats.maxHP);
+    maybeUpdate('bestCritChance', stats.critChance);
+    maybeUpdate('bestDropChancePct', stats.dropChancePct);
+    maybeUpdate('bestDamageReductionPct', stats.damageReductionPct);
+    maybeUpdate('bestAttackSpeedMultiplier', stats.attackSpeedMultiplier);
+    maybeUpdate('bestDodgeChance', stats.dodgeChance);
+
+    if (!changed) return state;
+    const updated = { ...char, ...patch };
     saveToLocalStorage(updated);
     return { character: updated };
   }),
@@ -3043,7 +3130,10 @@ export const useGameStore = create<GameState>((set) => ({
         goldEarned = calculateItemSellValue(item);
         const updated = {
           ...state.character,
-          gold: (state.character.gold || 0) + goldEarned
+          gold: (state.character.gold || 0) + goldEarned,
+          totalEquipmentDropped: item.slot !== 'consumable'
+            ? (state.character.totalEquipmentDropped || 0) + 1
+            : (state.character.totalEquipmentDropped || 0)
         };
         saveToLocalStorage(updated);
         return { character: updated };
@@ -3066,9 +3156,20 @@ export const useGameStore = create<GameState>((set) => ({
       }
 
       success = true;
+      const isFragment = item.consumableType === 'unstable_soul_fragment';
+      const isTowerKey = item.consumableType === 'tower_key' || item.consumableType === 'tower_key_evolved';
       const updated = {
         ...state.character,
-        inventory: [...state.character.inventory, item]
+        inventory: [...state.character.inventory, item],
+        totalEquipmentDropped: item.slot !== 'consumable'
+          ? (state.character.totalEquipmentDropped || 0) + 1
+          : (state.character.totalEquipmentDropped || 0),
+        totalFragmentsDropped: isFragment
+          ? (state.character.totalFragmentsDropped || 0) + 1
+          : (state.character.totalFragmentsDropped || 0),
+        totalTowerKeysDropped: isTowerKey
+          ? (state.character.totalTowerKeysDropped || 0) + 1
+          : (state.character.totalTowerKeysDropped || 0),
       };
       saveToLocalStorage(updated);
       return { character: updated };
@@ -3316,7 +3417,9 @@ export const useGameStore = create<GameState>((set) => ({
         ...state.character,
         gold: (state.character.gold || 0) - cost,
         forgeFragments: (state.character.forgeFragments || 0) - fragmentCost,
-        inventory: [...filteredInventory, newItem]
+        inventory: [...filteredInventory, newItem],
+        totalGoldSpentInForge: (state.character.totalGoldSpentInForge || 0) + cost,
+        totalForgeFragmentsSpent: (state.character.totalForgeFragmentsSpent || 0) + fragmentCost
       };
 
       saveToLocalStorage(updated);

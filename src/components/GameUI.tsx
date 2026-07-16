@@ -5278,6 +5278,83 @@ const getValidStatsForSlot = (slot: string, classId: string) => {
   return [mainStat, 'constitution', 'luck'];
 };
 
+const formatStatsTime = (seconds: number | undefined): string => {
+  if (seconds === undefined) return 'N/A';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}m ${secs}s`;
+};
+
+const StatisticsPanel: React.FC = () => {
+  const character = useGameStore((state) => state.character);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+  const finalStats = useMemo(() => StatEngine.calculateFinalStats(character), [character]);
+  const records = getPersonalRecords();
+  const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
+  const farmed = character.totalMaterialsFarmedByCitadel || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
+
+  const fmt = (val: number | undefined) => formatNumber(val || 0, abbreviateNumbers);
+  const fmtPct = (val: number | undefined) => `${((val || 0) * 100).toFixed(1)}%`;
+
+  // Espelha CombatFSM.calculatePlayerMaxHP para exibir a Vida atual sem depender da cena de combate
+  const ascensionCount = character.ascensionCount || 0;
+  const hpBoost = 1 + (ascensionCount * 0.025);
+  const hpPerCon = character.classId === 'paladin' ? 8 : 18;
+  const setHpMultiplier = 1 + (finalStats.maxHpPct || 0);
+  const currentMaxHP = Math.floor(finalStats.constitution * hpPerCon * hpBoost * setHpMultiplier);
+
+  const sectionStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' };
+  const labelStyle: React.CSSProperties = { fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' };
+
+  const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="stat-row">
+      <span style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>{label}</span>
+      <span className="font-mono" style={{ fontSize: '0.68rem', color: '#fff', fontWeight: 'bold' }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }} className="animate-tabFade">
+      <div style={sectionStyle}>
+        <span style={labelStyle}>Combate</span>
+        <Row label="Maior dano em um golpe" value={fmt(character.bestDamageDealt)} />
+        <Row label="Vida (atual / recorde)" value={`${fmt(currentMaxHP)} / ${fmt(character.bestMaxHP)}`} />
+        <Row label="Crítico (atual / recorde)" value={`${fmtPct(finalStats.critChance / 100)} / ${fmtPct((character.bestCritChance || 0) / 100)}`} />
+        <Row label="Chance de drop (atual / recorde)" value={`${fmtPct(finalStats.dropChancePct)} / ${fmtPct(character.bestDropChancePct)}`} />
+        <Row label="Redução de dano (atual / recorde)" value={`${fmtPct(finalStats.damageReductionPct)} / ${fmtPct(character.bestDamageReductionPct)}`} />
+        <Row label="Maior velocidade de ataque" value={`x${(character.bestAttackSpeedMultiplier || 0).toFixed(2)}`} />
+        <Row label="Maior chance de esquiva" value={`${(character.bestDodgeChance || 0).toFixed(1)}%`} />
+      </div>
+
+      <div style={sectionStyle}>
+        <span style={labelStyle}>Progressão</span>
+        <Row label="Fase mais alta alcançada" value={fmt(character.highestStageReached)} />
+        <Row label="Ascensões realizadas" value={fmt(character.ascensionCount)} />
+        <Row label="Transcendências realizadas" value={fmt(character.transcendenceCount)} />
+        <Row label="Inimigos abatidos (total)" value={fmt(character.totalEnemiesKilledLifetime)} />
+        <Row label="Equipamentos dropados (total)" value={fmt(character.totalEquipmentDropped)} />
+        <Row label="Fragmentos dropados (total)" value={fmt(character.totalFragmentsDropped)} />
+        <Row label="Chaves da Torre dropadas (total)" value={fmt(character.totalTowerKeysDropped)} />
+        <Row label="Ascensão mais rápida" value={formatStatsTime(character.fastestAscensionSeconds)} />
+        <Row label="Fase 20 mais rápida" value={formatStatsTime(records.minTimeToStage20 === 999999 ? undefined : records.minTimeToStage20)} />
+      </div>
+
+      <div style={sectionStyle}>
+        <span style={labelStyle}>Economia e Cidadela</span>
+        <Row label="Ouro total ganho" value={fmt(character.totalGoldEarnedLifetime)} />
+        <Row label="XP total ganho" value={fmt(character.totalXpEarnedLifetime)} />
+        <Row label="Pontos de Prestígio acumulados (vitalício)" value={fmt(character.lifetimePrestigePointsAccumulated)} />
+        <Row label="Fragmentos de Forja gastos" value={fmt(character.totalForgeFragmentsSpent)} />
+        <Row label="Ouro gasto na Forja" value={fmt(character.totalGoldSpentInForge)} />
+        <Row label="Madeira farmada (Cidadela)" value={fmt(farmed.wood)} />
+        <Row label="Pedra farmada (Cidadela)" value={fmt(farmed.stone)} />
+        <Row label="Carne farmada (Cidadela)" value={fmt(farmed.meat)} />
+        <Row label="Insígnias de Estudo farmadas (Cidadela)" value={fmt(farmed.studyInsignias)} />
+      </div>
+    </div>
+  );
+};
+
 const OptionsPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const setCharacter = useGameStore((state) => state.setCharacter);
@@ -5302,6 +5379,8 @@ const OptionsPanel: React.FC = () => {
   const toggleEconomyMode = useGameStore((state) => state.toggleEconomyMode);
 
   const playClick = () => AudioManager.getInstance().playClick();
+
+  const [statsSubTab, setStatsSubTab] = useState<'opcoes' | 'estatisticas'>('opcoes');
 
   // Estados da Área de Desenvolvedor (Sandbox)
   const [showDevInput, setShowDevInput] = useState(false);
@@ -5639,8 +5718,28 @@ const OptionsPanel: React.FC = () => {
         <h2 className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Opções do Jogo</h2>
       </div>
 
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button
+          onClick={() => { setStatsSubTab('opcoes'); playClick(); }}
+          className={`btn btn-sm ${statsSubTab === 'opcoes' ? 'btn-purple' : 'btn-ghost'}`}
+          style={{ flex: 1, fontSize: '0.65rem', padding: '0.4rem 0', fontWeight: 'bold' }}
+        >
+          ⚙️ Opções
+        </button>
+        <button
+          onClick={() => { setStatsSubTab('estatisticas'); playClick(); }}
+          className={`btn btn-sm ${statsSubTab === 'estatisticas' ? 'btn-purple' : 'btn-ghost'}`}
+          style={{ flex: 1, fontSize: '0.65rem', padding: '0.4rem 0', fontWeight: 'bold' }}
+        >
+          📊 Estatísticas
+        </button>
+      </div>
+
+      {statsSubTab === 'estatisticas' && <StatisticsPanel />}
+
+      {statsSubTab === 'opcoes' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-        
+
         {/* Seção de Áudio */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Configurações de Áudio</span>
@@ -6760,6 +6859,7 @@ const OptionsPanel: React.FC = () => {
         </div>
 
       </div>
+      )}
     </div>
   );
 };

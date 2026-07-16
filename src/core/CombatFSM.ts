@@ -711,6 +711,11 @@ export class CombatFSM {
     const char = useGameStore.getState().character;
     this.characterData = char;
     this.playerFinalStats = StatEngine.calculateFinalStats(char);
+    useGameStore.getState().updateBestCombatStats({
+      critChance: this.playerFinalStats.critChance,
+      dropChancePct: this.playerFinalStats.dropChancePct,
+      damageReductionPct: this.playerFinalStats.damageReductionPct,
+    });
 
     const ascensionCount = char.ascensionCount || 0;
     const hpBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
@@ -723,6 +728,7 @@ export class CombatFSM {
       this.playerHP += (this.playerMaxHP - prevMaxHP);
     }
     this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
+    useGameStore.getState().updateBestCombatStats({ maxHP: this.playerMaxHP });
 
     const prevMaxMana = this.playerMaxMana;
     this.playerMaxMana = this.calculatePlayerMaxMana(this.playerFinalStats.magic, manaBoost, char.classId || 'warrior');
@@ -1183,6 +1189,7 @@ export class CombatFSM {
     }
 
     this.damageEnemy(finalTouchDmg, true);
+    useGameStore.getState().updateBestCombatStats({ damageDealt: finalTouchDmg });
   }
 
   private handleIdle(): void {
@@ -1235,6 +1242,7 @@ export class CombatFSM {
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
     this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
+    useGameStore.getState().updateBestCombatStats({ attackSpeedMultiplier: speedMultiplier });
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
     let primaryStatVal = this.playerFinalStats.strength;
@@ -1300,6 +1308,7 @@ export class CombatFSM {
     bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
 
     this.damageEnemy(damage, true);
+    useGameStore.getState().updateBestCombatStats({ damageDealt: damage });
   }
 
   private performEnemyAttack() {
@@ -1389,6 +1398,7 @@ export class CombatFSM {
     }
 
     const isDodge = Math.random() * 100 < dodgeChance;
+    useGameStore.getState().updateBestCombatStats({ dodgeChance });
 
     if (isDodge) {
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'Desviou!', '#38bdf8');
@@ -2415,6 +2425,7 @@ export class CombatFSM {
 
     if (dmg > 0) {
       this.damageEnemy(dmg, true);
+      useGameStore.getState().updateBestCombatStats({ damageDealt: dmg });
     }
 
     // Cura do Toque da Morte (Necromante)

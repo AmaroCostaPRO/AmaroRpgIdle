@@ -150,6 +150,29 @@ export interface Character {
   totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
   materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
   citadel?: CitadelState;
+
+  // Estatísticas completas: recordes de combate (nunca decrescem)
+  bestDamageDealt?: number;
+  bestMaxHP?: number;
+  bestCritChance?: number;
+  bestDropChancePct?: number;
+  bestDamageReductionPct?: number;
+  bestAttackSpeedMultiplier?: number;
+  bestDodgeChance?: number;
+
+  // Estatísticas completas: acumuladores vitalícios de progressão
+  totalEnemiesKilledLifetime?: number;
+  totalEquipmentDropped?: number;
+  totalFragmentsDropped?: number;
+  totalTowerKeysDropped?: number;
+  fastestAscensionSeconds?: number; // undefined = nenhuma ascensão completa ainda
+
+  // Estatísticas completas: economia e cidadela
+  totalForgeFragmentsSpent?: number;
+  totalGoldSpentInForge?: number;
+  totalGoldEarnedLifetime?: number;
+  totalXpEarnedLifetime?: number; // Diferente de totalXpEarned: nunca reseta na Ascensão
+  totalMaterialsFarmedByCitadel?: { wood: number; stone: number; meat: number; studyInsignias: number };
 }
 
 export enum GameEvent {

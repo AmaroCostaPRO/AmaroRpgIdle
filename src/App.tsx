@@ -338,6 +338,14 @@ const App: React.FC = () => {
                   <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.1.0 (Atual) — Ajustes de Balanceamento Pós-Cidadela:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        📊 Nova Aba de Estatísticas Completas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova sub-aba "Estatísticas" dentro de Opções reúne tudo que você já alcançou: recordes de combate (maior dano em um golpe, Vida, Crítico, chance de Drop, Redução de Dano, Velocidade de Ataque e Esquiva, sempre com o valor atual ao lado do recorde), marcos de progressão (ascensões, transcendências, fase mais alta, inimigos abatidos, equipamentos/fragmentos/Chaves da Torre dropados, ascensão mais rápida) e totais econômicos vitalícios (Ouro e XP ganhos, gasto na Forja, materiais farmados pela Cidadela).
+                      </div>
+                    </div>
+                    <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
                         🔑 Chaves da Torre e Materiais na Ascensão
                       </div>
