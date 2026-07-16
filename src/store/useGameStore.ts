@@ -659,6 +659,10 @@ interface GameState {
   buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot'): { success: boolean; message: string };
   buyTranscendenceConsumable(type: 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
+
+  // Elixires exclusivos do Mercador Ambulante (v7.0.0) — compra debita Ouro e ativa o efeito na
+  // hora (não vira item de inventário); a ativação em si é feita pelo caller via GameEvent.ELIXIR_ACTIVATED.
+  buyMerchantElixir(elixirType: 'combatente' | 'defensor' | 'acumulador' | 'velocista' | 'ilusionista'): { success: boolean; message: string };
   
   // Controle de Velocidade de Jogo (v1.1.4 - Aceleração)
   gameSpeed: number;
@@ -3529,6 +3533,27 @@ export const useGameStore = create<GameState>((set) => ({
 
       saveToLocalStorage(updated);
       result = { success: true, message: `Compra de [${name}] realizada com sucesso!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buyMerchantElixir: (elixirType) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const cost = 50000;
+      if ((state.character.gold || 0) < cost) {
+        result = { success: false, message: `Ouro insuficiente. Requer ${formatNumber(cost, state.abbreviateNumbers)} Ouro.` };
+        return state;
+      }
+
+      const updated = {
+        ...state.character,
+        gold: (state.character.gold || 0) - cost
+      };
+
+      saveToLocalStorage(updated);
+      result = { success: true, message: 'Elixir comprado!' };
       return { character: updated };
     });
     return result;

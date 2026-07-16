@@ -391,18 +391,24 @@ export enum CombatState {
   MERCHANT_ENCOUNTER = 'MERCHANT_ENCOUNTER'
 }
 
-// Pool de itens compráveis do Mercador Ambulante (v7.0.0) — reaproveita o mesmo `buyConsumable`
-// da Loja de Suprimentos (ShopPanel.tsx), sem criar tipo de consumível ou ação de store novos.
-export type MerchantConsumableType = 'boost_touch' | 'boost_touch_x3';
+// Elixires exclusivos do Mercador Ambulante — comprados com Ouro e ativados na hora (não viram
+// item de inventário, diferente dos consumíveis da Loja de Suprimentos comum em ShopPanel.tsx).
+export type ElixirType = 'combatente' | 'defensor' | 'acumulador' | 'velocista' | 'ilusionista';
 
 export interface MerchantOffer {
-  consumableType: MerchantConsumableType;
+  elixirType: ElixirType;
   name: string;
+  description: string;
 }
 
+export const MERCHANT_ELIXIR_COST = 50000;
+
 export const MERCHANT_STOCK_POOL: MerchantOffer[] = [
-  { consumableType: 'boost_touch', name: 'Elixir de Toque' },
-  { consumableType: 'boost_touch_x3', name: 'Elixir de Toque Triplo' }
+  { elixirType: 'combatente', name: 'Elixir do Combatente', description: '+30% de Dano e +20% de Vida Máxima por 2 minutos.' },
+  { elixirType: 'defensor', name: 'Elixir do Defensor', description: 'Imunidade total a dano por 1 minuto.' },
+  { elixirType: 'acumulador', name: 'Elixir do Acumulador', description: '+50% de Chance de Drop e +50% de Ouro por 1 minuto.' },
+  { elixirType: 'velocista', name: 'Elixir do Velocista', description: '+25% de Velocidade de Ataque e +20% de Esquiva por 1 minuto.' },
+  { elixirType: 'ilusionista', name: 'Elixir do Ilusionista', description: 'Reduz em 50% a recarga de habilidades por 2 minutos.' }
 ];
 
 export interface StatusEffect {
@@ -463,6 +469,20 @@ export class CombatFSM {
   public isFrenzyActive: boolean = false;
   private frenzyDuration: number = 0;
   private frenzyAutoTapTimer: number = 0;
+
+  // Elixires exclusivos do Mercador Ambulante (v7.0.0): cada tipo tem sua própria flag+duração,
+  // mesmo padrão do Frenesi acima — comprar o mesmo elixir de novo reinicia a duração (não empilha
+  // o efeito); tipos diferentes são independentes entre si e empilham livremente.
+  public isElixirCombatenteActive: boolean = false;
+  private elixirCombatenteDuration: number = 0;
+  public isElixirDefensorActive: boolean = false;
+  private elixirDefensorDuration: number = 0;
+  public isElixirAcumuladorActive: boolean = false;
+  private elixirAcumuladorDuration: number = 0;
+  public isElixirVelocistaActive: boolean = false;
+  private elixirVelocistaDuration: number = 0;
+  public isElixirIlusionistaActive: boolean = false;
+  private elixirIlusionistaDuration: number = 0;
   public comboCount: number = 0;
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
@@ -809,7 +829,7 @@ export class CombatFSM {
     // nunca um chefe nem um Elite — mesmo padrão de rolagem probabilística usado acima para os Elites.
     if (!isBoss && !this.isElite && stage >= 3 && Math.random() < 0.02) {
       this.isMerchantEncounter = true;
-      this.currentMerchantOffer = MERCHANT_STOCK_POOL;
+      this.currentMerchantOffer = StatEngine.pickRandomElements(MERCHANT_STOCK_POOL, 2);
       this.currentState = CombatState.MERCHANT_ENCOUNTER;
       bridge.emit(GameEvent.MERCHANT_ENCOUNTERED, { offer: this.currentMerchantOffer });
       return;
@@ -857,7 +877,7 @@ export class CombatFSM {
     const manaBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
 
     const prevMaxHP = this.playerMaxHP;
-    this.playerMaxHP = this.calculatePlayerMaxHP(this.playerFinalStats.constitution, hpBoost, char.classId || 'warrior');
+    this.playerMaxHP = Math.floor(this.calculatePlayerMaxHP(this.playerFinalStats.constitution, hpBoost, char.classId || 'warrior') * (this.isElixirCombatenteActive ? 1.2 : 1));
 
     if (this.playerMaxHP > prevMaxHP) {
       this.playerHP += (this.playerMaxHP - prevMaxHP);
@@ -962,6 +982,43 @@ export class CombatFSM {
       }
     }
 
+    // Atualização dos Elixires do Mercador Ambulante (v7.0.0)
+    if (this.isElixirCombatenteActive) {
+      this.elixirCombatenteDuration -= delta;
+      if (this.elixirCombatenteDuration <= 0) {
+        this.isElixirCombatenteActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O Elixir do Combatente acabou.` });
+      }
+    }
+    if (this.isElixirDefensorActive) {
+      this.elixirDefensorDuration -= delta;
+      if (this.elixirDefensorDuration <= 0) {
+        this.isElixirDefensorActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O Elixir do Defensor acabou.` });
+      }
+    }
+    if (this.isElixirAcumuladorActive) {
+      this.elixirAcumuladorDuration -= delta;
+      if (this.elixirAcumuladorDuration <= 0) {
+        this.isElixirAcumuladorActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O Elixir do Acumulador acabou.` });
+      }
+    }
+    if (this.isElixirVelocistaActive) {
+      this.elixirVelocistaDuration -= delta;
+      if (this.elixirVelocistaDuration <= 0) {
+        this.isElixirVelocistaActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O Elixir do Velocista acabou.` });
+      }
+    }
+    if (this.isElixirIlusionistaActive) {
+      this.elixirIlusionistaDuration -= delta;
+      if (this.elixirIlusionistaDuration <= 0) {
+        this.isElixirIlusionistaActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O Elixir do Ilusionista acabou.` });
+      }
+    }
+
     // Atualização de Combo
     if (this.comboCount > 0) {
       if (this.isFrenzyActive) {
@@ -1020,7 +1077,7 @@ export class CombatFSM {
       const today = useGameStore.getState().getTodayYYYYMMDD();
       const seed = parseInt(today, 10);
       const activeModifierIndex = seed % 5;
-      if (activeModifierIndex === 4 && this.enemyHP > 0 && this.playerHP > 0) { // 4: creeping_poison
+      if (activeModifierIndex === 4 && this.enemyHP > 0 && this.playerHP > 0 && !this.isElixirDefensorActive) { // 4: creeping_poison
         this.creepingPoisonTimer += delta;
         if (this.creepingPoisonTimer >= 1500) {
           this.creepingPoisonTimer = 0;
@@ -1133,10 +1190,11 @@ export class CombatFSM {
       return true;
     });
 
-    // Atualizar cooldowns
+    // Atualizar cooldowns — Elixir do Ilusionista (v7.0.0) faz as recargas correrem 2x mais rápido
+    const cooldownTickRate = this.isElixirIlusionistaActive ? delta * 2 : delta;
     Object.keys(this.skillCooldowns).forEach((skillId) => {
       if (this.skillCooldowns[skillId] > 0) {
-        this.skillCooldowns[skillId] = Math.max(0, this.skillCooldowns[skillId] - delta);
+        this.skillCooldowns[skillId] = Math.max(0, this.skillCooldowns[skillId] - cooldownTickRate);
       }
     });
 
@@ -1205,7 +1263,8 @@ export class CombatFSM {
     const ascensionCount = char.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
     const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
+    const elixirSpeedBoost = this.isElixirVelocistaActive ? 0.25 : 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost + elixirSpeedBoost;
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost));
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
 
@@ -1234,6 +1293,39 @@ export class CombatFSM {
     this.frenzyEnergy = 100;
     bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: true, energy: 100 });
     bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 BOOST DE FRENESI! Auto-ataques críticos ativos por ${Math.round(durationMs / 1000)} segundos!` });
+  }
+
+  // Ativa (ou reinicia a duração de) um elixir comprado do Mercador Ambulante (v7.0.0).
+  // Tipos diferentes empilham livremente entre si; o mesmo tipo comprado de novo apenas reinicia
+  // a própria duração (não empilha o efeito).
+  public activateElixir(type: ElixirType): void {
+    switch (type) {
+      case 'combatente':
+        this.isElixirCombatenteActive = true;
+        this.elixirCombatenteDuration = 120000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🧪 Elixir do Combatente ativado! +30% de Dano e +20% de Vida Máxima por 2 minutos!` });
+        break;
+      case 'defensor':
+        this.isElixirDefensorActive = true;
+        this.elixirDefensorDuration = 60000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🧪 Elixir do Defensor ativado! Imunidade total a dano por 1 minuto!` });
+        break;
+      case 'acumulador':
+        this.isElixirAcumuladorActive = true;
+        this.elixirAcumuladorDuration = 60000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🧪 Elixir do Acumulador ativado! +50% de Chance de Drop e +50% de Ouro por 1 minuto!` });
+        break;
+      case 'velocista':
+        this.isElixirVelocistaActive = true;
+        this.elixirVelocistaDuration = 60000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🧪 Elixir do Velocista ativado! +25% de Velocidade de Ataque e +20% de Esquiva por 1 minuto!` });
+        break;
+      case 'ilusionista':
+        this.isElixirIlusionistaActive = true;
+        this.elixirIlusionistaDuration = 120000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🧪 Elixir do Ilusionista ativado! Recarga de habilidades 2x mais rápida por 2 minutos!` });
+        break;
+    }
   }
 
   public handlePlayerTap(clickX?: number, clickY?: number): void {
@@ -1312,7 +1404,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -1377,7 +1469,8 @@ export class CombatFSM {
     const ascensionCount = this.characterData.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
     const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
-    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost;
+    const elixirSpeedBoost = this.isElixirVelocistaActive ? 0.25 : 0;
+    const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost + elixirSpeedBoost;
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
     this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
@@ -1432,7 +1525,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -1451,6 +1544,14 @@ export class CombatFSM {
   }
 
   private performEnemyAttack() {
+    // Elixir do Defensor (v7.0.0): imunidade total a dano — bloqueia o ataque antes de qualquer
+    // cálculo de dano/esquiva, mas ainda anima o inimigo atacando para não parecer travado.
+    if (this.isElixirDefensorActive) {
+      this.scene.animateEnemyAttack();
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'IMUNE!', '#a78bfa');
+      return;
+    }
+
     const isTower = useTowerStore.getState().towerActive;
     const baseCooldown = 3600 - (this.enemyLevel * 30);
     let speedMult = this.currentEnemy.attackSpeedMultiplier;
@@ -1525,7 +1626,12 @@ export class CombatFSM {
     // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
     const ascensionCount = this.characterData.ascensionCount || 0;
     let dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5));
-    
+
+    // Elixir do Velocista (v7.0.0): +20% de Esquiva, com teto elevado para 95% enquanto ativo
+    if (this.isElixirVelocistaActive) {
+      dodgeChance = Math.min(95, dodgeChance + 20);
+    }
+
     // Aplicar afixo diário Vento Cortante (-15% de Esquiva para o jogador)
     if (this.characterData.activeDailyChallenge) {
       const today = useGameStore.getState().getTodayYYYYMMDD();
@@ -1620,7 +1726,7 @@ export class CombatFSM {
       const today = useGameStore.getState().getTodayYYYYMMDD();
       const seed = parseInt(today, 10);
       const activeModifierIndex = seed % 5;
-      if (activeModifierIndex === 1) { // 1: thorns_shield
+      if (activeModifierIndex === 1 && !this.isElixirDefensorActive) { // 1: thorns_shield
         const reflectedLimit = Math.floor(this.playerMaxHP * 0.05);
         const reflected = Math.min(Math.floor(amount * 0.20), reflectedLimit);
         if (reflected > 0) {
@@ -1712,7 +1818,7 @@ export class CombatFSM {
 
     // Lógica do afixo Volátil: explode ao morrer causando 20% da Vida Máxima do herói, mitigada por Constituição
     let volatileDamage = 0;
-    if (this.isElite && this.eliteAfix === 'volatil') {
+    if (this.isElite && this.eliteAfix === 'volatil' && !this.isElixirDefensorActive) {
       const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
       volatileDamage = Math.floor(this.playerMaxHP * 0.20 * constitutionReduction);
       if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
@@ -1799,6 +1905,11 @@ export class CombatFSM {
       gainedXp = Math.floor(gainedXp * (1 + activePetDef.bonusPct));
     } else if (activePetDef?.bonusType === 'gold') {
       gainedGold = Math.floor(gainedGold * (1 + activePetDef.bonusPct));
+    }
+
+    // Elixir do Acumulador (v7.0.0): +50% de Ouro
+    if (this.isElixirAcumuladorActive) {
+      gainedGold = Math.floor(gainedGold * 1.5);
     }
 
     useGameStore.getState().addXp(gainedXp);
@@ -1922,7 +2033,11 @@ export class CombatFSM {
     // Elites e Chefes têm 100% de chance de drop de equipamento
     const relicDropBonus = useRelicStore.getState().getRelicEffectBonus('simbolo_aprendizado');
     const dropPctBonus = this.playerFinalStats.dropChancePct || 0;
-    const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus + dropPctBonus);
+    let dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus + dropPctBonus);
+    // Elixir do Acumulador (v7.0.0): +50% de Chance de Drop, aplicado após o teto normal de 50%
+    if (this.isElixirAcumuladorActive) {
+      dropChance = Math.min(1.0, dropChance * 1.5);
+    }
     
     const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet')[] = [];
 
@@ -2570,7 +2685,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = 1 + (this.playerFinalStats.damageMultiplierPct || 0);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano

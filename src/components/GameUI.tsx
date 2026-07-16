@@ -7,7 +7,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
-import { ENEMY_TYPES, MerchantOffer } from '../core/CombatFSM';
+import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
@@ -6890,6 +6890,17 @@ const OptionsPanel: React.FC = () => {
   );
 };
 
+// Elixires exclusivos do Mercador Ambulante (v7.0.0) — mesmo ícone de "poção" para todos, reforçando
+// a leitura "isso é um elixir"; só a cor de fundo/borda muda por tipo, mesmo padrão de "cor por
+// categoria" já usado em getSetVisual/getRarityBg (itemVisuals.ts).
+const ELIXIR_VISUALS: Record<ElixirType, { bg: string; border: string; text: string }> = {
+  combatente: { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.4)', text: '#f87171' },
+  defensor: { bg: 'rgba(96, 165, 250, 0.1)', border: 'rgba(96, 165, 250, 0.4)', text: '#93c5fd' },
+  acumulador: { bg: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.4)', text: '#fbbf24' },
+  velocista: { bg: 'rgba(52, 211, 153, 0.1)', border: 'rgba(52, 211, 153, 0.4)', text: '#34d399' },
+  ilusionista: { bg: 'rgba(167, 139, 250, 0.1)', border: 'rgba(167, 139, 250, 0.4)', text: '#c4b5fd' }
+};
+
 export default function GameUI() {
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
@@ -6900,24 +6911,34 @@ export default function GameUI() {
   const dismantleItem = useGameStore((state) => state.dismantleItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const buyConsumable = useGameStore((state) => state.buyConsumable);
+  const buyMerchantElixir = useGameStore((state) => state.buyMerchantElixir);
 
   // v7.0.0 "Ecos que Despertam": Mercador Ambulante — painel de compra temporário exibido
   // quando o encontro substitui um inimigo normal no combate (ver CombatFSM.setupEnemyForLevel).
+  // A partir da atualização dos Elixires, só permite 1 compra por encontro (os botões desativam
+  // após a primeira compra e resetam apenas no próximo MERCHANT_ENCOUNTERED).
   const [merchantOffer, setMerchantOffer] = useState<MerchantOffer[] | null>(null);
   const [merchantFeedback, setMerchantFeedback] = useState<string | null>(null);
+  const [merchantPurchased, setMerchantPurchased] = useState(false);
 
   useEffect(() => {
     const unsubscribeMerchant = bridge.subscribe(GameEvent.MERCHANT_ENCOUNTERED, (payload: any) => {
       setMerchantOffer(payload?.offer || []);
       setMerchantFeedback(null);
+      setMerchantPurchased(false);
     });
     return () => unsubscribeMerchant();
   }, []);
 
-  const handleMerchantBuy = (consumableType: 'boost_touch' | 'boost_touch_x3') => {
+  const handleMerchantBuy = (elixirType: ElixirType) => {
+    if (merchantPurchased) return;
     AudioManager.getInstance().playCoin();
-    const result = buyConsumable(consumableType);
+    const result = buyMerchantElixir(elixirType);
     setMerchantFeedback(result.message);
+    if (result.success) {
+      bridge.emit(GameEvent.ELIXIR_ACTIVATED, { elixirType });
+      setMerchantPurchased(true);
+    }
   };
 
   const handleMerchantDismiss = () => {
@@ -8194,25 +8215,40 @@ export default function GameUI() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {merchantOffer.map((offer) => {
-                  const cost = offer.consumableType === 'boost_touch' ? 1000 : 5000;
-                  const canAfford = (character.gold || 0) >= cost;
+                  const canAfford = (character.gold || 0) >= MERCHANT_ELIXIR_COST;
+                  const isDisabled = merchantPurchased || !canAfford;
+                  const visual = ELIXIR_VISUALS[offer.elixirType];
                   return (
                     <button
-                      key={offer.consumableType}
-                      onClick={() => handleMerchantBuy(offer.consumableType)}
-                      disabled={!canAfford}
-                      className={`btn btn-sm ${canAfford ? 'btn-gold' : 'btn-disabled'}`}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', opacity: canAfford ? 1 : 0.5 }}
+                      key={offer.elixirType}
+                      onClick={() => handleMerchantBuy(offer.elixirType)}
+                      disabled={isDisabled}
+                      className="btn btn-sm"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '0.15rem',
+                        width: '100%',
+                        textAlign: 'left',
+                        background: visual.bg,
+                        border: `1px solid ${visual.border}`,
+                        opacity: isDisabled ? 0.5 : 1,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      }}
                     >
-                      <span>{offer.name}</span>
-                      <span>🪙 {formatNumber(cost, abbreviateNumbers)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span style={{ fontWeight: 700, color: visual.text }}>🧪 {offer.name}</span>
+                        <span>🪙 {formatNumber(MERCHANT_ELIXIR_COST, abbreviateNumbers)}</span>
+                      </div>
+                      <span style={{ fontSize: '0.6rem', color: '#cbd5e1', fontWeight: 400 }}>{offer.description}</span>
                     </button>
                   );
                 })}
               </div>
 
               <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleMerchantDismiss}>
-                Continuar Jornada
+                {merchantPurchased ? 'Fechar' : 'Continuar Jornada'}
               </button>
             </div>
           </div>

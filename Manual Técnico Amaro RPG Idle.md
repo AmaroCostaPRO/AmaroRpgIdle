@@ -1450,8 +1450,16 @@ Auditoria completa do código-fonte cobrindo performance, código morto, otimiza
     *   Carregamento dos novos sprites pixel art voadores dos pets de início de jogo: Sprite Lumen (XP) e Moeda Alada (Ouro).
     *   Flutuam ao lado do jogador em combate.
 *   **🛒 Encontro com o Mercador Ambulante**:
-    *   Durante as fases normais 3+, há 2% de chance de spawnar o Mercador Ambulante no lugar de um monstro convencional, oferecendo Elixir de Toque e Elixir de Toque Triplo por Ouro.
-    *   O sprite do Mercador Ambulante e seu nome dourado exclusivo são renderizados na arena, suspendendo o combate até que o painel de ofertas seja fechado.
+    *   Durante as fases normais 3+, há 2% de chance de spawnar o Mercador Ambulante no lugar de um monstro convencional. O sprite do Mercador e seu nome dourado exclusivo são renderizados na posição de combate (`x = PLAYER_START_X + 400`, o mesmo raio que dispara `CombatState.ATTACKING`) e suspendem o combate (`CombatState.MERCHANT_ENCOUNTER`) até que o painel de ofertas seja fechado.
+    *   **Painel de compra**: exibido como um modal local (`position: absolute` dentro do wrapper relativo de `GameUI.tsx`, não em tela cheia), posicionado abaixo do carrossel de abas / ao lado do canvas de combate no desktop, para manter a arena visível.
+    *   **Elixires exclusivos (v7.0.0)**: o Mercador sorteia **2 elixires aleatórios** entre 5 tipos a cada encontro (`StatEngine.pickRandomElements`), cada um custando **50.000 Ouro** fixo e ativado instantaneamente ao ser comprado (não vira item de inventário — ação dedicada `buyMerchantElixir` em `useGameStore.ts`, disparando `GameEvent.ELIXIR_ACTIVATED` para o `CombatFSM` via `CombatScene.ts`). Apenas **1 compra é permitida por encontro**: após a primeira, os dois botões de oferta desativam e o jogador só pode fechar o painel.
+        *   **Elixir do Combatente** (2 min): +30% de Dano e +20% de Vida Máxima.
+        *   **Elixir do Defensor** (1 min): imunidade total a dano — bloqueia ataques de inimigos, veneno rastejante do Desafio Diário, dano refletido do Escudo de Espinhos e a explosão do afixo Volátil.
+        *   **Elixir do Acumulador** (1 min): +50% de Chance de Drop (aplicado após o teto normal de 50%, elevando-o a 100%) e +50% de Ouro.
+        *   **Elixir do Velocista** (1 min): +25% de Velocidade de Ataque e +20% de Esquiva (teto de esquiva elevado de 75% para 95% enquanto ativo).
+        *   **Elixir do Ilusionista** (2 min): recarga de habilidades corre 2x mais rápido (efeito contínuo no tick-down de `skillCooldowns`, não um corte único).
+        *   Cada elixir tem sua própria flag+duração no `CombatFSM` (mesmo padrão do Frenesi de Toques): comprar o mesmo elixir de novo reinicia a duração; elixires de tipos diferentes empilham livremente entre si.
+        *   Visual consistente: ícone de poção (🧪) igual para todos os 5 tipos, com cor de fundo/borda própria por elixir (vermelho/azul/dourado/verde/roxo) no cartão de oferta.
 *   **🧿 Novo Slot de Equipamento: Amuleto**: Item de entrada com exatamente 1 bônus passivo simples (Chance de Drop, Crítico ou Roubo de Vida), disponível desde a Fase 1 (drop fixo de 8%, sem influência da Sorte).
 
 ### Versão 6.1.0 "Ajustes de Balanceamento Pós-Cidadela"

@@ -33,6 +33,7 @@ export class CombatScene extends Phaser.Scene {
   private xpText!: Phaser.GameObjects.Text;
   private unsubscribeSkill?: () => void;
   private unsubscribeFrenzyBoost?: () => void;
+  private unsubscribeElixirActivated?: () => void;
   private currentBgTexture: string = 'background';
   private accumulatedTime: number = 0;
   private skeletonMinion!: Phaser.GameObjects.Image;
@@ -382,6 +383,11 @@ export class CombatScene extends Phaser.Scene {
 
     this.unsubscribeFrenzyBoost = bridge.subscribe('ACTIVATE_FRENZY_BOOST' as any, (payload) => {
       this.fsm.activateFrenzyBoost(payload.duration || 60000);
+    });
+
+    // Elixires exclusivos do Mercador Ambulante (v7.0.0) — ativados na hora após a compra bem-sucedida
+    this.unsubscribeElixirActivated = bridge.subscribe(GameEvent.ELIXIR_ACTIVATED, (payload: any) => {
+      this.fsm.activateElixir(payload.elixirType);
     });
 
     // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela em tela cheia,
@@ -1093,8 +1099,16 @@ export class CombatScene extends Phaser.Scene {
       let flipX = !!enemyType.flipX;
       
       if (this.fsm && this.fsm.isMerchantEncounter) {
-        this.enemyBody.setTexture('merchant_traveling_transparent');
-        flipX = false; // O próprio usuário já virou a imagem física do mercador para a esquerda
+        if (this.textures.exists('merchant_traveling_transparent')) {
+          this.enemyBody.setTexture('merchant_traveling_transparent');
+          flipX = false; // O próprio usuário já virou a imagem física do mercador para a esquerda
+        } else {
+          // Fallback defensivo: se por algum motivo a textura do Mercador não foi carregada/gerada
+          // (asset ausente, falha de load, etc.), evita ficar com o sprite "invisível" — reaproveita
+          // a textura do inimigo comum por trás do encontro, como no placeholder original da v7.0.0.
+          console.warn('[Mercador Ambulante] Textura "merchant_traveling_transparent" não encontrada — usando fallback.');
+          this.enemyBody.setTexture(enemyType.texture + '_transparent');
+        }
       } else {
         this.enemyBody.setTexture(enemyType.texture + '_transparent');
       }
@@ -1106,8 +1120,14 @@ export class CombatScene extends Phaser.Scene {
       }
       
       const targetY = Math.round((600 - 50 * ZOOM_FACTOR) - size / 2 + (enemyType.yOffset || 0) * ZOOM_FACTOR);
-      
-      this.enemyBody.setPosition(startX, targetY);
+
+      // Mercador Ambulante: como o combate fica pausado (CombatState.MERCHANT_ENCOUNTER), o inimigo
+      // nunca chega a "andar" até a área de combate (isso só acontece em handleMoving -> scrollWorld,
+      // que não roda com o combate pausado). Por isso ele precisa nascer já na posição final de combate
+      // (~400px de distância do jogador, o mesmo raio que dispara CombatState.ATTACKING) em vez do
+      // `startX` de spawn (900px), que fica fora da área visível do canvas de 800px de largura.
+      const spawnX = (this.fsm && this.fsm.isMerchantEncounter) ? (this.PLAYER_START_X + 400) : startX;
+      this.enemyBody.setPosition(spawnX, targetY);
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
       this.enemyBody.angle = 0;
@@ -1408,6 +1428,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeFrenzyBoost) {
       this.unsubscribeFrenzyBoost();
       this.unsubscribeFrenzyBoost = undefined;
+    }
+    if (this.unsubscribeElixirActivated) {
+      this.unsubscribeElixirActivated();
+      this.unsubscribeElixirActivated = undefined;
     }
     if (this.unsubscribeTabChanged) {
       this.unsubscribeTabChanged();

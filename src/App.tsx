@@ -328,7 +328,7 @@ const App: React.FC = () => {
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A grande v7.0.0 traz o Bosque Sussurrante como bioma inicial definitivo da campanha com background pixel art, monstros exclusivos, os pets de early game (Lumen e Moeda Alada) e o misterioso encontro com o Mercador Ambulante.
+                A grande v7.0.0 traz o Bosque Sussurrante como bioma inicial definitivo da campanha com background pixel art, monstros exclusivos, os pets de early game (Lumen e Moeda Alada) e o misterioso encontro com o Mercador Ambulante e seus elixires exclusivos.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
@@ -358,7 +358,15 @@ const App: React.FC = () => {
                         🛒 Mercador Ambulante no Combate
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Nas fases normais (3+), há 2% de chance de encontrar o Mercador Ambulante. O combate é suspenso temporariamente e sua arte e nome dourado especial são exibidos na arena enquanto você navega pelas ofertas de Elixir de Toque e Elixir de Toque Triplo, compráveis com Ouro.
+                        Nas fases normais (3+), há 2% de chance de encontrar o Mercador Ambulante. O combate é suspenso temporariamente e sua arte e nome dourado especial são exibidos na arena enquanto você navega pelas ofertas do Mercador.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f472b6', fontSize: '0.72rem' }}>
+                        🧪 Elixires Exclusivos do Mercador
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Mercador sorteia 2 elixires aleatórios entre 5 tipos a cada encontro, todos por 50.000 Ouro e ativados na hora (só 1 compra por encontro): <strong>Combatente</strong> (+30% Dano e +20% Vida Máxima, 2min), <strong>Defensor</strong> (imunidade total a dano, 1min), <strong>Acumulador</strong> (+50% Drop e Ouro, 1min), <strong>Velocista</strong> (+25% Vel. Ataque e +20% Esquiva, 1min) e <strong>Ilusionista</strong> (recarga de habilidades 2x mais rápida, 2min).
                       </div>
                     </div>
                     <div>
