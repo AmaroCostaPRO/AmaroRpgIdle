@@ -7,7 +7,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
-import { ENEMY_TYPES } from '../core/CombatFSM';
+import { ENEMY_TYPES, MerchantOffer } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
@@ -944,8 +944,8 @@ const AttributePanel: React.FC = () => {
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
-  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null;
-  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null) => void;
+  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null;
+  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null) => void;
   showDiscardConfirm: boolean;
   setShowDiscardConfirm: (show: boolean) => void;
 }
@@ -1008,7 +1008,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     setSelectedItem(null);
   };
 
-  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace') => {
+  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet') => {
     AudioManager.getInstance().playClick();
     unequipItem(slot);
     setSelectedSlot(null);
@@ -1113,10 +1113,23 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
             {/* Pernas */}
             <div style={{ gridRow: '3', gridColumn: '2' }}>
-              <EquipmentSlot 
-                slot="legs" 
-                item={character.equipment.legs} 
+              <EquipmentSlot
+                slot="legs"
+                item={character.equipment.legs}
                 onClick={() => character.equipment.legs && setSelectedSlot('legs')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Amuleto */}
+            <div style={{ gridRow: '3', gridColumn: '3' }}>
+              <EquipmentSlot
+                slot="amulet"
+                item={character.equipment.amulet}
+                onClick={() => character.equipment.amulet && setSelectedSlot('amulet')}
                 icons={slotIcons}
                 labels={slotLabels}
                 getRarityColor={getRarityColor}
@@ -1627,7 +1640,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
 // Componente auxiliar para renderizar cada slot de equipamento
 const EquipmentSlot: React.FC<{
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet';
   item: EquipmentItem | null;
   onClick: () => void;
   icons: Record<string, string>;
@@ -4074,9 +4087,9 @@ const GuidePanel: React.FC = () => {
                   Cada fase exige a derrota de <strong className="text-white">20 monstros normais</strong> seguidos da eliminação de um <strong className="text-white">Chefe de Fase</strong> para liberar a próxima. O progresso ("Progresso: X/20") aparece no HUD durante o combate.
                 </p>
                 <div>
-                  <strong className="text-white block font-semibold">Fases Normais (1 a 5)</strong>
+                  <strong className="text-white block font-semibold">Fases Normais (1 a 10)</strong>
                   <p className="text-gray-400 text-[9px] mt-0.5">
-                    Fase 1: Floresta | Fase 2: Deserto | Fase 3: Neve | Fase 4: Cemitério | Fase 5: Ruínas.
+                    Fases 1-5: Bosque Sussurrante | Fase 6: Floresta | Fase 7: Deserto | Fase 8: Neve | Fase 9: Cemitério | Fase 10: Ruínas.
                   </p>
                   <code className="text-rose-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
                     Fator de HP = 1.30 ^ (Fase - 1)
@@ -4227,6 +4240,11 @@ const GuidePanel: React.FC = () => {
 };
 
 const LORE_DATABASE: Record<string, string> = {
+  whisper_sprite: "Um pequeno eco da Alma partida, pequeno demais para carregar uma vontade inteira. Sussurra entre as folhas do Bosque, ainda intocado pelo Vazio.",
+  thorned_treant: "Uma criatura de casca e espinhos que cresceu devagar demais para notar o tempo passar. Defende o Bosque Sussurrante com raízes e galhos afiados.",
+  fae_rabbit: "Ágil e esquiva, essa criatura feérica atravessa o Bosque em saltos rápidos demais para o olho acompanhar.",
+  boss_whispering_warden: "O guardião mais antigo do Bosque Sussurrante, um eco maior que os demais que aprendeu a proteger o que resta da Alma intocada.",
+
   goblin: "Pequenos, ágeis e traiçoeiros, costumam espreitar nas sombras das copas das árvores da Floresta Antiga para emboscar aventureiros desavisados.",
   shadow_wolf: "Um predador voraz cujos olhos brilham no escuro. Sua pelagem negra se confunde com as sombras da floresta, facilitando botes letais e silenciosos.",
   orc_warrior: "Um combatente brutal que empunha machados massivos. Sua força física avantajada compensa sua lerdeza em batalha.",
@@ -4263,6 +4281,7 @@ const LORE_DATABASE: Record<string, string> = {
 
 
 const BIOME_NAMES = [
+  "Bosque Sussurrante",
   "Floresta Antiga",
   "Deserto de Ouro",
   "Picos Glaciais",
@@ -4835,7 +4854,7 @@ interface BestiaryPanelProps {
 // mudam em runtime), calculado uma única vez em vez de a cada render do BestiaryPanel.
 const BESTIARY_PHASES = (() => {
   const phases = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     const startIdx = i * 4;
     const endIdx = startIdx + 4;
     phases.push({
@@ -5122,14 +5141,14 @@ const getItemNameAndSet = (
   misticLvl: number
 ) => {
   const slotNames: Record<string, Record<string, string>> = {
-    warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
-    mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
-    ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet' },
-    paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
-    cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
-    rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
-    necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
-    avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+    warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
+    mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+    ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+    paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+    cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
+    rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+    necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+    avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
   };
 
   const setNames: Record<string, Record<string, string>> = {
@@ -5265,6 +5284,10 @@ const getValidStatsForSlot = (slot: string, classId: string) => {
     ];
   }
 
+  if (slot === 'amulet') {
+    return ['dropChancePct', 'critChance', 'lifesteal'];
+  }
+
   // Atributos básicos aleatórios por classe para os outros slots
   if (classId === 'warrior') return ['strength', 'constitution', 'luck'];
   if (classId === 'mage' || classId === 'cleric' || classId === 'necromancer') return ['magic', 'constitution', 'luck'];
@@ -5390,13 +5413,13 @@ const OptionsPanel: React.FC = () => {
   const [misticLevelGen, setMisticLevelGen] = useState<number>(8);
 
   // Estados para Criação de Item Customizado (sistema por tier)
-  const [customItemSlot, setCustomItemSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'>('weapon');
+  const [customItemSlot, setCustomItemSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'>('weapon');
   const [customItemTier, setCustomItemTier] = useState<'rustico' | 'ancestral' | 'pandemonio' | 'celestial'>('celestial');
   const [customItemMistic, setCustomItemMistic] = useState<number>(8);
   const [customStats, setCustomStats] = useState<Record<string, number>>({});
 
   // Reseta stats ao trocar slot ou tier
-  const handleCustomSlotChange = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace') => {
+  const handleCustomSlotChange = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet') => {
     setCustomItemSlot(slot);
     setCustomStats({});
   };
@@ -5481,14 +5504,14 @@ const OptionsPanel: React.FC = () => {
     const classId = character.classId;
     
     const slotNames: Record<string, Record<string, string>> = {
-      warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
-      mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
-      ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet' },
-      paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
-      cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
-      rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
-      necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
-      avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+      warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
+      mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+      ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+      paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+      cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
+      rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+      necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+      avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
     };
 
     const celestialSetNames: Record<string, string> = {
@@ -5517,7 +5540,7 @@ const OptionsPanel: React.FC = () => {
     if (!setName) return;
 
     const newEquipment: Record<string, any> = {};
-    const slots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'];
+    const slots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'];
     
     slots.forEach(slot => {
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -5595,6 +5618,8 @@ const OptionsPanel: React.FC = () => {
       } else if (slot === 'necklace') {
         itemStats['damageReductionPct'] = 0.20;
         itemStats['lifesteal'] = 0.15;
+      } else if (slot === 'amulet') {
+        itemStats['critChance'] = 0.05;
       } else if (slot === 'gloves') {
         itemStats['attackSpeedPct'] = 0.30;
       } else {
@@ -5623,7 +5648,7 @@ const OptionsPanel: React.FC = () => {
     playClick();
   };
 
-  const updateSingleItemMistic = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace', newLvl: number) => {
+  const updateSingleItemMistic = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet', newLvl: number) => {
     const item = character.equipment[slot];
     if (!item) return;
 
@@ -6592,9 +6617,9 @@ const OptionsPanel: React.FC = () => {
                   {/* Refinador de Equipamento Individual */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '130px', overflowY: 'auto', paddingRight: '0.2rem' }}>
                     <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '0.58rem' }}>Mística de Itens Equipados:</span>
-                    {(['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'] as const).map((slot) => {
+                    {(['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'] as const).map((slot) => {
                       const item = character.equipment[slot] as EquipmentItem | null;
-                      const slotLabel = slot === 'head' ? 'Elmo' : slot === 'chest' ? 'Peito' : slot === 'legs' ? 'Pernas' : slot === 'gloves' ? 'Luvas' : slot === 'weapon' ? 'Arma' : 'Colar';
+                      const slotLabel = slot === 'head' ? 'Elmo' : slot === 'chest' ? 'Peito' : slot === 'legs' ? 'Pernas' : slot === 'gloves' ? 'Luvas' : slot === 'weapon' ? 'Arma' : slot === 'necklace' ? 'Colar' : 'Amuleto';
                       
                       return (
                         <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.03)' }}>
@@ -6664,6 +6689,7 @@ const OptionsPanel: React.FC = () => {
                           <option value="legs">👖 Pernas</option>
                           <option value="gloves">🧤 Luvas</option>
                           <option value="necklace">📿 Colar</option>
+                          <option value="amulet">🧿 Amuleto</option>
                         </select>
                       </div>
 
@@ -6873,6 +6899,33 @@ export default function GameUI() {
   const sellItem = useGameStore((state) => state.sellItem);
   const dismantleItem = useGameStore((state) => state.dismantleItem);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+  const buyConsumable = useGameStore((state) => state.buyConsumable);
+
+  // v7.0.0 "Ecos que Despertam": Mercador Ambulante — painel de compra temporário exibido
+  // quando o encontro substitui um inimigo normal no combate (ver CombatFSM.setupEnemyForLevel).
+  const [merchantOffer, setMerchantOffer] = useState<MerchantOffer[] | null>(null);
+  const [merchantFeedback, setMerchantFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribeMerchant = bridge.subscribe(GameEvent.MERCHANT_ENCOUNTERED, (payload: any) => {
+      setMerchantOffer(payload?.offer || []);
+      setMerchantFeedback(null);
+    });
+    return () => unsubscribeMerchant();
+  }, []);
+
+  const handleMerchantBuy = (consumableType: 'boost_touch' | 'boost_touch_x3') => {
+    AudioManager.getInstance().playCoin();
+    const result = buyConsumable(consumableType);
+    setMerchantFeedback(result.message);
+  };
+
+  const handleMerchantDismiss = () => {
+    AudioManager.getInstance().playClick();
+    setMerchantOffer(null);
+    setMerchantFeedback(null);
+    bridge.emit(GameEvent.MERCHANT_DISMISSED, {});
+  };
 
   const { towerKeyCount, evolvedTowerKeyCount } = useMemo(() => {
     let towerKeys = 0;
@@ -7050,7 +7103,7 @@ export default function GameUI() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [confirmSellItem, setConfirmSellItem] = useState(false);
   const [confirmDismantleItem, setConfirmDismantleItem] = useState(false);
@@ -8273,6 +8326,87 @@ export default function GameUI() {
               }}
             >
               {visibleParagraphs >= 7 ? 'Aceitar o Destino' : 'Pular Introdução'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Painel do Mercador Ambulante (v7.0.0 "Ecos que Despertam") — substitui um inimigo no combate */}
+      {merchantOffer && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 2, 6, 0.85)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 999998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem'
+          }}
+        >
+          <div
+            className="panel"
+            style={{
+              background: 'linear-gradient(135deg, rgba(12, 8, 20, 0.99), rgba(24, 18, 36, 1))',
+              border: '2px solid rgba(251, 191, 36, 0.4)',
+              boxShadow: '0 0 30px rgba(251, 191, 36, 0.15)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.5rem',
+              width: '100%',
+              maxWidth: '420px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '2rem' }}>🛒</span>
+              <h2 className="font-heading" style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--gold-400)', margin: '0.4rem 0 0 0' }}>
+                Mercador Ambulante
+              </h2>
+              <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: '0.3rem 0 0 0' }}>
+                Um eco nascido do excedente de desejo e comércio de incontáveis vidas passadas. Não luta — só barganha.
+              </p>
+            </div>
+
+            {merchantFeedback && (
+              <div style={{
+                padding: '0.4rem 0.6rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.6rem',
+                textAlign: 'center',
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.25)',
+                color: '#fbbf24'
+              }}>
+                {merchantFeedback}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {merchantOffer.map((offer) => {
+                const cost = offer.consumableType === 'boost_touch' ? 1000 : 5000;
+                const canAfford = (character.gold || 0) >= cost;
+                return (
+                  <button
+                    key={offer.consumableType}
+                    onClick={() => handleMerchantBuy(offer.consumableType)}
+                    disabled={!canAfford}
+                    className={`btn btn-sm ${canAfford ? 'btn-gold' : 'btn-disabled'}`}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', opacity: canAfford ? 1 : 0.5 }}
+                  >
+                    <span>{offer.name}</span>
+                    <span>🪙 {formatNumber(cost, abbreviateNumbers)}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleMerchantDismiss}>
+              Continuar Jornada
             </button>
           </div>
         </div>

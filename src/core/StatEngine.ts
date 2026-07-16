@@ -605,7 +605,28 @@ export class StatEngine {
         stats[key] = Math.round(Math.min(0.03, raw) * 1000) / 1000;
       }
     });
-    
+
+    return stats;
+  }
+
+  // Amuleto (v7.0.0 "Ecos que Despertam"): item de entrada com exatamente 1 bônus passivo simples,
+  // ao contrário do Colar (1-3 bônus) — reforça a primeira lição de itemização no early game.
+  static generateAmuletStats(stage: number, mult: number, _rarity: string): Partial<BaseStats> {
+    const pool: Array<keyof BaseStats> = ['dropChancePct', 'critChance', 'lifesteal'];
+    const [key] = StatEngine.pickRandomElements(pool, 1);
+
+    const stats: Partial<BaseStats> = {};
+    if (key === 'dropChancePct') {
+      const raw = 0.01 * (1 + stage * 0.01) * mult;
+      stats[key] = Math.round(Math.min(0.08, raw) * 100) / 100;
+    } else if (key === 'critChance') {
+      const raw = 0.01 * (1 + stage * 0.01) * mult;
+      stats[key] = Math.round(Math.min(0.05, raw) * 1000) / 1000;
+    } else if (key === 'lifesteal') {
+      const raw = 0.004 * (1 + stage * 0.01) * mult;
+      stats[key] = Math.round(Math.min(0.025, raw) * 1000) / 1000;
+    }
+
     return stats;
   }
 }

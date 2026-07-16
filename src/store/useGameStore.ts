@@ -641,14 +641,17 @@ interface GameState {
 
   // Novos métodos de equipamentos e inventário (v1.1.0)
   equipItem(itemId: string): void;
-  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'): void;
+  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'): void;
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
   dismantleItem(itemId: string): void;
   sellAllCommonAndRare(): void;
   sellAllLegendary(): void;
   addItemToInventory(item: EquipmentItem): boolean;
-  
+
+  // Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam")
+  capturePet(petId: string): void;
+
   // Reforja de itens (v2.0.0)
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
@@ -754,7 +757,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     autoCastHealPercent: 50,
     autoCastDisabledSkills: [],
     killCount: {},
-    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
+    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
     inventory: [],
     inventorySlots: 30,
     pandemoniumUnlocked: false,
@@ -2141,9 +2144,11 @@ export const useGameStore = create<GameState>((set) => ({
       enemiesDefeatedInStage: 0,
       equipment: (state.character.pandemoniumUnlocked)
         ? state.character.equipment
-        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
+        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
       // Chaves da Torre Evoluídas sobrevivem à Ascensão; demais itens do inventário são zerados
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
+      // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Ascensão
+      activePet: undefined,
       pandemoniumUnlocked: state.character.pandemoniumUnlocked,
       activePandemonium: false,
       runStartTime: Date.now(),
@@ -2312,9 +2317,11 @@ export const useGameStore = create<GameState>((set) => ({
       highestStageReached: 1,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null },
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
       // Chaves da Torre Evoluídas sobrevivem à Transcendência
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
+      // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Transcendência
+      activePet: undefined,
       pandemoniumUnlocked: false,
       activePandemonium: false,
       purgatoryCompleted: false,
@@ -2983,6 +2990,15 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  capturePet: (petId) => set((state) => {
+    const updated = {
+      ...state.character,
+      activePet: { id: petId, capturedAt: Date.now() }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
   unequipItem: (slot) => set((state) => {
     const item = state.character.equipment[slot];
     if (!item) return state;
@@ -3305,7 +3321,8 @@ export const useGameStore = create<GameState>((set) => ({
         chest: 'Armadura Mística',
         legs: 'Calça Mística',
         gloves: 'Luva Mística',
-        necklace: 'Colar Místico'
+        necklace: 'Colar Místico',
+        amulet: 'Talismã Místico'
       };
 
       let baseName = slotNamesMap[item1.slot] || 'Item Místico';
@@ -3763,14 +3780,14 @@ export const useGameStore = create<GameState>((set) => ({
         };
 
         const slotNames: Record<string, Record<string, string>> = {
-          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
-          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
-          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar' },
-          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
-          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
-          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
-          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
-          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
+          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
+          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
         };
 
         const possibleStatsMap: Record<string, string[]> = {
@@ -3784,7 +3801,7 @@ export const useGameStore = create<GameState>((set) => ({
           avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
         };
 
-        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace'> = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace'];
+        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'> = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'];
         const newItems: EquipmentItem[] = [];
 
         for (let i = 0; i < count; i++) {
@@ -3836,6 +3853,8 @@ export const useGameStore = create<GameState>((set) => ({
           let itemStats: Partial<BaseStats> = {};
           if (slot === 'necklace') {
             itemStats = StatEngine.generateNecklaceStats(stage, mult, 'legendary');
+          } else if (slot === 'amulet') {
+            itemStats = StatEngine.generateAmuletStats(stage, mult, 'legendary');
           } else {
             const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
             const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos

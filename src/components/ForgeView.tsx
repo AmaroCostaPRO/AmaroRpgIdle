@@ -37,6 +37,7 @@ const getSlotEmoji = (slot: string) => {
     case 'legs': return '👖';
     case 'gloves': return '🧤';
     case 'necklace': return '📿';
+    case 'amulet': return '🧿';
     default: return '❓';
   }
 };
@@ -123,7 +124,8 @@ export const ForgeView: React.FC = () => {
     legs: 'Calça',
     gloves: 'Luvas',
     weapon: 'Arma',
-    necklace: 'Colar'
+    necklace: 'Colar',
+    amulet: 'Amuleto'
   };
 
   const rarityNames: Record<string, string> = {
@@ -287,7 +289,8 @@ export const ForgeView: React.FC = () => {
       chest: 'Armadura Mística',
       legs: 'Calça Mística',
       gloves: 'Luva Mística',
-      necklace: 'Colar Místico'
+      necklace: 'Colar Místico',
+      amulet: 'Amuleto Místico'
     };
 
     let baseName = slotNamesMap[slot1.slot] || 'Item Místico';

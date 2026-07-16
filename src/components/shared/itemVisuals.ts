@@ -53,6 +53,7 @@ export const slotLabels: Record<string, string> = {
   gloves: 'Luvas',
   weapon: 'Arma',
   necklace: 'Colar',
+  amulet: 'Amuleto',
   consumable: 'Consumível'
 };
 
@@ -63,6 +64,7 @@ export const slotIcons: Record<string, string> = {
   gloves: '🧤',
   weapon: '⚔️',
   necklace: '📿',
+  amulet: '🧿',
   consumable: '📦'
 };
 

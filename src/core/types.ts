@@ -24,7 +24,7 @@ export interface BaseStats {
 export interface EquipmentItem {
   id: string;
   name: string;
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'consumable';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'consumable';
   classId: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' | 'consumable';
   stats: Partial<BaseStats>;
@@ -48,6 +48,21 @@ export interface EnemyType {
   yOffset?: number;
   materialDrops?: ('wood' | 'stone' | 'meat')[];
 }
+
+// Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam") — puramente passivo e voador,
+// sem lógica de ataque própria. `texture` é placeholder até a arte final ser fornecida.
+export interface PetDefinition {
+  id: string;
+  name: string;
+  texture: string;
+  bonusType: 'xp' | 'gold';
+  bonusPct: number; // ex: 0.05 = +5%
+}
+
+export const PET_POOL: PetDefinition[] = [
+  { id: 'sprite_lumen', name: 'Sprite Lumen', texture: 'enemy_goblin', bonusType: 'xp', bonusPct: 0.05 },
+  { id: 'moeda_alada', name: 'Moeda Alada', texture: 'enemy_wolf', bonusType: 'gold', bonusPct: 0.05 }
+];
 
 export interface CitadelBuildingState {
   level: number;
@@ -127,9 +142,13 @@ export interface Character {
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
   saveVersion?: number; // Versão do formato do save, usada para futuras migrações
-  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace', EquipmentItem | null>;
+  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;
+  // v7.0.0 "Ecos que Despertam": Companheiro/Pet capturável — puramente passivo, sem lógica de
+  // ataque própria; concede o bônus definido em PET_POOL enquanto ativo. Zerado na Ascensão
+  // (conteúdo de early game, não deve persistir além do primeiro reset de progressão).
+  activePet?: { id: string; capturedAt: number };
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
   testMode?: boolean;
@@ -182,6 +201,7 @@ export enum GameEvent {
   START_COMBAT = 'START_COMBAT',
   END_COMBAT = 'END_COMBAT',
   TOGGLE_AUTOCAST = 'TOGGLE_AUTOCAST',
+  MERCHANT_DISMISSED = 'MERCHANT_DISMISSED',
 
   // Feedback Events (Phaser -> React / HUD)
   PLAYER_HP_CHANGED = 'PLAYER_HP_CHANGED',
@@ -202,7 +222,9 @@ export enum GameEvent {
   TAB_CHANGED = 'TAB_CHANGED',
   CITADEL_SUBTAB_REQUESTED = 'CITADEL_SUBTAB_REQUESTED',
   CITADEL_SUBTAB_CHANGED = 'CITADEL_SUBTAB_CHANGED',
-  SHOW_WELCOME_GUIDE = 'SHOW_WELCOME_GUIDE'
+  SHOW_WELCOME_GUIDE = 'SHOW_WELCOME_GUIDE',
+  MERCHANT_ENCOUNTERED = 'MERCHANT_ENCOUNTERED',
+  PET_CAPTURED = 'PET_CAPTURED'
 }
 
 export interface GameEventPayload {

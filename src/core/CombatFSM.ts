@@ -1,4 +1,4 @@
-import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem } from './types';
+import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_POOL } from './types';
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
@@ -9,6 +9,62 @@ import { getXpNeededForLevel } from './XpEngine';
 
 
 export const ENEMY_TYPES: EnemyType[] = [
+  // === FASES 1-5: Bosque Sussurrante (v7.0.0 "Ecos que Despertam") ===
+  // Bioma inicial fixo, isolado do ciclo de temas que passa a começar na Fase 6.
+  // Texturas placeholder reaproveitadas até a arte final ser fornecida.
+  {
+    id: 'whisper_sprite',
+    name: 'Sprite Sussurrante',
+    texture: 'enemy_goblin',
+    hpMultiplier: 0.65,
+    damageMultiplier: 0.75,
+    attackSpeedMultiplier: 1.4,
+    xpValue: 20,
+    color: '#86efac',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['wood']
+  },
+  {
+    id: 'thorned_treant',
+    name: 'Treantulho Espinhoso',
+    texture: 'enemy_imp',
+    hpMultiplier: 0.95,
+    damageMultiplier: 0.8,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 24,
+    color: '#65a30d',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['wood']
+  },
+  {
+    id: 'fae_rabbit',
+    name: 'Coelho Feérico',
+    texture: 'enemy_wolf',
+    hpMultiplier: 0.55,
+    damageMultiplier: 0.7,
+    attackSpeedMultiplier: 1.6,
+    xpValue: 18,
+    color: '#fde68a',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['meat']
+  },
+  {
+    id: 'boss_whispering_warden',
+    name: 'Guardião do Sussurro',
+    texture: 'boss_forest_golem',
+    hpMultiplier: 1.1,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.0,
+    xpValue: 60,
+    color: '#4ade80',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['wood', 'meat']
+  },
+
   // === FASE 1: Floresta ===
   {
     id: 'goblin',
@@ -330,8 +386,25 @@ export enum CombatState {
   ATTACKING = 'ATTACKING',
   CASTING = 'CASTING',
   TRANSITION = 'TRANSITION',
-  DEAD = 'DEAD'
+  DEAD = 'DEAD',
+  // v7.0.0 "Ecos que Despertam": encontro do Mercador Ambulante — pausa o fluxo normal
+  // de dano/derrota (o Mercador não ataca nem pode ser "morto") até o jogador fechar o painel de compra.
+  MERCHANT_ENCOUNTER = 'MERCHANT_ENCOUNTER'
 }
+
+// Pool de itens compráveis do Mercador Ambulante (v7.0.0) — reaproveita o mesmo `buyConsumable`
+// da Loja de Suprimentos (ShopPanel.tsx), sem criar tipo de consumível ou ação de store novos.
+export type MerchantConsumableType = 'boost_touch' | 'boost_touch_x3';
+
+export interface MerchantOffer {
+  consumableType: MerchantConsumableType;
+  name: string;
+}
+
+export const MERCHANT_STOCK_POOL: MerchantOffer[] = [
+  { consumableType: 'boost_touch', name: 'Elixir de Toque' },
+  { consumableType: 'boost_touch_x3', name: 'Elixir de Toque Triplo' }
+];
 
 export interface StatusEffect {
   id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
@@ -359,6 +432,9 @@ export class CombatFSM {
   public currentEnemy: EnemyType = ENEMY_TYPES[0];
   public isElite: boolean = false;
   public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador';
+  // v7.0.0 "Ecos que Despertam": Mercador Ambulante — substitui um inimigo comum no combate
+  public isMerchantEncounter: boolean = false;
+  public currentMerchantOffer: MerchantOffer[] = [];
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
@@ -376,6 +452,7 @@ export class CombatFSM {
 
   private storeUnsubscribe?: () => void;
   private unsubscribeStartCombat?: () => void;
+  private unsubscribeMerchantDismissed?: () => void;
   private lastEmitHP: number = -1;
   private lastEmitMaxHP: number = -1;
   private lastEmitMana: number = -1;
@@ -509,6 +586,26 @@ export class CombatFSM {
       }
       bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: {} });
     });
+
+    // v7.0.0 "Ecos que Despertam": ao fechar o painel do Mercador Ambulante, retoma o combate
+    // normal sorteando o próximo inimigo da fase (o encontro do Mercador não conta como abate).
+    this.unsubscribeMerchantDismissed = bridge.subscribe(GameEvent.MERCHANT_DISMISSED, () => {
+      if (this.currentState !== CombatState.MERCHANT_ENCOUNTER) return;
+
+      const activeTower = useTowerStore.getState().towerActive;
+      if (activeTower) {
+        this.setupEnemyForLevel(useTowerStore.getState().currentFloor, 0);
+      } else {
+        const activeChar = useGameStore.getState().character;
+        this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
+      }
+      if (this.currentState !== CombatState.MERCHANT_ENCOUNTER) {
+        this.currentState = CombatState.IDLE;
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+        }
+      }
+    });
   }
 
   public cleanup(): void {
@@ -519,6 +616,10 @@ export class CombatFSM {
     if (this.unsubscribeStartCombat) {
       this.unsubscribeStartCombat();
       this.unsubscribeStartCombat = undefined;
+    }
+    if (this.unsubscribeMerchantDismissed) {
+      this.unsubscribeMerchantDismissed();
+      this.unsubscribeMerchantDismissed = undefined;
     }
   }
 
@@ -629,8 +730,23 @@ export class CombatFSM {
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
       }
       this.enemyHP = this.enemyMaxHP;
+    } else if (stage <= 5 && isBoss) {
+      // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): bioma inicial fixo nas Fases 1-5,
+      // isolado do ciclo de temas abaixo (que passa a começar na Fase 6) para não afetar saves existentes.
+      this.currentEnemy = ENEMY_TYPES.find(e => e.id === 'boss_whispering_warden') || ENEMY_TYPES[0];
+      this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
+      this.enemyHP = this.enemyMaxHP;
+    } else if (stage <= 5) {
+      const commonIds = ['whisper_sprite', 'thorned_treant', 'fae_rabbit'];
+      const commonEnemies = ENEMY_TYPES.filter(e => commonIds.includes(e.id));
+      const activeList = commonEnemies.length > 0 ? commonEnemies : ENEMY_TYPES.slice(0, 3);
+
+      const randIndex = defeatedInStage % activeList.length;
+      this.currentEnemy = activeList[randIndex];
+      this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
+      this.enemyHP = this.enemyMaxHP;
     } else if (isBoss) {
-      const theme = ((stage - 1) % 5) + 1;
+      const theme = ((stage - 6) % 5) + 1;
       let bossId = 'boss_forest_golem';
       if (theme === 2) bossId = 'boss_sand_scorpion';
       else if (theme === 3) bossId = 'boss_frost_dragon';
@@ -641,7 +757,7 @@ export class CombatFSM {
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
     } else {
-      const theme = ((stage - 1) % 5) + 1;
+      const theme = ((stage - 6) % 5) + 1;
       let commonIds: string[] = [];
       if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
       else if (theme === 2) commonIds = ['sand_serpent', 'desert_bandit', 'desert_scorpion'];
@@ -651,7 +767,7 @@ export class CombatFSM {
 
       const commonEnemies = ENEMY_TYPES.filter(e => commonIds.includes(e.id));
       const activeList = commonEnemies.length > 0 ? commonEnemies : ENEMY_TYPES.slice(0, 3);
-      
+
       const randIndex = defeatedInStage % activeList.length;
       this.currentEnemy = activeList[randIndex];
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * hpBoost);
@@ -661,6 +777,8 @@ export class CombatFSM {
     // Inicializar estado de elite como falso por padrão
     this.isElite = false;
     this.eliteAfix = undefined;
+    this.isMerchantEncounter = false;
+    this.currentMerchantOffer = [];
 
     // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
     if (!isBoss && stage >= 11) {
@@ -678,6 +796,16 @@ export class CombatFSM {
         this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
         this.enemyHP = this.enemyMaxHP;
       }
+    }
+
+    // Mercador Ambulante (v7.0.0 "Ecos que Despertam"): substitui um inimigo comum no combate,
+    // nunca um chefe nem um Elite — mesmo padrão de rolagem probabilística usado acima para os Elites.
+    if (!isBoss && !this.isElite && stage >= 3 && Math.random() < 0.02) {
+      this.isMerchantEncounter = true;
+      this.currentMerchantOffer = MERCHANT_STOCK_POOL;
+      this.currentState = CombatState.MERCHANT_ENCOUNTER;
+      bridge.emit(GameEvent.MERCHANT_ENCOUNTERED, { offer: this.currentMerchantOffer });
+      return;
     }
 
     // Modificadores da Ecoterra (+30% HP)
@@ -774,7 +902,7 @@ export class CombatFSM {
   }
 
   public update(delta: number): void {
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
 
     // Processamento do servo ressuscitado (Necromancia)
     if (this.summonedAlly && this.summonedAllyTimer > 0) {
@@ -1101,7 +1229,7 @@ export class CombatFSM {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.enemyHP <= 0) return;
     
     // Throttling: limite de 20 cliques por segundo (50ms por clique)
     const now = Date.now();
@@ -1140,7 +1268,7 @@ export class CombatFSM {
     // Impede a execução de toques caso o jogo esteja pausado
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.enemyHP <= 0) return;
 
     const dpsPassivo = this.getPassiveDPS();
     const effectiveTouch = this.playerFinalStats.touch * 0.5;
@@ -1463,7 +1591,7 @@ export class CombatFSM {
   }
 
   private damageEnemy(amount: number, isDirect: boolean): void {
-    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
+    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
     
     let finalAmount = amount;
     if (this.isElite) {
@@ -1654,8 +1782,25 @@ export class CombatFSM {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `${this.currentEnemy.name} derrotado! Você ganhou +${gainedXp} XP e +${gainedGold} Ouro!${isGoldDoubled ? " (🪙 Ouro Duplicado!)" : ""}` });
     }
 
+    // Bônus passivo do Companheiro/Pet capturável (v7.0.0), se houver um ativo
+    const activePetDef = char.activePet ? PET_POOL.find(p => p.id === char.activePet!.id) : undefined;
+    if (activePetDef?.bonusType === 'xp') {
+      gainedXp = Math.floor(gainedXp * (1 + activePetDef.bonusPct));
+    } else if (activePetDef?.bonusType === 'gold') {
+      gainedGold = Math.floor(gainedGold * (1 + activePetDef.bonusPct));
+    }
+
     useGameStore.getState().addXp(gainedXp);
     useGameStore.getState().addGold(gainedGold);
+
+    // Captura de Companheiro/Pet (v7.0.0 "Ecos que Despertam"): só em fases iniciais, só se ainda
+    // não houver um pet ativo, e nunca contra chefes — puramente passivo, sem lógica de ataque própria.
+    if (!isTower && !isBoss && !char.activePet && char.currentStage <= 20 && Math.random() < 0.03) {
+      const petDef = PET_POOL[Math.floor(Math.random() * PET_POOL.length)];
+      useGameStore.getState().capturePet(petDef.id);
+      bridge.emit(GameEvent.PET_CAPTURED, { petId: petDef.id, petName: petDef.name });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🐾 Um pequeno eco da Alma reconheceu você: ${petDef.name} agora te acompanha!` });
+    }
 
     // Drop de materiais da Cidadela (Madeira/Pedra/Carne), sem influência da Sorte
     // Só dropam após a 1ª Ascensão, que é quando a Cidadela é desbloqueada, e nunca dentro da Torre Infinita
@@ -1768,11 +1913,16 @@ export class CombatFSM {
     const dropPctBonus = this.playerFinalStats.dropChancePct || 0;
     const dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus + dropPctBonus);
     
-    const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace')[] = [];
+    const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet')[] = [];
 
     // Colar: drop fixo de 5%, sem influência da Sorte.
     if (Math.random() < 0.05) {
       slotsToDrop.push('necklace');
+    }
+
+    // Amuleto (v7.0.0): drop fixo de 8%, sem influência da Sorte — item de entrada disponível desde a Fase 1.
+    if (Math.random() < 0.08) {
+      slotsToDrop.push('amulet');
     }
 
     // Equipamentos normais: usam a chance padrão (sem o colar)
@@ -1839,6 +1989,8 @@ export class CombatFSM {
       
       if (slot === 'necklace') {
         itemStats = StatEngine.generateNecklaceStats(stage, mult, rarity);
+      } else if (slot === 'amulet') {
+        itemStats = StatEngine.generateAmuletStats(stage, mult, rarity);
       } else {
         const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
         const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
@@ -1894,14 +2046,14 @@ export class CombatFSM {
       };
       
       const slotNames: Record<string, Record<string, string>> = {
-        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar' },
-        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet' },
-        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar' },
-        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet' },
-        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário' },
-        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar' },
-        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet' },
-        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar' }
+        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
+        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
+        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
+        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
+        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
+        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
       };
       
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -2056,8 +2208,12 @@ export class CombatFSM {
           this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
           this.scene.respawnEnemyAt(900, this.currentEnemy);
 
-          const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
-          bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+          if (this.isMerchantEncounter) {
+            bridge.emit(GameEvent.LOG_EMITTED, { message: `🛒 Um Mercador Ambulante apareceu no seu caminho!` });
+          } else {
+            const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+            bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+          }
         });
       }
       return;
@@ -2107,8 +2263,12 @@ export class CombatFSM {
         this.setupEnemyForLevel(nextChar.currentStage, nextChar.enemiesDefeatedInStage);
         this.scene.respawnEnemyAt(900, this.currentEnemy);
 
-        const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+        if (this.isMerchantEncounter) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🛒 Um Mercador Ambulante apareceu no seu caminho!` });
+        } else {
+          const enemyName = nextChar.enemiesDefeatedInStage === ENEMIES_PER_STAGE ? `CHEFE ${this.currentEnemy.name}` : this.currentEnemy.name;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `Um ${enemyName} Nível ${nextChar.currentStage} apareceu no horizonte!` });
+        }
       });
     }
   }
@@ -2196,7 +2356,7 @@ export class CombatFSM {
     // Impede o uso de habilidades caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
 
     const skill = SKILLS_CATALOG[skillId];
     if (!skill) return;
@@ -2636,7 +2796,7 @@ export class CombatFSM {
   }
 
   private runAutoCastAI(): void {
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
     const char = this.characterData;
     const isAutoCastUnlocked = char && ((char.ascensionCount || 0) >= 1 || (char.highestStageReached || 0) > 5 || (char.currentStage || 0) > 5);
     if (!char || !isAutoCastUnlocked || !char.autoCastEnabled) return;

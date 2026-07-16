@@ -6,7 +6,7 @@ import { AudioManager } from '../core/AudioManager';
 
 interface ProgressNotificationItem {
   id: string;
-  type: 'class' | 'bestiary' | 'ascension' | 'citadel';
+  type: 'class' | 'bestiary' | 'ascension' | 'citadel' | 'pet';
   title: string;
   description: string;
   icon: string;
@@ -95,6 +95,28 @@ export const ProgressNotifications: React.FC = () => {
       }, 5000);
     });
 
+    const unsubPet = bridge.subscribe(GameEvent.PET_CAPTURED, (payload) => {
+      const petName = (payload?.petName as string) || 'Companheiro';
+
+      const newNotif: ProgressNotificationItem = {
+        id: `pet-${payload?.petId}-${Date.now()}`,
+        type: 'pet',
+        title: '🐾 Novo Companheiro!',
+        description: `${petName} reconheceu você como um caco maior de si mesmo e agora te acompanha em combate.`,
+        icon: '🐾',
+        borderColor: 'rgba(52, 211, 153, 0.4)', // Verde
+        titleColor: '#34d399',
+        glowColor: 'rgba(52, 211, 153, 0.25)'
+      };
+
+      setNotifications((prev) => [...prev, newNotif]);
+      AudioManager.getInstance().playUpgrade();
+
+      setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+      }, 5000);
+    });
+
     const unsubAscension = bridge.subscribe(GameEvent.ASCENSION_AVAILABLE, () => {
       const newNotif: ProgressNotificationItem = {
         id: `ascension-${Date.now()}`,
@@ -115,6 +137,7 @@ export const ProgressNotifications: React.FC = () => {
       unsubClass();
       unsubBestiary();
       unsubCitadel();
+      unsubPet();
       unsubAscension();
     };
   }, []);

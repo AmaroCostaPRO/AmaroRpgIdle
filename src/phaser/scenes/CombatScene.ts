@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { CombatFSM, CombatState } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
-import { GameEvent, ENEMIES_PER_STAGE } from '../../core/types';
+import { GameEvent, ENEMIES_PER_STAGE, PET_POOL } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
 import { useTowerStore } from '../../store/useTowerStore';
 import { AudioManager } from '../../core/AudioManager';
@@ -42,6 +42,11 @@ export class CombatScene extends Phaser.Scene {
   private lastEconomyModeEnabled: boolean = false;
   private unsubscribeTabChanged?: () => void;
   private unsubscribeEconomyMode?: () => void;
+  private unsubscribePetSync?: () => void;
+  // Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam") — placeholder visual até a arte final
+  private petSprite?: Phaser.GameObjects.Image;
+  private petTween?: Phaser.Tweens.Tween;
+  private currentPetId?: string;
   
   public readonly PLAYER_START_X = 200;
   public readonly PLAYER_START_Y = Math.round((600 - 50 * ZOOM_FACTOR) - (165 * ZOOM_FACTOR) / 2);
@@ -55,6 +60,8 @@ export class CombatScene extends Phaser.Scene {
   preload(): void {
     // Carrega os assets originais e as novas texturas de classe
     this.load.image('background', 'assets/medieval_background.png');
+    // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): placeholder até a arte final ser fornecida
+    this.load.image('whispering_woods_background', 'assets/medieval_background.png');
     this.load.image('tower_background', 'assets/tower_background.png');
     this.load.image('desert_background', 'assets/desert_background.png');
     this.load.image('snow_background', 'assets/snow_background.png');
@@ -374,6 +381,14 @@ export class CombatScene extends Phaser.Scene {
     this.lastEconomyModeEnabled = useGameStore.getState().economyModeEnabled;
     applyTargetFps();
 
+    // Companheiro/Pet capturável (v7.0.0): cria/remove o sprite placeholder ao capturar/perder o pet
+    this.syncPetSprite();
+    this.unsubscribePetSync = useGameStore.subscribe((state) => {
+      if (state.character.activePet?.id !== this.currentPetId) {
+        this.syncPetSprite();
+      }
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.cleanup();
     });
@@ -392,7 +407,49 @@ export class CombatScene extends Phaser.Scene {
     bridge.emit(GameEvent.ARENA_READY, {});
   }
 
+  // Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam"): cria ou remove o sprite placeholder
+  // conforme `character.activePet` muda (captura, Ascensão/Transcendência zerando o pet, etc).
+  private syncPetSprite(): void {
+    const activePet = useGameStore.getState().character.activePet;
+    this.currentPetId = activePet?.id;
+
+    if (this.petTween) {
+      this.petTween.stop();
+      this.petTween = undefined;
+    }
+    if (this.petSprite) {
+      this.petSprite.destroy();
+      this.petSprite = undefined;
+    }
+
+    if (!activePet) return;
+
+    const petDef = PET_POOL.find(p => p.id === activePet.id);
+    if (!petDef) return;
+
+    const petTextureKey = `${petDef.texture}_transparent`;
+    if (!this.textures.exists(petTextureKey)) return;
+
+    this.petSprite = this.add.image(this.PLAYER_START_X + 55 * ZOOM_FACTOR, this.PLAYER_START_Y - 90 * ZOOM_FACTOR, petTextureKey);
+    this.petSprite.setDisplaySize(55 * ZOOM_FACTOR, 55 * ZOOM_FACTOR);
+    this.petSprite.setDepth((this.playerBody?.depth || 0) + 1);
+
+    // Efeito de flutuação: sobe e desce lentamente, em loop (sprite ainda sem animação própria)
+    this.petTween = this.tweens.add({
+      targets: this.petSprite,
+      y: '+=14',
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+  }
+
   update(time: number, delta: number): void {
+    if (this.petSprite && this.playerBody) {
+      this.petSprite.x = this.playerBody.x + 55 * ZOOM_FACTOR;
+    }
+
     if (this.fsm) {
       const isLoreOpen = useGameStore.getState().character.introLoreShown === false;
       const gameSpeed = isLoreOpen ? 0 : useGameStore.getState().gameSpeed;
@@ -662,9 +719,12 @@ export class CombatScene extends Phaser.Scene {
       textureKey = 'pandemonium_background';
     } else if (stage >= 21 && stage <= 30) {
       textureKey = 'purgatory_background';
+    } else if (stage <= 5) {
+      // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): bioma inicial fixo, isolado do ciclo abaixo
+      textureKey = 'whispering_woods_background';
     } else {
-      // Mapeamento de fase para background (ciclos de 1-5)
-      const stageTheme = ((stage - 1) % 5) + 1;
+      // Mapeamento de fase para background (ciclos de 1-5, agora começando na Fase 6)
+      const stageTheme = ((stage - 6) % 5) + 1;
       if (stageTheme === 2) textureKey = 'desert_background';
       else if (stageTheme === 3) textureKey = 'snow_background';
       else if (stageTheme === 4) textureKey = 'cemetery_background';
@@ -1323,6 +1383,14 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeEconomyMode) {
       this.unsubscribeEconomyMode();
       this.unsubscribeEconomyMode = undefined;
+    }
+    if (this.unsubscribePetSync) {
+      this.unsubscribePetSync();
+      this.unsubscribePetSync = undefined;
+    }
+    if (this.petTween) {
+      this.petTween.stop();
+      this.petTween = undefined;
     }
     if (this.fsm) {
       this.fsm.cleanup();
