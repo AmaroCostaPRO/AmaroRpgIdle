@@ -374,7 +374,7 @@ const App: React.FC = () => {
                         🧚 Companheiros/Pets (Lumen e Moeda Alada)
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Sprites e artes reais integradas para os dois pets iniciais que acompanham o herói flutuando sem sombra: Sprite Lumen (+5% de XP) e Moeda Alada (+5% de Ouro).
+                        Sprites e artes reais integradas para os dois pets iniciais que acompanham o herói: Sprite Lumen (+5% de XP) e Moeda Alada (+5% de Ouro).
                       </div>
                     </div>
                   </div>
