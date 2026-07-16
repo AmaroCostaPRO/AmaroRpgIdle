@@ -60,8 +60,8 @@ export class CombatScene extends Phaser.Scene {
   preload(): void {
     // Carrega os assets originais e as novas texturas de classe
     this.load.image('background', 'assets/medieval_background.png');
-    // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): placeholder até a arte final ser fornecida
-    this.load.image('whispering_woods_background', 'assets/medieval_background.png');
+    // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): carregamento da arte final do background
+    this.load.image('whispering_woods_background', 'assets/whispering_woods_background.png');
     this.load.image('tower_background', 'assets/tower_background.png');
     this.load.image('desert_background', 'assets/desert_background.png');
     this.load.image('snow_background', 'assets/snow_background.png');
@@ -112,6 +112,19 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('enemy_mirror_illusion', 'assets/enemy_mirror_illusion.png');
     this.load.image('enemy_shadow_reflection', 'assets/enemy_shadow_reflection.png');
     this.load.image('skeleton_minion', 'assets/skeleton_minion.png');
+
+    // Inimigos - Bosque Sussurrante (v7.0.0 "Ecos que Despertam")
+    this.load.image('enemy_whisper_sprite', 'assets/enemy_whisper_sprite.png');
+    this.load.image('enemy_thorned_treant', 'assets/enemy_thorned_treant.png');
+    this.load.image('enemy_fae_rabbit', 'assets/enemy_fae_rabbit.png');
+    this.load.image('boss_whispering_warden', 'assets/boss_whispering_warden.png');
+
+    // Companheiros/Pets (v7.0.0 "Ecos que Despertam")
+    this.load.image('pet_sprite_lumen', 'assets/pet_sprite_lumen.png');
+    this.load.image('pet_moeda_alada', 'assets/pet_moeda_alada.png');
+
+    // NPC - Mercador Ambulante (v7.0.0 "Ecos que Despertam")
+    this.load.image('merchant_traveling', 'assets/merchant_traveling.png');
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
@@ -227,6 +240,15 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_mirror_illusion', 'enemy_mirror_illusion_transparent');
     this.makeTextureTransparent('enemy_shadow_reflection', 'enemy_shadow_reflection_transparent');
     this.makeTextureTransparent('skeleton_minion', 'skeleton_minion_transparent');
+
+    // Transparências - Bosque Sussurrante, Pets e Mercador Ambulante (v7.0.0)
+    this.makeTextureTransparent('enemy_whisper_sprite', 'enemy_whisper_sprite_transparent');
+    this.makeTextureTransparent('enemy_thorned_treant', 'enemy_thorned_treant_transparent');
+    this.makeTextureTransparent('enemy_fae_rabbit', 'enemy_fae_rabbit_transparent');
+    this.makeTextureTransparent('boss_whispering_warden', 'boss_whispering_warden_transparent');
+    this.makeTextureTransparent('pet_sprite_lumen', 'pet_sprite_lumen_transparent');
+    this.makeTextureTransparent('pet_moeda_alada', 'pet_moeda_alada_transparent');
+    this.makeTextureTransparent('merchant_traveling', 'merchant_traveling_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -1068,7 +1090,14 @@ export class CombatScene extends Phaser.Scene {
   public respawnEnemyAt(startX: number, enemyType: any): void {
     if (this.enemyBody) {
       this.tweens.killTweensOf(this.enemyBody);
-      this.enemyBody.setTexture(enemyType.texture + '_transparent');
+      let flipX = !!enemyType.flipX;
+      
+      if (this.fsm && this.fsm.isMerchantEncounter) {
+        this.enemyBody.setTexture('merchant_traveling_transparent');
+        flipX = false; // O próprio usuário já virou a imagem física do mercador para a esquerda
+      } else {
+        this.enemyBody.setTexture(enemyType.texture + '_transparent');
+      }
       
       const isBoss = enemyType.id.startsWith('boss_');
       let size = (isBoss ? 215 : 165) * ZOOM_FACTOR;
@@ -1082,18 +1111,22 @@ export class CombatScene extends Phaser.Scene {
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
       this.enemyBody.angle = 0;
-      this.enemyBody.setFlipX(!!enemyType.flipX);
+      this.enemyBody.setFlipX(flipX);
     }
     if (this.enemyLevelText && this.enemyBody) {
       const isBoss = this.fsm.characterData?.enemiesDefeatedInStage === ENEMIES_PER_STAGE || enemyType.id.startsWith('boss_');
       let enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
-      if (this.fsm.isElite) {
+      if (this.fsm.isMerchantEncounter) {
+        enemyName = 'Mercador Ambulante';
+      } else if (this.fsm.isElite) {
         const afixLabel = this.fsm.eliteAfix ? `ELITE ${this.fsm.eliteAfix.toUpperCase()}` : 'ELITE';
         enemyName = `${afixLabel}\n${enemyType.name}`;
       }
       this.enemyLevelText.setText(enemyName);
       
-      if (this.fsm.isElite) {
+      if (this.fsm.isMerchantEncounter) {
+        this.enemyLevelText.setColor('#fbbf24'); // Cor dourada para o Mercador
+      } else if (this.fsm.isElite) {
         this.enemyLevelText.setColor('#e2e8f0'); // Prateado metálico para nome de Elites
       } else {
         this.enemyLevelText.setColor(enemyType.color);

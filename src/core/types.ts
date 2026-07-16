@@ -60,8 +60,8 @@ export interface PetDefinition {
 }
 
 export const PET_POOL: PetDefinition[] = [
-  { id: 'sprite_lumen', name: 'Sprite Lumen', texture: 'enemy_goblin', bonusType: 'xp', bonusPct: 0.05 },
-  { id: 'moeda_alada', name: 'Moeda Alada', texture: 'enemy_wolf', bonusType: 'gold', bonusPct: 0.05 }
+  { id: 'sprite_lumen', name: 'Sprite Lumen', texture: 'pet_sprite_lumen', bonusType: 'xp', bonusPct: 0.05 },
+  { id: 'moeda_alada', name: 'Moeda Alada', texture: 'pet_moeda_alada', bonusType: 'gold', bonusPct: 0.05 }
 ];
 
 export interface CitadelBuildingState {

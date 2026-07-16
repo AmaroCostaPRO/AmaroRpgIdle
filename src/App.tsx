@@ -323,19 +323,58 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v6.1.0 — Ajustes de Balanceamento Pós-Cidadela!
+              🔔 Atualização v7.0.0 — Bosque Sussurrante & Ecos que Despertam!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Com a Cidadela Astral completa desde a v6.0.0, chegou a hora de recalibrar a economia do jogo: chaves da Torre, materiais, Ouro, Fragmentos de Forja e a própria Torre Infinita recebem ajustes de equilíbrio nesta versão.
+                A grande v7.0.0 traz o Bosque Sussurrante como bioma inicial definitivo da campanha com background pixel art, monstros exclusivos, os pets de early game (Lumen e Moeda Alada) e o misterioso encontro com o Mercador Ambulante.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v7.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 7.0.0 (Atual) — Bosque Sussurrante:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        🌲 Novo Bioma: Bosque Sussurrante (Fases 1-5)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A jornada agora se inicia nas profundezas do Bosque Sussurrante, com background pixel art rolável exclusivo. As dificuldades Nightmare, Hell e Apocalypse passam a vigorar a partir da Fase 6, isolando o início de jogo tematicamente.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        👾 Novos Inimigos Exclusivos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Enfrente o Sprite Sussurrante, o Treantulho Espinhoso e o Coelho Feérico. Derrote o solene Chefe "Guardião do Sussurro" na Fase 5 para liberar a progressão à Floresta! Todos contam com artes pixel art de alta fidelidade.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🛒 Mercador Ambulante no Combate
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nas fases normais (3+), há 2% de chance de encontrar o Mercador Ambulante. O combate é suspenso temporariamente e sua arte e nome dourado especial são exibidos na arena enquanto você navega pelas ofertas de Elixir de Toque e Elixir de Toque Triplo, compráveis com Ouro.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        🧚 Companheiros/Pets (Lumen e Moeda Alada)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Sprites e artes reais integradas para os dois pets iniciais que acompanham o herói flutuando sem sombra: Sprite Lumen (+5% de XP) e Moeda Alada (+5% de Ouro).
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v6.1.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 6.1.0 (Atual) — Ajustes de Balanceamento Pós-Cidadela:</span>
+                  <span style={{ fontWeight: 700, color: '#cbd5e1', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Notas da Versão 6.1.0 — Ajustes de Balanceamento Pós-Cidadela:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>

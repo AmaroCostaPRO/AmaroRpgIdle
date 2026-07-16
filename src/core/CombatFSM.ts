@@ -11,11 +11,10 @@ import { getXpNeededForLevel } from './XpEngine';
 export const ENEMY_TYPES: EnemyType[] = [
   // === FASES 1-5: Bosque Sussurrante (v7.0.0 "Ecos que Despertam") ===
   // Bioma inicial fixo, isolado do ciclo de temas que passa a começar na Fase 6.
-  // Texturas placeholder reaproveitadas até a arte final ser fornecida.
   {
     id: 'whisper_sprite',
     name: 'Sprite Sussurrante',
-    texture: 'enemy_goblin',
+    texture: 'enemy_whisper_sprite',
     hpMultiplier: 0.65,
     damageMultiplier: 0.75,
     attackSpeedMultiplier: 1.4,
@@ -28,7 +27,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: 'thorned_treant',
     name: 'Treantulho Espinhoso',
-    texture: 'enemy_imp',
+    texture: 'enemy_thorned_treant',
     hpMultiplier: 0.95,
     damageMultiplier: 0.8,
     attackSpeedMultiplier: 0.85,
@@ -41,7 +40,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: 'fae_rabbit',
     name: 'Coelho Feérico',
-    texture: 'enemy_wolf',
+    texture: 'enemy_fae_rabbit',
     hpMultiplier: 0.55,
     damageMultiplier: 0.7,
     attackSpeedMultiplier: 1.6,
@@ -54,7 +53,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: 'boss_whispering_warden',
     name: 'Guardião do Sussurro',
-    texture: 'boss_forest_golem',
+    texture: 'boss_whispering_warden',
     hpMultiplier: 1.1,
     damageMultiplier: 1.0,
     attackSpeedMultiplier: 1.0,

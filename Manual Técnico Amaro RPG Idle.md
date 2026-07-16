@@ -1439,7 +1439,22 @@ Auditoria completa do código-fonte cobrindo performance, código morto, otimiza
     *   Upgrades de Prestígio (Seção 9.C): "Toque Divino" corrigido de $+5$ para $+8$ por nível; "Robô Assistente" corrigido de $+2$ para $+1$ Toque/s por nível.
 *   **📖 Nova Seção 13.F "Sistema de Relíquias (Altar da Alma)"**: O catálogo completo das 8 relíquias e suas fórmulas de obtenção/forja, antes disperso apenas em notas de changelog históricas, ganhou uma seção dedicada e atual.
 
-### Versão 6.1.0 "Ajustes de Balanceamento Pós-Cidadela" (Atual)
+### Versão 7.0.0 "Ecos que Despertam" (Atual)
+*   **🌲 Bioma Inicial: Bosque Sussurrante (Fases 1-5)**:
+    *   **Background Pixel Art**: Introdução do cenário exclusivo do Bosque Sussurrante com suporte a rolagem horizontal suave no Phaser, alinhando visualmente o chão aos pés do herói e inimigos.
+    *   **Ciclo de Dificuldades**: Nightmare/Hell/Apocalypse agora iniciam na Fase 6+, isolando o Bosque Sussurrante como o bioma introdutório da campanha.
+*   **👾 Inimigos Exclusivos do Bosque**:
+    *   **Monstros**: Whisper Sprite (Fase 1-2), Thorned Treant (Fase 3), Fae Rabbit (Fase 4) e o Chefe da Fase 5, Whispering Warden.
+    *   **Assets Reais**: Todos os monstros agora utilizam sprites pixel art reais gerados, removendo o fundo sólido via `makeTextureTransparent`.
+*   **🧚 Pets Iniciais Reais (Sprite Lumen e Moeda Alada)**:
+    *   Carregamento dos novos sprites pixel art voadores dos pets de início de jogo: Sprite Lumen (XP) e Moeda Alada (Ouro).
+    *   Flutuam ao lado do jogador em combate.
+*   **🛒 Encontro com o Mercador Ambulante**:
+    *   Durante as fases normais 3+, há 2% de chance de spawnar o Mercador Ambulante no lugar de um monstro convencional, oferecendo Elixir de Toque e Elixir de Toque Triplo por Ouro.
+    *   O sprite do Mercador Ambulante e seu nome dourado exclusivo são renderizados na arena, suspendendo o combate até que o painel de ofertas seja fechado.
+*   **🧿 Novo Slot de Equipamento: Amuleto**: Item de entrada com exatamente 1 bônus passivo simples (Chance de Drop, Crítico ou Roubo de Vida), disponível desde a Fase 1 (drop fixo de 8%, sem influência da Sorte).
+
+### Versão 6.1.0 "Ajustes de Balanceamento Pós-Cidadela"
 *   **📊 Nova Sub-aba "Estatísticas Completas" (dentro de Opções)**: `OptionsPanel` (`GameUI.tsx`) ganhou uma barra de duas sub-abas (`⚙️ Opções` / `📊 Estatísticas`, estado `statsSubTab`), preservando o conteúdo original de Opções intacto e adicionando o novo componente `StatisticsPanel` com todos os recordes/acumulados do personagem (ver Seção 3.E.4). Foram adicionados 17 novos campos opcionais a `Character` (`src/core/types.ts`): recordes de combate atual-vs-recorde (`bestDamageDealt`, `bestMaxHP`, `bestCritChance`, `bestDropChancePct`, `bestDamageReductionPct`, `bestAttackSpeedMultiplier`, `bestDodgeChance`), acumuladores de progressão (`totalEnemiesKilledLifetime`, `totalEquipmentDropped`, `totalFragmentsDropped`, `totalTowerKeysDropped`, `fastestAscensionSeconds`) e totais econômicos/Cidadela (`totalForgeFragmentsSpent`, `totalGoldSpentInForge`, `totalGoldEarnedLifetime`, `totalXpEarnedLifetime`, `totalMaterialsFarmedByCitadel`). Os recordes de combate são mantidos por uma nova ação do store, `updateBestCombatStats()` (`useGameStore.ts`), chamada a partir dos pontos de dano/status de `CombatFSM.ts`; os acumuladores de progressão e economia são incrementados diretamente em `registerEnemyKill`, `addItemToInventory`, `addGold`, `addXp`, `addMaterials`, `reforgeItems`, `performPrestige` e `tickCitadelProduction`. Saves anteriores a esta versão carregam normalmente com todos os contadores começando em zero (sem reconstrução retroativa de histórico), via os defaults novos em `DEFAULT_CHARACTER()` e o merge em `mergeLoadedCharacter()`.
 *   **🔑 Chaves da Torre Evoluídas Preservadas em Resets**: `tower_key_evolved` no inventário deixa de ser zerada na Ascensão, no desbloqueio do Pandemônio e na Transcendência (`performPrestige`, `unlockPandemonium` e `performTranscendence` em `useGameStore.ts`), diferente do restante do inventário (e da Chave da Torre comum, que continua sendo zerada normalmente).
 *   **📊 Indicador de Bônus Total na Academia Militar**: `AcademyPanel.tsx` agora exibe, além do bônus por nível, o **total atual** acumulado em cada uma das sete pesquisas (`nível × valor_por_nível`), via a nova função `getResearchTotalBonusLabel` em `citadelFormulas.ts`.
