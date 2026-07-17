@@ -24,14 +24,14 @@ export interface BaseStats {
 export interface EquipmentItem {
   id: string;
   name: string;
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'consumable';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'consumable';
   classId: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' | 'consumable';
   stats: Partial<BaseStats>;
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen';
   stage?: number;
 }
 
@@ -90,6 +90,9 @@ export interface CitadelState {
   cosmicSiphon: CitadelBuildingState;
   synchronyAltar: CitadelBuildingState;
   relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
+  // v8.0.0 "O Espelho Faminto": destila materiais das Expedições em poções de efeito temporário
+  // (dano/regeneração) — preparo manual sob demanda, sem produção automática por tick.
+  alchemyLab: CitadelBuildingState;
 }
 
 export interface SkillNode {
@@ -142,7 +145,7 @@ export interface Character {
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
   saveVersion?: number; // Versão do formato do save, usada para futuras migrações
-  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet', EquipmentItem | null>;
+  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;
   // v7.0.0 "Ecos que Despertam": Companheiro/Pet capturável — puramente passivo, sem lógica de
@@ -231,7 +234,8 @@ export enum GameEvent {
   SHOW_WELCOME_GUIDE = 'SHOW_WELCOME_GUIDE',
   MERCHANT_ENCOUNTERED = 'MERCHANT_ENCOUNTERED',
   PET_CAPTURED = 'PET_CAPTURED',
-  ELIXIR_ACTIVATED = 'ELIXIR_ACTIVATED'
+  ELIXIR_ACTIVATED = 'ELIXIR_ACTIVATED',
+  ALCHEMY_POTION_ACTIVATED = 'ALCHEMY_POTION_ACTIVATED'
 }
 
 export interface GameEventPayload {

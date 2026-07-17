@@ -7,7 +7,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
-import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST } from '../core/CombatFSM';
+import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
@@ -21,6 +21,7 @@ import { ExpeditionPanel } from './citadel/ExpeditionPanel';
 import { AcademyPanel } from './citadel/AcademyPanel';
 import { WatchTowerPanel } from './citadel/WatchTowerPanel';
 import { ForgeWorkshopPanel } from './citadel/ForgeWorkshopPanel';
+import { AlchemyLabPanel } from './citadel/AlchemyLabPanel';
 import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
 import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
@@ -126,6 +127,9 @@ const GameHUD: React.FC = () => {
   const [isConsoleExpanded, setIsConsoleExpanded] = useState(false);
   const consoleEnabled = useGameStore((state) => state.consoleEnabled);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
+  // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal semanal (fim de semana), nunca dentro da Torre
+  const isTowerActiveNow = useTowerStore((state) => state.towerActive);
+  const bloodMoonBannerActive = !isTowerActiveNow && isBloodMoonActive();
 
   const lastHp = useRef({ current: 0, max: 0 });
   const lastMana = useRef({ current: 0, max: 0 });
@@ -255,6 +259,11 @@ const GameHUD: React.FC = () => {
           <span className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Status do Personagem</span>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span id="combo-badge" style={{ display: 'none', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>0x COMBO</span>
+            {bloodMoonBannerActive && (
+              <span title="Inimigos da fase atual com +50% de HP/Dano e chance de drops exclusivos do Set da Lua de Sangue." style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#7f1d1d', color: '#fca5a5', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>
+                🌕 LUA DE SANGUE
+              </span>
+            )}
             <span className="combat-indicator">● Em Combate</span>
           </div>
         </div>
@@ -944,8 +953,8 @@ const AttributePanel: React.FC = () => {
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
-  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null;
-  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null) => void;
+  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null;
+  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null) => void;
   showDiscardConfirm: boolean;
   setShowDiscardConfirm: (show: boolean) => void;
 }
@@ -1008,7 +1017,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     setSelectedItem(null);
   };
 
-  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet') => {
+  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring') => {
     AudioManager.getInstance().playClick();
     unequipItem(slot);
     setSelectedSlot(null);
@@ -1117,6 +1126,19 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 slot="legs"
                 item={character.equipment.legs}
                 onClick={() => character.equipment.legs && setSelectedSlot('legs')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
+            {/* Anel */}
+            <div style={{ gridRow: '3', gridColumn: '1' }}>
+              <EquipmentSlot
+                slot="ring"
+                item={character.equipment.ring}
+                onClick={() => character.equipment.ring && setSelectedSlot('ring')}
                 icons={slotIcons}
                 labels={slotLabels}
                 getRarityColor={getRarityColor}
@@ -1471,7 +1493,9 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                       item.consumableType === 'relic_chest' ? '💜' :
                       item.consumableType === 'unstable_soul_fragment' ? '🔮' :
                       item.consumableType === 'tower_key' ? '🔑' :
-                      item.consumableType === 'tower_key_evolved' ? '🗝️' : '🎁'
+                      item.consumableType === 'tower_key_evolved' ? '🗝️' :
+                      item.consumableType === 'potion_damage' ? '🔥' :
+                      item.consumableType === 'potion_regen' ? '💧' : '🎁'
                     ) : (
                       slotIcons[item.slot]
                     )}
@@ -1640,7 +1664,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
 // Componente auxiliar para renderizar cada slot de equipamento
 const EquipmentSlot: React.FC<{
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring';
   item: EquipmentItem | null;
   onClick: () => void;
   icons: Record<string, string>;
@@ -3580,10 +3604,10 @@ const GuidePanel: React.FC = () => {
             <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <p>
-                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 8 construções:
+                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 9 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0), que fica na 2ª:
               </p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
-                <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras 8 construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
+                <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
                 <li><span className="text-white font-semibold">Depósito (Vault):</span> <span className="text-gray-400">armazenamento externo de equipamentos, fora do inventário normal — os itens guardados aqui sobrevivem à Ascensão.</span></li>
                 <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente, com +15% de produção por nível do Quartel. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel. Alocar (gasta Ouro) e retirar antes do prazo (perde o tempo restante) exigem confirmação.</span></li>
                 <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida, Velocidade, Dano de Toque e Dano Crítico (vale para toque, ataque básico e habilidades) globais, além da chance de drop de Chave da Torre e de Fragmento de Alma Instável.</span></li>
@@ -3592,13 +3616,32 @@ const GuidePanel: React.FC = () => {
                 <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
                 <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
                 <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
+                <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
               </ul>
             </div>
           </div>
 
-          {/* Colar */}
+          {/* Bosque Sussurrante, Pets e Mercador (v7.0.0) */}
           <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 O Colar (6º Slot de Equipamento)</span>
+            <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🌲 Bosque Sussurrante, Pets e Mercador (v7.0.0)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                A jornada agora começa no <strong>Bosque Sussurrante</strong> (Fases 1-5), bioma introdutório com inimigos e chefe exclusivos; as dificuldades Pesadelo/Inferno/Apocalipse passam a valer só a partir da Fase 6.
+              </p>
+              <div>
+                <strong className="text-white block font-semibold">🐾 Companheiro/Pet Capturável</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">A cada certo número de fases iniciais, há chance de domesticar um pet passivo (Sprite Lumen: +5% XP, ou Moeda Alada: +5% Ouro) que acompanha o herói em combate.</p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🛒 Mercador Ambulante</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">Nas fases normais (3+), há 2% de chance de o Mercador substituir um inimigo comum, suspendendo o combate para oferecer 2 elixires aleatórios (dentre Combatente, Defensor, Acumulador, Velocista, Ilusionista) por 50.000 Ouro cada, ativados na hora por 1 a 2 minutos.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Colar, Amuleto e Anel */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 Colar, Amuleto e Anel (6º, 7º e 8º Slots)</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <p>
                 Diferente dos outros 5 slots, o Colar <strong>não concede atributos primários</strong> (Força, Magia, Destreza, Constituição, Sorte). Em vez disso, ele rola aleatoriamente entre <strong>1 e 3 passivos utilitários</strong> (conforme a raridade: Comum = 1, Raro = 2, Lendário/Ancestral/Celestial = 3), sorteados de um pool fixo de 10 efeitos possíveis:
@@ -3610,6 +3653,14 @@ const GuidePanel: React.FC = () => {
                 <li><span className="text-gray-400">Dano de Toque (até +50%), Chance de Drop de itens</span></li>
               </ul>
               <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
+              <div>
+                <strong className="text-white block font-semibold">🧿 Amuleto (7º slot, v7.0.0)</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">Slot "leve" de entrada, disponível desde a Fase 1: concede exatamente 1 passivo da mesma pool do Colar acima. Drop fixo de 8%, sem influência da Sorte.</p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">💍 Anel (8º slot, v8.0.0)</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">Ao contrário do Colar/Amuleto, o Anel é um slot "pesado" — concede atributos primários de classe normais (igual a Elmo/Peito/Pernas/Mãos/Arma), participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados.</p>
+              </div>
             </div>
           </div>
 
@@ -3832,6 +3883,32 @@ const GuidePanel: React.FC = () => {
                   <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
                   <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
                 </ul>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🌀 Ramificação de Maldições (v8.0.0):</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  Modo roguelike opcional, escolhido ao iniciar a subida (não exige chave própria). A cada andar vencido, uma maldição se acumula: -10% em um atributo e +20% em outro, temporária (só durante a subida, nunca altera seus itens de verdade). Em troca, +50% de Ouro e Fragmentos de Forja. Recordes semanal/histórico e a galeria de títulos honoríficos são totalmente separados da Torre Normal.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Expansão de Elites e Lua de Sangue (v8.0.0) */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Elites e 🌕 Lua de Sangue (v8.0.0)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <div>
+                <strong className="text-white block font-semibold">Novos Afixos de Elite:</strong>
+                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                  <li><span className="text-white font-semibold">Refletor:</span> <span className="text-gray-400">devolve parte do dano recebido de volta a você.</span></li>
+                  <li><span className="text-white font-semibold">Errante:</span> <span className="text-gray-400">velocidade de ataque imprevisível a cada golpe.</span></li>
+                  <li><span className="text-white font-semibold">Replicante:</span> <span className="text-gray-400">invoca periodicamente um escudo ("réplica fantasma") que precisa ser quebrado antes de voltar a sofrer dano real.</span></li>
+                  <li><span className="text-white font-semibold">Vulnerável:</span> <span className="text-gray-400">abre janelas periódicas de dano aumentado.</span></li>
+                </ul>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">Todo fim de semana, os inimigos da fase atual ganham +50% de HP/Dano e um reskin vermelho, com chance de dropar equipamentos exclusivos do Set da Lua de Sangue. Um indicador "🌕 LUA DE SANGUE" aparece no HUD de combate enquanto ativo.</p>
               </div>
             </div>
           </div>
@@ -5141,14 +5218,14 @@ const getItemNameAndSet = (
   misticLvl: number
 ) => {
   const slotNames: Record<string, Record<string, string>> = {
-    warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
-    mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
-    ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
-    paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-    cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
-    rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
-    necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-    avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
+    warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel de Guerra' },
+    mage: { weapon: 'Cetro', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Arcano' },
+    ranger: { weapon: 'Arco', head: 'Capuz', chest: 'Gibão', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel do Caçador' },
+    paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sagrado' },
+    cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã', ring: 'Anel Bento' },
+    rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel Furtivo' },
+    necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sombrio' },
+    avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar', ring: 'Anel Cósmico' }
   };
 
   const setNames: Record<string, Record<string, string>> = {
@@ -5413,13 +5490,13 @@ const OptionsPanel: React.FC = () => {
   const [misticLevelGen, setMisticLevelGen] = useState<number>(8);
 
   // Estados para Criação de Item Customizado (sistema por tier)
-  const [customItemSlot, setCustomItemSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'>('weapon');
+  const [customItemSlot, setCustomItemSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring'>('weapon');
   const [customItemTier, setCustomItemTier] = useState<'rustico' | 'ancestral' | 'pandemonio' | 'celestial'>('celestial');
   const [customItemMistic, setCustomItemMistic] = useState<number>(8);
   const [customStats, setCustomStats] = useState<Record<string, number>>({});
 
   // Reseta stats ao trocar slot ou tier
-  const handleCustomSlotChange = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet') => {
+  const handleCustomSlotChange = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring') => {
     setCustomItemSlot(slot);
     setCustomStats({});
   };
@@ -5540,7 +5617,7 @@ const OptionsPanel: React.FC = () => {
     if (!setName) return;
 
     const newEquipment: Record<string, any> = {};
-    const slots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'];
+    const slots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet', 'ring'];
     
     slots.forEach(slot => {
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -5648,7 +5725,7 @@ const OptionsPanel: React.FC = () => {
     playClick();
   };
 
-  const updateSingleItemMistic = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet', newLvl: number) => {
+  const updateSingleItemMistic = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring', newLvl: number) => {
     const item = character.equipment[slot];
     if (!item) return;
 
@@ -6617,7 +6694,7 @@ const OptionsPanel: React.FC = () => {
                   {/* Refinador de Equipamento Individual */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '130px', overflowY: 'auto', paddingRight: '0.2rem' }}>
                     <span style={{ fontWeight: 'bold', color: '#94a3b8', fontSize: '0.58rem' }}>Mística de Itens Equipados:</span>
-                    {(['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'] as const).map((slot) => {
+                    {(['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet', 'ring'] as const).map((slot) => {
                       const item = character.equipment[slot] as EquipmentItem | null;
                       const slotLabel = slot === 'head' ? 'Elmo' : slot === 'chest' ? 'Peito' : slot === 'legs' ? 'Pernas' : slot === 'gloves' ? 'Luvas' : slot === 'weapon' ? 'Arma' : slot === 'necklace' ? 'Colar' : 'Amuleto';
                       
@@ -6690,6 +6767,7 @@ const OptionsPanel: React.FC = () => {
                           <option value="gloves">🧤 Luvas</option>
                           <option value="necklace">📿 Colar</option>
                           <option value="amulet">🧿 Amuleto</option>
+                          <option value="ring">💍 Anel</option>
                         </select>
                       </div>
 
@@ -7009,6 +7087,12 @@ export default function GameUI() {
       { icon: '💠', value: citadelSoulFragments, color: '#67e8f9', label: 'Fragmentos de Alma Instável' },
       { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
     ],
+    alchemyLab: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
   }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments]);
 
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
@@ -7124,7 +7208,7 @@ export default function GameUI() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [confirmSellItem, setConfirmSellItem] = useState(false);
   const [confirmDismantleItem, setConfirmDismantleItem] = useState(false);
@@ -7553,6 +7637,7 @@ export default function GameUI() {
               {citadelSubTab === 'cosmicSiphon' && <CosmicSiphonPanel />}
               {citadelSubTab === 'synchronyAltar' && <SynchronyAltarPanel />}
               {citadelSubTab === 'relicLab' && <RelicLabPanel />}
+              {citadelSubTab === 'alchemyLab' && <AlchemyLabPanel />}
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}
@@ -7693,6 +7778,8 @@ export default function GameUI() {
                         {selectedItem.consumableType === 'unstable_soul_fragment' && '🔮 Fragmento de Alma absorvido no Altar de Relíquias: +1 Fragmento.'}
                         {selectedItem.consumableType === 'tower_key' && '🔑 Chave de acesso para a Torre Infinita. Consumida ao iniciar uma tentativa de subida a partir do painel da Torre.'}
                         {selectedItem.consumableType === 'tower_key_evolved' && '🗝️ Chave Evoluída de acesso à Torre Infinita. Concede +200% de Ouro e XP na subida. Consumida ao iniciar uma tentativa a partir do painel da Torre.'}
+                        {selectedItem.consumableType === 'potion_damage' && '🔥 Ativa instantaneamente +25% de Dano por 3 minutos.'}
+                        {selectedItem.consumableType === 'potion_regen' && '💧 Ativa instantaneamente regeneração de HP acelerada por 2 minutos.'}
                       </div>
                     </>
                   ) : (

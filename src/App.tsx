@@ -323,19 +323,74 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v7.0.0 — Bosque Sussurrante & Ecos que Despertam!
+              🔔 Atualização v8.0.0 — O Espelho Faminto!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A grande v7.0.0 traz o Bosque Sussurrante como bioma inicial definitivo da campanha com background pixel art, monstros exclusivos, os pets de early game (Lumen e Moeda Alada) e o misterioso encontro com o Mercador Ambulante e seus elixires exclusivos.
+                A v8.0.0 traz o Anel como sétimo slot de equipamento, quatro novos afixos de Elite, o Laboratório de Alquimia da Cidadela, o evento sazonal Lua de Sangue e uma nova Ramificação de Maldições roguelike para a Torre Infinita.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v8.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 8.0.0 (Atual) — O Espelho Faminto:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        💍 Novo Slot de Equipamento: Anel
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Sétimo slot de equipamento, com itens "pesados" completos (atributos primários por classe, participa de Sets e da Fusão Mística) — igual a Elmo, Peito, Pernas, Mãos e Arma, ao contrário do Amuleto/Colar.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        👑 Expansão dos Inimigos de Elite
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        4 novos afixos de Elite: <strong>Refletor</strong> (devolve parte do dano recebido), <strong>Errante</strong> (velocidade de ataque imprevisível), <strong>Replicante</strong> (invoca escudos de "réplica fantasma" periódicos) e <strong>Vulnerável</strong> (janelas de dano aumentado).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        ⚗️ Laboratório de Alquimia
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova construção da Cidadela: destila Madeira, Pedra e Carne em Poções de Fúria Alquímica (+25% de Dano, 3min) e de Regeneração Alquímica (regeneração de HP acelerada, 2min), preparadas sob demanda.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🌕 Lua de Sangue (Evento Sazonal)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Todo fim de semana, os inimigos da fase atual ficam com +50% de HP/Dano, ganham um reskin vermelho e uma tabela de drop exclusiva do Set da Lua de Sangue passa a valer.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f472b6', fontSize: '0.72rem' }}>
+                        🌀 Ramificação de Maldições da Torre Infinita
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Variante roguelike opcional: cada andar concluído acumula uma maldição temporária (-10% em um atributo, +20% em outro), em troca de +50% de Ouro e Fragmentos de Forja. Recordes e títulos honoríficos são separados da Torre Normal.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        🏯 Pátio da Cidadela em 2 Páginas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O pátio clicável da Cidadela ganhou um carrossel de 2 páginas (com animação de deslize) para abrigar o Laboratório de Alquimia e futuras construções, sem perder nenhuma posição existente.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v7.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 7.0.0 (Atual) — Bosque Sussurrante:</span>
+                  <span style={{ fontWeight: 700, color: '#cbd5e1', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 7.0.0 — Bosque Sussurrante:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>

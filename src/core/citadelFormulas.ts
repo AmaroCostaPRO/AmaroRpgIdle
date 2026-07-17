@@ -109,6 +109,23 @@ export const SYNCHRONY_ALTAR_UPGRADE_COST = (nextLevel: number): { stone: number
   studyInsignias: Math.round(500 * Math.pow(1.6, nextLevel - 1)),
 });
 
+export const ALCHEMY_LAB_MAX_LEVEL = 5;
+export const ALCHEMY_LAB_UPGRADE_COST = (nextLevel: number): { wood: number; meat: number; studyInsignias: number } => ({
+  wood: Math.round(400 * Math.pow(1.6, nextLevel - 1)),
+  meat: Math.round(600 * Math.pow(1.6, nextLevel - 1)),
+  studyInsignias: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
+});
+
+export type AlchemyPotionType = 'damage' | 'regen';
+// Preparo manual sob demanda (sem produção automática por tick): consome materiais na hora e
+// entrega o rendimento direto no inventário.
+export const ALCHEMY_POTION_RECIPE: Record<AlchemyPotionType, { wood: number; stone: number; meat: number }> = {
+  damage: { wood: 100, stone: 50, meat: 150 },
+  regen: { wood: 50, stone: 50, meat: 200 },
+};
+// Rendimento por preparo: 1 poção nos Níveis 1-2, 2 nos Níveis 3-4, 3 no Nível 5
+export const ALCHEMY_POTION_YIELD = (labLevel: number): number => 1 + Math.floor(labLevel / 2);
+
 export const RELIC_LAB_MAX_LEVEL = 5;
 export const RELIC_LAB_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; unstableSoulFragments: number } => ({
   stone: Math.round(3000 * Math.pow(1.6, nextLevel - 1)),
@@ -132,7 +149,8 @@ export type CitadelStructureKey =
   | 'forgeWorkshop'
   | 'cosmicSiphon'
   | 'synchronyAltar'
-  | 'relicLab';
+  | 'relicLab'
+  | 'alchemyLab';
 
 export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
   const HOUR = 60 * 60 * 1000;

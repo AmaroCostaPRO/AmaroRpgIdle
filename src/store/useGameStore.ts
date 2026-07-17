@@ -17,6 +17,7 @@ import {
   COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST,
   SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
   RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
+  ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, AlchemyPotionType,
   computeClassExpeditionProduction, getMysticFusionCost,
   getStructureUpgradeDurationMs, CitadelStructureKey,
 } from '../core/citadelFormulas';
@@ -596,6 +597,8 @@ interface GameState {
   buildOrUpgradeSynchronyAltar(): { success: boolean; message: string };
   buildOrUpgradeRelicLab(): { success: boolean; message: string };
   overheatRelic(relicId: string): { success: boolean; message: string };
+  buildOrUpgradeAlchemyLab(): { success: boolean; message: string };
+  brewAlchemyPotion(potionType: AlchemyPotionType): { success: boolean; message: string };
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -641,7 +644,7 @@ interface GameState {
 
   // Novos métodos de equipamentos e inventário (v1.1.0)
   equipItem(itemId: string): void;
-  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'): void;
+  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring'): void;
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
   dismantleItem(itemId: string): void;
@@ -730,6 +733,7 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   cosmicSiphon: { level: 0, lastTick: Date.now() },
   synchronyAltar: { level: 0, lastTick: Date.now() },
   relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
+  alchemyLab: { level: 0, lastTick: Date.now() },
 });
 
 const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0 });
@@ -761,7 +765,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     autoCastHealPercent: 50,
     autoCastDisabledSkills: [],
     killCount: {},
-    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
+    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
     inventory: [],
     inventorySlots: 30,
     pandemoniumUnlocked: false,
@@ -864,6 +868,7 @@ const mergeLoadedCharacter = (char: Character): Character => {
       cosmicSiphon: { ...defaults.citadel!.cosmicSiphon, ...(char.citadel?.cosmicSiphon || {}) },
       synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
       relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
+      alchemyLab: { ...defaults.citadel!.alchemyLab, ...(char.citadel?.alchemyLab || {}) },
     },
     totalXpEarned: char.totalXpEarned !== undefined
       ? char.totalXpEarned
@@ -1336,6 +1341,7 @@ export const useGameStore = create<GameState>((set) => ({
       cosmicSiphon: 'Sifão de Essência Cósmica',
       synchronyAltar: 'Altar de Sincronia Elemental',
       relicLab: 'Laboratório de Relíquias Místicas',
+      alchemyLab: 'Laboratório de Alquimia',
     };
     (Object.keys(structureLabels) as CitadelStructureKey[]).forEach((key) => {
       const building = citadel![key];
@@ -1775,6 +1781,95 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
+  buildOrUpgradeAlchemyLab: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.alchemyLab.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (citadel.alchemyLab.upgradeInProgress) {
+        result = { success: false, message: 'O Laboratório de Alquimia já está em melhoria.' };
+        return state;
+      }
+      if (nextLevel > ALCHEMY_LAB_MAX_LEVEL) {
+        result = { success: false, message: 'O Laboratório de Alquimia já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
+      const cost = ALCHEMY_LAB_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.meat < cost.meat || materials.studyInsignias < cost.studyInsignias) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.meat} Carne e ${cost.studyInsignias} Insígnias de Estudo.` };
+        return state;
+      }
+
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('alchemyLab', nextLevel);
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, meat: materials.meat - cost.meat, studyInsignias: materials.studyInsignias - cost.studyInsignias },
+        citadel: { ...citadel, alchemyLab: { ...citadel.alchemyLab, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Melhoria do Laboratório de Alquimia iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  brewAlchemyPotion: (potionType) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+
+      if (citadel.alchemyLab.level <= 0) {
+        result = { success: false, message: 'O Laboratório de Alquimia ainda não foi construído.' };
+        return state;
+      }
+      const recipe = ALCHEMY_POTION_RECIPE[potionType];
+      if (materials.wood < recipe.wood || materials.stone < recipe.stone || materials.meat < recipe.meat) {
+        result = { success: false, message: `Materiais insuficientes: requer ${recipe.wood} Madeira, ${recipe.stone} Pedra e ${recipe.meat} Carne.` };
+        return state;
+      }
+      const yieldCount = ALCHEMY_POTION_YIELD(citadel.alchemyLab.level);
+      if (state.character.inventory.length + yieldCount > state.character.inventorySlots) {
+        result = { success: false, message: `Inventário cheio! Libere pelo menos ${yieldCount} slot(s) antes de preparar.` };
+        return state;
+      }
+
+      const potionName = potionType === 'damage' ? 'Poção de Fúria Alquímica' : 'Poção de Regeneração Alquímica';
+      const newItems: EquipmentItem[] = Array.from({ length: yieldCount }, (_, i) => ({
+        id: `potion_${potionType}-${Date.now()}-${i}`,
+        name: potionName,
+        slot: 'consumable',
+        rarity: 'consumable',
+        stats: {},
+        classId: state.character.classId,
+        spriteName: `potion_${potionType}`,
+        consumableType: potionType === 'damage' ? 'potion_damage' : 'potion_regen'
+      }));
+
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - recipe.wood, stone: materials.stone - recipe.stone, meat: materials.meat - recipe.meat },
+        inventory: [...state.character.inventory, ...newItems]
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${yieldCount}x ${potionName} preparada(s)!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
   buildOrUpgradeCosmicSiphon: () => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     set((state) => {
@@ -2148,7 +2243,7 @@ export const useGameStore = create<GameState>((set) => ({
       enemiesDefeatedInStage: 0,
       equipment: (state.character.pandemoniumUnlocked)
         ? state.character.equipment
-        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
+        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
       // Chaves da Torre Evoluídas sobrevivem à Ascensão; demais itens do inventário são zerados
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Ascensão
@@ -2321,7 +2416,7 @@ export const useGameStore = create<GameState>((set) => ({
       highestStageReached: 1,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null },
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
       // Chaves da Torre Evoluídas sobrevivem à Transcendência
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Transcendência
@@ -3326,7 +3421,8 @@ export const useGameStore = create<GameState>((set) => ({
         legs: 'Calça Mística',
         gloves: 'Luva Mística',
         necklace: 'Colar Místico',
-        amulet: 'Talismã Místico'
+        amulet: 'Talismã Místico',
+        ring: 'Anel Místico'
       };
 
       let baseName = slotNamesMap[item1.slot] || 'Item Místico';
@@ -3732,6 +3828,30 @@ export const useGameStore = create<GameState>((set) => ({
         return { character: updated };
       }
 
+      if (item.consumableType === 'potion_damage') {
+        bridge.emit(GameEvent.ALCHEMY_POTION_ACTIVATED, { potionType: 'damage' });
+
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Poção de Fúria Alquímica consumida! +25% de Dano por 3 minutos.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'potion_regen') {
+        bridge.emit(GameEvent.ALCHEMY_POTION_ACTIVATED, { potionType: 'regen' });
+
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Poção de Regeneração Alquímica consumida! Regeneração de HP acelerada por 2 minutos.' };
+        return { character: updated };
+      }
+
       if (item.consumableType === 'boost_touch') {
         // Ativar Frenesi do Toque por 1 minuto
         bridge.emit('ACTIVATE_FRENZY_BOOST' as any, { duration: 60000 });
@@ -3805,14 +3925,14 @@ export const useGameStore = create<GameState>((set) => ({
         };
 
         const slotNames: Record<string, Record<string, string>> = {
-          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
-          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
-          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
-          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
-          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
-          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
+          warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel de Guerra' },
+          mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Arcano' },
+          ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel do Caçador' },
+          paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sagrado' },
+          cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã', ring: 'Anel Bento' },
+          rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel Furtivo' },
+          necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sombrio' },
+          avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar', ring: 'Anel Cósmico' }
         };
 
         const possibleStatsMap: Record<string, string[]> = {
@@ -3826,7 +3946,7 @@ export const useGameStore = create<GameState>((set) => ({
           avatar: ['strength', 'magic', 'dexterity', 'constitution', 'luck']
         };
 
-        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet'> = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet'];
+        const slots: Array<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring'> = ['head', 'chest', 'legs', 'gloves', 'weapon', 'necklace', 'amulet', 'ring'];
         const newItems: EquipmentItem[] = [];
 
         for (let i = 0; i < count; i++) {

@@ -27,6 +27,15 @@ import { BUILDING_SPRITE_SRC } from './citadelBuildingSprites';
  * comportamento dos backgrounds da tela de combate).
  */
 const BACKGROUND_SRC = '/assets/citadel_background.png';
+// v8.0.0 "O Espelho Faminto": arte definitiva da 2ª página do pátio (antes reaproveitava
+// BACKGROUND_SRC como placeholder).
+const BACKGROUND_SRC_PAGE_2 = '/assets/citadel_background_2.png';
+const PAGE_BACKGROUNDS = [BACKGROUND_SRC, BACKGROUND_SRC_PAGE_2];
+
+// v8.0.0 "O Espelho Faminto": sub-abas que vivem na 2ª página do pátio (ver `buildingsPage2`
+// abaixo) — usado para sincronizar a página exibida quando a troca de sub-aba vem de fora do
+// pátio (ex: `CitadelTabsBar`), não só do clique direto num marcador.
+const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab'];
 
 interface BuildingData {
   id: CitadelSubTab;
@@ -184,18 +193,23 @@ export const CitadelSpriteStage: React.FC = () => {
   // Espelha a sub-aba ativa da Cidadela (estado vive em GameUI.tsx, fora desta árvore de
   // componentes) para destacar visualmente o prédio correspondente ao painel aberto.
   const [activeSubTab, setActiveSubTab] = useState<CitadelSubTab>('overview');
+  // v8.0.0 "O Espelho Faminto": carrossel de 2 páginas — o pátio só comporta 9 marcadores por
+  // sprite de fundo, então novas construções (a partir do Laboratório de Alquimia) ficam numa
+  // 2ª página alcançada por um botão de seta na borda da tela. Não persiste entre sessões.
+  const [page, setPage] = useState<0 | 1>(0);
   useEffect(() => {
     const unsubscribe = bridge.subscribe(GameEvent.CITADEL_SUBTAB_CHANGED, (payload: any) => {
       if (payload?.subTab) {
         setActiveSubTab(payload.subTab);
+        setPage(PAGE_2_SUB_TABS.includes(payload.subTab) ? 1 : 0);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Grid 3x3 (20% / 50% / 80% em cada eixo), calibrado para as 8 clareiras +
+  // Página 1: grid 3x3 (20% / 50% / 80% em cada eixo), calibrado para as 8 clareiras +
   // 1 espaço central de citadel_background.png. Ver comentário de BACKGROUND_SRC.
-  const buildings: BuildingData[] = [
+  const buildingsPage1: BuildingData[] = [
     { id: 'overview', icon: '🏛️', label: 'Centro de Comando', level: citadel?.commandCenter.level || 1, maxLevel: 5, built: true, top: 50, left: 50 },
     { id: 'watchTower', icon: '🗼', label: 'Torre de Vigia', level: citadel?.watchTower.level || 0, maxLevel: 5, built: (citadel?.watchTower.level || 0) > 0, top: 20, left: 20 },
     { id: 'cosmicSiphon', icon: '🌫️', label: 'Sifão Cósmico', level: citadel?.cosmicSiphon.level || 0, maxLevel: 5, built: (citadel?.cosmicSiphon.level || 0) > 0, top: 20, left: 50 },
@@ -206,6 +220,23 @@ export const CitadelSpriteStage: React.FC = () => {
     { id: 'relicLab', icon: '🧪', label: 'Laboratório', level: citadel?.relicLab.level || 0, maxLevel: 5, built: (citadel?.relicLab.level || 0) > 0, top: 80, left: 50 },
     { id: 'synchronyAltar', icon: '🔯', label: 'Altar de Sincronia', level: citadel?.synchronyAltar.level || 0, maxLevel: 5, built: (citadel?.synchronyAltar.level || 0) > 0, top: 80, left: 80 },
   ];
+
+  // Página 2 (v8.0.0 "O Espelho Faminto"): mesmo grid 3x3, com arte própria
+  // (citadel_background_2.png). Só o Laboratório de Alquimia tem posição; os demais 8 pontos
+  // ficam `null` (reservados para prédios futuros) e não renderizam marcador nenhum.
+  const buildingsPage2: (BuildingData | null)[] = [
+    { id: 'alchemyLab', icon: '⚗️', label: 'Laboratório de Alquimia', level: citadel?.alchemyLab.level || 0, maxLevel: 5, built: (citadel?.alchemyLab.level || 0) > 0, top: 20, left: 20 },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ];
+
+  const pageBuildings = [buildingsPage1, buildingsPage2];
 
   return (
     <div
@@ -242,18 +273,82 @@ export const CitadelSpriteStage: React.FC = () => {
           .citadel-marker-badge { min-width: 13px; height: 13px; font-size: 0.46rem; }
           .citadel-marker-icon-box--command { width: 70px; height: 70px; }
         }
+        /* Carrossel de 2 páginas do pátio (v8.0.0) — mesma curva/duração do carrossel mobile
+           já usado em .tabs-carousel-inner (index.css), para manter o mesmo "feel". */
+        .citadel-page-carousel-inner {
+          display: flex;
+          width: 200%;
+          height: 100%;
+          transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .citadel-page-panel { position: relative; width: 50%; height: 100%; flex-shrink: 0; }
+        .citadel-stage-arrow-btn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 30;
+          background: var(--surface-glass);
+          border: 1px solid var(--border-subtle);
+          color: var(--gold-400);
+          border-radius: var(--radius-md);
+          width: 2.4rem;
+          height: 2.4rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: var(--shadow-button);
+          font-size: 0.85rem;
+          font-weight: bold;
+        }
+        @media (max-width: 840px) {
+          .citadel-stage-arrow-btn { width: 1.9rem; height: 1.9rem; font-size: 0.7rem; }
+        }
       `}</style>
 
-      <img
-        src={BACKGROUND_SRC}
-        alt=""
-        draggable={false}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' }}
-      />
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div
+          className="citadel-page-carousel-inner"
+          style={{ transform: `translateX(-${page * 50}%)` }}
+        >
+          {pageBuildings.map((buildings, pageIdx) => (
+            <div className="citadel-page-panel" key={pageIdx}>
+              <img
+                src={PAGE_BACKGROUNDS[pageIdx]}
+                alt=""
+                draggable={false}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' }}
+              />
+              {buildings
+                .filter((b): b is BuildingData => b !== null)
+                .map((b) => (
+                  <BuildingMarker key={b.id} data={b} active={b.id === activeSubTab} />
+                ))}
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {buildings.map((b) => (
-        <BuildingMarker key={b.id} data={b} active={b.id === activeSubTab} />
-      ))}
+      {page === 0 && (
+        <button
+          onClick={() => { AudioManager.getInstance().playClick(); setPage(1); }}
+          title="Próxima página"
+          className="citadel-stage-arrow-btn"
+          style={{ right: '0.75rem' }}
+        >
+          ▶
+        </button>
+      )}
+      {page === 1 && (
+        <button
+          onClick={() => { AudioManager.getInstance().playClick(); setPage(0); }}
+          title="Página anterior"
+          className="citadel-stage-arrow-btn"
+          style={{ left: '0.75rem' }}
+        >
+          ◀
+        </button>
+      )}
     </div>
   );
 };

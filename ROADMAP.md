@@ -56,7 +56,7 @@ Essa lore de abertura deixa três ganchos narrativos em aberto, que dão origem 
   * *Gancho de lore*: destila fragmentos de intenção capturados dos ecos menores em efeitos temporários — um uso mais "vivo" da matéria-prima da Cidadela.
 * **💍 Anel (novo slot de equipamento)** — Adiciona mais uma peça de itemização no momento em que os bônus de conjunto (`SET_BONUSES`) já existem, dando mais decisões de build por classe e mais alvos para a fusão mística.
   * *Gancho de lore*: um círculo fechado — a forma que o Vazio tenta imitar quando quer parecer completo.
-* **👑 Expansão dos Inimigos de Elite (sistema já existente)** — Evolução do sistema de afixos de Elite já implementado: novos afixos exclusivos de mid game (escudo refletor, invocação de réplicas, fase de vulnerabilidade por tempo limitado) e maior variedade de drops exclusivos conforme o jogador avança de stage.
+* **👑 Expansão dos Inimigos de Elite (sistema já existente)** — Evolução do sistema de afixos de Elite já implementado: novos afixos exclusivos de mid game (escudo refletor, velocidade alterada, invocação de réplicas, fase de vulnerabilidade por tempo limitado) e maior variedade de drops exclusivos conforme o jogador avança de stage.
   * *Gancho de lore*: os primeiros monstros que aprenderam a refletir o próprio herói de volta contra ele — literalmente, no caso do afixo de escudo refletor.
 * **🌕 Lua de Sangue (evento sazonal simulado)** — Evento recorrente calculado por data real local (ex: semanal, sem backend), com re-skin temporário dos inimigos da stage atual (mais HP/dano, paleta vermelha) e tabela de drop exclusiva por tempo limitado.
   * *Gancho de lore*: as noites em que o véu entre o mundo desperto e o Vazio fica fino o bastante para ele imitar até o céu.

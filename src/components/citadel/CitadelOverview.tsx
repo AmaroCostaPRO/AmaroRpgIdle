@@ -37,6 +37,7 @@ export const CitadelOverview: React.FC = () => {
     { id: 'cosmicSiphon', icon: '🌫️', label: 'Sifão de Essência Cósmica', level: citadel?.cosmicSiphon.level || 0 },
     { id: 'synchronyAltar', icon: '🔯', label: 'Altar de Sincronia Elemental', level: citadel?.synchronyAltar.level || 0 },
     { id: 'relicLab', icon: '🧪', label: 'Laboratório de Relíquias', level: citadel?.relicLab.level || 0 },
+    { id: 'alchemyLab', icon: '⚗️', label: 'Laboratório de Alquimia', level: citadel?.alchemyLab.level || 0 },
   ];
 
   return (

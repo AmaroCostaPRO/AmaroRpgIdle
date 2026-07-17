@@ -2,11 +2,20 @@ import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
-import { useTowerStore } from '../store/useTowerStore';
+import { useTowerStore, CURSE_DEBUFF_PCT, CURSE_BUFF_PCT } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
 
+// v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal calculado por data real local, sem
+// backend. A cada semana, o véu entre o mundo desperto e o Vazio fica fino no fim de semana
+// (Sábado e Domingo): inimigos da fase atual ficam mais fortes, ganham reskin visual (tint
+// vermelho) e uma tabela de drop exclusiva passa a valer. Nunca se aplica dentro da Torre Infinita
+// (mesma exclusão já usada para a Ecoterra).
+export const isBloodMoonActive = (): boolean => {
+  const day = new Date().getDay(); // 0 = domingo ... 6 = sábado
+  return day === 0 || day === 6;
+};
 
 export const ENEMY_TYPES: EnemyType[] = [
   // === FASES 1-5: Bosque Sussurrante (v7.0.0 "Ecos que Despertam") ===
@@ -436,7 +445,7 @@ export class CombatFSM {
   public enemyLevel: number = 1;
   public currentEnemy: EnemyType = ENEMY_TYPES[0];
   public isElite: boolean = false;
-  public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador';
+  public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador' | 'refletor' | 'errante' | 'replicante' | 'vulneravel';
   // v7.0.0 "Ecos que Despertam": Mercador Ambulante — substitui um inimigo comum no combate
   public isMerchantEncounter: boolean = false;
   public currentMerchantOffer: MerchantOffer[] = [];
@@ -445,6 +454,14 @@ export class CombatFSM {
   private enemyAttackCooldown: number = 0;
   public enemyEffects: StatusEffect[] = [];
   public playerEffects: StatusEffect[] = [];
+  // v8.0.0 "O Espelho Faminto": Elite 'replicante' — escudo periódico que precisa ser quebrado
+  // antes que o dano volte a afetar o HP real do inimigo (reinterpretação de "réplicas" que não
+  // exige múltiplos inimigos simultâneos, já que o combate só suporta um alvo por vez).
+  public enemyShield: number = 0;
+  private enemyShieldTimer: number = 0;
+  // v8.0.0: Elite 'vulneravel' — abre uma janela periódica de dano aumentado (reaproveita o
+  // status 'exposed' já existente, só que disparado automaticamente pelo próprio Elite).
+  private eliteVulnerabilityTimer: number = 0;
   private scene: any;
   private skillCooldowns: Record<string, number> = {};
   private cooldownEmitTimer: number = 0;
@@ -456,6 +473,7 @@ export class CombatFSM {
   private cachedBestiaryMult: number = 1;
 
   private storeUnsubscribe?: () => void;
+  private towerStoreUnsubscribe?: () => void;
   private unsubscribeStartCombat?: () => void;
   private unsubscribeMerchantDismissed?: () => void;
   private lastEmitHP: number = -1;
@@ -483,6 +501,12 @@ export class CombatFSM {
   private elixirVelocistaDuration: number = 0;
   public isElixirIlusionistaActive: boolean = false;
   private elixirIlusionistaDuration: number = 0;
+  // v8.0.0 "O Espelho Faminto": Poções do Laboratório de Alquimia — mesmo padrão flag+duração dos
+  // Elixires do Mercador acima, só que ativadas via item de inventário (useConsumable) em vez de compra direta.
+  public isPotionDamageActive: boolean = false;
+  private potionDamageDuration: number = 0;
+  public isPotionRegenActive: boolean = false;
+  private potionRegenDuration: number = 0;
   public comboCount: number = 0;
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
@@ -573,6 +597,15 @@ export class CombatFSM {
       }
     });
 
+    // v8.0.0: recalcula os stats quando a lista de maldições ativas da Ramificação de Maldições muda
+    let lastCursesRef = useTowerStore.getState().activeCurses;
+    this.towerStoreUnsubscribe = useTowerStore.subscribe((state) => {
+      if (state.activeCurses !== lastCursesRef) {
+        lastCursesRef = state.activeCurses;
+        this.updateStatsFromStore();
+      }
+    });
+
     this.unsubscribeStartCombat = bridge.subscribe(GameEvent.START_COMBAT, (payload) => {
       const activeTower = useTowerStore.getState().towerActive;
       if (activeTower) {
@@ -649,6 +682,10 @@ export class CombatFSM {
       this.storeUnsubscribe();
       this.storeUnsubscribe = undefined;
     }
+    if (this.towerStoreUnsubscribe) {
+      this.towerStoreUnsubscribe();
+      this.towerStoreUnsubscribe = undefined;
+    }
     if (this.unsubscribeStartCombat) {
       this.unsubscribeStartCombat();
       this.unsubscribeStartCombat = undefined;
@@ -706,13 +743,16 @@ export class CombatFSM {
 
       this.isElite = false;
       this.eliteAfix = undefined;
-      
+      this.enemyShield = 0;
+      this.enemyShieldTimer = 0;
+      this.eliteVulnerabilityTimer = 0;
+
       if (!isTowerBoss && floor >= 5) {
         const eliteChance = Math.min(0.35, 0.08 + (floor - 5) * 0.01);
         const lcgEliteVal = randSin(lookupSeed + 999);
         if (lcgEliteVal < eliteChance) {
           this.isElite = true;
-          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador'] as const;
+          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel'] as const;
           const afixIdx = Math.floor(randSin(lookupSeed + 888) * afixos.length);
           this.eliteAfix = afixos[afixIdx];
           this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
@@ -725,7 +765,11 @@ export class CombatFSM {
 
     // Multiplicador de HP/Dano por dificuldade:
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
-    const hpBoost = stage >= 31 ? 6.0 : stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
+    let hpBoost = stage >= 31 ? 6.0 : stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
+    // Lua de Sangue (v8.0.0): +50% de HP nos inimigos da fase atual enquanto o evento está ativo (nunca dentro da Torre — este trecho só roda fora dela)
+    if (isBloodMoonActive()) {
+      hpBoost *= 1.5;
+    }
 
     // Escala de dificuldade exponencial para tornar fases progressivamente mais difíceis (ajustada para 1.30x por fase)
     const difficultyScale = Math.pow(1.30, stage - 1);
@@ -813,6 +857,9 @@ export class CombatFSM {
     // Inicializar estado de elite como falso por padrão
     this.isElite = false;
     this.eliteAfix = undefined;
+    this.enemyShield = 0;
+    this.enemyShieldTimer = 0;
+    this.eliteVulnerabilityTimer = 0;
     this.isMerchantEncounter = false;
     this.currentMerchantOffer = [];
 
@@ -835,7 +882,7 @@ export class CombatFSM {
       }
       if (randSinCampaign(encounterSeed) < eliteChance) {
         this.isElite = true;
-        const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador'] as const;
+        const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel'] as const;
         this.eliteAfix = afixos[Math.floor(randSinCampaign(encounterSeed + 500) * afixos.length)];
 
         // HP do Elite é multiplicado por 3.0x
@@ -889,6 +936,18 @@ export class CombatFSM {
     const char = useGameStore.getState().character;
     this.characterData = char;
     this.playerFinalStats = StatEngine.calculateFinalStats(char);
+
+    // v8.0.0 "O Espelho Faminto": Ramificação de Maldições da Torre — aplica as maldições acumuladas
+    // (temporárias, só durante a subida) diretamente sobre os stats finais calculados acima, sem
+    // jamais alterar os itens de equipamento reais do jogador.
+    const towerState = useTowerStore.getState();
+    if (towerState.towerActive && towerState.towerBranch === 'curse') {
+      towerState.activeCurses.forEach((curse) => {
+        this.playerFinalStats[curse.debuffStat] = (this.playerFinalStats[curse.debuffStat] || 0) * (1 - CURSE_DEBUFF_PCT);
+        this.playerFinalStats[curse.buffStat] = (this.playerFinalStats[curse.buffStat] || 0) * (1 + CURSE_BUFF_PCT);
+      });
+    }
+
     useGameStore.getState().updateBestCombatStats({
       critChance: this.playerFinalStats.critChance,
       dropChancePct: this.playerFinalStats.dropChancePct,
@@ -1042,6 +1101,25 @@ export class CombatFSM {
       }
     }
 
+    // Atualização das Poções do Laboratório de Alquimia (v8.0.0)
+    if (this.isPotionDamageActive) {
+      this.potionDamageDuration -= delta;
+      if (this.potionDamageDuration <= 0) {
+        this.isPotionDamageActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Poção de Fúria Alquímica acabou.` });
+      }
+    }
+    if (this.isPotionRegenActive) {
+      this.potionRegenDuration -= delta;
+      if (this.potionRegenDuration <= 0) {
+        this.isPotionRegenActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Poção de Regeneração Alquímica acabou.` });
+      } else if (this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
+        const regenAmount = this.playerMaxHP * 0.02 * (delta / 1000);
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + regenAmount);
+      }
+    }
+
     // Atualização de Combo
     if (this.comboCount > 0) {
       if (this.isFrenzyActive) {
@@ -1123,6 +1201,38 @@ export class CombatFSM {
       this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + regenAmount);
     }
 
+    // v8.0.0: Elite 'replicante' — a cada 10s sem escudo ativo, invoca uma "réplica fantasma"
+    // (escudo equivalente a 15% do HP Máximo) que precisa ser quebrada antes que o dano volte a
+    // reduzir o HP real do inimigo.
+    if (this.isElite && this.eliteAfix === 'replicante' && this.enemyHP > 0) {
+      if (this.enemyShield <= 0) {
+        this.enemyShieldTimer += delta;
+        if (this.enemyShieldTimer >= 10000) {
+          this.enemyShieldTimer = 0;
+          this.enemyShield = Math.floor(this.enemyMaxHP * 0.15);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, 'RÉPLICA INVOCADA!', '#a78bfa');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `👥 O inimigo invocou uma réplica fantasma com ${formatNumber(this.enemyShield, useGameStore.getState().abbreviateNumbers)} de escudo!` });
+        }
+      }
+    }
+
+    // v8.0.0: Elite 'vulneravel' — a cada 8s, abre uma janela de 3s de vulnerabilidade
+    // (reaproveita o status 'exposed' já existente: +50% de dano recebido).
+    if (this.isElite && this.eliteAfix === 'vulneravel' && this.enemyHP > 0) {
+      this.eliteVulnerabilityTimer += delta;
+      if (this.eliteVulnerabilityTimer >= 8000) {
+        this.eliteVulnerabilityTimer = 0;
+        this.enemyEffects = this.enemyEffects.filter(e => e.id !== 'exposed');
+        this.enemyEffects.push({ id: 'exposed', name: 'Exposto', duration: 3000, tickTimer: 0, value: 0.50 });
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[VULNERÁVEL!]', '#facc15');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚠️ O inimigo entrou em uma fase de vulnerabilidade! Sofrerá +50% de dano por 3s.` });
+      }
+    }
+
     // Processar e atualizar durações de efeitos de status no inimigo
     const wasEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
 
@@ -1165,6 +1275,9 @@ export class CombatFSM {
       let speedMult = this.currentEnemy.attackSpeedMultiplier;
       if (this.isElite && this.eliteAfix === 'enfurecido') {
         speedMult *= 1.4;
+      }
+      if (this.isElite && this.eliteAfix === 'errante') {
+        speedMult *= 0.5 + Math.random() * 1.7;
       }
       const isTower = useTowerStore.getState().towerActive;
       const char = useGameStore.getState().character;
@@ -1351,6 +1464,20 @@ export class CombatFSM {
     }
   }
 
+  // Ativa (ou reinicia a duração de) uma poção do Laboratório de Alquimia (v8.0.0), consumida do
+  // inventário via useConsumable — mesmo padrão flag+duração dos Elixires do Mercador acima.
+  public activateAlchemyPotion(type: 'damage' | 'regen'): void {
+    if (type === 'damage') {
+      this.isPotionDamageActive = true;
+      this.potionDamageDuration = 180000;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Fúria Alquímica ativada! +25% de Dano por 3 minutos!` });
+    } else {
+      this.isPotionRegenActive = true;
+      this.potionRegenDuration = 120000;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Regeneração Alquímica ativada! Regeneração de HP acelerada por 2 minutos!` });
+    }
+  }
+
   public handlePlayerTap(clickX?: number, clickY?: number): void {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
@@ -1427,7 +1554,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -1548,7 +1675,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -1581,7 +1708,12 @@ export class CombatFSM {
     if (this.isElite && this.eliteAfix === 'enfurecido') {
       speedMult *= 1.4;
     }
-    
+    // v8.0.0: Elite 'errante' — velocidade de ataque imprevisível a cada golpe (0.5x a 2.2x),
+    // dificultando o jogador de prever a janela de esquiva/reação.
+    if (this.isElite && this.eliteAfix === 'errante') {
+      speedMult *= 0.5 + Math.random() * 1.7;
+    }
+
     // Aplicar afixo diário Frenesi Sombrio (+30% velocidade de ataque)
     if (this.characterData.activeDailyChallenge) {
       const today = useGameStore.getState().getTodayYYYYMMDD();
@@ -1616,8 +1748,12 @@ export class CombatFSM {
     } else {
       // Multiplicador de dano por dificuldade (espelha o hpBoost em setupEnemyForLevel):
       // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
-      const dmgBoost = this.enemyLevel >= 31 ? 6.0 : this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
-      
+      let dmgBoost = this.enemyLevel >= 31 ? 6.0 : this.enemyLevel >= 21 ? 5.0 : this.enemyLevel >= 16 ? 4.0 : this.enemyLevel >= 11 ? 3.0 : this.enemyLevel >= 6 ? 2.0 : 1.0;
+      // Lua de Sangue (v8.0.0): +50% de dano nos inimigos da fase atual enquanto o evento está ativo (espelha o hpBoost acima)
+      if (isBloodMoonActive()) {
+        dmgBoost *= 1.5;
+      }
+
       // Escala exponencial de dano baseado no estágio (ajustada para 1.18x por fase, para conter o dano em fases avançadas)
       const dmgScale = Math.pow(1.18, this.enemyLevel - 1);
       
@@ -1742,7 +1878,37 @@ export class CombatFSM {
       }
     }
 
+    // v8.0.0: Elite 'replicante' — a réplica fantasma (escudo) absorve dano antes do HP real.
+    if (this.enemyShield > 0) {
+      if (this.enemyShield >= finalAmount) {
+        this.enemyShield -= finalAmount;
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `🛡️ -${finalAmount}`, '#a78bfa');
+        }
+        return;
+      }
+      finalAmount -= this.enemyShield;
+      this.enemyShield = 0;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `👥 A réplica fantasma foi destruída!` });
+    }
+
     this.enemyHP = Math.max(0, this.enemyHP - finalAmount);
+
+    // v8.0.0: Elite 'refletor' — reflete 20% do dano direto recebido, limitado a 5% da vida máxima do jogador por golpe.
+    if (isDirect && this.isElite && this.eliteAfix === 'refletor' && this.playerHP > 0 && !this.isElixirDefensorActive) {
+      const reflectedLimit = Math.floor(this.playerMaxHP * 0.05);
+      const reflected = Math.min(Math.floor(amount * 0.20), reflectedLimit);
+      if (reflected > 0) {
+        this.playerHP = Math.max(0, this.playerHP - reflected);
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${reflected} (Refletido)`, '#ef4444');
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💥 O escudo refletor devolveu ${reflected} de dano a você!` });
+
+        if (this.playerHP <= 0) {
+          this.handlePlayerDefeat();
+          return;
+        }
+      }
+    }
 
     // Aplicar afixo diário Escudo de Espinhos (reflete 20% de dano direto recebido, limitado a 5% da vida máxima por golpe)
     if (isDirect && this.characterData.activeDailyChallenge && this.playerHP > 0) {
@@ -2062,7 +2228,7 @@ export class CombatFSM {
       dropChance = Math.min(1.0, dropChance * 1.5);
     }
     
-    const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet')[] = [];
+    const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring')[] = [];
 
     // Colar: drop fixo de 5%, sem influência da Sorte.
     if (Math.random() < 0.05) {
@@ -2076,7 +2242,7 @@ export class CombatFSM {
 
     // Equipamentos normais: usam a chance padrão (sem o colar)
     if (Math.random() < dropChance) {
-      const normalSlots = ['head', 'chest', 'legs', 'gloves', 'weapon'] as const;
+      const normalSlots = ['head', 'chest', 'legs', 'gloves', 'weapon', 'ring'] as const;
       const slot = normalSlots[Math.floor(Math.random() * normalSlots.length)];
       slotsToDrop.push(slot);
     }
@@ -2113,14 +2279,18 @@ export class CombatFSM {
       const isCelestialUnlocked = crystalGuardianKills >= 2;
       const isCelestialDrop = isCelestialUnlocked && Math.random() < 0.10;
 
-      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop (se não for Celestial)
-      const isPandemoniumDrop = !isCelestialDrop && (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
-      
-      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial e nem Pandemônio)
-      const isAncestralDrop = !isCelestialDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
-      
-      // Se for drop Celestial o multiplicador é 7.0; se for Pandemônio é 6.0; se for Ancestral é 4.5; senão segue o padrão
-      const mult = isCelestialDrop ? 7.0 : (isPandemoniumDrop ? 6.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0))));
+      // v8.0.0 "O Espelho Faminto": chance de ser um item do Set da Lua de Sangue — só durante o
+      // evento sazonal (fim de semana) e 12% de chance sobre o drop (se não for Celestial)
+      const isBloodMoonDrop = !isCelestialDrop && isBloodMoonActive() && Math.random() < 0.12;
+
+      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop (se não for Celestial nem Lua de Sangue)
+      const isPandemoniumDrop = !isCelestialDrop && !isBloodMoonDrop && (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
+
+      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial, Lua de Sangue nem Pandemônio)
+      const isAncestralDrop = !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
+
+      // Se for drop Celestial o multiplicador é 7.0; Lua de Sangue é 5.5; Pandemônio é 6.0; Ancestral é 4.5; senão segue o padrão
+      const mult = isCelestialDrop ? 7.0 : (isBloodMoonDrop ? 5.5 : (isPandemoniumDrop ? 6.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0)))));
       
       const possibleStatsMap: Record<string, string[]> = {
         warrior: ['strength', 'constitution', 'luck'],
@@ -2142,7 +2312,7 @@ export class CombatFSM {
         itemStats = StatEngine.generateAmuletStats(stage, mult, rarity);
       } else {
         const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
-        const numAttributes = isCelestialDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
+        const numAttributes = isCelestialDrop || isBloodMoonDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
         const pickedStats = StatEngine.pickRandomElements(possibleStats, numAttributes);
         pickedStats.forEach((statKey) => {
           const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4)));
@@ -2183,6 +2353,17 @@ export class CombatFSM {
         avatar: 'Set Pandemoníaco do Eco Supremo'
       };
 
+      const bloodMoonSetNames: Record<string, string> = {
+        warrior: 'Set da Lua de Sangue do Carrasco',
+        mage: 'Set da Lua de Sangue do Arauto Rubro',
+        ranger: 'Set da Lua de Sangue do Predador Noturno',
+        paladin: 'Set da Lua de Sangue do Vingador Escarlate',
+        cleric: 'Set da Lua de Sangue do Profeta Sangrento',
+        rogue: 'Set da Lua de Sangue do Ceifeiro Vermelho',
+        necromancer: 'Set da Lua de Sangue do Devorador Rubro',
+        avatar: 'Set da Lua de Sangue do Eco Escarlate'
+      };
+
       const celestialSetNames: Record<string, string> = {
         warrior: 'Set Celestial do Semideus',
         mage: 'Set Celestial do Senhor do Tempo',
@@ -2195,14 +2376,14 @@ export class CombatFSM {
       };
       
       const slotNames: Record<string, Record<string, string>> = {
-        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã' },
-        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã' },
-        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
-        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã' },
-        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã' },
-        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã' },
-        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar' }
+        warrior: { weapon: 'Espada', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel de Guerra' },
+        mage: { weapon: 'Cajado', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Arcano' },
+        ranger: { weapon: 'Arco', head: 'Máscara', chest: 'Colete', legs: 'Perneiras', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel do Caçador' },
+        paladin: { weapon: 'Martelo', head: 'Elmo', chest: 'Armadura', legs: 'Perneiras', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sagrado' },
+        cleric: { weapon: 'Maça', head: 'Mitra', chest: 'Túnica', legs: 'Calças', gloves: 'Luvas', necklace: 'Rosário', amulet: 'Talismã', ring: 'Anel Bento' },
+        rogue: { weapon: 'Adaga', head: 'Capuz', chest: 'Manto', legs: 'Calças', gloves: 'Luvas', necklace: 'Colar', amulet: 'Talismã', ring: 'Anel Furtivo' },
+        necromancer: { weapon: 'Glaive', head: 'Capuz Sombrio', chest: 'Toga', legs: 'Calças', gloves: 'Manoplas', necklace: 'Amulet', amulet: 'Talismã', ring: 'Anel Sombrio' },
+        avatar: { weapon: 'Cetro Estelar', head: 'Coroa da Alma', chest: 'Túnica do Infinito', legs: 'Gamas da Totalidade', gloves: 'Manoplas Cósmicas', necklace: 'Colar', amulet: 'Talismã Estelar', ring: 'Anel Cósmico' }
       };
       
       const baseName = slotNames[classId]?.[slot] || 'Equipamento';
@@ -2232,6 +2413,24 @@ export class CombatFSM {
           prep = 'de';
         }
         name = `${baseName} ${suffix} ${prep} ${cleanSetName}`;
+        rarity = 'legendary';
+      } else if (isBloodMoonDrop) {
+        setName = bloodMoonSetNames[classId] || `Set da Lua de Sangue de ${classId}`;
+        let cleanSetName = setName;
+        if (cleanSetName.startsWith('Set da Lua de Sangue do ')) {
+          cleanSetName = cleanSetName.replace('Set da Lua de Sangue do ', '');
+        } else if (cleanSetName.startsWith('Set da Lua de Sangue de ')) {
+          cleanSetName = cleanSetName.replace('Set da Lua de Sangue de ', '');
+        } else if (cleanSetName.startsWith('Set da Lua de Sangue da ')) {
+          cleanSetName = cleanSetName.replace('Set da Lua de Sangue da ', '');
+        }
+        let prep = 'do';
+        if (setName.includes(' da ')) {
+          prep = 'da';
+        } else if (setName.includes(' de ')) {
+          prep = 'de';
+        }
+        name = `${baseName} Sanguinário ${prep} ${cleanSetName}`;
         rarity = 'legendary';
       } else if (isPandemoniumDrop) {
         setName = pandemoniumSetNames[classId] || `Set Pandemoníaco de ${classId}`;
@@ -2311,7 +2510,7 @@ export class CombatFSM {
       // Desmonte Automatizado (Oficina de Automação da Forja Nível 5): itens Comuns/Raros "puros" (sem set especial)
       // são convertidos direto em Fragmentos de Forja em background, sem passar pelo inventário
       const isAutoDismantleActive = (char.citadel?.forgeWorkshop.level || 0) >= 5;
-      const isPlainDrop = !isCelestialDrop && !isPandemoniumDrop && !isAncestralDrop;
+      const isPlainDrop = !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && !isAncestralDrop;
       if (isAutoDismantleActive && isPlainDrop && (rarity === 'common' || rarity === 'rare')) {
         useGameStore.getState().addForgeFragments(1);
         bridge.emit(GameEvent.LOG_EMITTED, {
@@ -2708,7 +2907,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CombatFSM, CombatState } from '../../core/CombatFSM';
+import { CombatFSM, CombatState, isBloodMoonActive } from '../../core/CombatFSM';
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent, ENEMIES_PER_STAGE, PET_POOL } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
@@ -34,6 +34,7 @@ export class CombatScene extends Phaser.Scene {
   private unsubscribeSkill?: () => void;
   private unsubscribeFrenzyBoost?: () => void;
   private unsubscribeElixirActivated?: () => void;
+  private unsubscribeAlchemyPotionActivated?: () => void;
   private currentBgTexture: string = 'background';
   private accumulatedTime: number = 0;
   private skeletonMinion!: Phaser.GameObjects.Image;
@@ -388,6 +389,11 @@ export class CombatScene extends Phaser.Scene {
     // Elixires exclusivos do Mercador Ambulante (v7.0.0) — ativados na hora após a compra bem-sucedida
     this.unsubscribeElixirActivated = bridge.subscribe(GameEvent.ELIXIR_ACTIVATED, (payload: any) => {
       this.fsm.activateElixir(payload.elixirType);
+    });
+
+    // Poções do Laboratório de Alquimia (v8.0.0) — ativadas na hora após o uso via useConsumable
+    this.unsubscribeAlchemyPotionActivated = bridge.subscribe(GameEvent.ALCHEMY_POTION_ACTIVATED, (payload: any) => {
+      this.fsm.activateAlchemyPotion(payload.potionType);
     });
 
     // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela em tela cheia,
@@ -770,6 +776,9 @@ export class CombatScene extends Phaser.Scene {
     }
 
     const isEcoterra = char && !isTower && char.activeEcoterra && stage <= 20;
+    // Lua de Sangue (v8.0.0): reskin vermelho da fase atual enquanto o evento sazonal está ativo,
+    // exceto em Pandemônio/Purgatório/Ecoterra, que já têm identidade visual própria fixa.
+    const isBloodMoon = !isTower && !isEcoterra && stage < 21 && isBloodMoonActive();
 
     // Aplicar tint de acordo com a dificuldade
     if (stage >= 31) {
@@ -784,6 +793,10 @@ export class CombatScene extends Phaser.Scene {
       // Ecoterra: Tingimento azul-neon / ciano espectral
       this.background.setTint(0x00e5ff);
       if (this.enemyBody) this.enemyBody.setTint(0x80ffff);
+    } else if (isBloodMoon) {
+      // Lua de Sangue: vermelho intenso sobrepondo o tint normal da dificuldade
+      this.background.setTint(0x8b0000);
+      if (this.enemyBody) this.enemyBody.setTint(0xff3333);
     } else if (stage >= 16) {
       // Apocalipse: Roxo sinistro
       this.background.setTint(0x440066);
@@ -1432,6 +1445,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeElixirActivated) {
       this.unsubscribeElixirActivated();
       this.unsubscribeElixirActivated = undefined;
+    }
+    if (this.unsubscribeAlchemyPotionActivated) {
+      this.unsubscribeAlchemyPotionActivated();
+      this.unsubscribeAlchemyPotionActivated = undefined;
     }
     if (this.unsubscribeTabChanged) {
       this.unsubscribeTabChanged();

@@ -1,7 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTowerStore } from '../store/useTowerStore';
+import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES } from '../store/useTowerStore';
 import { useGameStore } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
+import { EquippedTitleBox } from './tower/EquippedTitleBox';
+
+const CURSE_STAT_LABELS: Record<string, string> = {
+  strength: 'Força',
+  magic: 'Magia',
+  dexterity: 'Destreza',
+  constitution: 'Constituição',
+  luck: 'Sorte',
+};
+
+// Deriva a galeria de títulos diretamente dos pools da store (fonte única de verdade), evitando
+// que a lista exibida aqui fique dessincronizada dos nomes realmente concedidos em `advanceTowerFloor`.
+const buildTitlesConfig = (milestones: Record<number, string>, floorLabel: string) =>
+  Object.entries(milestones)
+    .map(([floor, name]) => ({ name, floorRequired: Number(floor), description: `Desbloqueado ao vencer o ${floorLabel} ${floor}` }))
+    .sort((a, b) => a.floorRequired - b.floorRequired);
+
+const NORMAL_TITLES_CONFIG = buildTitlesConfig(NORMAL_TITLE_MILESTONES, 'Andar');
+const CURSE_TITLES_CONFIG = buildTitlesConfig(CURSE_TITLE_MILESTONES, 'Andar amaldiçoado');
 
 export const TowerPanel: React.FC = () => {
   const {
@@ -11,6 +30,10 @@ export const TowerPanel: React.FC = () => {
     historicalHighestFloor,
     unlockedTitles,
     selectedTitle,
+    curseWeeklyHighestFloor,
+    curseHistoricalHighestFloor,
+    curseUnlockedTitles,
+    curseSelectedTitle,
     weeklySeed,
     startTowerAttempt,
     exitTower,
@@ -20,7 +43,33 @@ export const TowerPanel: React.FC = () => {
 
   const character = useGameStore((state) => state.character);
   const activeKeyType = useTowerStore((state) => state.activeKeyType);
+  const towerBranch = useTowerStore((state) => state.towerBranch);
+  const activeCurses = useTowerStore((state) => state.activeCurses);
+  const [selectedBranch, setSelectedBranch] = useState<'normal' | 'curse'>('normal');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // O tema/dados exibidos seguem o seletor de UI (`selectedBranch`), não o `towerBranch` do
+  // store (que só é relevante durante uma subida ativa) — assim o jogador pode navegar pelos
+  // recordes/títulos de qualquer ramificação mesmo fora de uma subida. Durante uma subida ativa,
+  // sincroniza para a ramificação realmente em andamento, para o tema não "destoar" do combate.
+  useEffect(() => {
+    if (towerActive) setSelectedBranch(towerBranch);
+  }, [towerActive, towerBranch]);
+
+  const isCurseTheme = selectedBranch === 'curse';
+  const theme = {
+    accent: isCurseTheme ? '#f87171' : '#fbbf24',
+    accentStrong: isCurseTheme ? '#dc2626' : '#f59e0b',
+    border: isCurseTheme ? 'rgba(220, 38, 38, 0.25)' : 'var(--border-dim)',
+    surfaceTint: isCurseTheme ? 'rgba(127, 29, 29, 0.10)' : 'var(--surface-2)',
+    gradient: isCurseTheme ? 'linear-gradient(135deg, #7f1d1d, #dc2626)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+  };
+
+  const displayWeeklyHighest = isCurseTheme ? curseWeeklyHighestFloor : weeklyHighestFloor;
+  const displayHistoricalHighest = isCurseTheme ? curseHistoricalHighestFloor : historicalHighestFloor;
+  const displayUnlockedTitles = isCurseTheme ? curseUnlockedTitles : unlockedTitles;
+  const displaySelectedTitle = isCurseTheme ? curseSelectedTitle : selectedTitle;
+  const titlesConfig = isCurseTheme ? CURSE_TITLES_CONFIG : NORMAL_TITLES_CONFIG;
 
   const { towerKeys, evolvedTowerKeys } = useMemo(() => {
     let towerKeysCount = 0;
@@ -33,27 +82,17 @@ export const TowerPanel: React.FC = () => {
     return { towerKeys: towerKeysCount, evolvedTowerKeys: evolvedTowerKeysCount };
   }, [character.inventory]);
 
-  // Títulos disponíveis e seus andares de desbloqueio
-  const titlesConfig = [
-    { name: 'Iniciante da Torre', floorRequired: 5, description: 'Desbloqueado ao vencer o Andar 5' },
-    { name: 'Desbravador da Torre', floorRequired: 10, description: 'Desbloqueado ao vencer o Andar 10' },
-    { name: 'Conquistador das Alturas', floorRequired: 20, description: 'Desbloqueado ao vencer o Andar 20' },
-    { name: 'Guardião da Torre', floorRequired: 30, description: 'Desbloqueado ao vencer o Andar 30' },
-    { name: 'Mestre do Infinito', floorRequired: 50, description: 'Desbloqueado ao vencer o Andar 50' },
-    { name: 'Lenda Eterna', floorRequired: 100, description: 'Desbloqueado ao vencer o Andar 100' },
-  ];
-
   // Verifica reset semanal na inicialização do painel
   useEffect(() => {
     checkWeeklyReset();
-    
+
     // Calcula tempo até o reset da semana (próximo domingo às 23:59:59)
     const updateCountdown = () => {
       const now = new Date();
       const nextSunday = new Date();
       nextSunday.setDate(now.getDate() + (7 - now.getDay()) % 7);
       nextSunday.setHours(23, 59, 59, 999);
-      
+
       const diffMs = nextSunday.getTime() - now.getTime();
       if (diffMs <= 0) {
         setTimeRemaining('Reset iminente');
@@ -63,7 +102,7 @@ export const TowerPanel: React.FC = () => {
       const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       let timeStr = '';
       if (days > 0) timeStr += `${days}d `;
       timeStr += `${hours}h ${minutes}m`;
@@ -77,7 +116,7 @@ export const TowerPanel: React.FC = () => {
 
   const handleStartAttempt = (keyType: 'normal' | 'evolved') => {
     AudioManager.getInstance().playClick();
-    startTowerAttempt(keyType);
+    startTowerAttempt(keyType, selectedBranch);
   };
 
   const handleExitAttempt = () => {
@@ -87,23 +126,18 @@ export const TowerPanel: React.FC = () => {
 
   const handleSelectTitle = (title: string) => {
     AudioManager.getInstance().playClick();
-    selectTitle(title);
+    selectTitle(title, selectedBranch);
   };
 
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
+
       {/* Cabeçalho do Painel */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🏰 Torre Infinita
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
-            Suba andares gerados deterministicamente com base na semente semanal. A regeneração entre andares está desativada!
-          </p>
-        </div>
-        
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          🏰 Torre Infinita
+        </h2>
+
         {/* Info da Seed e Tempo Restante */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.62rem', color: '#94a3b8', gap: '2px' }}>
           <div>Semente Semanal: <span className="font-mono" style={{ color: '#c084fc', fontWeight: 'bold' }}>#{weeklySeed}</span></div>
@@ -111,82 +145,107 @@ export const TowerPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* Seletor de Ramificação — logo abaixo do cabeçalho, só faz sentido trocar fora de uma subida ativa */}
+      {!towerActive && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.4rem',
+            padding: '0.5rem',
+            background: 'rgba(0,0,0,0.15)',
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${theme.border}`,
+          }}>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setSelectedBranch('normal'); }}
+              className={`btn btn-xs ${selectedBranch === 'normal' ? 'btn-gold' : 'btn-ghost'}`}
+              style={{ flex: 1, fontSize: '0.62rem', padding: '0.4rem' }}
+            >
+              🏰 Torre Normal
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setSelectedBranch('curse'); }}
+              className="btn btn-xs"
+              style={{
+                flex: 1,
+                fontSize: '0.62rem',
+                padding: '0.4rem',
+                background: selectedBranch === 'curse' ? theme.gradient : undefined,
+                border: selectedBranch === 'curse' ? 'none' : undefined,
+                color: selectedBranch === 'curse' ? '#fff' : '#f87171',
+              }}
+            >
+              🌀 Ramificação de Maldições
+            </button>
+          </div>
+          <div style={{ fontSize: '0.6rem', color: theme.accent, lineHeight: 1.4, padding: '0 0.2rem' }}>
+            {isCurseTheme
+              ? '🌀 Cada andar acumula uma maldição: -10% em um atributo, +20% em outro (temporário, só durante a subida). Em troca, +50% de Ouro e Fragmentos de Forja.'
+              : 'Suba andares determinísticos baseados na semente semanal. A regeneração entre andares está desativada!'}
+          </div>
+        </div>
+      )}
+
       {/* Estatísticas e Progresso */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
-        
+
         {/* Card do Andar Atual se ativo */}
         {towerActive && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.12))',
-            border: '1px solid rgba(168, 85, 247, 0.3)',
+            background: isCurseTheme
+              ? 'linear-gradient(135deg, rgba(127, 29, 29, 0.18), rgba(220, 38, 38, 0.12))'
+              : 'linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.12))',
+            border: `1px solid ${isCurseTheme ? 'rgba(220, 38, 38, 0.35)' : 'rgba(168, 85, 247, 0.3)'}`,
             borderRadius: 'var(--radius-lg)',
             padding: '0.85rem',
             textAlign: 'center',
-            boxShadow: '0 0 10px rgba(168, 85, 247, 0.1)',
+            boxShadow: isCurseTheme ? '0 0 10px rgba(220, 38, 38, 0.15)' : '0 0 10px rgba(168, 85, 247, 0.1)',
           }}>
-            <div style={{ fontSize: '0.6rem', color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Andar Ativo</div>
+            <div style={{ fontSize: '0.6rem', color: isCurseTheme ? '#f87171' : '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Andar Ativo</div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', margin: '0.2rem 0' }}>{currentFloor}</div>
             <div style={{ fontSize: '0.55rem', color: '#94a3b8' }}>
               {activeKeyType === 'evolved' ? '🗝️ Chave Evoluída (3x Ouro/XP)' : 'Combate em Progresso'}
             </div>
+            {towerBranch === 'curse' && (
+              <div style={{ fontSize: '0.55rem', color: '#f87171', marginTop: '0.15rem' }}>🌀 Ramificação de Maldições (+50% Ouro/Fragmentos)</div>
+            )}
           </div>
         )}
 
         {/* Recorde Semanal */}
         <div style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border-dim)',
+          background: theme.surfaceTint,
+          border: `1px solid ${theme.border}`,
           borderRadius: 'var(--radius-lg)',
           padding: '0.85rem',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Máximo da Semana</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fbbf24', margin: '0.2rem 0' }}>{weeklyHighestFloor}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accent, margin: '0.2rem 0' }}>{displayWeeklyHighest}</div>
           <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Reset aos Domingos</div>
         </div>
 
         {/* Recorde Histórico */}
         <div style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border-dim)',
+          background: theme.surfaceTint,
+          border: `1px solid ${theme.border}`,
           borderRadius: 'var(--radius-lg)',
           padding: '0.85rem',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorde Histórico</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', margin: '0.2rem 0' }}>{historicalHighestFloor}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accentStrong, margin: '0.2rem 0' }}>{displayHistoricalHighest}</div>
           <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Melhor marca de sempre</div>
         </div>
       </div>
 
-      {/* Box de Título Honorífico Ativo */}
-      <div style={{
-        background: 'var(--surface-1)',
-        border: '1px solid var(--border-dim)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '0.75rem 1rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '0.5rem'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' }}>Título Honorífico Equipado</div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: selectedTitle ? '#c084fc' : '#64748b', marginTop: '0.15rem' }}>
-            {selectedTitle ? `👑 ${selectedTitle}` : 'Nenhum Título Equipado'}
-          </div>
-        </div>
-        {selectedTitle && (
-          <button
-            onClick={() => handleSelectTitle('')}
-            className="btn btn-xs btn-ghost"
-            style={{ fontSize: '0.6rem', color: '#ef4444' }}
-          >
-            Remover
-          </button>
-        )}
-      </div>
+      {/* Box de Título Honorífico Ativo — compartilhado entre as duas ramificações */}
+      <EquippedTitleBox
+        selectedTitle={displaySelectedTitle}
+        onRemove={() => handleSelectTitle('')}
+        accentColor={theme.accent}
+        borderColor={theme.border}
+      />
 
       {/* Botão de Ação Principal e Alertas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.25rem 0' }}>
@@ -200,7 +259,8 @@ export const TowerPanel: React.FC = () => {
                 width: '100%',
                 padding: '0.6rem 0.75rem',
                 fontWeight: 800,
-                boxShadow: towerKeys > 0 ? '0 4px 15px rgba(180, 83, 9, 0.25)' : 'none',
+                background: towerKeys > 0 && isCurseTheme ? theme.gradient : undefined,
+                boxShadow: towerKeys > 0 ? (isCurseTheme ? '0 4px 15px rgba(220, 38, 38, 0.3)' : '0 4px 15px rgba(180, 83, 9, 0.25)') : 'none',
                 border: 'none',
                 color: towerKeys > 0 ? '#fff' : '#64748b',
                 cursor: towerKeys > 0 ? 'pointer' : 'not-allowed',
@@ -224,8 +284,8 @@ export const TowerPanel: React.FC = () => {
                 width: '100%',
                 padding: '0.6rem 0.75rem',
                 fontWeight: 800,
-                background: evolvedTowerKeys > 0 ? 'linear-gradient(135deg, #a855f7, #6d28d9)' : 'rgba(255,255,255,0.05)',
-                boxShadow: evolvedTowerKeys > 0 ? '0 4px 15px rgba(168, 85, 247, 0.3)' : 'none',
+                background: evolvedTowerKeys > 0 ? (isCurseTheme ? theme.gradient : 'linear-gradient(135deg, #a855f7, #6d28d9)') : 'rgba(255,255,255,0.05)',
+                boxShadow: evolvedTowerKeys > 0 ? (isCurseTheme ? '0 4px 15px rgba(220, 38, 38, 0.3)' : '0 4px 15px rgba(168, 85, 247, 0.3)') : 'none',
                 border: 'none',
                 color: evolvedTowerKeys > 0 ? '#fff' : '#64748b',
                 cursor: evolvedTowerKeys > 0 ? 'pointer' : 'not-allowed',
@@ -248,7 +308,7 @@ export const TowerPanel: React.FC = () => {
               padding: '0.4rem 0.6rem',
               background: 'rgba(0,0,0,0.15)',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-dim)',
+              border: `1px solid ${theme.border}`,
               fontSize: '0.65rem',
               flexWrap: 'wrap',
               gap: '0.4rem'
@@ -283,12 +343,12 @@ export const TowerPanel: React.FC = () => {
             </div>
 
             <div style={{
-              background: 'rgba(168, 85, 247, 0.08)',
-              border: '1px solid rgba(168, 85, 247, 0.2)',
+              background: isCurseTheme ? 'rgba(220, 38, 38, 0.08)' : 'rgba(168, 85, 247, 0.08)',
+              border: `1px solid ${isCurseTheme ? 'rgba(220, 38, 38, 0.2)' : 'rgba(168, 85, 247, 0.2)'}`,
               borderRadius: 'var(--radius-md)',
               padding: '0.6rem 0.8rem',
               fontSize: '0.62rem',
-              color: '#c084fc',
+              color: isCurseTheme ? '#f87171' : '#c084fc',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '6px',
@@ -310,16 +370,35 @@ export const TowerPanel: React.FC = () => {
                 padding: '0.75rem',
                 fontSize: '0.9rem',
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                background: theme.gradient,
                 color: '#fff',
                 opacity: 1,
                 cursor: 'pointer',
                 border: 'none',
-                boxShadow: '0 4px 15px rgba(168, 85, 247, 0.25)',
+                boxShadow: isCurseTheme ? '0 4px 15px rgba(220, 38, 38, 0.3)' : '0 4px 15px rgba(168, 85, 247, 0.25)',
               }}
             >
               🚪 CONCLUIR SUBIDA & SAIR
             </button>
+            {towerBranch === 'curse' && activeCurses.length > 0 && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.6rem 0.8rem',
+                fontSize: '0.62rem',
+                color: '#f87171',
+              }}>
+                <strong>🌀 Maldições Acumuladas ({activeCurses.length}):</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '0.3rem' }}>
+                  {activeCurses.map((curse, idx) => (
+                    <span key={idx}>
+                      Andar {curse.floor}: -10% {CURSE_STAT_LABELS[curse.debuffStat] || curse.debuffStat} / +20% {CURSE_STAT_LABELS[curse.buffStat] || curse.buffStat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{
               background: 'rgba(245, 158, 11, 0.08)',
               border: '1px solid rgba(245, 158, 11, 0.2)',
@@ -343,27 +422,27 @@ export const TowerPanel: React.FC = () => {
 
       {/* Galeria de Títulos e Prêmios */}
       <div>
-        <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.35rem', margin: '0 0 0.65rem 0' }}>
+        <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.35rem', margin: '0 0 0.65rem 0' }}>
           🏷️ Títulos Honoríficos da Torre
         </h3>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
           {titlesConfig.map((title) => {
-            const isUnlocked = unlockedTitles.includes(title.name);
-            const isEquipped = selectedTitle === title.name;
-            const progressPct = Math.min(100, (historicalHighestFloor / title.floorRequired) * 100);
+            const isUnlocked = displayUnlockedTitles.includes(title.name);
+            const isEquipped = displaySelectedTitle === title.name;
+            const progressPct = Math.min(100, (displayHistoricalHighest / title.floorRequired) * 100);
 
             return (
               <div
                 key={title.name}
                 style={{
                   background: isEquipped
-                    ? 'rgba(168, 85, 247, 0.08)'
+                    ? (isCurseTheme ? 'rgba(220, 38, 38, 0.12)' : 'rgba(168, 85, 247, 0.08)')
                     : isUnlocked
                       ? 'var(--surface-2)'
                       : 'var(--surface-1)',
                   border: isEquipped
-                    ? '1px solid rgba(168, 85, 247, 0.4)'
+                    ? `1px solid ${isCurseTheme ? 'rgba(220, 38, 38, 0.5)' : 'rgba(168, 85, 247, 0.4)'}`
                     : isUnlocked
                       ? '1px solid rgba(255, 255, 255, 0.08)'
                       : '1px solid rgba(255, 255, 255, 0.03)',
@@ -393,7 +472,7 @@ export const TowerPanel: React.FC = () => {
                   {!isUnlocked ? (
                     <div style={{ width: '100%' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: '#64748b', marginBottom: '2px' }}>
-                        <span>Progresso: {historicalHighestFloor}/{title.floorRequired}</span>
+                        <span>Progresso: {displayHistoricalHighest}/{title.floorRequired}</span>
                         <span>{Math.floor(progressPct)}%</span>
                       </div>
                       <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', overflow: 'hidden' }}>
@@ -410,9 +489,9 @@ export const TowerPanel: React.FC = () => {
                         fontSize: '0.58rem',
                         padding: '0.2rem',
                         height: 'auto',
-                        background: isEquipped ? 'rgba(168, 85, 247, 0.25)' : undefined,
-                        borderColor: isEquipped ? '#c084fc' : undefined,
-                        color: isEquipped ? '#fff' : '#c084fc',
+                        background: isEquipped ? (isCurseTheme ? 'rgba(220, 38, 38, 0.3)' : 'rgba(168, 85, 247, 0.25)') : undefined,
+                        borderColor: isEquipped ? theme.accent : undefined,
+                        color: isEquipped ? '#fff' : theme.accent,
                         cursor: isEquipped ? 'default' : 'pointer'
                       }}
                     >
