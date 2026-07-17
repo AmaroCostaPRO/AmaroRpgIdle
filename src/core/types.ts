@@ -149,6 +149,12 @@ export interface Character {
   // ataque própria; concede o bônus definido em PET_POOL enquanto ativo. Zerado na Ascensão
   // (conteúdo de early game, não deve persistir além do primeiro reset de progressão).
   activePet?: { id: string; capturedAt: number };
+  // v7.0.0 "Ecos que Despertam": chave "fase:abates" do último encontro do Mercador Ambulante já
+  // dispensado (fechado pelo jogador) — usada por CombatFSM.setupEnemyForLevel para não sortear o
+  // Mercador de novo para o MESMO encontro (o abate não muda ao fechar a loja, então sem essa marca
+  // persistida o sorteio determinístico de Elite/Mercador reproduziria o mesmo resultado para sempre,
+  // travando o jogador num loop da loja do Mercador).
+  resolvedMerchantEncounterKey?: string;
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
   testMode?: boolean;

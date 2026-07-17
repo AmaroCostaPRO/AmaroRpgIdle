@@ -620,6 +620,15 @@ export class CombatFSM {
         this.setupEnemyForLevel(useTowerStore.getState().currentFloor, 0);
       } else {
         const activeChar = useGameStore.getState().character;
+        // Marca este encontro (fase:abates) como já resolvido antes de sortear o próximo inimigo —
+        // como fechar a loja não incrementa os abates, sem essa marca o sorteio determinístico
+        // reproduziria o Mercador de novo para sempre (loop). Ver comentário em Character.resolvedMerchantEncounterKey.
+        useGameStore.setState((state) => ({
+          character: {
+            ...state.character,
+            resolvedMerchantEncounterKey: `${state.character.currentStage}:${state.character.enemiesDefeatedInStage}`
+          }
+        }));
         this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
       }
       // `setupEnemyForLevel` só escreve em `currentState` quando sorteia OUTRO Mercador (MERCHANT_ENCOUNTER);
@@ -837,7 +846,12 @@ export class CombatFSM {
 
     // Mercador Ambulante (v7.0.0 "Ecos que Despertam"): substitui um inimigo comum no combate,
     // nunca um chefe nem um Elite — mesmo padrão de rolagem probabilística usado acima para os Elites.
-    if (!isBoss && !this.isElite && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
+    // Se este exato encontro (fase:abates) já teve sua loja fechada pelo jogador, pula o sorteio —
+    // caso contrário o Mercador reapareceria para sempre nesse slot (a seed é determinística e o
+    // fechamento da loja não muda `defeatedInStage`).
+    const encounterKey = `${stage}:${defeatedInStage}`;
+    const merchantAlreadyResolved = char?.resolvedMerchantEncounterKey === encounterKey;
+    if (!isBoss && !this.isElite && !merchantAlreadyResolved && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
       this.isMerchantEncounter = true;
       this.currentMerchantOffer = StatEngine.pickRandomElements(MERCHANT_STOCK_POOL, 2);
       this.currentState = CombatState.MERCHANT_ENCOUNTER;
