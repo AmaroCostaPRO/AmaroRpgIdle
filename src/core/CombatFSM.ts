@@ -807,6 +807,16 @@ export class CombatFSM {
     this.isMerchantEncounter = false;
     this.currentMerchantOffer = [];
 
+    const char = useGameStore.getState().character;
+
+    // Seed determinístico por encontro (Ascensão + Fase + abates na fase), para que os sorteios de
+    // Elite e Mercador abaixo não mudem se o CombatFSM for reconstruído no meio do MESMO encontro
+    // (o app destrói e recria a engine Phaser ao voltar de segundo plano por >3s — ver App.tsx,
+    // handleVisibilityChange — e antes disso o construtor rolava os dois sorteios de novo do zero
+    // sem nenhum abate ter ocorrido, inflando a frequência percebida de Elites/Mercador).
+    const randSinCampaign = (s: number) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
+    const encounterSeed = (char?.ascensionCount || 0) * 1000000 + stage * 1000 + defeatedInStage;
+
     // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
     if (!isBoss && stage >= 11) {
       let eliteChance = 0.08;
@@ -814,11 +824,11 @@ export class CombatFSM {
         // Pandemônio: +0.5% chance por fase adicional
         eliteChance += (stage - 20) * 0.005;
       }
-      if (Math.random() < eliteChance) {
+      if (randSinCampaign(encounterSeed) < eliteChance) {
         this.isElite = true;
         const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador'] as const;
-        this.eliteAfix = afixos[Math.floor(Math.random() * afixos.length)];
-        
+        this.eliteAfix = afixos[Math.floor(randSinCampaign(encounterSeed + 500) * afixos.length)];
+
         // HP do Elite é multiplicado por 3.0x
         this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
         this.enemyHP = this.enemyMaxHP;
@@ -827,7 +837,7 @@ export class CombatFSM {
 
     // Mercador Ambulante (v7.0.0 "Ecos que Despertam"): substitui um inimigo comum no combate,
     // nunca um chefe nem um Elite — mesmo padrão de rolagem probabilística usado acima para os Elites.
-    if (!isBoss && !this.isElite && stage >= 3 && Math.random() < 0.02) {
+    if (!isBoss && !this.isElite && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
       this.isMerchantEncounter = true;
       this.currentMerchantOffer = StatEngine.pickRandomElements(MERCHANT_STOCK_POOL, 2);
       this.currentState = CombatState.MERCHANT_ENCOUNTER;
@@ -836,7 +846,6 @@ export class CombatFSM {
     }
 
     // Modificadores da Ecoterra (+30% HP)
-    const char = useGameStore.getState().character;
     const isEcoterra = !isTower && char?.activeEcoterra && stage <= 20;
     if (isEcoterra) {
       this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
