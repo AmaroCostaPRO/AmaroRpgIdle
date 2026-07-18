@@ -27,6 +27,7 @@ import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
 import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
+import { CodexPanel } from './CodexPanel';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
@@ -1039,36 +1040,46 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
   const sellAllEquipment = useGameStore((state) => state.sellAllEquipment);
   const dismantleAllEquipment = useGameStore((state) => state.dismantleAllEquipment);
 
-  const finalStats = useMemo(() => StatEngine.calculateFinalStats(character), [character]);
+  const finalStats = useMemo(
+    () => StatEngine.calculateFinalStats(character),
+    [character.baseStats, character.equipment, character.ascensionCount, character.transcendenceUpgrades, character.citadel?.academy, character.testMode]
+  );
   const baseStats = character.baseStats;
 
   // Contabilizar peças dos conjuntos equipados
-  const equippedItems = Object.values(character.equipment || {}).filter(Boolean) as EquipmentItem[];
-  const setCounts: Record<string, number> = {};
-  equippedItems.forEach((item) => {
-    if (item.setName) {
-      setCounts[item.setName] = (setCounts[item.setName] || 0) + 1;
-    }
-  });
+  const { equippedItems, setCounts } = useMemo(() => {
+    const items = Object.values(character.equipment || {}).filter(Boolean) as EquipmentItem[];
+    const counts: Record<string, number> = {};
+    items.forEach((item) => {
+      if (item.setName) {
+        counts[item.setName] = (counts[item.setName] || 0) + 1;
+      }
+    });
+    return { equippedItems: items, setCounts: counts };
+  }, [character.equipment]);
 
   const [inventoryTab, setInventoryTab] = useState<'equipment' | 'consumable'>('equipment');
   const maxSlots = character.inventorySlots || 30;
-  
-  const equipmentItems = character.inventory.filter(item => 
-    item.slot !== 'consumable' || 
-    item.consumableType === 'chest_legendary' || 
-    item.consumableType === 'chest_ancestral'
-  );
-  
-  const consumableItems = character.inventory.filter(item => 
-    item.slot === 'consumable' && 
-    item.consumableType !== 'chest_legendary' && 
-    item.consumableType !== 'chest_ancestral'
-  );
 
-  const inventoryGrid = inventoryTab === 'equipment'
-    ? Array.from({ length: maxSlots }, (_, i) => equipmentItems[i] || null)
-    : consumableItems;
+  const { equipmentItems, consumableItems } = useMemo(() => {
+    const equipment = character.inventory.filter(item =>
+      item.slot !== 'consumable' ||
+      item.consumableType === 'chest_legendary' ||
+      item.consumableType === 'chest_ancestral'
+    );
+    const consumables = character.inventory.filter(item =>
+      item.slot === 'consumable' &&
+      item.consumableType !== 'chest_legendary' &&
+      item.consumableType !== 'chest_ancestral'
+    );
+    return { equipmentItems: equipment, consumableItems: consumables };
+  }, [character.inventory]);
+
+  const inventoryGrid = useMemo(() => (
+    inventoryTab === 'equipment'
+      ? Array.from({ length: maxSlots }, (_, i) => equipmentItems[i] || null)
+      : consumableItems
+  ), [inventoryTab, maxSlots, equipmentItems, consumableItems]);
 
   const handleEquip = (item: EquipmentItem) => {
     AudioManager.getInstance().playClick();
@@ -3420,11 +3431,9 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 
 const GuidePanel: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
-  const [guideSubTab, setGuideSubTab] = useState<'classes' | 'systems' | 'codex'>('classes');
+  const [guideSubTab, setGuideSubTab] = useState<'classes' | 'systems'>('classes');
   const character = useGameStore((s) => s.character);
 
-  // --- Dados para o Codex de Lendas ---
-  const ascensionCount = character.ascensionCount || 0;
   const classLevels = character.classLevels || {};
   const globalClassLevels = getGlobalClassLevels();
   const getLevel = (id: string) => Math.max(classLevels[id] || 0, globalClassLevels[id] || 0);
@@ -3437,133 +3446,6 @@ const GuidePanel: React.FC = () => {
   const isRogueUnlocked = getLevel('ranger') >= 50;
   const isNecromancerUnlocked = getLevel('necromancer') >= 1;
 
-  const killCount = character.killCount || {};
-  const totalKills = Object.values(killCount).reduce((a, b) => a + b, 0);
-  const bestiaryBonus = Math.round((StatEngine.calculateBestiaryDamageMultiplier(killCount) - 1.0) * 100);
-
-  type CodexEntry = { id: string; icon: string; title: string; lore: string; hint: string; color: string; unlocked: boolean };
-  const codexEntries: CodexEntry[] = [
-    {
-      id: 'first_breath',
-      icon: '⚔️',
-      title: 'Primeiro Fôlego',
-      hint: 'Automaticamente desbloqueado ao iniciar sua jornada.',
-      lore: 'A Alma acordou sem memória. Apenas a sensação de um combate inacabado, como se o mundo inteiro esperasse por um herói que ainda não sabia que era. Você deu o primeiro passo.',
-      color: '#94a3b8',
-      unlocked: true,
-    },
-    {
-      id: 'first_ascension',
-      icon: '🌀',
-      title: 'O Primeiro Ciclo',
-      hint: 'Realize sua primeira Ascênsão no painel de Ascênsão.',
-      lore: 'A Alma-Mundo sussurrou ao ouvi-la romper o véu da primeira vida. Ascender não é morrer — é lembrar de uma versão de si mesma que ainda não existia. O ciclo começou.',
-      color: '#a855f7',
-      unlocked: ascensionCount >= 1,
-    },
-    {
-      id: 'five_ascensions',
-      icon: '🔁',
-      title: 'Memória Repetida',
-      hint: `Realize 5 Ascênsões (progresso atual: ${ascensionCount}/5).`,
-      lore: 'Cinco vezes o véu foi rompido. O que parecia derrota tornou-se ritual. A Alma já não sente o frio do recomeço — ela o aguarda como uma porta antiga que, finalmente, aprendeu a abrir sozinha.',
-      color: '#c084fc',
-      unlocked: ascensionCount >= 5,
-    },
-    {
-      id: 'paladin_unlocked',
-      icon: '🛡️',
-      title: 'A Armadura da Fé',
-      hint: 'Atinja Nível 50 com o Guerreiro para desbloquear o Paladino.',
-      lore: 'O Guerreiro que jurou proteger tornou-se algo mais. Não pela força dos braços, mas pelo peso de cada promessa cumprida em combate. O Paladino nasceu onde a espada encontrou a oração.',
-      color: '#fbbf24',
-      unlocked: isPaladinUnlocked,
-    },
-    {
-      id: 'cleric_unlocked',
-      icon: '✨',
-      title: 'O Dom da Cura',
-      hint: 'Atinja Nível 50 com o Mago para desbloquear o Clérigo.',
-      lore: 'O Mago que escolheu curar em vez de destruir foi chamado de ingênuo. Mas foi ele quem ficou de pé quando os outros caíram. O Clérigo não nasceu de poder — nasceu de escolha.',
-      color: '#38bdf8',
-      unlocked: isClericUnlocked,
-    },
-    {
-      id: 'rogue_unlocked',
-      icon: '🗡️',
-      title: 'A Lâmina nas Sombras',
-      hint: 'Atinja Nível 50 com o Arqueiro para desbloquear o Ladrão.',
-      lore: 'O Arqueiro aprendeu que a flecha mais letal não voa pelo ar — ela caminha silenciosa pelos becos onde a luz não alcança. O Ladrão é a resposta da Alma-Mundo às guerras que ninguém vê.',
-      color: '#34d399',
-      unlocked: isRogueUnlocked,
-    },
-    {
-      id: 'necromancer_unlocked',
-      icon: '💀',
-      title: 'O Pactário da Morte',
-      hint: 'Atinja Nível 50 com o Clérigo e o Ladrão (rastreado globalmente entre saves).',
-      lore: 'Dicem que o Necromante nasceu quando a morte se cansou de esperar. Ele não ressuscita — ele lembra aos mortos que ainda têm dívidas com o mundo dos vivos. Uma classe proibida. Uma lenda cumprida.',
-      color: '#f43f5e',
-      unlocked: isNecromancerUnlocked,
-    },
-    {
-      id: 'purgatory_cleared',
-      icon: '🔮',
-      title: 'O Guardião Quebrado',
-      hint: 'Derrote o Guardião dos Cacos na Fase 30 do Purgatório.',
-      lore: 'O Purgatório era onde as almas partidas esperavam ser esquecidas. O Guardião dos Cacos jurava que ninguém passaria. Mas a Alma-Mundo não aceita prisões — nem mesmo as construídas de seus próprios fragmentos.',
-      color: '#818cf8',
-      unlocked: !!character.purgatoryCompleted,
-    },
-    {
-      id: 'pandemonium_unlocked',
-      icon: '🌌',
-      title: 'Além do Purgatório',
-      hint: 'Conclua o Purgatório e ative o ritual no Altar da Alma para liberar o Modo Pandemônio.',
-      lore: 'O Modo Pandemônio não é um lugar — é uma promessa quebrada. A promessa de que haveria um fim. Aqui, as fases não terminam. O vazio aprende com cada derrota sua. E você também.',
-      color: '#ec4899',
-      unlocked: !!character.pandemoniumUnlocked,
-    },
-    {
-      id: 'bestiary_hunter',
-      icon: '📖',
-      title: 'Caçador de Memórias',
-      hint: `Derrote 500 criaturas ao total no Bestiário (progresso atual: ${totalKills}/500).`,
-      lore: 'Mais de 500 criaturas do vazio tombaram diante desta Alma. Cada abate é uma página do bestiário preenchida — não com tinta, mas com cicatrizes que o mundo inteiro pode ler.',
-      color: '#f59e0b',
-      unlocked: totalKills >= 500,
-    },
-    {
-      id: 'stage_30',
-      icon: '🏔️',
-      title: 'O Topo de Algo',
-      hint: `Alcance a Fase 30 na campanha (maior fase atingida: ${character.highestStageReached || 1}/30).`,
-      lore: 'A Fase 30. Onde o Purgatório termina e o silêncio começa. Chegar aqui não é vitória — é a descoberta de que o mapa que você carregava era menor do que o território.',
-      color: '#fb923c',
-      unlocked: (character.highestStageReached || 0) >= 30,
-    },
-    {
-      id: 'transcendence_first',
-      icon: '✨',
-      title: 'A Transcendência',
-      hint: 'Realize sua primeira Transcendência na aba de Transcendência.',
-      lore: 'Ao quebrar o ciclo infinito da alma mundana através da Transcendência, o herói não mais se limita a vidas mortais. Ele se eleva além da própria Ascensão, moldando uma nova essência transcendental que ressoa por todo o universo.',
-      color: '#00e5ff',
-      unlocked: (character.transcendenceCount || 0) >= 1,
-    },
-    {
-      id: 'avatar_unlocked',
-      icon: '🌟',
-      title: 'O Avatar Pleno',
-      hint: 'Desbloqueie a classe Suprema Avatar (exige o talento Avatar Pleno, que por sua vez exige Nível 5 em Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar).',
-      lore: 'O Avatar não é apenas um guerreiro, mago ou arqueiro; ele é a união perfeita de todos eles. Ao canalizar os cinco atributos cardinais da alma em perfeita harmonia, ele se torna a encarnação viva da própria Alma-Mundo.',
-      color: '#f87171',
-      unlocked: isClassUnlocked('avatar', classLevels),
-    },
-  ];
-
-  const unlockedCount = codexEntries.filter(e => e.unlocked).length;
-
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
@@ -3571,7 +3453,7 @@ const GuidePanel: React.FC = () => {
       </div>
 
       {/* Sub-abas do Guia */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
         <button
           onClick={() => { AudioManager.getInstance().playClick(); setGuideSubTab('classes'); }}
           className={`tab-btn ${guideSubTab === 'classes' ? 'active' : ''}`}
@@ -3586,83 +3468,7 @@ const GuidePanel: React.FC = () => {
         >
           🏰 Sistemas
         </button>
-        <button
-          onClick={() => { AudioManager.getInstance().playClick(); setGuideSubTab('codex'); }}
-          className={`tab-btn ${guideSubTab === 'codex' ? 'active' : ''}`}
-          style={{ padding: '0.4rem', fontSize: '0.65rem', position: 'relative' }}
-        >
-          📖 Crônicas
-          <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#a855f7', color: '#fff', fontSize: '0.5rem', fontWeight: 700, borderRadius: '9999px', padding: '1px 4px', lineHeight: 1.2 }}>
-            {unlockedCount}/{codexEntries.length}
-          </span>
-        </button>
       </div>
-
-      {/* ---- ABA: CODEX DE LENDAS ---- */}
-      {guideSubTab === 'codex' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }} className="animate-tabFade">
-          <div style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
-            <p style={{ fontSize: '0.65rem', color: '#a855f7', fontStyle: 'italic', margin: 0, lineHeight: 1.5 }}>
-              "A Alma-Mundo não esquece. Cada marco que você atravessa fica gravado aqui, nas Crônicas — fragmentos de uma história que só pode ser contada por quem a viveu."
-            </p>
-            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.6rem', color: '#64748b' }}>Entradas desbloqueadas</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a855f7' }}>{unlockedCount} / {codexEntries.length}</span>
-            </div>
-            <div style={{ marginTop: '0.35rem', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(unlockedCount / codexEntries.length) * 100}%`, background: 'linear-gradient(90deg, #7c3aed, #a855f7)', borderRadius: '999px', transition: 'width 0.5s ease' }} />
-            </div>
-            {bestiaryBonus > 0 && (
-              <p style={{ fontSize: '0.6rem', color: '#34d399', margin: '0.4rem 0 0', textAlign: 'right' }}>
-                🗡️ Bônus do Bestiário ativo: +{bestiaryBonus}% de Dano Geral
-              </p>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '480px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-            {codexEntries.map((entry) => (
-              <div
-                key={entry.id}
-                style={{
-                  background: entry.unlocked ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.2)',
-                  border: `1px solid ${entry.unlocked ? entry.color + '40' : 'rgba(255,255,255,0.06)'}`,
-                  borderLeft: `3px solid ${entry.unlocked ? entry.color : '#374151'}`,
-                  borderRadius: 'var(--radius-md)',
-                  padding: '0.65rem 0.75rem',
-                  opacity: entry.unlocked ? 1 : 0.5,
-                  transition: 'all 0.2s',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: entry.unlocked ? '0.4rem' : 0 }}>
-                  <span style={{ fontSize: '0.9rem' }}>{entry.unlocked ? entry.icon : '🔒'}</span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: entry.unlocked ? entry.color : '#4b5563' }}>
-                    {entry.title}
-                  </span>
-                  {entry.unlocked && (
-                    <span style={{ marginLeft: 'auto', fontSize: '0.5rem', background: entry.color + '20', color: entry.color, border: `1px solid ${entry.color}40`, borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>
-                      DESBLOQUEADO
-                    </span>
-                  )}
-                </div>
-                {entry.unlocked ? (
-                  <p style={{ fontSize: '0.63rem', color: '#94a3b8', margin: 0, lineHeight: 1.55, fontStyle: 'italic' }}>
-                    {entry.lore}
-                  </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.3rem' }}>
-                      <span style={{ fontSize: '0.65rem', flexShrink: 0 }}>🔑</span>
-                      <p style={{ fontSize: '0.61rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                        {entry.hint}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ---- ABA: SISTEMAS DO JOGO ---- */}
       {guideSubTab === 'systems' && (
@@ -7219,7 +7025,7 @@ export default function GameUI() {
     ],
   }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments]);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
   // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
@@ -7405,6 +7211,7 @@ export default function GameUI() {
     ] : []),
     { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉', disabled: false },
+    { id: 'codex' as const, label: 'Codex', icon: '📖', disabled: false },
     { id: 'guide' as const, label: 'Guia', icon: '▤', disabled: false },
     { id: 'saves' as const, label: 'Saves', icon: '💾', disabled: false },
     { id: 'options' as const, label: 'Opções', icon: '⚙️', disabled: false },
@@ -7787,6 +7594,7 @@ export default function GameUI() {
               setSelectedEnemy={setSelectedEnemy}
             />
           )}
+          {activeTab === 'codex' && <CodexPanel />}
           {activeTab === 'guide' && <GuidePanel />}
           {activeTab === 'forge' && <ForgeView />}
           {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
