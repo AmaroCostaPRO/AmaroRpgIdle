@@ -449,14 +449,18 @@ export const ACTIVE_RELICS_CATALOG: Record<string, ActiveRelicDefinition> = {
     effectDurationMs: 8000,
     rollRange: { common: [10, 15], rare: [15, 22], legendary: [22, 35] },
   },
+  // v9.0.0: cura ao longo do tempo (não mais instantânea) — {value} é a % de HP máximo curada POR
+  // SEGUNDO durante `effectDurationMs`, para se diferenciar da Cura padrão (instantânea) que toda
+  // classe já possui via a árvore de habilidades.
   coracao_selado: {
     id: 'coracao_selado',
     name: 'Coração Selado',
     icon: '💗',
-    description: 'Cura instantaneamente {value}% do seu HP máximo.',
+    description: 'Cura {value}% do seu HP máximo por segundo, por 5 segundos.',
     cooldownMs: 30000,
     param: 'healPct',
-    rollRange: { common: [15, 22], rare: [22, 30], legendary: [30, 45] },
+    effectDurationMs: 5000,
+    rollRange: { common: [4, 6], rare: [6, 9], legendary: [9, 13] },
   },
   fragmento_tempo_parado: {
     id: 'fragmento_tempo_parado',
@@ -570,10 +574,11 @@ export const CONVERGENCE_EXCLUSIVE_RELICS: Record<string, ActiveRelicDefinition>
     id: 'presa_fome_sem_nome',
     name: 'Presa da Fome sem Nome',
     icon: '🪱',
-    description: 'Cura instantaneamente {value}% do seu HP máximo.',
+    description: 'Cura {value}% do seu HP máximo por segundo, por 5 segundos.',
     cooldownMs: 30000,
     param: 'healPct',
-    rollRange: { common: [60, 60], rare: [60, 60], legendary: [60, 60] },
+    effectDurationMs: 5000,
+    rollRange: { common: [16, 16], rare: [16, 16], legendary: [16, 16] },
   },
   selo_trono_vazio: {
     id: 'selo_trono_vazio',
@@ -595,6 +600,17 @@ export const CONVERGENCE_BOSS_TO_RELIC: Record<string, string> = {
   boss_nameless_hunger: 'presa_fome_sem_nome',
   boss_empty_throne: 'selo_trono_vazio',
 };
+
+// v9.0.0: item de snapshot da bandeja de buffs ativos (GameEvent.ACTIVE_BUFFS_CHANGED) — usado
+// tanto por Elixires/Poções (totalMs é uma constante fixa por tipo) quanto por buffs da Relíquia
+// Ativa (totalMs varia por item, capturado em `*TotalDuration` no momento da ativação).
+export interface ActiveBuffInfo {
+  id: string;
+  icon: string;
+  label: string;
+  remainingMs: number;
+  totalMs: number;
+}
 
 export interface StatusEffect {
   id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
@@ -687,18 +703,30 @@ export class CombatFSM {
   public isPotionRegenActive: boolean = false;
   private potionRegenDuration: number = 0;
   // v9.0.0 "O Que Espera no Pandemônio": buffs temporários da Relíquia Ativa equipada — mesmo padrão
-  // flag+duração dos Elixires/Poções acima. Cura e redução de cooldown são instantâneas (sem flag).
+  // flag+duração dos Elixires/Poções acima. Redução de cooldown é instantânea (sem flag). Os campos
+  // `*TotalDuration` guardam a duração cheia no momento da ativação (constante por acionamento, nunca
+  // decrementada) — usados só pela bandeja de buffs ativos (GameUI) para desenhar o "relógio" de progresso.
   public isActiveRelicDamageBuffActive: boolean = false;
   private activeRelicDamageBuffPct: number = 0;
   private activeRelicDamageBuffDuration: number = 0;
+  private activeRelicDamageBuffTotalDuration: number = 0;
   public isActiveRelicEliteBuffActive: boolean = false;
   private activeRelicEliteBuffPct: number = 0;
   private activeRelicEliteBuffDuration: number = 0;
+  private activeRelicEliteBuffTotalDuration: number = 0;
   public isActiveRelicInvulnActive: boolean = false;
   private activeRelicInvulnDuration: number = 0;
+  private activeRelicInvulnTotalDuration: number = 0;
   public isActiveRelicGoldBuffActive: boolean = false;
   private activeRelicGoldBuffPct: number = 0;
   private activeRelicGoldBuffDuration: number = 0;
+  private activeRelicGoldBuffTotalDuration: number = 0;
+  // v9.0.0: Cura em Área ao Longo do Tempo (HoT) — substitui a cura instantânea original das
+  // relíquias de cura, para se diferenciar da Cura padrão (instantânea) que toda classe já possui.
+  public isActiveRelicHealBuffActive: boolean = false;
+  private activeRelicHealBuffPctPerSecond: number = 0;
+  private activeRelicHealBuffDuration: number = 0;
+  private activeRelicHealBuffTotalDuration: number = 0;
   public comboCount: number = 0;
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
@@ -1359,6 +1387,24 @@ export class CombatFSM {
         bridge.emit(GameEvent.LOG_EMITTED, { message: `O efeito da Relíquia Ativa de Ouro acabou.` });
       }
     }
+    // Cura ao Longo do Tempo da Relíquia Ativa (v9.0.0): aplica a cura a cada frame, proporcional
+    // ao tempo decorrido (mesmo padrão de tick já usado pela Poção de Regeneração Alquímica).
+    if (this.isActiveRelicHealBuffActive) {
+      this.activeRelicHealBuffDuration -= delta;
+      if (this.playerHP > 0) {
+        const healAmount = this.playerMaxHP * (this.activeRelicHealBuffPctPerSecond / 100) * (delta / 1000);
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
+      }
+      if (this.activeRelicHealBuffDuration <= 0) {
+        this.isActiveRelicHealBuffActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A cura da Relíquia Ativa acabou.` });
+      }
+    }
+
+    // v9.0.0: bandeja de buffs ativos (canto superior esquerdo da tela de combate) — emite um
+    // snapshot a cada frame com todos os Elixires/Poções/buffs de Relíquia Ativa em duração no
+    // momento, para a UI desenhar ícones com contagem regressiva/relógio de progresso.
+    this.emitActiveBuffs();
 
     // Atualização de Combo
     if (this.comboCount > 0) {
@@ -3010,6 +3056,35 @@ export class CombatFSM {
   // Reaproveita o mesmo mapa `skillCooldowns` das habilidades de classe (chave própria
   // `relic_active_<id>` para não colidir com skillIds), mas sem custo de mana — é uma habilidade
   // concedida pelo equipamento, não uma habilidade aprendida na árvore de classe.
+  // v9.0.0: monta e emite o snapshot de buffs temporários ativos (Elixires, Poções, buffs da
+  // Relíquia Ativa) para a bandeja de ícones no canto superior esquerdo da tela de combate
+  // (`ActiveBuffsTray`, GameUI.tsx). Chamado a cada frame em `update()` — a lista costuma estar
+  // vazia (nenhum custo relevante) e só cresce enquanto algum buff estiver de fato em duração.
+  private emitActiveBuffs(): void {
+    const buffs: ActiveBuffInfo[] = [];
+    if (this.isElixirCombatenteActive) buffs.push({ id: 'elixir_combatente', icon: '🧪', label: 'Elixir do Combatente', remainingMs: this.elixirCombatenteDuration, totalMs: 120000 });
+    if (this.isElixirDefensorActive) buffs.push({ id: 'elixir_defensor', icon: '🛡️', label: 'Elixir do Defensor', remainingMs: this.elixirDefensorDuration, totalMs: 60000 });
+    if (this.isElixirAcumuladorActive) buffs.push({ id: 'elixir_acumulador', icon: '💰', label: 'Elixir do Acumulador', remainingMs: this.elixirAcumuladorDuration, totalMs: 60000 });
+    if (this.isElixirVelocistaActive) buffs.push({ id: 'elixir_velocista', icon: '💨', label: 'Elixir do Velocista', remainingMs: this.elixirVelocistaDuration, totalMs: 60000 });
+    if (this.isElixirIlusionistaActive) buffs.push({ id: 'elixir_ilusionista', icon: '🌀', label: 'Elixir do Ilusionista', remainingMs: this.elixirIlusionistaDuration, totalMs: 120000 });
+    if (this.isPotionDamageActive) buffs.push({ id: 'potion_damage', icon: '🔥', label: 'Poção de Fúria Alquímica', remainingMs: this.potionDamageDuration, totalMs: 180000 });
+    if (this.isPotionRegenActive) buffs.push({ id: 'potion_regen', icon: '💧', label: 'Poção de Regeneração', remainingMs: this.potionRegenDuration, totalMs: 120000 });
+
+    if (this.isActiveRelicDamageBuffActive || this.isActiveRelicEliteBuffActive || this.isActiveRelicInvulnActive || this.isActiveRelicGoldBuffActive || this.isActiveRelicHealBuffActive) {
+      const equippedRelic = this.characterData?.equipment?.activeRelic;
+      const relicDef = equippedRelic?.activeRelicId ? getActiveRelicDefinition(equippedRelic.activeRelicId) : undefined;
+      const relicIcon = relicDef?.icon || '🔮';
+      const relicLabel = relicDef?.name || 'Relíquia Ativa';
+      if (this.isActiveRelicDamageBuffActive) buffs.push({ id: 'relic_damage', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicDamageBuffDuration, totalMs: this.activeRelicDamageBuffTotalDuration });
+      if (this.isActiveRelicEliteBuffActive) buffs.push({ id: 'relic_elite', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicEliteBuffDuration, totalMs: this.activeRelicEliteBuffTotalDuration });
+      if (this.isActiveRelicInvulnActive) buffs.push({ id: 'relic_invuln', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicInvulnDuration, totalMs: this.activeRelicInvulnTotalDuration });
+      if (this.isActiveRelicGoldBuffActive) buffs.push({ id: 'relic_gold', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicGoldBuffDuration, totalMs: this.activeRelicGoldBuffTotalDuration });
+      if (this.isActiveRelicHealBuffActive) buffs.push({ id: 'relic_heal', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicHealBuffDuration, totalMs: this.activeRelicHealBuffTotalDuration });
+    }
+
+    bridge.emit(GameEvent.ACTIVE_BUFFS_CHANGED, { buffs });
+  }
+
   public triggerActiveRelic(): void {
     if (useGameStore.getState().gameSpeed === 0) return;
     if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
@@ -3035,22 +3110,27 @@ export class CombatFSM {
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
     switch (relicDef.param) {
-      case 'damageBonusPct':
+      case 'damageBonusPct': {
+        const dur = relicDef.effectDurationMs || 8000;
         this.isActiveRelicDamageBuffActive = true;
         this.activeRelicDamageBuffPct = rolledValue / 100;
-        this.activeRelicDamageBuffDuration = relicDef.effectDurationMs || 8000;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 ${relicDef.name} ativado! +${rolledValue}% de Dano por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        this.activeRelicDamageBuffDuration = dur;
+        this.activeRelicDamageBuffTotalDuration = dur;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 ${relicDef.name} ativado! +${rolledValue}% de Dano por ${Math.round(dur / 1000)}s!` });
         break;
+      }
       case 'healPct': {
-        const healAmount = Math.floor(this.playerMaxHP * (rolledValue / 100));
-        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
+        // v9.0.0: Cura ao Longo do Tempo (não mais instantânea) — {value}% do HP máximo por segundo,
+        // durante `effectDurationMs`, para se diferenciar da Cura padrão (instantânea) da árvore de classe.
+        const dur = relicDef.effectDurationMs || 5000;
+        this.isActiveRelicHealBuffActive = true;
+        this.activeRelicHealBuffPctPerSecond = rolledValue;
+        this.activeRelicHealBuffDuration = dur;
+        this.activeRelicHealBuffTotalDuration = dur;
         if (this.scene && typeof this.scene.animateHealEffect === 'function') {
           this.scene.animateHealEffect();
         }
-        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healAmount}`, '#10b981');
-        }
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `💗 ${relicDef.name} ativado! Recuperou ${healAmount} de HP.` });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💗 ${relicDef.name} ativado! Curando ${rolledValue}% do HP máximo por segundo, por ${Math.round(dur / 1000)}s!` });
         break;
       }
       case 'cooldownReductionPct': {
@@ -3063,23 +3143,32 @@ export class CombatFSM {
         bridge.emit(GameEvent.LOG_EMITTED, { message: `⏳ ${relicDef.name} ativado! Cooldowns das habilidades de classe reduzidos em ${rolledValue}%!` });
         break;
       }
-      case 'eliteDamageBonusPct':
+      case 'eliteDamageBonusPct': {
+        const dur = relicDef.effectDurationMs || 10000;
         this.isActiveRelicEliteBuffActive = true;
         this.activeRelicEliteBuffPct = rolledValue / 100;
-        this.activeRelicEliteBuffDuration = relicDef.effectDurationMs || 10000;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `🎯 ${relicDef.name} ativado! +${rolledValue}% de Dano contra Elites/Chefes por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        this.activeRelicEliteBuffDuration = dur;
+        this.activeRelicEliteBuffTotalDuration = dur;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🎯 ${relicDef.name} ativado! +${rolledValue}% de Dano contra Elites/Chefes por ${Math.round(dur / 1000)}s!` });
         break;
-      case 'invulnDurationSec':
+      }
+      case 'invulnDurationSec': {
+        const dur = rolledValue * 1000;
         this.isActiveRelicInvulnActive = true;
-        this.activeRelicInvulnDuration = rolledValue * 1000;
+        this.activeRelicInvulnDuration = dur;
+        this.activeRelicInvulnTotalDuration = dur;
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🛡️ ${relicDef.name} ativado! Invulnerabilidade total por ${rolledValue}s!` });
         break;
-      case 'goldBonusPct':
+      }
+      case 'goldBonusPct': {
+        const dur = relicDef.effectDurationMs || 15000;
         this.isActiveRelicGoldBuffActive = true;
         this.activeRelicGoldBuffPct = rolledValue / 100;
-        this.activeRelicGoldBuffDuration = relicDef.effectDurationMs || 15000;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `💰 ${relicDef.name} ativado! +${rolledValue}% de Ouro por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        this.activeRelicGoldBuffDuration = dur;
+        this.activeRelicGoldBuffTotalDuration = dur;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💰 ${relicDef.name} ativado! +${rolledValue}% de Ouro por ${Math.round(dur / 1000)}s!` });
         break;
+      }
     }
   }
 

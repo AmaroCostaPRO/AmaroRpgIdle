@@ -3,6 +3,7 @@ import * as Phaser from 'phaser';
 import { CombatScene } from './phaser/scenes/CombatScene';
 import GameUI from './components/GameUI';
 import { CombatDropToasts } from './components/CombatDropToasts';
+import { ActiveBuffsTray } from './components/ActiveBuffsTray';
 import { MainMenu } from './components/MainMenu';
 import { CharacterSelect } from './components/CharacterSelect';
 import { SavesMenu } from './components/SavesMenu';
@@ -276,6 +277,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <CombatDropToasts />
+              <ActiveBuffsTray />
 
               {/* Sobrepõe a tela de combate com a visualização da Cidadela enquanto essa aba está ativa */}
               {activeTab === 'citadel' && citadelEntered && <CitadelSpriteStage />}
@@ -350,7 +352,7 @@ const App: React.FC = () => {
                         🔮 Novo Slot de Equipamento: Relíquia Ativa
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        6 relíquias com habilidade ativa própria e recarga: dano burst, cura, redução de cooldown, foco em Elites/Chefes, invulnerabilidade temporária e bônus de ouro. Não passam por fusão mística — a potência (dano, duração, %) varia por um roll min/máx conforme a raridade do drop.
+                        6 relíquias com habilidade ativa própria e recarga: dano burst, cura contínua (% de HP máximo por segundo, diferente da Cura padrão instantânea), redução de cooldown, foco em Elites/Chefes, invulnerabilidade temporária e bônus de ouro. Não passam por fusão mística — a potência (dano, duração, %) varia por um roll min/máx conforme a raridade do drop.
                       </div>
                     </div>
                     <div>
@@ -367,6 +369,14 @@ const App: React.FC = () => {
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         Todo quarta-feira, 1% de chance por encontro (uma única vez no dia) de enfrentar um dos 4 world bosses rotativos — O Que Ainda Sonha, O Ceifador de Reflexos, A Fome sem Nome ou O Trono Vazio, escolhido pela semana. Cada um dropa, de forma garantida, uma relíquia ativa exclusiva mais forte que as do catálogo normal.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        🎯 Bandeja de Buffs Ativos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Novo indicador no canto superior esquerdo da tela de combate: mostra ícones de todo Elixir, Poção de Alquimia e buff da Relíquia Ativa em duração, cada um com contagem regressiva e um efeito de "relógio" que cobre o ícone até o buff acabar. O indicador de Lua de Sangue/Convergência também foi corrigido para aparecer no modo mobile (antes só era visível no desktop).
                       </div>
                     </div>
                   </div>

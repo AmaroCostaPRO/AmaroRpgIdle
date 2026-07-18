@@ -265,6 +265,15 @@ const GameHUD: React.FC = () => {
           <span className="section-title" style={{ border: 'none', paddingBottom: 0 }}>Status do Personagem</span>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span id="combo-badge" style={{ display: 'none', padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#ef4444', color: '#fff', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>0x COMBO</span>
+            <span className="combat-indicator">● Em Combate</span>
+          </div>
+        </div>
+
+        {/* Indicadores de evento sazonal (Lua de Sangue / Convergência) — fora do cabeçalho acima
+            de propósito: `.hud-header-row` some inteiro no mobile (CSS `display: none !important`),
+            o que apagava esses indicadores nesse modo. Aqui ficam visíveis em ambos os layouts. */}
+        {(bloodMoonBannerActive || convergenceBannerActive) && (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {bloodMoonBannerActive && (
               <span title="Inimigos da fase atual com +50% de HP/Dano e chance de drops exclusivos do Set da Lua de Sangue." style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#7f1d1d', color: '#fca5a5', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>
                 🌕 LUA DE SANGUE
@@ -275,9 +284,8 @@ const GameHUD: React.FC = () => {
                 ☄️ CONVERGÊNCIA: {convergenceBossOfWeek.name}
               </span>
             )}
-            <span className="combat-indicator">● Em Combate</span>
           </div>
-        </div>
+        )}
 
         {/* Barras de HP, Mana e Frenesi */}
         <div className="hud-bars-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -3738,7 +3746,7 @@ const GuidePanel: React.FC = () => {
               </p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
                 <li><span className="text-white font-semibold">🔥 Núcleo de Fúria Ancestral:</span> <span className="text-gray-400">+dano% por 8s.</span></li>
-                <li><span className="text-white font-semibold">💗 Coração Selado:</span> <span className="text-gray-400">cura instantânea de %HP máximo.</span></li>
+                <li><span className="text-white font-semibold">💗 Coração Selado:</span> <span className="text-gray-400">cura %HP máximo por segundo, por 5s (diferente da Cura padrão instantânea).</span></li>
                 <li><span className="text-white font-semibold">⏳ Fragmento do Tempo Parado:</span> <span className="text-gray-400">reduz na hora o cooldown restante de todas as habilidades de classe.</span></li>
                 <li><span className="text-white font-semibold">🎯 Selo do Caçador de Elites:</span> <span className="text-gray-400">+dano% contra Elites/Chefes por 10s.</span></li>
                 <li><span className="text-white font-semibold">🛡️ Bastião Intangível:</span> <span className="text-gray-400">invulnerabilidade total por alguns segundos.</span></li>
