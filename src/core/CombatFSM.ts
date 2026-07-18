@@ -2,7 +2,7 @@ import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
-import { useTowerStore, CURSE_DEBUFF_PCT, CURSE_BUFF_PCT } from '../store/useTowerStore';
+import { useTowerStore, applyCursesToStats } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
@@ -942,10 +942,7 @@ export class CombatFSM {
     // jamais alterar os itens de equipamento reais do jogador.
     const towerState = useTowerStore.getState();
     if (towerState.towerActive && towerState.towerBranch === 'curse') {
-      towerState.activeCurses.forEach((curse) => {
-        this.playerFinalStats[curse.debuffStat] = (this.playerFinalStats[curse.debuffStat] || 0) * (1 - CURSE_DEBUFF_PCT);
-        this.playerFinalStats[curse.buffStat] = (this.playerFinalStats[curse.buffStat] || 0) * (1 + CURSE_BUFF_PCT);
-      });
+      this.playerFinalStats = applyCursesToStats(this.playerFinalStats, towerState.activeCurses);
     }
 
     useGameStore.getState().updateBestCombatStats({

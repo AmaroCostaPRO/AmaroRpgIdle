@@ -374,7 +374,7 @@ const App: React.FC = () => {
                         🌀 Ramificação de Maldições da Torre Infinita
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Variante roguelike opcional: cada andar concluído acumula uma maldição temporária (-10% em um atributo, +20% em outro), em troca de +50% de Ouro e Fragmentos de Forja. Recordes e títulos honoríficos são separados da Torre Normal.
+                        Variante roguelike opcional: cada andar concluído acumula uma maldição temporária (+20% em 1 atributo, -10% em 2 outros — resultado bem aleatório), em troca de +50% de Ouro e Fragmentos de Forja. Recordes e títulos honoríficos são separados da Torre Normal. A lista agora mostra só a maldição do andar atual e o valor real dos atributos afetados.
                       </div>
                     </div>
                     <div>
@@ -383,6 +383,14 @@ const App: React.FC = () => {
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         O pátio clicável da Cidadela ganhou um carrossel de 2 páginas (com animação de deslize) para abrigar o Laboratório de Alquimia e futuras construções, sem perder nenhuma posição existente.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🛒 Reajustes de Preço na Loja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Baú de Relíquias subiu de 500.000 para 2.000.000 de Ouro. Espaço no Inventário deixou de ter preço fixo: agora começa em 100.000 Ouro e sobe +100.000 a cada compra, tornando os últimos slots uma meta de longo prazo real.
                       </div>
                     </div>
                   </div>

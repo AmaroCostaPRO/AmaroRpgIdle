@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameStore, formatNumber } from '../store/useGameStore';
+import { useGameStore, formatNumber, getInventorySlotCost } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
 
 export const ShopPanel: React.FC = () => {
@@ -58,7 +58,7 @@ export const ShopPanel: React.FC = () => {
       id: 'relic_chest' as const,
       name: 'Baú de Relíquias',
       description: 'Contém de 1 a 3 Fragmentos de Alma Instável para uso no Altar de Relíquias. Forje e aprimore suas relíquias mais rapidamente.',
-      cost: 500000,
+      cost: 2000000,
       icon: '💜🏺💜',
       color: '#c084fc',
       bgColor: 'rgba(192, 132, 252, 0.08)',
@@ -68,8 +68,8 @@ export const ShopPanel: React.FC = () => {
     {
       id: 'inventory_slot' as const,
       name: 'Espaço no Inventário',
-      description: 'Aumenta permanentemente o limite do seu inventário de equipamentos em +1 slot (Máximo de 100 slots).',
-      cost: 100000,
+      description: 'Aumenta permanentemente o limite do seu inventário de equipamentos em +1 slot (Máximo de 100 slots). Preço sobe +100.000 Ouro a cada compra.',
+      cost: getInventorySlotCost(character.inventorySlots || 30),
       icon: '🎒',
       color: '#10b981',
       bgColor: 'rgba(16, 185, 129, 0.08)',

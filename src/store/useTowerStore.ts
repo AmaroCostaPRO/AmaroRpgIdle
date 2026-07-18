@@ -3,28 +3,57 @@ import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats } from '../core/types';
 import { useGameStore } from './useGameStore';
 import { useRelicStore } from './useRelicStore';
+import { StatEngine } from '../core/StatEngine';
 
 // v8.0.0 "O Espelho Faminto": Ramificação de Maldições — variante roguelike da Torre Infinita.
-// A cada andar concluído nessa ramificação, uma nova maldição se acumula: -10% em um atributo e
-// +20% em outro, aplicados apenas enquanto a subida amaldiçoada está em andamento (nunca altera o
-// equipamento real do jogador). Em troca, os prêmios de ouro/fragmentos ganham +50%.
+// A cada andar concluído nessa ramificação, uma nova maldição se acumula: +20% em 1 atributo e
+// -10% em 2 outros atributos distintos (o dobro de alvos de penalidade equilibra o ganho e a perda,
+// deixando o resultado final bem aleatório) — aplicados apenas enquanto a subida amaldiçoada está
+// em andamento (nunca altera o equipamento real do jogador). Em troca, os prêmios de ouro/fragmentos
+// ganham +50%.
 export interface TowerCurse {
-  debuffStat: keyof BaseStats;
   buffStat: keyof BaseStats;
+  debuffStats: [keyof BaseStats, keyof BaseStats];
   floor: number;
 }
 
-const CURSE_POOL: { debuffStat: keyof BaseStats; buffStat: keyof BaseStats }[] = [
-  { debuffStat: 'constitution', buffStat: 'strength' },
-  { debuffStat: 'strength', buffStat: 'dexterity' },
-  { debuffStat: 'dexterity', buffStat: 'magic' },
-  { debuffStat: 'magic', buffStat: 'luck' },
-  { debuffStat: 'luck', buffStat: 'constitution' },
-];
+const CURSE_ATTRS: (keyof BaseStats)[] = ['strength', 'magic', 'dexterity', 'constitution', 'luck'];
+
+export const CURSE_STAT_LABELS: Record<string, string> = {
+  strength: 'Força',
+  magic: 'Magia',
+  dexterity: 'Destreza',
+  constitution: 'Constituição',
+  luck: 'Sorte',
+};
 
 export const CURSE_DEBUFF_PCT = 0.10;
 export const CURSE_BUFF_PCT = 0.20;
 export const CURSE_BRANCH_REWARD_MULT = 1.5;
+
+// Sorteia 1 atributo para receber o bônus e 2 outros (distintos entre si e do bônus) para a
+// penalidade, usando StatEngine.pickRandomElements (Fisher-Yates parcial, sem o viés conhecido de
+// `array.sort(() => 0.5 - Math.random())`).
+const rollCurse = (floor: number): TowerCurse => {
+  const [buffStat] = StatEngine.pickRandomElements(CURSE_ATTRS, 1);
+  const remaining = CURSE_ATTRS.filter((attr) => attr !== buffStat);
+  const [debuffA, debuffB] = StatEngine.pickRandomElements(remaining, 2);
+  return { buffStat, debuffStats: [debuffA, debuffB], floor };
+};
+
+// Aplica a pilha de maldições ativas sobre um conjunto de stats já calculados (ex: o retorno de
+// `StatEngine.calculateFinalStats`) — compartilhada entre `CombatFSM` (aplicação real em combate)
+// e `TowerPanel` (prévia dos valores reais dos atributos afetados na UI), para as duas fontes nunca divergirem.
+export const applyCursesToStats = (stats: BaseStats, curses: TowerCurse[]): BaseStats => {
+  const result = { ...stats };
+  curses.forEach((curse) => {
+    result[curse.buffStat] = (result[curse.buffStat] || 0) * (1 + CURSE_BUFF_PCT);
+    curse.debuffStats.forEach((stat) => {
+      result[stat] = (result[stat] || 0) * (1 - CURSE_DEBUFF_PCT);
+    });
+  });
+  return result;
+};
 
 // Pools de títulos-marco, um por ramificação da Torre. Nomes usados tanto para o desbloqueio em
 // `advanceTowerFloor` quanto para a galeria de títulos exibida em `TowerPanel.tsx` (`*_TITLES_CONFIG`
@@ -238,7 +267,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
     });
     if (branch === 'curse') {
       bridge.emit(GameEvent.LOG_EMITTED, {
-        message: '🌀 Ramificação de Maldições ativada! A cada andar, uma nova maldição se acumula (-10% em um atributo, +20% em outro) — em troca, +50% de Ouro e Fragmentos de Forja.'
+        message: '🌀 Ramificação de Maldições ativada! A cada andar, uma nova maldição se acumula (+20% em 1 atributo, -10% em 2 outros) — em troca, +50% de Ouro e Fragmentos de Forja.'
       });
     }
 
@@ -316,11 +345,11 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
     // Ramificação de Maldições: a cada andar concluído, acumula mais uma maldição sobre o herói
     let nextCurses = get().activeCurses;
     if (get().towerBranch === 'curse') {
-      const roll = CURSE_POOL[Math.floor(Math.random() * CURSE_POOL.length)];
-      const newCurse: TowerCurse = { ...roll, floor: nextFloor };
+      const newCurse = rollCurse(nextFloor);
       nextCurses = [...get().activeCurses, newCurse];
+      const debuffLabels = newCurse.debuffStats.map((s) => CURSE_STAT_LABELS[s] || s).join(' e ');
       bridge.emit(GameEvent.LOG_EMITTED, {
-        message: `🌀 Maldição do Andar ${nextFloor}: -${Math.round(CURSE_DEBUFF_PCT * 100)}% de ${newCurse.debuffStat} / +${Math.round(CURSE_BUFF_PCT * 100)}% de ${newCurse.buffStat}.`
+        message: `🌀 Maldição do Andar ${nextFloor}: +${Math.round(CURSE_BUFF_PCT * 100)}% de ${CURSE_STAT_LABELS[newCurse.buffStat] || newCurse.buffStat} / -${Math.round(CURSE_DEBUFF_PCT * 100)}% de ${debuffLabels}.`
       });
     }
 

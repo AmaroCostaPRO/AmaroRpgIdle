@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES } from '../store/useTowerStore';
+import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES, CURSE_STAT_LABELS, CURSE_BUFF_PCT, CURSE_DEBUFF_PCT, applyCursesToStats } from '../store/useTowerStore';
 import { useGameStore } from '../store/useGameStore';
+import { StatEngine } from '../core/StatEngine';
 import { AudioManager } from '../core/AudioManager';
 import { EquippedTitleBox } from './tower/EquippedTitleBox';
-
-const CURSE_STAT_LABELS: Record<string, string> = {
-  strength: 'Força',
-  magic: 'Magia',
-  dexterity: 'Destreza',
-  constitution: 'Constituição',
-  luck: 'Sorte',
-};
 
 // Deriva a galeria de títulos diretamente dos pools da store (fonte única de verdade), evitando
 // que a lista exibida aqui fique dessincronizada dos nomes realmente concedidos em `advanceTowerFloor`.
@@ -70,6 +63,25 @@ export const TowerPanel: React.FC = () => {
   const displayUnlockedTitles = isCurseTheme ? curseUnlockedTitles : unlockedTitles;
   const displaySelectedTitle = isCurseTheme ? curseSelectedTitle : selectedTitle;
   const titlesConfig = isCurseTheme ? CURSE_TITLES_CONFIG : NORMAL_TITLES_CONFIG;
+
+  // Maldição do andar atual (a mais recente) e o valor REAL (pós-maldições) de cada atributo
+  // afetado por alguma maldição acumulada — em vez de listar o histórico inteiro de andar em
+  // andar, que fica ilegível depois de poucos andares.
+  const latestCurse = activeCurses.length > 0 ? activeCurses[activeCurses.length - 1] : null;
+  const affectedCurseStats = useMemo(() => {
+    if (activeCurses.length === 0) return [];
+    const baseStats = StatEngine.calculateFinalStats(character);
+    const finalStats = applyCursesToStats(baseStats, activeCurses);
+    const attrs = new Set<string>();
+    activeCurses.forEach((curse) => {
+      attrs.add(curse.buffStat);
+      curse.debuffStats.forEach((stat) => attrs.add(stat));
+    });
+    return Array.from(attrs).map((attr) => ({
+      label: CURSE_STAT_LABELS[attr] || attr,
+      value: Math.round(finalStats[attr as keyof typeof finalStats] as number),
+    }));
+  }, [activeCurses, character]);
 
   const { towerKeys, evolvedTowerKeys } = useMemo(() => {
     let towerKeysCount = 0;
@@ -180,7 +192,7 @@ export const TowerPanel: React.FC = () => {
           </div>
           <div style={{ fontSize: '0.6rem', color: theme.accent, lineHeight: 1.4, padding: '0 0.2rem' }}>
             {isCurseTheme
-              ? '🌀 Cada andar acumula uma maldição: -10% em um atributo, +20% em outro (temporário, só durante a subida). Em troca, +50% de Ouro e Fragmentos de Forja.'
+              ? '🌀 Cada andar acumula uma maldição: +20% em 1 atributo, -10% em 2 outros (temporário, só durante a subida). Em troca, +50% de Ouro e Fragmentos de Forja.'
               : 'Suba andares determinísticos baseados na semente semanal. A regeneração entre andares está desativada!'}
           </div>
         </div>
@@ -380,7 +392,7 @@ export const TowerPanel: React.FC = () => {
             >
               🚪 CONCLUIR SUBIDA & SAIR
             </button>
-            {towerBranch === 'curse' && activeCurses.length > 0 && (
+            {towerBranch === 'curse' && latestCurse && (
               <div style={{
                 background: 'rgba(239, 68, 68, 0.08)',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -388,15 +400,26 @@ export const TowerPanel: React.FC = () => {
                 padding: '0.6rem 0.8rem',
                 fontSize: '0.62rem',
                 color: '#f87171',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.4rem',
               }}>
-                <strong>🌀 Maldições Acumuladas ({activeCurses.length}):</strong>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '0.3rem' }}>
-                  {activeCurses.map((curse, idx) => (
-                    <span key={idx}>
-                      Andar {curse.floor}: -10% {CURSE_STAT_LABELS[curse.debuffStat] || curse.debuffStat} / +20% {CURSE_STAT_LABELS[curse.buffStat] || curse.buffStat}
-                    </span>
-                  ))}
+                <div>
+                  <strong>🌀 Maldição do Andar {latestCurse.floor}</strong> ({activeCurses.length} acumulada{activeCurses.length > 1 ? 's' : ''}):
+                  <div style={{ marginTop: '2px' }}>
+                    +{Math.round(CURSE_BUFF_PCT * 100)}% {CURSE_STAT_LABELS[latestCurse.buffStat] || latestCurse.buffStat} / -{Math.round(CURSE_DEBUFF_PCT * 100)}% {latestCurse.debuffStats.map((s) => CURSE_STAT_LABELS[s] || s).join(' e ')}
+                  </div>
                 </div>
+                {affectedCurseStats.length > 0 && (
+                  <div>
+                    <strong>Atributos Afetados (valor atual):</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '2px' }}>
+                      {affectedCurseStats.map((stat) => (
+                        <span key={stat.label} className="font-mono" style={{ color: '#fca5a5' }}>{stat.label}: {stat.value}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div style={{

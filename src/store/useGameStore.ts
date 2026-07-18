@@ -22,6 +22,15 @@ import {
   getStructureUpgradeDurationMs, CitadelStructureKey,
 } from '../core/citadelFormulas';
 
+// Preço escalonado do "Espaço no Inventário" na Loja: começa em 100.000 Ouro e sobe +100.000 a
+// cada slot já comprado além dos 30 iniciais, deixando os últimos espaços (rumo ao teto de 100)
+// propositalmente caros — compartilhado entre a ação de compra (`buyConsumable`) e a prévia de
+// preço exibida em `ShopPanel.tsx`, para as duas nunca divergirem.
+export const getInventorySlotCost = (currentSlots: number): number => {
+  const purchasedSlots = Math.max(0, currentSlots - 30);
+  return 100000 * (purchasedSlots + 1);
+};
+
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
 
@@ -3559,8 +3568,8 @@ export const useGameStore = create<GameState>((set) => ({
         chest_ancestral: 3000,
         boost_touch: 1000,
         boost_touch_x3: 5000,
-        relic_chest: 500000,
-        inventory_slot: 100000
+        relic_chest: 2000000,
+        inventory_slot: getInventorySlotCost(state.character.inventorySlots || 30)
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
