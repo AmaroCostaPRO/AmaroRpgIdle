@@ -381,7 +381,7 @@ export class CombatScene extends Phaser.Scene {
 
     // Painel de Progresso do Estágio
     this.stageText = this.add.text(400, 35, 'Fase 1 - Progresso: 0/10', {
-      fontSize: '28px',
+      fontSize: '20px',
       color: '#f59e0b',
       fontStyle: 'bold',
       fontFamily: 'monospace',
@@ -666,24 +666,17 @@ export class CombatScene extends Phaser.Scene {
           this.enemyBody.setTint(0xf87171); // Vermelho fraco se enfraquecido
         } else if (effects.some(e => e.id === 'exposed')) {
           this.enemyBody.setTint(0xc084fc); // Roxo se exposto
+        } else if (this.fsm.isElite) {
+          // Onda senoidal de 0.6 a 1.0 para pulso prateado metálico
+          const pulse = 0.7 + Math.sin(this.accumulatedTime * 0.007) * 0.3;
+          const component = Math.floor(160 + pulse * 95);
+          const tintVal = (component << 16) + (component << 8) + component;
+          this.enemyBody.setTint(tintVal);
         } else {
-          // Aplicar tint de dificuldade ao inimigo se não houver efeito ativo
-          const char = useGameStore.getState().character;
-          if (this.fsm.isElite) {
-            // Onda senoidal de 0.6 a 1.0 para pulso prateado metálico
-            const pulse = 0.7 + Math.sin(this.accumulatedTime * 0.007) * 0.3;
-            const component = Math.floor(160 + pulse * 95);
-            const tintVal = (component << 16) + (component << 8) + component;
-            this.enemyBody.setTint(tintVal);
-          } else if (char && char.currentStage >= 16) {
-            this.enemyBody.setTint(0xdd88ff); // Apocalipse: roxo
-          } else if (char && char.currentStage >= 11) {
-            this.enemyBody.setTint(0xff8844); // Inferno: laranja
-          } else if (char && char.currentStage >= 6) {
-            this.enemyBody.setTint(0xff9999); // Pesadelo: vermelho
-          } else {
-            this.enemyBody.clearTint();
-          }
+          // O tint temático de fase/dificuldade (Pesadelo/Inferno/Apocalipse/Ecoterra/Lua de
+          // Sangue/etc.) é aplicado só no background em `updateBackgroundForStage()` — o sprite do
+          // inimigo não deve ser recolorido por tema, só por efeitos de status (acima) ou Elite.
+          this.enemyBody.clearTint();
         }
       }
 
@@ -797,38 +790,32 @@ export class CombatScene extends Phaser.Scene {
     // exceto em Pandemônio/Purgatório/Ecoterra, que já têm identidade visual própria fixa.
     const isBloodMoon = !isTower && !isEcoterra && stage < 21 && isBloodMoonActive();
 
-    // Aplicar tint de acordo com a dificuldade
+    // Aplicar tint de acordo com a dificuldade — só no background. O sprite do inimigo é colorido
+    // separadamente (e só por efeito de status/Elite), no bloco de `update()` que lida com
+    // `enemyEffects` — ver comentário lá para o motivo dessa separação.
     if (stage >= 31) {
       // Pandemônio: Agora possui background sob medida, removemos o tint do fundo para exibir a arte linda gerada
       this.background.clearTint();
-      if (this.enemyBody) this.enemyBody.setTint(0xff88aa);
     } else if (stage >= 21 && stage <= 30) {
       // Purgatório: Sem distorções para preservar a identidade visual cristalina gerada
       this.background.clearTint();
-      if (this.enemyBody) this.enemyBody.clearTint();
     } else if (isEcoterra) {
       // Ecoterra: Tingimento azul-neon / ciano espectral
       this.background.setTint(0x00e5ff);
-      if (this.enemyBody) this.enemyBody.setTint(0x80ffff);
     } else if (isBloodMoon) {
       // Lua de Sangue: vermelho intenso sobrepondo o tint normal da dificuldade
       this.background.setTint(0x8b0000);
-      if (this.enemyBody) this.enemyBody.setTint(0xff3333);
     } else if (stage >= 16) {
       // Apocalipse: Roxo sinistro
       this.background.setTint(0x440066);
-      if (this.enemyBody) this.enemyBody.setTint(0xdd88ff);
     } else if (stage >= 11) {
       // Inferno: Laranja queimado
       this.background.setTint(0x661100);
-      if (this.enemyBody) this.enemyBody.setTint(0xff8844);
     } else if (stage >= 6) {
       // Pesadelo: Vermelho escuro
       this.background.setTint(0x773333);
-      if (this.enemyBody) this.enemyBody.setTint(0xff9999);
     } else {
       this.background.clearTint();
-      if (this.enemyBody) this.enemyBody.clearTint();
     }
   }
 

@@ -1030,14 +1030,14 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     const saved = localStorage.getItem('amaro_rpg_show_equip_stats');
     return saved !== 'false';
   });
-  const [confirmSellCommon, setConfirmSellCommon] = useState(false);
-  const [confirmSellLegendary, setConfirmSellLegendary] = useState(false);
+  const [confirmSellAll, setConfirmSellAll] = useState(false);
+  const [confirmDismantleAll, setConfirmDismantleAll] = useState(false);
   const character = useGameStore((state) => state.character);
   const equipItem = useGameStore((state) => state.equipItem);
   const unequipItem = useGameStore((state) => state.unequipItem);
   const discardItem = useGameStore((state) => state.discardItem);
-  const sellAllCommonAndRare = useGameStore((state) => state.sellAllCommonAndRare);
-  const sellAllLegendary = useGameStore((state) => state.sellAllLegendary);
+  const sellAllEquipment = useGameStore((state) => state.sellAllEquipment);
+  const dismantleAllEquipment = useGameStore((state) => state.dismantleAllEquipment);
 
   const finalStats = useMemo(() => StatEngine.calculateFinalStats(character), [character]);
   const baseStats = character.baseStats;
@@ -1650,32 +1650,32 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
             <button
               onClick={() => {
-                if (confirmSellCommon) {
+                if (confirmSellAll) {
                   AudioManager.getInstance().playCoin();
-                  sellAllCommonAndRare();
-                  setConfirmSellCommon(false);
+                  sellAllEquipment();
+                  setConfirmSellAll(false);
                 } else {
                   AudioManager.getInstance().playClick();
-                  setConfirmSellCommon(true);
+                  setConfirmSellAll(true);
                   // Auto reseta a confirmação após 3 segundos
                   setTimeout(() => {
-                    setConfirmSellCommon(current => current ? false : false);
+                    setConfirmSellAll(current => current ? false : false);
                   }, 3000);
                 }
               }}
               className="btn btn-sm"
-              style={{ 
-                flex: 1, 
-                fontSize: '0.62rem', 
+              style={{
+                flex: 1,
+                fontSize: '0.62rem',
                 padding: '0.45rem 0.5rem',
-                background: confirmSellCommon 
+                background: confirmSellAll
                   ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
                   : 'linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15))',
-                border: confirmSellCommon
+                border: confirmSellAll
                   ? '1px solid rgba(16, 185, 129, 0.5)'
                   : '1px solid rgba(168, 85, 247, 0.3)',
                 borderRadius: 'var(--radius-md)',
-                color: confirmSellCommon ? '#34d399' : '#c084fc',
+                color: confirmSellAll ? '#34d399' : '#c084fc',
                 cursor: 'pointer',
                 fontWeight: 700,
                 display: 'flex',
@@ -1685,36 +1685,36 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>{confirmSellCommon ? '🪙 Confirmar Venda?' : '🪙 Vender Comuns & Mágicos'}</span>
+              <span>{confirmSellAll ? '🪙 Confirmar Venda?' : '🪙 Vender Todos os Equipamentos'}</span>
             </button>
             <button
               onClick={() => {
-                if (confirmSellLegendary) {
+                if (confirmDismantleAll) {
                   AudioManager.getInstance().playCoin();
-                  sellAllLegendary();
-                  setConfirmSellLegendary(false);
+                  dismantleAllEquipment();
+                  setConfirmDismantleAll(false);
                 } else {
                   AudioManager.getInstance().playClick();
-                  setConfirmSellLegendary(true);
+                  setConfirmDismantleAll(true);
                   // Auto reseta a confirmação após 3 segundos
                   setTimeout(() => {
-                    setConfirmSellLegendary(current => current ? false : false);
+                    setConfirmDismantleAll(current => current ? false : false);
                   }, 3000);
                 }
               }}
               className="btn btn-sm"
-              style={{ 
-                flex: 1, 
-                fontSize: '0.62rem', 
+              style={{
+                flex: 1,
+                fontSize: '0.62rem',
                 padding: '0.45rem 0.5rem',
-                background: confirmSellLegendary
+                background: confirmDismantleAll
                   ? 'linear-gradient(to right, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
                   : 'linear-gradient(to right, rgba(245, 158, 11, 0.15), rgba(217, 70, 239, 0.15))',
-                border: confirmSellLegendary
+                border: confirmDismantleAll
                   ? '1px solid rgba(16, 185, 129, 0.5)'
                   : '1px solid rgba(245, 158, 11, 0.3)',
                 borderRadius: 'var(--radius-md)',
-                color: confirmSellLegendary ? '#34d399' : '#fbbf24',
+                color: confirmDismantleAll ? '#34d399' : '#fbbf24',
                 cursor: 'pointer',
                 fontWeight: 700,
                 display: 'flex',
@@ -1724,7 +1724,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>{confirmSellLegendary ? '🪙 Confirmar Venda?' : '🪙 Vender Lendários'}</span>
+              <span>{confirmDismantleAll ? '🛠️ Confirmar Desmonte?' : '🛠️ Desmontar Todos os Equipamentos'}</span>
             </button>
           </div>
         )}

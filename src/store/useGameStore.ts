@@ -663,8 +663,8 @@ interface GameState {
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
   dismantleItem(itemId: string): void;
-  sellAllCommonAndRare(): void;
-  sellAllLegendary(): void;
+  sellAllEquipment(): void;
+  dismantleAllEquipment(): void;
   addItemToInventory(item: EquipmentItem): boolean;
 
   // Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam")
@@ -3350,8 +3350,12 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
-  sellAllCommonAndRare: () => set((state) => {
-    const itemsToSell = state.character.inventory.filter(i => i.rarity === 'common' || i.rarity === 'rare');
+  // v9.0.0: substitui os antigos botões segmentados por raridade (sellAllCommonAndRare/
+  // sellAllLegendary, que deixavam Épicos/Míticos de fora) por uma ação única que cobre TODOS os
+  // tipos/raridades de equipamento do inventário de uma vez — vende por Ouro (mesma fórmula de
+  // `calculateItemSellValue` já usada na venda individual).
+  sellAllEquipment: () => set((state) => {
+    const itemsToSell = state.character.inventory.filter(i => i.slot !== 'consumable');
     if (itemsToSell.length === 0) return state;
 
     let totalGold = 0;
@@ -3359,7 +3363,7 @@ export const useGameStore = create<GameState>((set) => ({
       totalGold += calculateItemSellValue(item);
     });
 
-    const newInventory = state.character.inventory.filter(i => i.rarity !== 'common' && i.rarity !== 'rare');
+    const newInventory = state.character.inventory.filter(i => i.slot === 'consumable');
     const updated = {
       ...state.character,
       gold: (state.character.gold || 0) + totalGold,
@@ -3368,32 +3372,27 @@ export const useGameStore = create<GameState>((set) => ({
     saveToLocalStorage(updated);
 
     if (totalGold > 0) {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você limpou seu inventário vendendo ${itemsToSell.length} equipamentos comuns/mágicos por +${totalGold} Ouro!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu todos os ${itemsToSell.length} equipamentos do seu inventário por +${totalGold} Ouro!` });
     }
 
     return { character: updated };
   }),
 
-  sellAllLegendary: () => set((state) => {
-    const itemsToSell = state.character.inventory.filter(i => i.rarity === 'legendary');
-    if (itemsToSell.length === 0) return state;
+  // v9.0.0: equivalente em lote do `dismantleItem` — desmonta TODOS os equipamentos do inventário
+  // (qualquer raridade) em Fragmentos de Forja, +1 por item, mesma taxa da desmontagem individual.
+  dismantleAllEquipment: () => set((state) => {
+    const itemsToDismantle = state.character.inventory.filter(i => i.slot !== 'consumable');
+    if (itemsToDismantle.length === 0) return state;
 
-    let totalGold = 0;
-    itemsToSell.forEach(item => {
-      totalGold += calculateItemSellValue(item);
-    });
-
-    const newInventory = state.character.inventory.filter(i => i.rarity !== 'legendary');
+    const newInventory = state.character.inventory.filter(i => i.slot === 'consumable');
     const updated = {
       ...state.character,
-      gold: (state.character.gold || 0) + totalGold,
+      forgeFragments: (state.character.forgeFragments || 0) + itemsToDismantle.length,
       inventory: newInventory
     };
     saveToLocalStorage(updated);
 
-    if (totalGold > 0) {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu todos os ${itemsToSell.length} equipamentos lendários do seu inventário por +${totalGold} Ouro!` });
-    }
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🛠️ Você desmontou todos os ${itemsToDismantle.length} equipamentos do seu inventário e obteve +${itemsToDismantle.length} Fragmento(s) de Forja!` });
 
     return { character: updated };
   }),

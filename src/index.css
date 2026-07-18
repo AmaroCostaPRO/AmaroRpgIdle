@@ -1444,6 +1444,25 @@ input, textarea, [contenteditable="true"] {
     gap: 0.2rem !important;
   }
 
+  /* Bandeja de Buffs Ativos (v9.0.0): ícones menores e deslocados mais para baixo no mobile, para
+     não ficar na mesma linha do texto "Fase X" desenhado pelo Phaser no topo-centro do canvas. */
+  .active-buffs-tray {
+    top: 2.4rem !important;
+    left: 0.5rem !important;
+    gap: 0.3rem !important;
+  }
+  .active-buffs-icon {
+    width: 1.7rem !important;
+    height: 1.7rem !important;
+    border-radius: 0.4rem !important;
+  }
+  .active-buffs-icon-emoji {
+    font-size: 0.85rem !important;
+  }
+  .active-buffs-icon-timer {
+    font-size: 0.4rem !important;
+  }
+
   /* Console Colapsável unificado globalmente */
 }
 
@@ -1469,6 +1488,49 @@ input, textarea, [contenteditable="true"] {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+/* Bandeja de Buffs Ativos (v9.0.0) — canto superior esquerdo da tela de combate. Tamanho/posição
+   padrão (desktop); reduzidos no mobile via o bloco @media acima. */
+.active-buffs-tray {
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: calc(100% - 1.5rem);
+}
+.active-buffs-icon {
+  position: relative;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.5rem;
+  background: rgba(15, 11, 25, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.active-buffs-icon-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.active-buffs-icon-timer {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.9);
+  line-height: 1;
 }
 
 /* Classes Gerais (Desktop & Mobile) */

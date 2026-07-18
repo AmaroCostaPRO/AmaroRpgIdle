@@ -122,6 +122,7 @@ export interface SetVisual {
   isAncestral: boolean;
   isPandemonium: boolean;
   isCelestial: boolean;
+  isBloodMoon: boolean;
   isPandemoniumMystic: boolean;
   isPandemoniumBase: boolean;
   border: string;
@@ -129,13 +130,15 @@ export interface SetVisual {
   bg: string;
 }
 
-// Calcula borda/glow/fundo de um item com base no seu conjunto (Ancestral/Pandemoníaco/Celestial),
-// com fallback para a cor de raridade padrão quando o item não pertence a nenhum conjunto especial.
+// Calcula borda/glow/fundo de um item com base no seu conjunto (Ancestral/Pandemoníaco/Celestial/
+// Lua de Sangue), com fallback para a cor de raridade padrão quando o item não pertence a nenhum
+// conjunto especial.
 export const getSetVisual = (item: { setName?: string; rarity: string } | null | undefined): SetVisual => {
   const setName = item?.setName;
   const isAncestral = !!(setName && setName.startsWith('Set Ancestral'));
   const isPandemonium = !!(setName && setName.startsWith('Set Pandemoníaco'));
   const isCelestial = !!(setName && setName.startsWith('Set Celestial'));
+  const isBloodMoon = !!(setName && setName.startsWith('Set da Lua de Sangue'));
   const isPandemoniumMystic = isPandemonium && item?.rarity === 'mystic';
   const isPandemoniumBase = isPandemonium && item?.rarity !== 'mystic';
 
@@ -159,10 +162,14 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
       border = '2px dashed #38bdf8';
       shadow = '0 0 10px rgba(56, 189, 248, 0.8)';
       bg = 'rgba(56, 189, 248, 0.15)';
+    } else if (isBloodMoon) {
+      border = '2px dashed #dc2626';
+      shadow = '0 0 10px rgba(220, 38, 38, 0.8)';
+      bg = 'rgba(220, 38, 38, 0.15)';
     }
   }
 
-  return { isAncestral, isPandemonium, isCelestial, isPandemoniumMystic, isPandemoniumBase, border, shadow, bg };
+  return { isAncestral, isPandemonium, isCelestial, isBloodMoon, isPandemoniumMystic, isPandemoniumBase, border, shadow, bg };
 };
 
 // Cor/prefixo de destaque para a linha de texto "Conjunto: ..." nos modais de detalhe do item.
@@ -170,8 +177,9 @@ export const getSetPrefixAndColor = (setName: string) => {
   const setAncestral = setName.startsWith('Set Ancestral');
   const setPandemonium = setName.startsWith('Set Pandemoníaco');
   const setCelestial = setName.startsWith('Set Celestial');
-  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : 'var(--gold-400)'));
-  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : 'none'));
-  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : 'Conjunto: '));
+  const setBloodMoon = setName.startsWith('Set da Lua de Sangue');
+  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : (setBloodMoon ? '#f87171' : 'var(--gold-400)')));
+  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : (setBloodMoon ? '0 0 4px rgba(220, 38, 38, 0.4)' : 'none')));
+  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : (setBloodMoon ? '🌕 Conjunto da Lua de Sangue: ' : 'Conjunto: ')));
   return { setTextColor, setShadow, prefix };
 };

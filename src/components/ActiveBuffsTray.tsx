@@ -7,7 +7,9 @@ import { ActiveBuffInfo } from '../core/CombatFSM';
 // Poções de Alquimia, buffs da Relíquia Ativa) no canto superior esquerdo da tela de combate.
 // Recebe um snapshot novo a cada frame via `GameEvent.ACTIVE_BUFFS_CHANGED` (emitido por
 // `CombatFSM.emitActiveBuffs()`) — não há timer próprio aqui, a contagem regressiva vem direto do
-// `remainingMs` mais recente do motor de combate.
+// `remainingMs` mais recente do motor de combate. Tamanho/posição reduzidos no mobile via CSS
+// (`.active-buffs-tray`/`.active-buffs-icon` em index.css) para não colidir com o texto "Fase X"
+// desenhado pelo Phaser no topo-centro do canvas.
 export const ActiveBuffsTray: React.FC = () => {
   const [buffs, setBuffs] = useState<ActiveBuffInfo[]>([]);
 
@@ -21,48 +23,16 @@ export const ActiveBuffsTray: React.FC = () => {
   if (buffs.length === 0) return null;
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '0.75rem',
-        left: '0.75rem',
-        zIndex: 100,
-        display: 'flex',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: '0.4rem',
-        maxWidth: 'calc(100% - 1.5rem)',
-        pointerEvents: 'none'
-      }}
-    >
+    <div className="active-buffs-tray" style={{ position: 'absolute', zIndex: 100, pointerEvents: 'none' }}>
       {buffs.map((buff) => {
         const remainingSec = Math.max(0, Math.ceil(buff.remainingMs / 1000));
         const elapsedFrac = buff.totalMs > 0 ? Math.min(1, Math.max(0, 1 - buff.remainingMs / buff.totalMs)) : 0;
         const wipeDeg = elapsedFrac * 360;
 
         return (
-          <div
-            key={buff.id}
-            title={`${buff.label} — ${remainingSec}s restantes`}
-            style={{
-              position: 'relative',
-              width: '2.3rem',
-              height: '2.3rem',
-              borderRadius: '0.5rem',
-              background: 'rgba(15, 11, 25, 0.85)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255,255,255,0.18)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              flexShrink: 0
-            }}
-          >
+          <div key={buff.id} className="active-buffs-icon" title={`${buff.label} — ${remainingSec}s restantes`}>
             {/* Ícone da habilidade/buff */}
-            <span style={{ fontSize: '1.1rem', lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }}>
+            <span className="active-buffs-icon-emoji" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }}>
               {buff.icon}
             </span>
 
@@ -77,19 +47,7 @@ export const ActiveBuffsTray: React.FC = () => {
             />
 
             {/* Contagem regressiva numérica */}
-            <span
-              style={{
-                position: 'absolute',
-                bottom: '1px',
-                right: '2px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.5rem',
-                fontWeight: 800,
-                color: '#fff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.9)',
-                lineHeight: 1
-              }}
-            >
+            <span className="active-buffs-icon-timer">
               {remainingSec}s
             </span>
           </div>
