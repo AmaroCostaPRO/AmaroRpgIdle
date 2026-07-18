@@ -35,7 +35,7 @@ const PAGE_BACKGROUNDS = [BACKGROUND_SRC, BACKGROUND_SRC_PAGE_2];
 // v8.0.0 "O Espelho Faminto": sub-abas que vivem na 2ª página do pátio (ver `buildingsPage2`
 // abaixo) — usado para sincronizar a página exibida quando a troca de sub-aba vem de fora do
 // pátio (ex: `CitadelTabsBar`), não só do clique direto num marcador.
-const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab'];
+const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab', 'huntSanctuary'];
 
 interface BuildingData {
   id: CitadelSubTab;
@@ -221,12 +221,13 @@ export const CitadelSpriteStage: React.FC = () => {
     { id: 'synchronyAltar', icon: '🔯', label: 'Altar de Sincronia', level: citadel?.synchronyAltar.level || 0, maxLevel: 5, built: (citadel?.synchronyAltar.level || 0) > 0, top: 80, left: 80 },
   ];
 
-  // Página 2 (v8.0.0 "O Espelho Faminto"): mesmo grid 3x3, com arte própria
-  // (citadel_background_2.png). Só o Laboratório de Alquimia tem posição; os demais 8 pontos
-  // ficam `null` (reservados para prédios futuros) e não renderizam marcador nenhum.
+  // Página 2 (v8.0.0 "O Espelho Faminto" + v9.0.0 "O Que Espera no Pandemônio"): mesmo grid
+  // 3x3, com arte própria (citadel_background_2.png). Laboratório de Alquimia e Santuário de
+  // Contratos de Caça já têm posição; os demais 7 pontos ficam `null` (reservados para prédios
+  // futuros) e não renderizam marcador nenhum.
   const buildingsPage2: (BuildingData | null)[] = [
     { id: 'alchemyLab', icon: '⚗️', label: 'Laboratório de Alquimia', level: citadel?.alchemyLab.level || 0, maxLevel: 5, built: (citadel?.alchemyLab.level || 0) > 0, top: 20, left: 20 },
-    null,
+    { id: 'huntSanctuary', icon: '📜', label: 'Santuário de Contratos', level: citadel?.huntSanctuary.level || 0, maxLevel: 5, built: (citadel?.huntSanctuary.level || 0) > 0, top: 20, left: 50 },
     null,
     null,
     null,

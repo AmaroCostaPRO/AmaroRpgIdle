@@ -2,7 +2,7 @@ import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
-import { useTowerStore, applyCursesToStats } from '../store/useTowerStore';
+import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTowerStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
@@ -420,6 +420,182 @@ export const MERCHANT_STOCK_POOL: MerchantOffer[] = [
   { elixirType: 'ilusionista', name: 'Elixir do Ilusionista', description: 'Reduz em 50% a recarga de habilidades por 2 minutos.' }
 ];
 
+// v9.0.0 "O Que Espera no Pandemônio": Relíquia equipável ativa (slot `activeRelic`). Cada relíquia
+// é uma habilidade FIXA (não passa por fusão mística) — o que varia por drop é só a potência do
+// parâmetro relevante daquela habilidade específica (`param`), rolada dentro do range abaixo por
+// raridade (a mesma raridade common/rare/legendary já usada pelo roll de equipamento normal — o
+// jogo não rola 'epic' nem 'mystic' no drop natural, só via fusão/eventos especiais).
+export type ActiveRelicParam = 'damageBonusPct' | 'healPct' | 'cooldownReductionPct' | 'eliteDamageBonusPct' | 'invulnDurationSec' | 'goldBonusPct';
+
+export interface ActiveRelicDefinition {
+  id: string;
+  name: string;
+  description: string; // "{value}" é substituído pelo valor rolado do item na hora de exibir
+  icon: string;
+  cooldownMs: number;
+  param: ActiveRelicParam;
+  effectDurationMs?: number; // duração do buff temporário (ausente = efeito instantâneo)
+  rollRange: Record<'common' | 'rare' | 'legendary', [number, number]>;
+}
+
+export const ACTIVE_RELICS_CATALOG: Record<string, ActiveRelicDefinition> = {
+  nucleo_furia_ancestral: {
+    id: 'nucleo_furia_ancestral',
+    name: 'Núcleo de Fúria Ancestral',
+    icon: '🔥',
+    description: 'Concede +{value}% de Dano por 8 segundos.',
+    cooldownMs: 45000,
+    param: 'damageBonusPct',
+    effectDurationMs: 8000,
+    rollRange: { common: [10, 15], rare: [15, 22], legendary: [22, 35] },
+  },
+  coracao_selado: {
+    id: 'coracao_selado',
+    name: 'Coração Selado',
+    icon: '💗',
+    description: 'Cura instantaneamente {value}% do seu HP máximo.',
+    cooldownMs: 30000,
+    param: 'healPct',
+    rollRange: { common: [15, 22], rare: [22, 30], legendary: [30, 45] },
+  },
+  fragmento_tempo_parado: {
+    id: 'fragmento_tempo_parado',
+    name: 'Fragmento do Tempo Parado',
+    icon: '⏳',
+    description: 'Reduz instantaneamente em {value}% o tempo restante de todos os cooldowns de habilidades de classe.',
+    cooldownMs: 60000,
+    param: 'cooldownReductionPct',
+    rollRange: { common: [15, 22], rare: [22, 30], legendary: [30, 45] },
+  },
+  selo_cacador_elites: {
+    id: 'selo_cacador_elites',
+    name: 'Selo do Caçador de Elites',
+    icon: '🎯',
+    description: '+{value}% de Dano contra Inimigos de Elite e Chefes por 10 segundos.',
+    cooldownMs: 40000,
+    param: 'eliteDamageBonusPct',
+    effectDurationMs: 10000,
+    rollRange: { common: [15, 25], rare: [25, 35], legendary: [35, 55] },
+  },
+  bastiao_intangivel: {
+    id: 'bastiao_intangivel',
+    name: 'Bastião Intangível',
+    icon: '🛡️',
+    description: 'Concede Invulnerabilidade total por {value} segundos.',
+    cooldownMs: 75000,
+    param: 'invulnDurationSec',
+    rollRange: { common: [2, 3], rare: [3, 4], legendary: [4, 6] },
+  },
+  bolsa_sem_fundo: {
+    id: 'bolsa_sem_fundo',
+    name: 'Bolsa sem Fundo',
+    icon: '💰',
+    description: '+{value}% de Ouro obtido por 15 segundos.',
+    cooldownMs: 50000,
+    param: 'goldBonusPct',
+    effectDurationMs: 15000,
+    rollRange: { common: [30, 45], rare: [45, 65], legendary: [65, 100] },
+  },
+};
+
+// Junta o catálogo normal de Relíquias Ativas com o catálogo exclusivo da Convergência (abaixo) —
+// usado em todo lugar que precisa resolver um `activeRelicId` (UI de detalhe do item, botão de
+// ativação, `triggerActiveRelic`), já que uma relíquia dropada pode vir de qualquer um dos dois.
+export const getActiveRelicDefinition = (relicId: string): ActiveRelicDefinition | undefined =>
+  ACTIVE_RELICS_CATALOG[relicId] || CONVERGENCE_EXCLUSIVE_RELICS[relicId];
+
+// v9.0.0 "O Que Espera no Pandemônio": Convergência — versão endgame da Lua de Sangue. Spawna um
+// "world boss" único que rotaciona semanalmente entre 4 formas (todas tentativas malformadas da
+// coisa antiga do Pandemônio de "ser vista"), só às quartas-feiras, só depois do Pandemônio
+// desbloqueado. Mantidos FORA de `ENEMY_TYPES` de propósito — os pools de boss aleatório da Torre e
+// do Pandemônio (`ENEMY_TYPES.filter(e => e.id.startsWith('boss_'))`) não devem nunca sortear estes
+// 4 por engano; eles só aparecem pelo gatilho dedicado em `setupEnemyForLevel`.
+export const CONVERGENCE_BOSS_TYPES: EnemyType[] = [
+  {
+    id: 'boss_what_still_dreams', name: 'O Que Ainda Sonha', texture: 'boss_what_still_dreams',
+    hpMultiplier: 11.0, damageMultiplier: 5.5, attackSpeedMultiplier: 1.0, xpValue: 900,
+    color: '#7c3aed', flipX: false, yOffset: 0, materialDrops: ['wood', 'stone', 'meat']
+  },
+  {
+    id: 'boss_reflection_reaper', name: 'O Ceifador de Reflexos', texture: 'boss_reflection_reaper',
+    hpMultiplier: 10.5, damageMultiplier: 6.0, attackSpeedMultiplier: 1.2, xpValue: 900,
+    color: '#dc2626', flipX: false, yOffset: 0, materialDrops: ['wood', 'stone', 'meat']
+  },
+  {
+    id: 'boss_nameless_hunger', name: 'A Fome sem Nome', texture: 'boss_nameless_hunger',
+    hpMultiplier: 12.0, damageMultiplier: 5.0, attackSpeedMultiplier: 0.9, xpValue: 900,
+    color: '#16a34a', flipX: false, yOffset: 0, materialDrops: ['wood', 'stone', 'meat']
+  },
+  {
+    id: 'boss_empty_throne', name: 'O Trono Vazio', texture: 'boss_empty_throne',
+    hpMultiplier: 10.0, damageMultiplier: 5.5, attackSpeedMultiplier: 1.0, xpValue: 900,
+    color: '#b45309', flipX: false, yOffset: 0, materialDrops: ['wood', 'stone', 'meat']
+  },
+];
+
+// Ativa só às quartas-feiras (mesmo espírito de `isBloodMoonActive`, checagem pura de `Date` local).
+export const isConvergenceActive = (): boolean => new Date().getDay() === 3;
+
+// Determinístico por semana (mesma seed que a Torre já usa) — todo jogador vê o mesmo boss na mesma semana.
+export const getConvergenceBossOfWeek = (): EnemyType => {
+  const idx = getWeeklySeed() % CONVERGENCE_BOSS_TYPES.length;
+  return CONVERGENCE_BOSS_TYPES[idx];
+};
+
+// Drop exclusivo da Convergência: uma relíquia ativa especial por boss, mais forte que as do
+// catálogo normal e SEM range de roll (min === max) — não é sorteada, é um valor fixo garantido,
+// já que só existe essa única fonte de obtenção (derrotar o boss daquela semana).
+export const CONVERGENCE_EXCLUSIVE_RELICS: Record<string, ActiveRelicDefinition> = {
+  eco_que_ainda_sonha: {
+    id: 'eco_que_ainda_sonha',
+    name: 'Eco do Que Ainda Sonha',
+    icon: '🕳️',
+    description: 'Concede +{value}% de Dano por 8 segundos.',
+    cooldownMs: 45000,
+    param: 'damageBonusPct',
+    effectDurationMs: 8000,
+    rollRange: { common: [50, 50], rare: [50, 50], legendary: [50, 50] },
+  },
+  fragmento_ceifador_reflexos: {
+    id: 'fragmento_ceifador_reflexos',
+    name: 'Fragmento do Ceifador de Reflexos',
+    icon: '🩸',
+    description: '+{value}% de Dano contra Inimigos de Elite e Chefes por 10 segundos.',
+    cooldownMs: 40000,
+    param: 'eliteDamageBonusPct',
+    effectDurationMs: 10000,
+    rollRange: { common: [70, 70], rare: [70, 70], legendary: [70, 70] },
+  },
+  presa_fome_sem_nome: {
+    id: 'presa_fome_sem_nome',
+    name: 'Presa da Fome sem Nome',
+    icon: '🪱',
+    description: 'Cura instantaneamente {value}% do seu HP máximo.',
+    cooldownMs: 30000,
+    param: 'healPct',
+    rollRange: { common: [60, 60], rare: [60, 60], legendary: [60, 60] },
+  },
+  selo_trono_vazio: {
+    id: 'selo_trono_vazio',
+    name: 'Selo do Trono Vazio',
+    icon: '👑',
+    description: '+{value}% de Ouro obtido por 15 segundos.',
+    cooldownMs: 50000,
+    param: 'goldBonusPct',
+    effectDurationMs: 15000,
+    rollRange: { common: [150, 150], rare: [150, 150], legendary: [150, 150] },
+  },
+};
+
+// Mapeia cada boss da Convergência para a relíquia exclusiva que ele dropa (usado em
+// `handleEnemyDefeat` para conceder o drop garantido ao derrotar o boss certo).
+export const CONVERGENCE_BOSS_TO_RELIC: Record<string, string> = {
+  boss_what_still_dreams: 'eco_que_ainda_sonha',
+  boss_reflection_reaper: 'fragmento_ceifador_reflexos',
+  boss_nameless_hunger: 'presa_fome_sem_nome',
+  boss_empty_throne: 'selo_trono_vazio',
+};
+
 export interface StatusEffect {
   id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
   name: string;
@@ -449,6 +625,9 @@ export class CombatFSM {
   // v7.0.0 "Ecos que Despertam": Mercador Ambulante — substitui um inimigo comum no combate
   public isMerchantEncounter: boolean = false;
   public currentMerchantOffer: MerchantOffer[] = [];
+  // v9.0.0 "O Que Espera no Pandemônio": Convergência — mesmo espírito do Mercador acima, mas
+  // substitui o inimigo comum por um dos 4 world bosses rotativos da semana.
+  public isConvergenceEncounter: boolean = false;
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
@@ -507,6 +686,19 @@ export class CombatFSM {
   private potionDamageDuration: number = 0;
   public isPotionRegenActive: boolean = false;
   private potionRegenDuration: number = 0;
+  // v9.0.0 "O Que Espera no Pandemônio": buffs temporários da Relíquia Ativa equipada — mesmo padrão
+  // flag+duração dos Elixires/Poções acima. Cura e redução de cooldown são instantâneas (sem flag).
+  public isActiveRelicDamageBuffActive: boolean = false;
+  private activeRelicDamageBuffPct: number = 0;
+  private activeRelicDamageBuffDuration: number = 0;
+  public isActiveRelicEliteBuffActive: boolean = false;
+  private activeRelicEliteBuffPct: number = 0;
+  private activeRelicEliteBuffDuration: number = 0;
+  public isActiveRelicInvulnActive: boolean = false;
+  private activeRelicInvulnDuration: number = 0;
+  public isActiveRelicGoldBuffActive: boolean = false;
+  private activeRelicGoldBuffPct: number = 0;
+  private activeRelicGoldBuffDuration: number = 0;
   public comboCount: number = 0;
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
@@ -862,6 +1054,7 @@ export class CombatFSM {
     this.eliteVulnerabilityTimer = 0;
     this.isMerchantEncounter = false;
     this.currentMerchantOffer = [];
+    this.isConvergenceEncounter = false;
 
     const char = useGameStore.getState().character;
 
@@ -891,6 +1084,26 @@ export class CombatFSM {
       }
     }
 
+    // Convergência (v9.0.0 "O Que Espera no Pandemônio"): substitui um inimigo comum pelo world
+    // boss rotativo da semana — nunca um chefe de fase nem um Elite, só às quartas-feiras e só
+    // depois do Pandemônio desbloqueado (mesmo gate usado pela Ecoterra/Transcendência). Chance
+    // baixa (1%) e limitada a UMA manifestação por semana — uma vez sorteado, `resolvedConvergenceWeekSeed`
+    // é gravado na hora e barra novos sorteios até a seed semanal mudar (próxima quarta-feira).
+    // Checado ANTES do Mercador abaixo e retorna cedo se disparar, para os dois nunca coincidirem no mesmo encontro.
+    const currentWeeklySeed = getWeeklySeed();
+    const convergenceAlreadyResolvedThisWeek = char?.resolvedConvergenceWeekSeed === currentWeeklySeed;
+    if (!isBoss && !this.isElite && !convergenceAlreadyResolvedThisWeek && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
+      const convergenceBoss = getConvergenceBossOfWeek();
+      this.currentEnemy = convergenceBoss;
+      this.isConvergenceEncounter = true;
+      this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * convergenceBoss.hpMultiplier * 3.0 * hpBoost);
+      this.enemyHP = this.enemyMaxHP;
+      useGameStore.setState((state) => ({
+        character: { ...state.character, resolvedConvergenceWeekSeed: currentWeeklySeed }
+      }));
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `☄️ A Convergência se abre! ${convergenceBoss.name} se manifesta diante de você!` });
+    }
+
     // Mercador Ambulante (v7.0.0 "Ecos que Despertam"): substitui um inimigo comum no combate,
     // nunca um chefe nem um Elite — mesmo padrão de rolagem probabilística usado acima para os Elites.
     // Se este exato encontro (fase:abates) já teve sua loja fechada pelo jogador, pula o sorteio —
@@ -898,7 +1111,7 @@ export class CombatFSM {
     // fechamento da loja não muda `defeatedInStage`).
     const encounterKey = `${stage}:${defeatedInStage}`;
     const merchantAlreadyResolved = char?.resolvedMerchantEncounterKey === encounterKey;
-    if (!isBoss && !this.isElite && !merchantAlreadyResolved && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
+    if (!isBoss && !this.isElite && !this.isConvergenceEncounter && !merchantAlreadyResolved && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
       this.isMerchantEncounter = true;
       this.currentMerchantOffer = StatEngine.pickRandomElements(MERCHANT_STOCK_POOL, 2);
       this.currentState = CombatState.MERCHANT_ENCOUNTER;
@@ -1114,6 +1327,36 @@ export class CombatFSM {
       } else if (this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
         const regenAmount = this.playerMaxHP * 0.02 * (delta / 1000);
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + regenAmount);
+      }
+    }
+
+    // Atualização dos buffs temporários da Relíquia Ativa (v9.0.0)
+    if (this.isActiveRelicDamageBuffActive) {
+      this.activeRelicDamageBuffDuration -= delta;
+      if (this.activeRelicDamageBuffDuration <= 0) {
+        this.isActiveRelicDamageBuffActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O efeito da Relíquia Ativa de dano acabou.` });
+      }
+    }
+    if (this.isActiveRelicEliteBuffActive) {
+      this.activeRelicEliteBuffDuration -= delta;
+      if (this.activeRelicEliteBuffDuration <= 0) {
+        this.isActiveRelicEliteBuffActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O efeito da Relíquia Ativa contra Elites acabou.` });
+      }
+    }
+    if (this.isActiveRelicInvulnActive) {
+      this.activeRelicInvulnDuration -= delta;
+      if (this.activeRelicInvulnDuration <= 0) {
+        this.isActiveRelicInvulnActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Invulnerabilidade da Relíquia Ativa acabou.` });
+      }
+    }
+    if (this.isActiveRelicGoldBuffActive) {
+      this.activeRelicGoldBuffDuration -= delta;
+      if (this.activeRelicGoldBuffDuration <= 0) {
+        this.isActiveRelicGoldBuffActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `O efeito da Relíquia Ativa de Ouro acabou.` });
       }
     }
 
@@ -1551,7 +1794,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -1672,7 +1915,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -1691,9 +1934,10 @@ export class CombatFSM {
   }
 
   private performEnemyAttack() {
-    // Elixir do Defensor (v7.0.0): imunidade total a dano — bloqueia o ataque antes de qualquer
-    // cálculo de dano/esquiva, mas ainda anima o inimigo atacando para não parecer travado.
-    if (this.isElixirDefensorActive) {
+    // Elixir do Defensor (v7.0.0) / Relíquia Ativa "Bastião Intangível" (v9.0.0): imunidade total a
+    // dano — bloqueia o ataque antes de qualquer cálculo de dano/esquiva, mas ainda anima o inimigo
+    // atacando para não parecer travado.
+    if (this.isElixirDefensorActive || this.isActiveRelicInvulnActive) {
       this.scene.animateEnemyAttack();
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'IMUNE!', '#a78bfa');
       return;
@@ -2016,6 +2260,34 @@ export class CombatFSM {
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
 
+    // Convergência (v9.0.0): drop garantido (100%, sem RNG) da relíquia exclusiva daquele boss —
+    // única fonte de obtenção no jogo, por isso não compete com o roll de 2% da Relíquia Ativa normal.
+    if (this.isConvergenceEncounter) {
+      const exclusiveRelicId = CONVERGENCE_BOSS_TO_RELIC[this.currentEnemy.id];
+      const relicDef = exclusiveRelicId ? CONVERGENCE_EXCLUSIVE_RELICS[exclusiveRelicId] : undefined;
+      if (relicDef) {
+        const fixedValue = relicDef.rollRange.legendary[0];
+        const relicItem: EquipmentItem = {
+          id: `relic-${exclusiveRelicId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: relicDef.name,
+          slot: 'activeRelic',
+          rarity: 'legendary',
+          stats: {},
+          classId: char.classId,
+          spriteName: `active_relic_${exclusiveRelicId}`,
+          activeRelicId: exclusiveRelicId,
+          activeRelicRolledValue: fixedValue,
+          stage: char.currentStage
+        };
+        const relicAdded = useGameStore.getState().addItemToInventory(relicItem);
+        if (relicAdded) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `☄️ A Convergência se fecha... ${this.currentEnemy.name} deixou cair [${relicDef.name}]!` });
+        } else {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `☄️ [${relicDef.name}] caiu, mas seu inventário está cheio!` });
+        }
+      }
+    }
+
     // Armazena o último inimigo comum derrotado para ser ressuscitado pelo Necromante
     if (!isBoss && !this.isElite) {
       this.lastCommonEnemyDefeated = this.currentEnemy;
@@ -2096,6 +2368,11 @@ export class CombatFSM {
     // Elixir do Acumulador (v7.0.0): +50% de Ouro
     if (this.isElixirAcumuladorActive) {
       gainedGold = Math.floor(gainedGold * 1.5);
+    }
+
+    // Relíquia Ativa "Bolsa sem Fundo" (v9.0.0): +X% de Ouro, valor rolado no item equipado
+    if (this.isActiveRelicGoldBuffActive) {
+      gainedGold = Math.floor(gainedGold * (1 + this.activeRelicGoldBuffPct));
     }
 
     useGameStore.getState().addXp(gainedXp);
@@ -2526,6 +2803,38 @@ export class CombatFSM {
         }
       }
     }
+
+    // Relíquia Ativa (v9.0.0): drop independente do loop de equipamentos normais acima — item sem
+    // `stats` (BaseStats), não passa pelo pipeline de nomes de set/fusão, então não precisa entrar
+    // no `slotsToDrop`/loop de raridade ponderada por Sorte. Chance fixa e baixa, igual ao
+    // espírito do drop fixo de Colar/Amuleto.
+    if (Math.random() < 0.02) {
+      const relicIds = Object.keys(ACTIVE_RELICS_CATALOG);
+      const relicId = relicIds[Math.floor(Math.random() * relicIds.length)];
+      const relicDef = ACTIVE_RELICS_CATALOG[relicId];
+      const relicRarityRoll = Math.random();
+      const relicRarity: 'common' | 'rare' | 'legendary' = relicRarityRoll < 0.08 ? 'legendary' : (relicRarityRoll < 0.35 ? 'rare' : 'common');
+      const [relicMin, relicMax] = relicDef.rollRange[relicRarity];
+      const relicRolledValue = Math.round((relicMin + Math.random() * (relicMax - relicMin)) * 10) / 10;
+      const relicItem: EquipmentItem = {
+        id: `relic-${relicId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: relicDef.name,
+        slot: 'activeRelic',
+        rarity: relicRarity,
+        stats: {},
+        classId: char.classId,
+        spriteName: `active_relic_${relicId}`,
+        activeRelicId: relicId,
+        activeRelicRolledValue: relicRolledValue,
+        stage: char.currentStage
+      };
+      const relicAdded = useGameStore.getState().addItemToInventory(relicItem);
+      if (relicAdded) {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Relíquia Ativa apareceu: [${relicItem.name}] (${relicRarity.toUpperCase()})!` });
+      } else {
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Relíquia Ativa [${relicItem.name}] caiu, mas seu inventário está cheio!` });
+      }
+    }
     }
 
     if (this.characterData.activeDailyChallenge) {
@@ -2695,6 +3004,83 @@ export class CombatFSM {
     const eX = this.scene.getEnemyX();
     const eY = this.scene.getEnemyY();
     return Math.sqrt(Math.pow(pX - eX, 2) + Math.pow(pY - eY, 2));
+  }
+
+  // Ativa a Relíquia Ativa equipada (slot `activeRelic`, v9.0.0 "O Que Espera no Pandemônio").
+  // Reaproveita o mesmo mapa `skillCooldowns` das habilidades de classe (chave própria
+  // `relic_active_<id>` para não colidir com skillIds), mas sem custo de mana — é uma habilidade
+  // concedida pelo equipamento, não uma habilidade aprendida na árvore de classe.
+  public triggerActiveRelic(): void {
+    if (useGameStore.getState().gameSpeed === 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
+
+    const equippedRelic = this.characterData?.equipment?.activeRelic;
+    if (!equippedRelic || !equippedRelic.activeRelicId) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Nenhuma Relíquia Ativa equipada!` });
+      return;
+    }
+
+    const relicDef = getActiveRelicDefinition(equippedRelic.activeRelicId);
+    if (!relicDef) return;
+
+    const cooldownKey = `relic_active_${relicDef.id}`;
+    const activeCooldown = this.skillCooldowns[cooldownKey] || 0;
+    if (activeCooldown > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${relicDef.name} em recarga! (${Math.ceil(activeCooldown / 1000)}s)` });
+      return;
+    }
+
+    const rolledValue = equippedRelic.activeRelicRolledValue || 0;
+    this.skillCooldowns[cooldownKey] = relicDef.cooldownMs;
+    bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+
+    switch (relicDef.param) {
+      case 'damageBonusPct':
+        this.isActiveRelicDamageBuffActive = true;
+        this.activeRelicDamageBuffPct = rolledValue / 100;
+        this.activeRelicDamageBuffDuration = relicDef.effectDurationMs || 8000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 ${relicDef.name} ativado! +${rolledValue}% de Dano por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        break;
+      case 'healPct': {
+        const healAmount = Math.floor(this.playerMaxHP * (rolledValue / 100));
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + healAmount);
+        if (this.scene && typeof this.scene.animateHealEffect === 'function') {
+          this.scene.animateHealEffect();
+        }
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${healAmount}`, '#10b981');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💗 ${relicDef.name} ativado! Recuperou ${healAmount} de HP.` });
+        break;
+      }
+      case 'cooldownReductionPct': {
+        const reductionFactor = 1 - (rolledValue / 100);
+        Object.keys(this.skillCooldowns).forEach((key) => {
+          if (key === cooldownKey) return;
+          this.skillCooldowns[key] = Math.floor(this.skillCooldowns[key] * reductionFactor);
+        });
+        bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⏳ ${relicDef.name} ativado! Cooldowns das habilidades de classe reduzidos em ${rolledValue}%!` });
+        break;
+      }
+      case 'eliteDamageBonusPct':
+        this.isActiveRelicEliteBuffActive = true;
+        this.activeRelicEliteBuffPct = rolledValue / 100;
+        this.activeRelicEliteBuffDuration = relicDef.effectDurationMs || 10000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🎯 ${relicDef.name} ativado! +${rolledValue}% de Dano contra Elites/Chefes por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        break;
+      case 'invulnDurationSec':
+        this.isActiveRelicInvulnActive = true;
+        this.activeRelicInvulnDuration = rolledValue * 1000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🛡️ ${relicDef.name} ativado! Invulnerabilidade total por ${rolledValue}s!` });
+        break;
+      case 'goldBonusPct':
+        this.isActiveRelicGoldBuffActive = true;
+        this.activeRelicGoldBuffPct = rolledValue / 100;
+        this.activeRelicGoldBuffDuration = relicDef.effectDurationMs || 15000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💰 ${relicDef.name} ativado! +${rolledValue}% de Ouro por ${Math.round((relicDef.effectDurationMs || 0) / 1000)}s!` });
+        break;
+    }
   }
 
   public triggerSkill(skillId: string): void {
@@ -2904,7 +3290,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano

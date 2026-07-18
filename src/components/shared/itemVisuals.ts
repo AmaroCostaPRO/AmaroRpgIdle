@@ -55,7 +55,8 @@ export const slotLabels: Record<string, string> = {
   necklace: 'Colar',
   amulet: 'Amuleto',
   ring: 'Anel',
-  consumable: 'Consumível'
+  consumable: 'Consumível',
+  activeRelic: 'Relíquia Ativa'
 };
 
 export const slotIcons: Record<string, string> = {
@@ -67,7 +68,8 @@ export const slotIcons: Record<string, string> = {
   necklace: '📿',
   amulet: '🧿',
   ring: '💍',
-  consumable: '📦'
+  consumable: '📦',
+  activeRelic: '🔮'
 };
 
 export const statLabels: Record<string, string> = {

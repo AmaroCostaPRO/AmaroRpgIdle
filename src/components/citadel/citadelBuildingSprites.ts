@@ -19,6 +19,7 @@ export const BUILDING_SPRITE_SRC: Record<CitadelSubTab, string> = {
   synchronyAltar: '/assets/citadel_synchrony_altar.png',
   relicLab: '/assets/citadel_relic_lab.png',
   alchemyLab: '/assets/citadel_alchemy_lab.png',
+  huntSanctuary: '/assets/citadel_hunt_sanctuary.png',
 };
 
 /** Nível máximo de cada construção — usado para calcular o tier visual (0-3) em EvolutionSprite. */
@@ -33,4 +34,5 @@ export const BUILDING_MAX_LEVEL: Record<CitadelSubTab, number> = {
   synchronyAltar: 5,
   relicLab: 5,
   alchemyLab: 5,
+  huntSanctuary: 5,
 };

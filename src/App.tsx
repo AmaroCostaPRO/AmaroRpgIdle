@@ -323,19 +323,58 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v8.0.0 — O Espelho Faminto!
+              🔔 Atualização v9.0.0 — O Que Espera no Pandemônio!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A v8.0.0 traz o Anel como sétimo slot de equipamento, quatro novos afixos de Elite, o Laboratório de Alquimia da Cidadela, o evento sazonal Lua de Sangue e uma nova Ramificação de Maldições roguelike para a Torre Infinita.
+                A v9.0.0 traz o Santuário de Contratos de Caça (evolução do Bestiário), a Relíquia Ativa como novo slot de equipamento, o modo infinito Provações do Vácuo (pós-Transcendência) e a Convergência — o world boss semanal endgame.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v9.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 9.0.0 (Atual) — O Que Espera no Pandemônio:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        📜 Santuário de Contratos de Caça
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova construção da Cidadela: gera contratos rotativos ("derrote N do inimigo X") em janelas de 8h, com recompensas em materiais/ouro escalando com a dificuldade do alvo e um bônus extra ao completar toda a rotação. O bônus passivo por marco de mortes do Bestiário continua funcionando normalmente.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        🔮 Novo Slot de Equipamento: Relíquia Ativa
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        6 relíquias com habilidade ativa própria e recarga: dano burst, cura, redução de cooldown, foco em Elites/Chefes, invulnerabilidade temporária e bônus de ouro. Não passam por fusão mística — a potência (dano, duração, %) varia por um roll min/máx conforme a raridade do drop.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#818cf8', fontSize: '0.72rem' }}>
+                        ♾️ Provações do Vácuo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        3ª ramificação da Torre Infinita, liberada só após a 1ª Transcendência: sem teto de dificuldade, sem títulos, sem leaderboard — só o seu recorde pessoal. Concede Pontos de Transcendência de forma bem limitada (até 3 por semana, escalando com o andar batido), para nunca virar uma fonte de farm.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        ☄️ Convergência (World Boss Semanal)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Todo quarta-feira, 1% de chance por encontro (uma única vez no dia) de enfrentar um dos 4 world bosses rotativos — O Que Ainda Sonha, O Ceifador de Reflexos, A Fome sem Nome ou O Trono Vazio, escolhido pela semana. Cada um dropa, de forma garantida, uma relíquia ativa exclusiva mais forte que as do catálogo normal.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v8.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 8.0.0 (Atual) — O Espelho Faminto:</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 8.0.0 — O Espelho Faminto:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState } from '../core/types';
+import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContract } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
@@ -18,6 +18,8 @@ import {
   SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
   RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
   ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, AlchemyPotionType,
+  HUNT_SANCTUARY_MAX_LEVEL, HUNT_SANCTUARY_UPGRADE_COST, HUNT_CONTRACT_SLOTS, HUNT_CONTRACT_FULL_CLEAR_BONUS,
+  getHuntContractRotationId, generateHuntContracts,
   computeClassExpeditionProduction, getMysticFusionCost,
   getStructureUpgradeDurationMs, CitadelStructureKey,
 } from '../core/citadelFormulas';
@@ -588,6 +590,7 @@ interface GameState {
   setZoomLevel(zoomLevel: number): void;
   addGold(amount: number): void;
   addForgeFragments(amount: number): void;
+  addTranscendencePoints(amount: number): void;
   addTranscendenceEssence(amount: number): void;
   addMaterials(wood: number, stone: number, meat: number): void;
   buildOrUpgradeCommandCenter(): { success: boolean; message: string };
@@ -608,6 +611,9 @@ interface GameState {
   overheatRelic(relicId: string): { success: boolean; message: string };
   buildOrUpgradeAlchemyLab(): { success: boolean; message: string };
   brewAlchemyPotion(potionType: AlchemyPotionType): { success: boolean; message: string };
+  buildOrUpgradeHuntSanctuary(): { success: boolean; message: string };
+  refreshHuntContractsIfNeeded(): void;
+  claimHuntContract(contractId: string): { success: boolean; message: string };
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -653,7 +659,7 @@ interface GameState {
 
   // Novos métodos de equipamentos e inventário (v1.1.0)
   equipItem(itemId: string): void;
-  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring'): void;
+  unequipItem(slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic'): void;
   discardItem(itemId: string): void;
   sellItem(itemId: string): void;
   dismantleItem(itemId: string): void;
@@ -743,6 +749,7 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   synchronyAltar: { level: 0, lastTick: Date.now() },
   relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
   alchemyLab: { level: 0, lastTick: Date.now() },
+  huntSanctuary: { level: 0, lastTick: Date.now(), activeContracts: [] as HuntContract[], rotationId: 0, bonusClaimedForRotation: false },
 });
 
 const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0 });
@@ -774,7 +781,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     autoCastHealPercent: 50,
     autoCastDisabledSkills: [],
     killCount: {},
-    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
+    equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null, activeRelic: null },
     inventory: [],
     inventorySlots: 30,
     pandemoniumUnlocked: false,
@@ -878,6 +885,7 @@ const mergeLoadedCharacter = (char: Character): Character => {
       synchronyAltar: { ...defaults.citadel!.synchronyAltar, ...(char.citadel?.synchronyAltar || {}) },
       relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
       alchemyLab: { ...defaults.citadel!.alchemyLab, ...(char.citadel?.alchemyLab || {}) },
+      huntSanctuary: { ...defaults.citadel!.huntSanctuary, ...(char.citadel?.huntSanctuary || {}), activeContracts: char.citadel?.huntSanctuary?.activeContracts || [] },
     },
     totalXpEarned: char.totalXpEarned !== undefined
       ? char.totalXpEarned
@@ -1140,6 +1148,19 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  // v9.0.0 "O Que Espera no Pandemônio": único ponto de concessão de PT fora do hard-reset de
+  // Transcendência (`performTranscendence`) — usado pelas Provações do Vácuo, sempre em
+  // quantidades pequenas e limitadas por semana (ver VOID_TRIALS_WEEKLY_PT_CAP em useTowerStore.ts),
+  // para não virar uma fonte de farm que quebre a escassez intencional de PT.
+  addTranscendencePoints: (amount) => set((state) => {
+    const updated = {
+      ...state.character,
+      transcendencePoints: (state.character.transcendencePoints || 0) + amount
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
   addTranscendenceEssence: (amount) => set((state) => {
     const updated = {
       ...state.character,
@@ -1351,6 +1372,7 @@ export const useGameStore = create<GameState>((set) => ({
       synchronyAltar: 'Altar de Sincronia Elemental',
       relicLab: 'Laboratório de Relíquias Místicas',
       alchemyLab: 'Laboratório de Alquimia',
+      huntSanctuary: 'Santuário de Contratos de Caça',
     };
     (Object.keys(structureLabels) as CitadelStructureKey[]).forEach((key) => {
       const building = citadel![key];
@@ -1879,6 +1901,123 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
+  buildOrUpgradeHuntSanctuary: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const nextLevel = citadel.huntSanctuary.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (citadel.huntSanctuary.upgradeInProgress) {
+        result = { success: false, message: 'O Santuário de Contratos de Caça já está em melhoria.' };
+        return state;
+      }
+      if (nextLevel > HUNT_SANCTUARY_MAX_LEVEL) {
+        result = { success: false, message: 'O Santuário de Contratos de Caça já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
+      const cost = HUNT_SANCTUARY_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.meat < cost.meat || materials.studyInsignias < cost.studyInsignias) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.meat} Carne e ${cost.studyInsignias} Insígnias de Estudo.` };
+        return state;
+      }
+
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('huntSanctuary', nextLevel);
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, meat: materials.meat - cost.meat, studyInsignias: materials.studyInsignias - cost.studyInsignias },
+        citadel: { ...citadel, huntSanctuary: { ...citadel.huntSanctuary, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Melhoria do Santuário de Contratos de Caça iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // Gera uma nova rotação de contratos quando a janela de tempo atual (`getHuntContractRotationId`)
+  // muda — chamada de forma "lazy" (ao abrir o painel/tickar a Cidadela) em vez de um timer próprio.
+  refreshHuntContractsIfNeeded: () => set((state) => {
+    const citadel = state.character.citadel || DEFAULT_CITADEL();
+    if (citadel.huntSanctuary.level <= 0) return state;
+
+    const currentRotationId = getHuntContractRotationId();
+    if (citadel.huntSanctuary.rotationId === currentRotationId && citadel.huntSanctuary.activeContracts.length > 0) {
+      return state;
+    }
+
+    const generated = generateHuntContracts(citadel.huntSanctuary.level, currentRotationId);
+    const activeContracts: HuntContract[] = generated.map((c, i) => ({
+      ...c,
+      id: `hunt_contract-${currentRotationId}-${i}`,
+      currentKills: 0,
+      claimed: false,
+    }));
+
+    const updated = {
+      ...state.character,
+      citadel: { ...citadel, huntSanctuary: { ...citadel.huntSanctuary, activeContracts, rotationId: currentRotationId, bonusClaimedForRotation: false } }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  claimHuntContract: (contractId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const contract = citadel.huntSanctuary.activeContracts.find((c) => c.id === contractId);
+
+      if (!contract) {
+        result = { success: false, message: 'Contrato não encontrado.' };
+        return state;
+      }
+      if (contract.claimed) {
+        result = { success: false, message: 'Este contrato já foi resgatado.' };
+        return state;
+      }
+      if (contract.currentKills < contract.requiredKills) {
+        result = { success: false, message: 'Este contrato ainda não foi concluído.' };
+        return state;
+      }
+
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const updatedContracts = citadel.huntSanctuary.activeContracts.map((c) => c.id === contractId ? { ...c, claimed: true } : c);
+      const allClaimed = updatedContracts.length > 0 && updatedContracts.every((c) => c.claimed);
+      const bonus = (!citadel.huntSanctuary.bonusClaimedForRotation && allClaimed) ? HUNT_CONTRACT_FULL_CLEAR_BONUS(citadel.huntSanctuary.level) : null;
+
+      if (bonus) {
+        useRelicStore.getState().addFragments(bonus.unstableSoulFragments);
+      }
+
+      const updated = {
+        ...state.character,
+        gold: state.character.gold + contract.goldReward,
+        materials: { ...materials, [contract.rewardMaterial]: materials[contract.rewardMaterial] + contract.rewardAmount },
+        citadel: { ...citadel, huntSanctuary: { ...citadel.huntSanctuary, activeContracts: updatedContracts, bonusClaimedForRotation: citadel.huntSanctuary.bonusClaimedForRotation || allClaimed } }
+      };
+      saveToLocalStorage(updated);
+      result = {
+        success: true,
+        message: bonus
+          ? `Contrato concluído! +${contract.goldReward} Ouro, +${contract.rewardAmount} ${contract.rewardMaterial}. Rotação completa: +${bonus.unstableSoulFragments} Fragmento(s) de Alma Instável!`
+          : `Contrato concluído! +${contract.goldReward} Ouro, +${contract.rewardAmount} ${contract.rewardMaterial}.`
+      };
+      return { character: updated };
+    });
+    return result;
+  },
+
   buildOrUpgradeCosmicSiphon: () => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     set((state) => {
@@ -2252,7 +2391,7 @@ export const useGameStore = create<GameState>((set) => ({
       enemiesDefeatedInStage: 0,
       equipment: (state.character.pandemoniumUnlocked)
         ? state.character.equipment
-        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
+        : { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null, activeRelic: null },
       // Chaves da Torre Evoluídas sobrevivem à Ascensão; demais itens do inventário são zerados
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Ascensão
@@ -2425,7 +2564,7 @@ export const useGameStore = create<GameState>((set) => ({
       highestStageReached: 1,
       currentStage: 1,
       enemiesDefeatedInStage: 0,
-      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null },
+      equipment: { head: null, chest: null, legs: null, gloves: null, weapon: null, necklace: null, amulet: null, ring: null, activeRelic: null },
       // Chaves da Torre Evoluídas sobrevivem à Transcendência
       inventory: state.character.inventory.filter(i => i.consumableType === 'tower_key_evolved'),
       // Companheiro/Pet (v7.0.0) é conteúdo de early game — não sobrevive à Transcendência
@@ -2927,10 +3066,30 @@ export const useGameStore = create<GameState>((set) => ({
       ...currentKills,
       [enemyId]: newKills
     };
+
+    // Progresso dos Contratos de Caça do Santuário: contador próprio por contrato, independente
+    // do `killCount` vitalício acima (que segue alimentando só o bônus passivo do Bestiário).
+    const citadel = state.character.citadel;
+    let updatedCitadel = citadel;
+    if (citadel && citadel.huntSanctuary.activeContracts.some((c) => c.enemyId === enemyId && !c.claimed && c.currentKills < c.requiredKills)) {
+      updatedCitadel = {
+        ...citadel,
+        huntSanctuary: {
+          ...citadel.huntSanctuary,
+          activeContracts: citadel.huntSanctuary.activeContracts.map((c) =>
+            (c.enemyId === enemyId && !c.claimed && c.currentKills < c.requiredKills)
+              ? { ...c, currentKills: c.currentKills + 1 }
+              : c
+          )
+        }
+      };
+    }
+
     const updated = {
       ...state.character,
       killCount: updatedKills,
-      totalEnemiesKilledLifetime: (state.character.totalEnemiesKilledLifetime || 0) + 1
+      totalEnemiesKilledLifetime: (state.character.totalEnemiesKilledLifetime || 0) + 1,
+      ...(updatedCitadel ? { citadel: updatedCitadel } : {})
     };
     saveToLocalStorage(updated);
     return { character: updated };

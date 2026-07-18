@@ -32,6 +32,7 @@ export class CombatScene extends Phaser.Scene {
   private xpBar!: Phaser.GameObjects.Graphics;
   private xpText!: Phaser.GameObjects.Text;
   private unsubscribeSkill?: () => void;
+  private unsubscribeActiveRelic?: () => void;
   private unsubscribeFrenzyBoost?: () => void;
   private unsubscribeElixirActivated?: () => void;
   private unsubscribeAlchemyPotionActivated?: () => void;
@@ -127,6 +128,12 @@ export class CombatScene extends Phaser.Scene {
 
     // NPC - Mercador Ambulante (v7.0.0 "Ecos que Despertam")
     this.load.image('merchant_traveling', 'assets/merchant_traveling.png');
+
+    // World Bosses - Convergência (v9.0.0 "O Que Espera no Pandemônio")
+    this.load.image('boss_what_still_dreams', 'assets/boss_what_still_dreams.png');
+    this.load.image('boss_reflection_reaper', 'assets/boss_reflection_reaper.png');
+    this.load.image('boss_nameless_hunger', 'assets/boss_nameless_hunger.png');
+    this.load.image('boss_empty_throne', 'assets/boss_empty_throne.png');
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
@@ -251,6 +258,12 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('pet_sprite_lumen', 'pet_sprite_lumen_transparent');
     this.makeTextureTransparent('pet_moeda_alada', 'pet_moeda_alada_transparent');
     this.makeTextureTransparent('merchant_traveling', 'merchant_traveling_transparent');
+
+    // World Bosses - Convergência (v9.0.0 "O Que Espera no Pandemônio")
+    this.makeTextureTransparent('boss_what_still_dreams', 'boss_what_still_dreams_transparent');
+    this.makeTextureTransparent('boss_reflection_reaper', 'boss_reflection_reaper_transparent');
+    this.makeTextureTransparent('boss_nameless_hunger', 'boss_nameless_hunger_transparent');
+    this.makeTextureTransparent('boss_empty_throne', 'boss_empty_throne_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -380,6 +393,10 @@ export class CombatScene extends Phaser.Scene {
     // Ouvir comandos de skill
     this.unsubscribeSkill = bridge.subscribe(GameEvent.EQUIP_SKILL, (payload) => {
       this.fsm.triggerSkill(payload.skillId);
+    });
+
+    this.unsubscribeActiveRelic = bridge.subscribe(GameEvent.TRIGGER_ACTIVE_RELIC, () => {
+      this.fsm.triggerActiveRelic();
     });
 
     this.unsubscribeFrenzyBoost = bridge.subscribe('ACTIVATE_FRENZY_BOOST' as any, (payload) => {
@@ -1151,14 +1168,18 @@ export class CombatScene extends Phaser.Scene {
       let enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
       if (this.fsm.isMerchantEncounter) {
         enemyName = 'Mercador Ambulante';
+      } else if (this.fsm.isConvergenceEncounter) {
+        enemyName = `☄️ CONVERGÊNCIA\n${enemyType.name}`;
       } else if (this.fsm.isElite) {
         const afixLabel = this.fsm.eliteAfix ? `ELITE ${this.fsm.eliteAfix.toUpperCase()}` : 'ELITE';
         enemyName = `${afixLabel}\n${enemyType.name}`;
       }
       this.enemyLevelText.setText(enemyName);
-      
+
       if (this.fsm.isMerchantEncounter) {
         this.enemyLevelText.setColor('#fbbf24'); // Cor dourada para o Mercador
+      } else if (this.fsm.isConvergenceEncounter) {
+        this.enemyLevelText.setColor('#a78bfa'); // Roxo cósmico para a Convergência
       } else if (this.fsm.isElite) {
         this.enemyLevelText.setColor('#e2e8f0'); // Prateado metálico para nome de Elites
       } else {
@@ -1437,6 +1458,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeSkill) {
       this.unsubscribeSkill();
       this.unsubscribeSkill = undefined;
+    }
+    if (this.unsubscribeActiveRelic) {
+      this.unsubscribeActiveRelic();
+      this.unsubscribeActiveRelic = undefined;
     }
     if (this.unsubscribeFrenzyBoost) {
       this.unsubscribeFrenzyBoost();

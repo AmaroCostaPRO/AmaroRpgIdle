@@ -24,7 +24,7 @@ export interface BaseStats {
 export interface EquipmentItem {
   id: string;
   name: string;
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'consumable';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'consumable' | 'activeRelic';
   classId: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' | 'consumable';
   stats: Partial<BaseStats>;
@@ -33,6 +33,13 @@ export interface EquipmentItem {
   mysticLevel?: number;
   consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen';
   stage?: number;
+  // v9.0.0 "O Que Espera no Pandemônio": Relíquia equipável ativa (slot `activeRelic`). Diferente do
+  // equipamento normal, NÃO passa por fusão mística — a habilidade em si é fixa (`activeRelicId`,
+  // ver ACTIVE_RELICS_CATALOG em CombatFSM.ts); só o parâmetro numérico daquela habilidade específica
+  // (dano/cura/duração/etc., varia por relíquia) é rolado dentro de um range min/máx por raridade,
+  // no mesmo espírito do roll de atributos do colar.
+  activeRelicId?: string;
+  activeRelicRolledValue?: number;
 }
 
 export interface EnemyType {
@@ -71,6 +78,20 @@ export interface CitadelBuildingState {
   upgradeInProgress?: { targetLevel: number; startedAt: number; completesAt: number };
 }
 
+// v9.0.0 "O Que Espera no Pandemônio": contrato rotativo do Santuário de Contratos de Caça —
+// "derrote N do inimigo X" com contador próprio, separado do `killCount` vitalício do Bestiário
+// (que continua alimentando `StatEngine.calculateBestiaryDamageMultiplier` sem nenhuma mudança).
+export interface HuntContract {
+  id: string;
+  enemyId: string;
+  requiredKills: number;
+  currentKills: number;
+  rewardMaterial: 'wood' | 'stone' | 'meat' | 'studyInsignias';
+  rewardAmount: number;
+  goldReward: number;
+  claimed: boolean;
+}
+
 export interface CitadelState {
   unlocked: boolean;
   commandCenter: CitadelBuildingState;
@@ -93,6 +114,10 @@ export interface CitadelState {
   // v8.0.0 "O Espelho Faminto": destila materiais das Expedições em poções de efeito temporário
   // (dano/regeneração) — preparo manual sob demanda, sem produção automática por tick.
   alchemyLab: CitadelBuildingState;
+  // v9.0.0 "O Que Espera no Pandemônio": evolução do Bestiário em gerenciamento ativo —
+  // contratos de caça rotativos (ver `HuntContract`), gerados de forma determinística por
+  // janela de tempo (`getHuntContractRotationId`), iguais para todos os jogadores na mesma janela.
+  huntSanctuary: CitadelBuildingState & { activeContracts: HuntContract[]; rotationId: number; bonusClaimedForRotation: boolean };
 }
 
 export interface SkillNode {
@@ -145,7 +170,7 @@ export interface Character {
   killCount?: Record<string, number>; // Abates por monstro
   lastSaved?: string; // Data e hora do último salvamento
   saveVersion?: number; // Versão do formato do save, usada para futuras migrações
-  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring', EquipmentItem | null>;
+  equipment: Record<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic', EquipmentItem | null>;
   inventory: EquipmentItem[];
   inventorySlots: number;
   // v7.0.0 "Ecos que Despertam": Companheiro/Pet capturável — puramente passivo, sem lógica de
@@ -158,6 +183,11 @@ export interface Character {
   // persistida o sorteio determinístico de Elite/Mercador reproduziria o mesmo resultado para sempre,
   // travando o jogador num loop da loja do Mercador).
   resolvedMerchantEncounterKey?: string;
+  // v9.0.0 "O Que Espera no Pandemônio": última semana (`getWeeklySeed()`, useTowerStore.ts) em
+  // que o world boss da Convergência já se manifestou — impede que ele apareça mais de uma vez na
+  // mesma quarta-feira, já que a seed semanal só muda no próximo reset (mesmo espírito de
+  // `resolvedMerchantEncounterKey` acima, mas por semana em vez de por encontro).
+  resolvedConvergenceWeekSeed?: number;
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
   testMode?: boolean;
@@ -207,6 +237,7 @@ export enum GameEvent {
   // Command Events (React -> Phaser)
   ACTION_TRIGGERED = 'ACTION_TRIGGERED',
   EQUIP_SKILL = 'EQUIP_SKILL',
+  TRIGGER_ACTIVE_RELIC = 'TRIGGER_ACTIVE_RELIC',
   START_COMBAT = 'START_COMBAT',
   END_COMBAT = 'END_COMBAT',
   TOGGLE_AUTOCAST = 'TOGGLE_AUTOCAST',

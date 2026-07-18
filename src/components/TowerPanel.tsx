@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES, CURSE_STAT_LABELS, CURSE_BUFF_PCT, CURSE_DEBUFF_PCT, applyCursesToStats } from '../store/useTowerStore';
+import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES, CURSE_STAT_LABELS, CURSE_BUFF_PCT, CURSE_DEBUFF_PCT, applyCursesToStats, VOID_TRIALS_PT_FLOOR_INTERVAL, VOID_TRIALS_WEEKLY_PT_CAP } from '../store/useTowerStore';
 import { useGameStore } from '../store/useGameStore';
 import { StatEngine } from '../core/StatEngine';
 import { AudioManager } from '../core/AudioManager';
@@ -38,8 +38,14 @@ export const TowerPanel: React.FC = () => {
   const activeKeyType = useTowerStore((state) => state.activeKeyType);
   const towerBranch = useTowerStore((state) => state.towerBranch);
   const activeCurses = useTowerStore((state) => state.activeCurses);
-  const [selectedBranch, setSelectedBranch] = useState<'normal' | 'curse'>('normal');
+  const voidTrialsHistoricalHighestFloor = useTowerStore((state) => state.voidTrialsHistoricalHighestFloor);
+  const voidTrialsPtGrantedThisWeek = useTowerStore((state) => state.voidTrialsPtGrantedThisWeek);
+  const [selectedBranch, setSelectedBranch] = useState<'normal' | 'curse' | 'voidTrials'>('normal');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Provações do Vácuo (v9.0.0): só libera após a primeira Transcendência — mesmo gate aplicado
+  // em `startTowerAttempt` (useTowerStore.ts), duplicado aqui só para desenhar o estado bloqueado na UI.
+  const isVoidTrialsUnlocked = (character.transcendenceCount || 0) >= 1;
 
   // O tema/dados exibidos seguem o seletor de UI (`selectedBranch`), não o `towerBranch` do
   // store (que só é relevante durante uma subida ativa) — assim o jogador pode navegar pelos
@@ -50,16 +56,17 @@ export const TowerPanel: React.FC = () => {
   }, [towerActive, towerBranch]);
 
   const isCurseTheme = selectedBranch === 'curse';
+  const isVoidTheme = selectedBranch === 'voidTrials';
   const theme = {
-    accent: isCurseTheme ? '#f87171' : '#fbbf24',
-    accentStrong: isCurseTheme ? '#dc2626' : '#f59e0b',
-    border: isCurseTheme ? 'rgba(220, 38, 38, 0.25)' : 'var(--border-dim)',
-    surfaceTint: isCurseTheme ? 'rgba(127, 29, 29, 0.10)' : 'var(--surface-2)',
-    gradient: isCurseTheme ? 'linear-gradient(135deg, #7f1d1d, #dc2626)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+    accent: isVoidTheme ? '#818cf8' : (isCurseTheme ? '#f87171' : '#fbbf24'),
+    accentStrong: isVoidTheme ? '#4f46e5' : (isCurseTheme ? '#dc2626' : '#f59e0b'),
+    border: isVoidTheme ? 'rgba(99, 102, 241, 0.3)' : (isCurseTheme ? 'rgba(220, 38, 38, 0.25)' : 'var(--border-dim)'),
+    surfaceTint: isVoidTheme ? 'rgba(30, 27, 75, 0.25)' : (isCurseTheme ? 'rgba(127, 29, 29, 0.10)' : 'var(--surface-2)'),
+    gradient: isVoidTheme ? 'linear-gradient(135deg, #1e1b4b, #4f46e5)' : (isCurseTheme ? 'linear-gradient(135deg, #7f1d1d, #dc2626)' : 'linear-gradient(135deg, #a855f7, #7c3aed)'),
   };
 
   const displayWeeklyHighest = isCurseTheme ? curseWeeklyHighestFloor : weeklyHighestFloor;
-  const displayHistoricalHighest = isCurseTheme ? curseHistoricalHighestFloor : historicalHighestFloor;
+  const displayHistoricalHighest = isVoidTheme ? voidTrialsHistoricalHighestFloor : (isCurseTheme ? curseHistoricalHighestFloor : historicalHighestFloor);
   const displayUnlockedTitles = isCurseTheme ? curseUnlockedTitles : unlockedTitles;
   const displaySelectedTitle = isCurseTheme ? curseSelectedTitle : selectedTitle;
   const titlesConfig = isCurseTheme ? CURSE_TITLES_CONFIG : NORMAL_TITLES_CONFIG;
@@ -137,6 +144,7 @@ export const TowerPanel: React.FC = () => {
   };
 
   const handleSelectTitle = (title: string) => {
+    if (selectedBranch === 'voidTrials') return; // Provações do Vácuo não tem títulos
     AudioManager.getInstance().playClick();
     selectTitle(title, selectedBranch);
   };
@@ -189,11 +197,30 @@ export const TowerPanel: React.FC = () => {
             >
               🌀 Ramificação de Maldições
             </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setSelectedBranch('voidTrials'); }}
+              className="btn btn-xs"
+              style={{
+                flex: 1,
+                fontSize: '0.62rem',
+                padding: '0.4rem',
+                background: selectedBranch === 'voidTrials' ? theme.gradient : undefined,
+                border: selectedBranch === 'voidTrials' ? 'none' : undefined,
+                color: selectedBranch === 'voidTrials' ? '#fff' : '#818cf8',
+                opacity: isVoidTrialsUnlocked ? 1 : 0.6,
+              }}
+            >
+              {isVoidTrialsUnlocked ? '♾️ Provações do Vácuo' : '🔒 Provações do Vácuo'}
+            </button>
           </div>
           <div style={{ fontSize: '0.6rem', color: theme.accent, lineHeight: 1.4, padding: '0 0.2rem' }}>
-            {isCurseTheme
-              ? '🌀 Cada andar acumula uma maldição: +20% em 1 atributo, -10% em 2 outros (temporário, só durante a subida). Em troca, +50% de Ouro e Fragmentos de Forja.'
-              : 'Suba andares determinísticos baseados na semente semanal. A regeneração entre andares está desativada!'}
+            {isVoidTheme
+              ? (isVoidTrialsUnlocked
+                ? `♾️ Sem teto de dificuldade, sem títulos, sem leaderboard — só o seu recorde pessoal. A cada ${VOID_TRIALS_PT_FLOOR_INTERVAL} andares batidos na semana, +1 Ponto de Transcendência (máximo ${VOID_TRIALS_WEEKLY_PT_CAP}/semana).`
+                : '🔒 Só se abre para quem já Transcendeu pelo menos uma vez — é um mergulho direto rumo à coisa que espera no fundo de tudo, e exige ter passado pelo menos uma vez pelo hard-reset da Transcendência antes.')
+              : (isCurseTheme
+                ? '🌀 Cada andar acumula uma maldição: +20% em 1 atributo, -10% em 2 outros (temporário, só durante a subida). Em troca, +50% de Ouro e Fragmentos de Forja.'
+                : 'Suba andares determinísticos baseados na semente semanal. A regeneração entre andares está desativada!')}
           </div>
         </div>
       )}
@@ -206,14 +233,16 @@ export const TowerPanel: React.FC = () => {
           <div style={{
             background: isCurseTheme
               ? 'linear-gradient(135deg, rgba(127, 29, 29, 0.18), rgba(220, 38, 38, 0.12))'
-              : 'linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.12))',
-            border: `1px solid ${isCurseTheme ? 'rgba(220, 38, 38, 0.35)' : 'rgba(168, 85, 247, 0.3)'}`,
+              : isVoidTheme
+                ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.4), rgba(79, 70, 229, 0.15))'
+                : 'linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.12))',
+            border: `1px solid ${isCurseTheme ? 'rgba(220, 38, 38, 0.35)' : (isVoidTheme ? 'rgba(99, 102, 241, 0.4)' : 'rgba(168, 85, 247, 0.3)')}`,
             borderRadius: 'var(--radius-lg)',
             padding: '0.85rem',
             textAlign: 'center',
-            boxShadow: isCurseTheme ? '0 0 10px rgba(220, 38, 38, 0.15)' : '0 0 10px rgba(168, 85, 247, 0.1)',
+            boxShadow: isCurseTheme ? '0 0 10px rgba(220, 38, 38, 0.15)' : (isVoidTheme ? '0 0 10px rgba(99, 102, 241, 0.2)' : '0 0 10px rgba(168, 85, 247, 0.1)'),
           }}>
-            <div style={{ fontSize: '0.6rem', color: isCurseTheme ? '#f87171' : '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Andar Ativo</div>
+            <div style={{ fontSize: '0.6rem', color: isCurseTheme ? '#f87171' : (isVoidTheme ? '#818cf8' : '#c084fc'), textTransform: 'uppercase', letterSpacing: '0.05em' }}>Andar Ativo</div>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', margin: '0.2rem 0' }}>{currentFloor}</div>
             <div style={{ fontSize: '0.55rem', color: '#94a3b8' }}>
               {activeKeyType === 'evolved' ? '🗝️ Chave Evoluída (3x Ouro/XP)' : 'Combate em Progresso'}
@@ -221,10 +250,14 @@ export const TowerPanel: React.FC = () => {
             {towerBranch === 'curse' && (
               <div style={{ fontSize: '0.55rem', color: '#f87171', marginTop: '0.15rem' }}>🌀 Ramificação de Maldições (+50% Ouro/Fragmentos)</div>
             )}
+            {towerBranch === 'voidTrials' && (
+              <div style={{ fontSize: '0.55rem', color: '#818cf8', marginTop: '0.15rem' }}>♾️ Provações do Vácuo (sem teto de dificuldade)</div>
+            )}
           </div>
         )}
 
-        {/* Recorde Semanal */}
+        {/* Recorde Semanal — Provações do Vácuo não tem recorde semanal público (roadmap: "sem
+            leaderboard"), mostra o progresso de PT da semana no lugar. */}
         <div style={{
           background: theme.surfaceTint,
           border: `1px solid ${theme.border}`,
@@ -232,9 +265,19 @@ export const TowerPanel: React.FC = () => {
           padding: '0.85rem',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Máximo da Semana</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accent, margin: '0.2rem 0' }}>{displayWeeklyHighest}</div>
-          <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Reset aos Domingos</div>
+          {isVoidTheme ? (
+            <>
+              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PT desta Semana</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accent, margin: '0.2rem 0' }}>{voidTrialsPtGrantedThisWeek}/{VOID_TRIALS_WEEKLY_PT_CAP}</div>
+              <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Teto semanal fixo</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Máximo da Semana</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accent, margin: '0.2rem 0' }}>{displayWeeklyHighest}</div>
+              <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Reset aos Domingos</div>
+            </>
+          )}
         </div>
 
         {/* Recorde Histórico */}
@@ -245,19 +288,21 @@ export const TowerPanel: React.FC = () => {
           padding: '0.85rem',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recorde Histórico</div>
+          <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isVoidTheme ? 'Recorde Pessoal' : 'Recorde Histórico'}</div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.accentStrong, margin: '0.2rem 0' }}>{displayHistoricalHighest}</div>
           <div style={{ fontSize: '0.55rem', color: '#64748b' }}>Melhor marca de sempre</div>
         </div>
       </div>
 
-      {/* Box de Título Honorífico Ativo — compartilhado entre as duas ramificações */}
-      <EquippedTitleBox
-        selectedTitle={displaySelectedTitle}
-        onRemove={() => handleSelectTitle('')}
-        accentColor={theme.accent}
-        borderColor={theme.border}
-      />
+      {/* Box de Título Honorífico Ativo — Provações do Vácuo não concede títulos */}
+      {!isVoidTheme && (
+        <EquippedTitleBox
+          selectedTitle={displaySelectedTitle}
+          onRemove={() => handleSelectTitle('')}
+          accentColor={theme.accent}
+          borderColor={theme.border}
+        />
+      )}
 
       {/* Botão de Ação Principal e Alertas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', margin: '0.25rem 0' }}>
@@ -265,7 +310,7 @@ export const TowerPanel: React.FC = () => {
           <>
             <button
               onClick={() => handleStartAttempt('normal')}
-              disabled={towerKeys === 0}
+              disabled={towerKeys === 0 || (isVoidTheme && !isVoidTrialsUnlocked)}
               className={`btn ${towerKeys > 0 ? 'btn-gold' : 'btn-disabled'}`}
               style={{
                 width: '100%',
@@ -290,7 +335,7 @@ export const TowerPanel: React.FC = () => {
 
             <button
               onClick={() => handleStartAttempt('evolved')}
-              disabled={evolvedTowerKeys === 0}
+              disabled={evolvedTowerKeys === 0 || (isVoidTheme && !isVoidTrialsUnlocked)}
               className={`btn ${evolvedTowerKeys > 0 ? 'btn-gold' : 'btn-disabled'}`}
               style={{
                 width: '100%',
@@ -312,6 +357,24 @@ export const TowerPanel: React.FC = () => {
               <span style={{ fontSize: '0.85rem' }}>🗝️ SUBIDA COM CHAVE EVOLUÍDA (3x)</span>
               <span style={{ fontSize: '0.6rem', fontWeight: 600, color: evolvedTowerKeys > 0 ? '#e9d5ff' : '#64748b', opacity: 0.85 }}>(Consome 1 🗝️)</span>
             </button>
+
+            {isVoidTheme && !isVoidTrialsUnlocked && (
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.6rem 0.8rem',
+                fontSize: '0.62rem',
+                color: '#a5b4fc',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '6px',
+                lineHeight: 1.4
+              }}>
+                <span>🔒</span>
+                <div>Transcenda pelo menos uma vez para desbloquear as Provações do Vácuo.</div>
+              </div>
+            )}
 
             <div style={{
               display: 'flex',
@@ -443,7 +506,8 @@ export const TowerPanel: React.FC = () => {
         )}
       </div>
 
-      {/* Galeria de Títulos e Prêmios */}
+      {/* Galeria de Títulos e Prêmios — Provações do Vácuo não concede títulos (sem leaderboard) */}
+      {!isVoidTheme && (
       <div>
         <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.35rem', margin: '0 0 0.65rem 0' }}>
           🏷️ Títulos Honoríficos da Torre
@@ -527,6 +591,7 @@ export const TowerPanel: React.FC = () => {
           })}
         </div>
       </div>
+      )}
 
     </div>
   );

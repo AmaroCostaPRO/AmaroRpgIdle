@@ -31,6 +31,18 @@ export const CURSE_DEBUFF_PCT = 0.10;
 export const CURSE_BUFF_PCT = 0.20;
 export const CURSE_BRANCH_REWARD_MULT = 1.5;
 
+// v9.0.0 "O Que Espera no Pandemônio": Provações do Vácuo — 3ª ramificação da Torre, reaproveitando
+// a mesma curva de escala sem teto (HP/dano em CombatFSM já chaveiam só por `currentFloor`, sem
+// diferenciar ramificação — funciona automaticamente). Só registra o melhor andar pessoal (sem
+// títulos, sem leaderboard). Concede Pontos de Transcendência (PT) — a moeda mais escassa do jogo,
+// hoje só obtida via reset quase total em `performTranscendence` — mas com um teto semanal BAIXO e
+// FIXO: o valor concedido escala com o andar batido na semana (a cada
+// VOID_TRIALS_PT_FLOOR_INTERVAL andares = +1 PT), até o teto de VOID_TRIALS_WEEKLY_PT_CAP por
+// semana. Uma vez batido o teto, andares além dele continuam contando para o recorde histórico mas
+// não geram mais PT até o próximo reset semanal — nunca uma alternativa de farm ao hard-reset.
+export const VOID_TRIALS_PT_FLOOR_INTERVAL = 40;
+export const VOID_TRIALS_WEEKLY_PT_CAP = 3;
+
 // Sorteia 1 atributo para receber o bônus e 2 outros (distintos entre si e do bônus) para a
 // penalidade, usando StatEngine.pickRandomElements (Fisher-Yates parcial, sem o viés conhecido de
 // `array.sort(() => 0.5 - Math.random())`).
@@ -87,16 +99,21 @@ export interface TowerStoreState {
   curseHistoricalHighestFloor: number;
   curseUnlockedTitles: string[];
   curseSelectedTitle: string;
+  // v9.0.0: recorde pessoal (sem reset semanal, sem títulos) e contador de PT já concedido na
+  // semana atual das Provações do Vácuo — independentes dos campos normal/curse acima.
+  voidTrialsHistoricalHighestFloor: number;
+  voidTrialsWeeklyHighestFloor: number;
+  voidTrialsPtGrantedThisWeek: number;
   weeklySeed: number;
   lastWeeklyResetTime: number;
   savedStageBeforeTower: number;
   savedEnemiesDefeatedBeforeTower: number;
   activeKeyType: 'normal' | 'evolved';
-  towerBranch: 'normal' | 'curse';
+  towerBranch: 'normal' | 'curse' | 'voidTrials';
   activeCurses: TowerCurse[];
 
   // Ações
-  startTowerAttempt: (keyType?: 'normal' | 'evolved', branch?: 'normal' | 'curse') => void;
+  startTowerAttempt: (keyType?: 'normal' | 'evolved', branch?: 'normal' | 'curse' | 'voidTrials') => void;
   advanceTowerFloor: () => void;
   exitTower: (success: boolean) => void;
   checkWeeklyReset: () => void;
@@ -124,6 +141,9 @@ const saveTowerToStorage = (state: Partial<TowerStoreState>) => {
       curseHistoricalHighestFloor: state.curseHistoricalHighestFloor,
       curseUnlockedTitles: state.curseUnlockedTitles,
       curseSelectedTitle: state.curseSelectedTitle,
+      voidTrialsHistoricalHighestFloor: state.voidTrialsHistoricalHighestFloor,
+      voidTrialsWeeklyHighestFloor: state.voidTrialsWeeklyHighestFloor,
+      voidTrialsPtGrantedThisWeek: state.voidTrialsPtGrantedThisWeek,
       weeklySeed: state.weeklySeed,
       lastWeeklyResetTime: state.lastWeeklyResetTime,
     };
@@ -148,6 +168,9 @@ const loadTowerFromStorage = (): Partial<TowerStoreState> => {
         curseHistoricalHighestFloor: parsed.curseHistoricalHighestFloor || 0,
         curseUnlockedTitles: parsed.curseUnlockedTitles || [],
         curseSelectedTitle: parsed.curseSelectedTitle || '',
+        voidTrialsHistoricalHighestFloor: parsed.voidTrialsHistoricalHighestFloor || 0,
+        voidTrialsWeeklyHighestFloor: parsed.voidTrialsWeeklyHighestFloor || 0,
+        voidTrialsPtGrantedThisWeek: parsed.voidTrialsPtGrantedThisWeek || 0,
         weeklySeed: parsed.weeklySeed || 0,
         lastWeeklyResetTime: parsed.lastWeeklyResetTime || 0,
       };
@@ -164,6 +187,9 @@ const loadTowerFromStorage = (): Partial<TowerStoreState> => {
     curseHistoricalHighestFloor: 0,
     curseUnlockedTitles: [],
     curseSelectedTitle: '',
+    voidTrialsHistoricalHighestFloor: 0,
+    voidTrialsWeeklyHighestFloor: 0,
+    voidTrialsPtGrantedThisWeek: 0,
     weeklySeed: 0,
     lastWeeklyResetTime: 0,
   };
@@ -185,6 +211,9 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       curseHistoricalHighestFloor: s.curseHistoricalHighestFloor,
       curseUnlockedTitles: s.curseUnlockedTitles,
       curseSelectedTitle: s.curseSelectedTitle,
+      voidTrialsHistoricalHighestFloor: s.voidTrialsHistoricalHighestFloor,
+      voidTrialsWeeklyHighestFloor: s.voidTrialsWeeklyHighestFloor,
+      voidTrialsPtGrantedThisWeek: s.voidTrialsPtGrantedThisWeek,
       weeklySeed: s.weeklySeed,
       lastWeeklyResetTime: s.lastWeeklyResetTime,
     });
@@ -201,6 +230,9 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
   curseHistoricalHighestFloor: initialData.curseHistoricalHighestFloor || 0,
   curseUnlockedTitles: initialData.curseUnlockedTitles || [],
   curseSelectedTitle: initialData.curseSelectedTitle || '',
+  voidTrialsHistoricalHighestFloor: initialData.voidTrialsHistoricalHighestFloor || 0,
+  voidTrialsWeeklyHighestFloor: initialData.voidTrialsWeeklyHighestFloor || 0,
+  voidTrialsPtGrantedThisWeek: initialData.voidTrialsPtGrantedThisWeek || 0,
   weeklySeed: initialData.weeklySeed || 0,
   lastWeeklyResetTime: initialData.lastWeeklyResetTime || 0,
   savedStageBeforeTower: 1,
@@ -209,9 +241,18 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
   towerBranch: 'normal',
   activeCurses: [],
 
-  startTowerAttempt: (keyType: 'normal' | 'evolved' = 'normal', branch: 'normal' | 'curse' = 'normal') => {
+  startTowerAttempt: (keyType: 'normal' | 'evolved' = 'normal', branch: 'normal' | 'curse' | 'voidTrials' = 'normal') => {
     // Primeiro, verifica se há necessidade de reset semanal
     get().checkWeeklyReset();
+
+    // Provações do Vácuo (v9.0.0): só libera após a primeira Transcendência — mesmo gate que a
+    // Ecoterra já usa (`toggleEcoterra` em useGameStore.ts) para conteúdo pós-Transcendência.
+    if (branch === 'voidTrials' && (useGameStore.getState().character.transcendenceCount || 0) < 1) {
+      bridge.emit(GameEvent.LOG_EMITTED, {
+        message: '🔒 As Provações do Vácuo só se abrem para quem já Transcendeu pelo menos uma vez!'
+      });
+      return;
+    }
 
     const char = useGameStore.getState().character;
     const consumableType = keyType === 'evolved' ? 'tower_key_evolved' : 'tower_key';
@@ -270,6 +311,11 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
         message: '🌀 Ramificação de Maldições ativada! A cada andar, uma nova maldição se acumula (+20% em 1 atributo, -10% em 2 outros) — em troca, +50% de Ouro e Fragmentos de Forja.'
       });
     }
+    if (branch === 'voidTrials') {
+      bridge.emit(GameEvent.LOG_EMITTED, {
+        message: `♾️ Provações do Vácuo ativadas! Sem teto de dificuldade, sem leaderboard — só o seu recorde pessoal. A cada ${VOID_TRIALS_PT_FLOOR_INTERVAL} andares batidos na semana, +1 Ponto de Transcendência (máximo ${VOID_TRIALS_WEEKLY_PT_CAP}/semana).`
+      });
+    }
 
     // Avisa que o combate precisa recomeçar no modo torre
     bridge.emit(GameEvent.START_COMBAT, { mode: 'tower' });
@@ -281,35 +327,40 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
 
     // v8.0.0 "O Espelho Faminto": recordes/títulos são independentes por ramificação — todo o
     // restante da função lê/escreve através destas chaves em vez dos campos fixos.
-    const isCurse = get().towerBranch === 'curse';
-    const weeklyKey = isCurse ? 'curseWeeklyHighestFloor' : 'weeklyHighestFloor';
-    const historicalKey = isCurse ? 'curseHistoricalHighestFloor' : 'historicalHighestFloor';
+    // v9.0.0: Provações do Vácuo (`isVoid`) não tem títulos nem recorde semanal público — usa as
+    // mesmas chaves só para reaproveitar a checagem de "recorde inédito" que já dispara ouro/fragmentos.
+    const branch = get().towerBranch;
+    const isCurse = branch === 'curse';
+    const isVoid = branch === 'voidTrials';
+    const weeklyKey = isVoid ? 'voidTrialsWeeklyHighestFloor' : (isCurse ? 'curseWeeklyHighestFloor' : 'weeklyHighestFloor');
+    const historicalKey = isVoid ? 'voidTrialsHistoricalHighestFloor' : (isCurse ? 'curseHistoricalHighestFloor' : 'historicalHighestFloor');
     const titlesKey = isCurse ? 'curseUnlockedTitles' : 'unlockedTitles';
     const milestones = isCurse ? CURSE_TITLE_MILESTONES : NORMAL_TITLE_MILESTONES;
 
     // Se o andar completado é maior do que o recorde da semana, atualiza os recordes
     let nextWeeklyHighest = get()[weeklyKey];
     let nextHistoricalHighest = get()[historicalKey];
+    let nextVoidPtGranted = get().voidTrialsPtGrantedThisWeek;
     let titleUnlockedMsg = '';
-    const newTitles = [...get()[titlesKey]];
+    const newTitles = isVoid ? [] : [...get()[titlesKey]];
 
     // Se completou um andar inédito na semana atual, concede recompensas
     if (floorCompleted > get()[weeklyKey]) {
       nextWeeklyHighest = floorCompleted;
-      
+
       // Recompensa básica em ouro por andar completado (inédito na semana)
       const baseGold = 100 * floorCompleted * (get().activeKeyType === 'evolved' ? 3 : 1) * (get().towerBranch === 'curse' ? CURSE_BRANCH_REWARD_MULT : 1);
       const coinRelicLvl = useRelicStore.getState().relics['moeda_ciclo']?.level || 0;
       const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
       let goldReward = Math.floor(baseGold * (1 + relicGoldBonus));
-      
+
       // Capstone da Moeda do Ciclo Eterno (Lvl 5): 5% de chance de dobrar recompensa (12.5% se Superaquecida no Laboratório de Relíquias)
       const isCoinOverheated = (useGameStore.getState().character.citadel?.relicLab?.overheatedRelicIds || []).includes('moeda_ciclo');
       if (coinRelicLvl === 5 && Math.random() < (isCoinOverheated ? 0.125 : 0.05)) {
         goldReward *= 2;
         bridge.emit(GameEvent.LOG_EMITTED, { message: '🪙 Moeda do Ciclo Eterno duplicou a recompensa da Torre!' });
       }
-      
+
       useGameStore.getState().addGold(goldReward);
       bridge.emit(GameEvent.LOG_EMITTED, {
         message: `🎁 Recompensa do Andar ${floorCompleted}: +${goldReward} Ouro!`
@@ -321,6 +372,21 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
         bridge.emit(GameEvent.LOG_EMITTED, {
           message: `✨ Bônus de Elite da Torre: +1 Fragmento de Alma Instável!`
         });
+      }
+
+      // Provações do Vácuo (v9.0.0): PT escala com o andar batido NESTA semana, até o teto fixo —
+      // concede só a DIFERENÇA entre o total "merecido" no novo andar e o que já foi concedido essa
+      // semana, nunca mais que VOID_TRIALS_WEEKLY_PT_CAP no total.
+      if (isVoid) {
+        const candidateTotal = Math.min(VOID_TRIALS_WEEKLY_PT_CAP, Math.floor(nextWeeklyHighest / VOID_TRIALS_PT_FLOOR_INTERVAL));
+        const delta = candidateTotal - nextVoidPtGranted;
+        if (delta > 0) {
+          useGameStore.getState().addTranscendencePoints(delta);
+          nextVoidPtGranted = candidateTotal;
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `♾️ Provações do Vácuo: +${delta} Ponto${delta > 1 ? 's' : ''} de Transcendência! (${candidateTotal}/${VOID_TRIALS_WEEKLY_PT_CAP} nesta semana)`
+          });
+        }
       }
     }
 
@@ -334,11 +400,14 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
     if (floorCompleted > get()[historicalKey]) {
       nextHistoricalHighest = floorCompleted;
 
-      // Lógica de desbloqueio de títulos históricos (pool normal ou amaldiçoado, conforme a ramificação)
-      const milestoneTitle = milestones[floorCompleted];
-      if (milestoneTitle && !newTitles.includes(milestoneTitle)) {
-        newTitles.push(milestoneTitle);
-        titleUnlockedMsg = `🏆 TÍTULO DESBLOQUEADO: "${milestoneTitle}"!`;
+      // Lógica de desbloqueio de títulos históricos (pool normal ou amaldiçoado) — Provações do
+      // Vácuo não tem pool de títulos (roadmap: "sem leaderboard online"), só atualiza o recorde acima.
+      if (!isVoid) {
+        const milestoneTitle = milestones[floorCompleted];
+        if (milestoneTitle && !newTitles.includes(milestoneTitle)) {
+          newTitles.push(milestoneTitle);
+          titleUnlockedMsg = `🏆 TÍTULO DESBLOQUEADO: "${milestoneTitle}"!`;
+        }
       }
     }
 
@@ -357,7 +426,9 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       currentFloor: nextFloor,
       [weeklyKey]: nextWeeklyHighest,
       [historicalKey]: nextHistoricalHighest,
-      [titlesKey]: newTitles,
+      // Provações do Vácuo não tem array de títulos próprio — grava o contador de PT da semana
+      // no lugar, em vez de sobrescrever `unlockedTitles`/`curseUnlockedTitles` com um array vazio.
+      ...(isVoid ? { voidTrialsPtGrantedThisWeek: nextVoidPtGranted } : { [titlesKey]: newTitles }),
       activeCurses: nextCurses,
     } as Partial<TowerStoreState>);
 
@@ -416,6 +487,10 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       set({
         weeklyHighestFloor: 0,
         curseWeeklyHighestFloor: 0,
+        // v9.0.0: teto semanal de PT das Provações do Vácuo também zera aqui — junto do recorde
+        // semanal (que só existe internamente para calcular o PT concedido, não é exibido como recorde público).
+        voidTrialsWeeklyHighestFloor: 0,
+        voidTrialsPtGrantedThisWeek: 0,
         weeklySeed: currentSeed,
         lastWeeklyResetTime: Date.now(),
       });
@@ -450,6 +525,9 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       curseHistoricalHighestFloor: 0,
       curseUnlockedTitles: [],
       curseSelectedTitle: '',
+      voidTrialsHistoricalHighestFloor: 0,
+      voidTrialsWeeklyHighestFloor: 0,
+      voidTrialsPtGrantedThisWeek: 0,
       weeklySeed: getWeeklySeed(),
       lastWeeklyResetTime: Date.now(),
     });

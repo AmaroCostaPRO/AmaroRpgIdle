@@ -7,7 +7,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
-import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive } from '../core/CombatFSM';
+import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
@@ -22,6 +22,7 @@ import { AcademyPanel } from './citadel/AcademyPanel';
 import { WatchTowerPanel } from './citadel/WatchTowerPanel';
 import { ForgeWorkshopPanel } from './citadel/ForgeWorkshopPanel';
 import { AlchemyLabPanel } from './citadel/AlchemyLabPanel';
+import { HuntSanctuaryPanel } from './citadel/HuntSanctuaryPanel';
 import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
 import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
@@ -130,6 +131,11 @@ const GameHUD: React.FC = () => {
   // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal semanal (fim de semana), nunca dentro da Torre
   const isTowerActiveNow = useTowerStore((state) => state.towerActive);
   const bloodMoonBannerActive = !isTowerActiveNow && isBloodMoonActive();
+  // v9.0.0 "O Que Espera no Pandemônio": Convergência — evento sazonal semanal (quarta-feira),
+  // só depois do Pandemônio desbloqueado, nunca dentro da Torre.
+  const pandemoniumUnlockedForConvergence = useGameStore((state) => state.character.pandemoniumUnlocked);
+  const convergenceBannerActive = !isTowerActiveNow && pandemoniumUnlockedForConvergence && isConvergenceActive();
+  const convergenceBossOfWeek = convergenceBannerActive ? getConvergenceBossOfWeek() : null;
 
   const lastHp = useRef({ current: 0, max: 0 });
   const lastMana = useRef({ current: 0, max: 0 });
@@ -264,6 +270,11 @@ const GameHUD: React.FC = () => {
                 🌕 LUA DE SANGUE
               </span>
             )}
+            {convergenceBannerActive && convergenceBossOfWeek && (
+              <span title={`Chance de encontrar o world boss desta semana: ${convergenceBossOfWeek.name}. Drop exclusivo garantido ao derrotá-lo.`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#312e81', color: '#c4b5fd', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>
+                ☄️ CONVERGÊNCIA: {convergenceBossOfWeek.name}
+              </span>
+            )}
             <span className="combat-indicator">● Em Combate</span>
           </div>
         </div>
@@ -388,6 +399,10 @@ const ActiveSkillsPanel: React.FC = () => {
     bridge.emit(GameEvent.EQUIP_SKILL, { skillId });
   };
 
+  const triggerActiveRelic = () => {
+    bridge.emit(GameEvent.TRIGGER_ACTIVE_RELIC, {});
+  };
+
   // Filtra apenas as habilidades ativas desbloqueadas do personagem
   const activeSkills = Object.entries(SKILLS_CATALOG).filter(([id, skill]) => {
     const isClassSkill = skill.classId === classId || skill.classId === 'common';
@@ -470,6 +485,42 @@ const ActiveSkillsPanel: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Relíquia Ativa equipada (v9.0.0 "O Que Espera no Pandemônio") */}
+      {character.equipment.activeRelic && character.equipment.activeRelic.activeRelicId && (() => {
+        const relicDef = getActiveRelicDefinition(character.equipment.activeRelic.activeRelicId);
+        if (!relicDef) return null;
+        const cooldownKey = `relic_active_${relicDef.id}`;
+        const cooldownMs = cooldowns[cooldownKey] || 0;
+        const isOnCooldown = cooldownMs > 0;
+        const cooldownSec = Math.ceil(cooldownMs / 1000);
+        const rolled = character.equipment.activeRelic.activeRelicRolledValue ?? 0;
+
+        return (
+          <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)' }}>
+            <h2 className="section-title" style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>🔮 Relíquia Ativa</h2>
+            <button
+              onClick={() => {
+                if (!isOnCooldown) {
+                  AudioManager.getInstance().playClick();
+                  triggerActiveRelic();
+                }
+              }}
+              disabled={isOnCooldown}
+              className="btn-skill-combat"
+              style={{ position: 'relative', overflow: 'hidden', width: '100%' }}
+            >
+              {isOnCooldown && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.65rem', color: '#f87171', zIndex: 10 }}>
+                  RECARGA {cooldownSec}s
+                </div>
+              )}
+              <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#c084fc' }}>{relicDef.icon} {relicDef.name}</span>
+              <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>{relicDef.description.replace('{value}', String(rolled))}</span>
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Seção de Auto-Cast */}
       {isAutoCastUnlocked ? (
@@ -953,8 +1004,8 @@ const AttributePanel: React.FC = () => {
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
-  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null;
-  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null) => void;
+  selectedSlot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic' | null;
+  setSelectedSlot: (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic' | null) => void;
   showDiscardConfirm: boolean;
   setShowDiscardConfirm: (show: boolean) => void;
 }
@@ -1017,7 +1068,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     setSelectedItem(null);
   };
 
-  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring') => {
+  const handleUnequip = (slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic') => {
     AudioManager.getInstance().playClick();
     unequipItem(slot);
     setSelectedSlot(null);
@@ -1055,6 +1106,19 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
             border: '1px solid var(--border-dim)',
             position: 'relative'
           }}>
+            {/* Relíquia Ativa (v9.0.0) */}
+            <div style={{ gridRow: '1', gridColumn: '1' }}>
+              <EquipmentSlot
+                slot="activeRelic"
+                item={character.equipment.activeRelic}
+                onClick={() => character.equipment.activeRelic && setSelectedSlot('activeRelic')}
+                icons={slotIcons}
+                labels={slotLabels}
+                getRarityColor={getRarityColor}
+                getRarityBg={getRarityBg}
+              />
+            </div>
+
             {/* Cabeça */}
             <div style={{ gridRow: '1', gridColumn: '2' }}>
               <EquipmentSlot 
@@ -1664,7 +1728,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
 
 // Componente auxiliar para renderizar cada slot de equipamento
 const EquipmentSlot: React.FC<{
-  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring';
+  slot: 'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic';
   item: EquipmentItem | null;
   onClick: () => void;
   icons: Record<string, string>;
@@ -3604,7 +3668,7 @@ const GuidePanel: React.FC = () => {
             <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <p>
-                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 9 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0), que fica na 2ª:
+                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 10 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0) e o Santuário de Contratos de Caça (v9.0.0), que ficam na 2ª:
               </p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
                 <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
@@ -3617,6 +3681,7 @@ const GuidePanel: React.FC = () => {
                 <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
                 <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
                 <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
+                <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça (v9.0.0):</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
               </ul>
             </div>
           </div>
@@ -3664,6 +3729,25 @@ const GuidePanel: React.FC = () => {
             </div>
           </div>
 
+          {/* Relíquia Ativa (9º slot, v9.0.0) */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔮 Relíquia Ativa (9º Slot, v9.0.0)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                Diferente de todos os outros slots, a Relíquia Ativa não concede atributos passivos — ela dá uma <strong>habilidade ativa com recarga própria</strong>, disparada por um botão dedicado no painel de Habilidades. Não passa por Fusão Mística: a habilidade em si é fixa, só a potência do parâmetro relevante (dano, cura, duração, etc.) varia por um roll min/máx conforme a raridade do drop.
+              </p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                <li><span className="text-white font-semibold">🔥 Núcleo de Fúria Ancestral:</span> <span className="text-gray-400">+dano% por 8s.</span></li>
+                <li><span className="text-white font-semibold">💗 Coração Selado:</span> <span className="text-gray-400">cura instantânea de %HP máximo.</span></li>
+                <li><span className="text-white font-semibold">⏳ Fragmento do Tempo Parado:</span> <span className="text-gray-400">reduz na hora o cooldown restante de todas as habilidades de classe.</span></li>
+                <li><span className="text-white font-semibold">🎯 Selo do Caçador de Elites:</span> <span className="text-gray-400">+dano% contra Elites/Chefes por 10s.</span></li>
+                <li><span className="text-white font-semibold">🛡️ Bastião Intangível:</span> <span className="text-gray-400">invulnerabilidade total por alguns segundos.</span></li>
+                <li><span className="text-white font-semibold">💰 Bolsa sem Fundo:</span> <span className="text-gray-400">+ouro% obtido por 15s.</span></li>
+              </ul>
+              <p className="text-gray-500 text-[8px]">Drop independente e raro (2% por encontro comum, fora da Torre). A Convergência (ver abaixo) dropa versões exclusivas ainda mais fortes dessas mesmas 6 categorias.</p>
+            </div>
+          </div>
+
           {/* Transcendência / Ecoterra / Loja Celestial */}
           <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
             <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
@@ -3694,6 +3778,12 @@ const GuidePanel: React.FC = () => {
                 <strong className="text-white block font-semibold">🌟 Classe Suprema: Avatar</strong>
                 <p className="text-gray-400 text-[9px] mt-0.5">
                   Desbloqueada ao atingir Nível 5 em quatro talentos específicos da árvore de Transcendência (Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar), que juntos liberam o talento final "Avatar Pleno". O Avatar escala dinamicamente com o maior atributo ativo do jogador, fundindo as cinco energias cardinais.
+                </p>
+              </div>
+              <div>
+                <strong className="text-white block font-semibold">♾️ Provações do Vácuo (v9.0.0)</strong>
+                <p className="text-gray-400 text-[9px] mt-0.5">
+                  3ª ramificação da Torre Infinita, liberada só após a <strong>1ª Transcendência</strong>. Reaproveita a mesma curva de dificuldade sem teto da Torre, mas só registra o seu recorde pessoal — sem títulos, sem semente semanal pública, sem leaderboard. A cada 40 andares batidos <strong>nesta semana</strong>, concede +1 Ponto de Transcendência, até um teto fixo de 3 PT por semana (resetado junto do relógio semanal da Torre) — como PT é a moeda mais escassa do jogo, esse modo é só uma fonte lenta e secundária, nunca uma alternativa de farm ao Rito de Transcendência.
                 </p>
               </div>
             </div>
@@ -3910,6 +4000,26 @@ const GuidePanel: React.FC = () => {
                 <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
                 <p className="text-gray-400 text-[9px] mt-0.5">Todo fim de semana, os inimigos da fase atual ganham +50% de HP/Dano e um reskin vermelho, com chance de dropar equipamentos exclusivos do Set da Lua de Sangue. Um indicador "🌕 LUA DE SANGUE" aparece no HUD de combate enquanto ativo.</p>
               </div>
+            </div>
+          </div>
+
+          {/* Convergência (v9.0.0) */}
+          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+            <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest block">☄️ Convergência — World Boss Semanal (v9.0.0)</span>
+            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+              <p>
+                Versão endgame da Lua de Sangue. Toda <strong>quarta-feira</strong>, com o <strong>Pandemônio desbloqueado</strong>, cada encontro comum fora da Torre tem <strong>1% de chance</strong> de se transformar no world boss da semana — só <strong>uma vez por dia</strong> (a mesma seed semanal barra novos sorteios até a próxima quarta).
+              </p>
+              <p>
+                O boss da semana é escolhido automaticamente entre 4 formas rotativas — todos o mesmo jeito da coisa antiga do Pandemônio de tentar "ser vista":
+              </p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                <li><span className="text-white font-semibold">🕳️ O Que Ainda Sonha</span> <span className="text-gray-400">— dropa o Eco do Que Ainda Sonha (dano burst).</span></li>
+                <li><span className="text-white font-semibold">🩸 O Ceifador de Reflexos</span> <span className="text-gray-400">— dropa o Fragmento do Ceifador de Reflexos (dano vs Elites/Chefes).</span></li>
+                <li><span className="text-white font-semibold">🪱 A Fome sem Nome</span> <span className="text-gray-400">— dropa a Presa da Fome sem Nome (cura).</span></li>
+                <li><span className="text-white font-semibold">👑 O Trono Vazio</span> <span className="text-gray-400">— dropa o Selo do Trono Vazio (ouro).</span></li>
+              </ul>
+              <p className="text-gray-500 text-[8px]">Cada drop é uma Relíquia Ativa exclusiva com valor fixo, mais forte que as do catálogo normal — a única forma de obtê-las é derrotando o boss correspondente. Um indicador "☄️ CONVERGÊNCIA: [nome do boss]" aparece no HUD enquanto o dia estiver ativo.</p>
             </div>
           </div>
         </div>
@@ -7093,6 +7203,12 @@ export default function GameUI() {
       { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
     ],
+    huntSanctuary: [
+      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
+      { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
+    ],
   }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments]);
 
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
@@ -7208,7 +7324,7 @@ export default function GameUI() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [confirmSellItem, setConfirmSellItem] = useState(false);
   const [confirmDismantleItem, setConfirmDismantleItem] = useState(false);
@@ -7638,6 +7754,7 @@ export default function GameUI() {
               {citadelSubTab === 'synchronyAltar' && <SynchronyAltarPanel />}
               {citadelSubTab === 'relicLab' && <RelicLabPanel />}
               {citadelSubTab === 'alchemyLab' && <AlchemyLabPanel />}
+              {citadelSubTab === 'huntSanctuary' && <HuntSanctuaryPanel />}
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}
@@ -7780,6 +7897,18 @@ export default function GameUI() {
                         {selectedItem.consumableType === 'tower_key_evolved' && '🗝️ Chave Evoluída de acesso à Torre Infinita. Concede +200% de Ouro e XP na subida. Consumida ao iniciar uma tentativa a partir do painel da Torre.'}
                         {selectedItem.consumableType === 'potion_damage' && '🔥 Ativa instantaneamente +25% de Dano por 3 minutos.'}
                         {selectedItem.consumableType === 'potion_regen' && '💧 Ativa instantaneamente regeneração de HP acelerada por 2 minutos.'}
+                      </div>
+                    </>
+                  ) : selectedItem.slot === 'activeRelic' ? (
+                    <>
+                      <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Habilidade Ativa</span>
+                      <div style={{ fontSize: '0.65rem', color: '#c084fc', marginTop: '0.2rem', lineHeight: 1.4, fontWeight: 700 }}>
+                        {(() => {
+                          const relicDef = selectedItem.activeRelicId ? getActiveRelicDefinition(selectedItem.activeRelicId) : undefined;
+                          if (!relicDef) return 'Relíquia desconhecida.';
+                          const rolled = selectedItem.activeRelicRolledValue ?? 0;
+                          return `${relicDef.icon} ${relicDef.description.replace('{value}', String(rolled))} (Recarga: ${Math.round(relicDef.cooldownMs / 1000)}s)`;
+                        })()}
                       </div>
                     </>
                   ) : (

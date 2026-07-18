@@ -1,6 +1,8 @@
 // Fórmulas de custo/nível-máximo compartilhadas entre a lógica do store (useGameStore.ts)
 // e os painéis de UI da Citadel/Forja, que antes reimplementavam os mesmos valores só para preview.
 
+import type { HuntContract } from './types';
+
 // Construção central da Cidadela — nunca fica "não construída" (começa no Nível 1) e seu
 // nível funciona como teto para o nível de todas as outras construções (ex: o Depósito só
 // pode subir para o Nível 2 depois que o Centro de Comando chegar ao Nível 2).
@@ -126,6 +128,69 @@ export const ALCHEMY_POTION_RECIPE: Record<AlchemyPotionType, { wood: number; st
 // Rendimento por preparo: 1 poção nos Níveis 1-2, 2 nos Níveis 3-4, 3 no Nível 5
 export const ALCHEMY_POTION_YIELD = (labLevel: number): number => 1 + Math.floor(labLevel / 2);
 
+export const HUNT_SANCTUARY_MAX_LEVEL = 5;
+export const HUNT_SANCTUARY_UPGRADE_COST = (nextLevel: number): { wood: number; meat: number; studyInsignias: number } => ({
+  wood: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
+  meat: Math.round(300 * Math.pow(1.6, nextLevel - 1)),
+  studyInsignias: Math.round(80 * Math.pow(1.6, nextLevel - 1)),
+});
+
+// Pool de inimigos elegíveis para contrato — mesmo elenco de `ENEMY_TYPES` (CombatFSM.ts), duplicado
+// aqui como lista de ids para evitar import circular (CombatFSM.ts já importa deste arquivo). Igual
+// ao `reqKills`/`BESTIARY_PHASES` do Bestiário, precisa ser mantido em sincronia manualmente se novos
+// inimigos forem adicionados.
+export const HUNT_CONTRACT_ENEMY_POOL: string[] = [
+  'whisper_sprite', 'thorned_treant', 'fae_rabbit', 'boss_whispering_warden',
+  'goblin', 'shadow_wolf', 'orc_warrior', 'boss_forest_golem',
+  'sand_serpent', 'desert_bandit', 'desert_scorpion', 'boss_sand_scorpion',
+  'frost_wolf', 'ice_elemental', 'cave_yeti', 'boss_frost_dragon',
+  'skeleton_warrior', 'decaying_zombie', 'tormented_ghost', 'boss_necromancer',
+  'stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon',
+  'purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian',
+];
+
+// 2 contratos ativos a partir do Nível 1, 3 a partir do Nível 3
+export const HUNT_CONTRACT_SLOTS = (sanctuaryLevel: number): number => (sanctuaryLevel >= 3 ? 3 : sanctuaryLevel >= 1 ? 2 : 0);
+
+// Janela de rotação fixa de 8h, igual para todos os jogadores (mesmo espírito do `getWeeklySeed` da Torre)
+export const HUNT_CONTRACT_ROTATION_INTERVAL_MS = 8 * 60 * 60 * 1000;
+export const getHuntContractRotationId = (now: number = Date.now()): number => Math.floor(now / HUNT_CONTRACT_ROTATION_INTERVAL_MS);
+
+const huntSeedRandom = (seed: number): number => { const x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+
+// Alvo de mortes por contrato: bosses pedem bem menos que inimigos comuns — fração pequena do
+// `reqKills` que o Bestiário já usa para marco de conclusão (20/50 para chefes, 200 para comuns).
+export const HUNT_CONTRACT_KILL_TARGET = (enemyId: string): number => (enemyId.startsWith('boss_') ? 5 : 15);
+
+const HUNT_CONTRACT_REWARD_MATERIALS: ('wood' | 'stone' | 'meat' | 'studyInsignias')[] = ['wood', 'stone', 'meat', 'studyInsignias'];
+
+// Gera os contratos de uma janela de rotação de forma pura/determinística — mesma seed produz o
+// mesmo resultado em qualquer sessão/recarregamento, sem precisar persistir a escolha em si.
+export const generateHuntContracts = (sanctuaryLevel: number, rotationId: number): Omit<HuntContract, 'id' | 'currentKills' | 'claimed'>[] => {
+  const slots = HUNT_CONTRACT_SLOTS(sanctuaryLevel);
+  const contracts: Omit<HuntContract, 'id' | 'currentKills' | 'claimed'>[] = [];
+  for (let i = 0; i < slots; i++) {
+    const enemySeed = rotationId * 97 + i * 13;
+    const enemyId = HUNT_CONTRACT_ENEMY_POOL[Math.floor(huntSeedRandom(enemySeed) * HUNT_CONTRACT_ENEMY_POOL.length)];
+    const isBoss = enemyId.startsWith('boss_');
+    const rewardMaterial = HUNT_CONTRACT_REWARD_MATERIALS[Math.floor(huntSeedRandom(enemySeed + 500) * HUNT_CONTRACT_REWARD_MATERIALS.length)];
+    const levelMult = 1 + (sanctuaryLevel - 1) * 0.2;
+    contracts.push({
+      enemyId,
+      requiredKills: HUNT_CONTRACT_KILL_TARGET(enemyId),
+      rewardMaterial,
+      rewardAmount: Math.round((isBoss ? 120 : 40) * levelMult),
+      goldReward: Math.round((isBoss ? 800 : 250) * levelMult),
+    });
+  }
+  return contracts;
+};
+
+// Bônus extra por completar todos os contratos da rotação atual
+export const HUNT_CONTRACT_FULL_CLEAR_BONUS = (sanctuaryLevel: number): { unstableSoulFragments: number } => ({
+  unstableSoulFragments: 1 + Math.floor(sanctuaryLevel / 2),
+});
+
 export const RELIC_LAB_MAX_LEVEL = 5;
 export const RELIC_LAB_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; unstableSoulFragments: number } => ({
   stone: Math.round(3000 * Math.pow(1.6, nextLevel - 1)),
@@ -150,7 +215,8 @@ export type CitadelStructureKey =
   | 'cosmicSiphon'
   | 'synchronyAltar'
   | 'relicLab'
-  | 'alchemyLab';
+  | 'alchemyLab'
+  | 'huntSanctuary';
 
 export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
   const HOUR = 60 * 60 * 1000;
