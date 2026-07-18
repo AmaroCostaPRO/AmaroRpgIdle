@@ -506,7 +506,7 @@ const ActiveSkillsPanel: React.FC = () => {
 
         return (
           <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)' }}>
-            <h2 className="section-title" style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>🔮 Relíquia Ativa</h2>
+            <h2 className="section-title" style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>🔱 Relíquia Ativa</h2>
             <button
               onClick={() => {
                 if (!isOnCooldown) {
@@ -3739,7 +3739,7 @@ const GuidePanel: React.FC = () => {
 
           {/* Relíquia Ativa (9º slot, v9.0.0) */}
           <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔮 Relíquia Ativa (9º Slot, v9.0.0)</span>
+            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔱 Relíquia Ativa (9º Slot, v9.0.0)</span>
             <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
               <p>
                 Diferente de todos os outros slots, a Relíquia Ativa não concede atributos passivos — ela dá uma <strong>habilidade ativa com recarga própria</strong>, disparada por um botão dedicado no painel de Habilidades. Não passa por Fusão Mística: a habilidade em si é fixa, só a potência do parâmetro relevante (dano, cura, duração, etc.) varia por um roll min/máx conforme a raridade do drop.

@@ -2876,9 +2876,9 @@ export class CombatFSM {
       };
       const relicAdded = useGameStore.getState().addItemToInventory(relicItem);
       if (relicAdded) {
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Relíquia Ativa apareceu: [${relicItem.name}] (${relicRarity.toUpperCase()})!` });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 Uma Relíquia Ativa apareceu: [${relicItem.name}] (${relicRarity.toUpperCase()})!` });
       } else {
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Relíquia Ativa [${relicItem.name}] caiu, mas seu inventário está cheio!` });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 Uma Relíquia Ativa [${relicItem.name}] caiu, mas seu inventário está cheio!` });
       }
     }
     }
@@ -3073,7 +3073,7 @@ export class CombatFSM {
     if (this.isActiveRelicDamageBuffActive || this.isActiveRelicEliteBuffActive || this.isActiveRelicInvulnActive || this.isActiveRelicGoldBuffActive || this.isActiveRelicHealBuffActive) {
       const equippedRelic = this.characterData?.equipment?.activeRelic;
       const relicDef = equippedRelic?.activeRelicId ? getActiveRelicDefinition(equippedRelic.activeRelicId) : undefined;
-      const relicIcon = relicDef?.icon || '🔮';
+      const relicIcon = relicDef?.icon || '🔱';
       const relicLabel = relicDef?.name || 'Relíquia Ativa';
       if (this.isActiveRelicDamageBuffActive) buffs.push({ id: 'relic_damage', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicDamageBuffDuration, totalMs: this.activeRelicDamageBuffTotalDuration });
       if (this.isActiveRelicEliteBuffActive) buffs.push({ id: 'relic_elite', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicEliteBuffDuration, totalMs: this.activeRelicEliteBuffTotalDuration });

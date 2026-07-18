@@ -349,7 +349,7 @@ const App: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
-                        🔮 Novo Slot de Equipamento: Relíquia Ativa
+                        🔱 Novo Slot de Equipamento: Relíquia Ativa
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         6 relíquias com habilidade ativa própria e recarga: dano burst, cura contínua (% de HP máximo por segundo, diferente da Cura padrão instantânea), redução de cooldown, foco em Elites/Chefes, invulnerabilidade temporária e bônus de ouro. Não passam por fusão mística — a potência (dano, duração, %) varia por um roll min/máx conforme a raridade do drop.

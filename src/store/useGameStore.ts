@@ -3403,8 +3403,12 @@ export const useGameStore = create<GameState>((set) => ({
     let goldEarned = 0;
 
     set((state) => {
-      const isCommonAutoSell = item.rarity === 'common' && state.autoSellCommon;
-      const isRareAutoSell = item.rarity === 'rare' && state.autoSellRare;
+      // Relíquias Ativas (v9.0.0) nunca entram na venda automática das Opções — mesmo raras/comuns,
+      // são um drop pouco frequente e de leitura manual (o jogador precisa ver a habilidade/valor
+      // rolado antes de decidir equipar ou descartar), diferente de equipamento comum genérico.
+      const isAutoSellExempt = item.slot === 'activeRelic';
+      const isCommonAutoSell = !isAutoSellExempt && item.rarity === 'common' && state.autoSellCommon;
+      const isRareAutoSell = !isAutoSellExempt && item.rarity === 'rare' && state.autoSellRare;
 
       if (isCommonAutoSell || isRareAutoSell) {
         success = true;
