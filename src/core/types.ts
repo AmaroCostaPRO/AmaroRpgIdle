@@ -19,6 +19,8 @@ export interface BaseStats {
   dropChancePct?: number;
   damageReductionPct?: number;
   frenzyChancePct?: number;
+  dodgeChancePct?: number;
+  reflectDamagePct?: number;
 }
 
 export interface EquipmentItem {

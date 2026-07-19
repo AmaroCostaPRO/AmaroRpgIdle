@@ -509,12 +509,14 @@ Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adi
 ### Regras de Progressão e Nível Máximo
 *   **Limite de Nível Padrão**: Por padrão (Fases 1 a 10, dificuldades Normal e Pesadelo), cada habilidade comum pode ser aprimorada até o **Nível 5**.
 *   **Expansão no End-Game (Inferno / Apocalipse)**: Ao alcançar a Fase 11 (dificuldades Inferno e Apocalipse), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 10**.
-*   **Expansão no End-Game (Modo Pandemônio)**: Ao alcançar a Fase 21 (dificuldade Pandemônio), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 15**, com **exceção das habilidades passivas**, cujos limites de nível são completamente removidos (**ilimitadas / `Infinity`**), permitindo que o jogador gaste pontos de habilidades excedentes infinitamente para aprimorar os bônus de atributos no endgame.
+*   **Expansão no End-Game (Modo Pandemônio)**: Ao alcançar a Fase 21 (dificuldade Pandemônio), o limite máximo de nível de todas as habilidades comuns é expandido para o **Nível 15**, com **exceção das habilidades passivas de atributo puro**, cujos limites de nível são completamente removidos (**ilimitadas / `Infinity`**), permitindo que o jogador gaste pontos de habilidades excedentes infinitamente para aprimorar os bônus de atributos no endgame.
+*   **Exceção — Passivas Mecânicas (a partir da v9.5.0)**: as 7 passivas que concedem uma mecânica em vez de (ou além de) um bônus de atributo puro — `battle_cry`, `mana_shield`, `fleet_footed`, `retribution`, `divine_shield`, `stealth`, `grave_echoes` (`MECHANIC_PASSIVE_SKILL_IDS`, `useGameStore.ts`) — **não** recebem a expansão `Infinity` da Fase 21. Ficam presas ao mesmo teto de Nível 15 das habilidades ativas comuns, porque seus efeitos são percentuais (reflexão de dano, esquiva, redução de dano do inimigo, cura por abate) sem um contrapeso natural equivalente ao de atributos brutos (que continuam proporcionais ao dano/HP do inimigo, que também escala). Além do teto de nível, cada efeito também tem um cap percentual de segurança aplicado diretamente na fórmula (Seção 6.B), para o caso de o nível investido ser elevado por qualquer outra via.
 *   **Exceção — Habilidades Ativas do Avatar**: as 3 habilidades ativas exclusivas da classe Avatar têm esse teto estendido para o **Nível 25** em vez do Nível 15 (ver Seção 4.B, subseção Avatar, para a motivação de design e a lista completa).
 *   **Escalonamento**:
     *   *Habilidades Ativas*: O dano aumenta em $+15\%$ multiplicativo por nível da habilidade baseado no multiplicador original (ex: dano de $150\%$ vai para $240\%$ no nível 5, $315\%$ no nível 10 e até $465\%$ no nível 15).
     *   *Cura*: A porcentagem curada aumenta em $+2.5\%$ por nível (de $15\%$ no nível 1 para $25\%$ no nível 5, $37.5\%$ no nível 10 e até $50\%$ de cura no nível 15).
-    *   *Habilidades Passivas*: Os bônus de atributos se acumulam linearmente por nível (ex: $+5$ de Força por nível resulta em $+25$ no nível 5, $+50$ no nível 10 e até $+75$ no nível 15). Quando desbloqueada a progressão ilimitada no endgame, a interface substitui o indicador numérico do nível máximo pelo símbolo de infinito (**`∞`**), renderizando o formato `Nível Atual / ∞`.
+    *   *Habilidades Passivas de Atributo*: Os bônus de atributos se acumulam linearmente por nível (ex: $+5$ de Força por nível resulta em $+25$ no nível 5, $+50$ no nível 10 e até $+75$ no nível 15). Quando desbloqueada a progressão ilimitada no endgame, a interface substitui o indicador numérico do nível máximo pelo símbolo de infinito (**`∞`**), renderizando o formato `Nível Atual / ∞`. *(A partir da v9.5.0, esses bônus deixaram de ser somados permanentemente em `baseStats` no momento do desbloqueio/upgrade — são recalculados dinamicamente a cada frame em `StatEngine.calculateFinalStats`, a partir de `character.skillLevels`, no mesmo pipeline usado por equipamentos e relíquias. Ver Seção 16, entrada da v9.5.0, para a migração de saves antigos.)*
+    *   *Habilidades Passivas Mecânicas (novo na v9.5.0)*: cada uma das 7 passivas listadas na exceção acima escala seu próprio efeito percentual/numérico por nível, com um cap de segurança embutido na fórmula — ver o detalhamento de cada uma na Seção 6.B, dentro da respectiva classe.
     *   *Efeitos e Debuffs*: Os valores de dano ou durações dos efeitos secundários aplicados pelas habilidades escalam em $+15\%$ multiplicativo por nível adicional da habilidade:
         *   *Efeitos de Dano/Regeneração Periódica*: O dano/cura por tick aumenta a cada nível, mantendo a duração fixa (ex: o Veneno da *Flecha Venenosa* de $20\%$ da Destreza passa a causar $32\%$ no nível 5, $47\%$ no nível 10 e $62\%$ no nível 15).
         *   *Efeitos de Controle/Utilidade*: A duração (tempo do efeito) aumenta a cada nível, mantendo a potência fixa (ex: o Atordoamento de *Bater Escudo* de $2\text{s}$ dura $3.2\text{s}$ no nível 5, $4.7\text{s}$ no nível 10 e $6.2\text{s}$ no nível 15).
@@ -535,7 +537,7 @@ As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada
     *   *Custo de Mana*: $7.5\%$ a $13.75\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $70.000$ ms (70s)
     *   *Efeito Visual*: Explosão estelar expansiva cobrindo a tela inteira em tons brilhantes de azul e branco.
 3.  **Arqueiro**: *Flecha do Juízo Final* (`ultimate_ranger`)
-    *   *Dano*: Causa $2200\%$ de dano de perfuração baseado em Destreza.
+    *   *Dano*: Causa $2200\%$ de dano de perfuração baseado em Destreza. **+30% de dano contra Elites e Chefes** (v9.5.0), reforçando o tema de "perfurar" do projétil.
     *   *Custo de Mana*: $7.5\%$ a $13.75\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $55.000$ ms (55s)
     *   *Efeito Visual*: Raio de energia verde esmeralda de alta velocidade cortando a tela horizontalmente com múltiplos feixes adicionais.
 4.  **Paladino**: *Julgamento Sagrado* (`ultimate_paladin`)
@@ -590,13 +592,13 @@ Escala suas habilidades de ataque com **Força** (`strength`).
 *   **Impacto de Escudo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano físico base (até $192\%$ no nível 5) e **aplica Atordoamento por 2 segundos** no monstro.
     *   *Efeito Visual*: Golpe físico com impacto retangular cinza e forte tremor de tela.
-*   **Fúria Berserk** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Força para cada nível da habilidade comprado (até $+25$ de Força no nível 5).
+*   **Fúria Berserk** (Passiva de Atributo, Nível Requerido: 5):
+    *   *Mecânica*: Aumento passivo de $+5$ em Força e $+2$ em Constituição para cada nível da habilidade comprado (até $+25$ Força e $+10$ Con no nível 5). *(v9.5.0: passou a incluir Constituição, além de Força.)*
 *   **Executar** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $300\%$ de dano físico base (até $480\%$ no nível 5). **Causa 50% de dano extra (totalizando 450% a 720%) se o HP do monstro estiver abaixo de 35%**.
     *   *Efeito Visual*: Animação de corte diagonal duplo em cor vermelha intensa com texto crítico flutuante "¡MISERICÓRDIA!".
-*   **Grito de Guerra** (Passiva, Nível Requerido: 9):
-    *   *Mecânica*: Aumento passivo de $+5$ em Constituição por nível da habilidade (até $+25$ de Constituição no nível 5).
+*   **Grito de Guerra** (Passiva Mecânica, Nível Requerido: 9):
+    *   *Mecânica (v9.5.0)*: No início de cada combate (`setupEnemyForLevel`, `CombatFSM.ts`), aplica o status **Fraqueza** ("Intimidado") no inimigo, reduzindo o dano dele em $\min(60\%,\ 10\% \times \text{Nível})$ por $4 + \text{Nível}$ segundos. Antes da v9.5.0, era uma passiva de atributo (+5 Constituição/nível); a descrição de "intimidar oponentes" já existia, mas não tinha nenhuma implementação real.
 *   **Tempestade de Aço** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Redemoinho de golpes físicos que causa $400\%$ de dano físico base (até $640\%$ no nível 5).
     *   *Efeito Visual*: Efeito contínuo de cortes rápidos circulares ao redor do alvo e vibração severa.
@@ -609,13 +611,13 @@ Escala suas habilidades de ataque com **Magia** (`magic`).
 *   **Raio de Gelo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $150\%$ de dano mágico base (até $240\%$ no nível 5) e **aplica Lentidão por 4 segundos**, reduzindo a velocidade de ataque do monstro em 40%.
     *   *Efeito Visual*: Projétil azul-claro de gelo que colide gerando partículas azuis e o rótulo `[LENTO]` acima do alvo.
-*   **Escudo de Mana** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Magia para cada nível da habilidade comprado (até $+25$ de Magia no nível 5).
+*   **Escudo de Mana** (Passiva Mecânica, Nível Requerido: 5):
+    *   *Mecânica (v9.5.0)*: A cada $6$ segundos em combate (`update()`, `CombatFSM.ts`), converte $\min(70\%,\ 10\% + 3\% \times \text{Nível})$ da mana atual em um escudo de absorção (`playerShield`) do **dobro** do valor de mana convertida. Antes da v9.5.0, era uma passiva de atributo (+5 Magia/nível) — a descrição "converte mana em barreira" já existia, mas nunca teve implementação real; agora converte mana em barreira de fato.
 *   **Relâmpago** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Dispara uma descarga que causa $350\%$ de dano mágico base (até $560\%$ no nível 5).
     *   *Efeito Visual*: Feixe elétrico roxo descendente caindo diretamente do céu sobre o alvo com clarão na tela.
-*   **Brilho Arcano** (Passiva, Nível Requerido: 9):
-    *   *Mecânica*: Aumento passivo de $+5$ em Magia por nível da habilidade (até $+25$ de Magia no nível 5).
+*   **Brilho Arcano** (Passiva de Atributo, Nível Requerido: 9):
+    *   *Mecânica*: Aumento passivo de $+5$ em Magia por nível da habilidade (até $+25$ de Magia no nível 5). Continua sendo a passiva "âncora" de atributo do Mago.
 *   **Meteoro** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Cataclismo que causa $500\%$ de dano mágico base (até $800\%$ no nível 5). **Aplica Atordoamento por 1.5s e Queimadura por 5s** (causando 15% de Magia por segundo).
     *   *Efeito Visual*: Meteoro gigante caindo diagonalmente com grande explosão de fogo que sacode a tela inteira.
@@ -628,15 +630,15 @@ Escala suas habilidades de ataque com **Destreza** (`dexterity`).
 *   **Flecha Venenosa** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $100\%$ de dano de perfuração base (até $160\%$ no nível 5) e **aplica Veneno por 5 segundos**, causando dano contínuo equivalente a $20\%$ da Destreza do jogador por segundo.
     *   *Efeito Visual*: Projétil verde deixando rastro de partículas tóxicas e marcando o inimigo com o status `[ENVENENADO]`.
-*   **Olho de Águia** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Destreza por nível da habilidade comprado (até $+25$ de Destreza no nível 5).
+*   **Olho de Águia** (Passiva de Atributo, Nível Requerido: 5):
+    *   *Mecânica*: Aumento passivo de $+5$ em Destreza e $+2$ em Constituição por nível da habilidade comprado (até $+25$ Dex e $+10$ Con no nível 5). *(v9.5.0: passou a incluir Constituição, tornando-se a passiva "âncora" de atributo do Arqueiro.)*
 *   **Disparo Duplo** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Dispara dois projéteis de alta velocidade causando $280\%$ de dano de perfuração base (até $448\%$ no nível 5).
     *   *Efeito Visual*: Dois projéteis paralelos rápidos atingindo o inimigo consecutivamente em curto intervalo.
-*   **Passo Ligeiro** (Passiva, Nível Requerido: 9):
-    *   *Mecânica*: Aumento passivo de $+3$ em Destreza e $+2$ em Constituição por nível da habilidade (até $+15$ Dex e $+10$ Con no nível 5).
+*   **Passo Ligeiro** (Passiva Mecânica, Nível Requerido: 9):
+    *   *Mecânica (v9.5.0)*: Concede $\min(30\%,\ 3\% \times \text{Nível})$ de Chance de Esquiva permanente (`dodgeChancePct`, `BaseStats`), somada à fórmula de esquiva em `CombatFSM.ts` (que continua limitada a $75\%$/$95\%$ no total). Antes da v9.5.0, era uma passiva de atributo (+3 Dex/+2 Con por nível).
 *   **Chuva de Flechas** (Ativa, Nível Requerido: 11, Cooldown: 24s):
-    *   *Mecânica*: Causa $420\%$ de dano de perfuração base (até $672\%$ no nível 5).
+    *   *Mecânica*: Causa $420\%$ de dano de perfuração base (até $672\%$ no nível 5). **Aplica Sangramento por 4 segundos** (v9.5.0), causando dano contínuo equivalente a $20\%$ da Destreza do jogador por segundo, escalado pelo mesmo multiplicador de nível da habilidade.
     *   *Efeito Visual*: Uma tempestade de pequenas flechas descendo sobre o monstro causando tremidos de tela e múltiplos textos de dano.
 
 #### 🛡️ Paladino (Paladin)
@@ -647,8 +649,8 @@ Escala suas habilidades de ataque com **Constituição** (`constitution`).
 *   **Escudo da Justiça** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano sagrado (até $192\%$ no nível 5) e **aplica Fraqueza por 5 segundos**, reduzindo todo o dano infligido pelo monstro em 30%.
     *   *Efeito Visual*: Explosão retangular dourada sobre o monstro marcando-o com o status `[ENFRAQUECIDO]`.
-*   **Retribuição Aura** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Constituição por nível da habilidade comprado (até $+25$ de Constituição no nível 5).
+*   **Retribuição Aura** (Passiva Mecânica, Nível Requerido: 5):
+    *   *Mecânica (v9.5.0)*: Reflete $\min(50\%,\ 4\% \times \text{Nível})$ de todo dano recebido de volta ao inimigo (`reflectDamagePct`, `BaseStats`), aplicado após a absorção de qualquer escudo ativo. Antes da v9.5.0, era uma passiva de atributo (+5 Constituição/nível) — a descrição "aura passiva" já existia, mas sem nenhum efeito de retribuição real; agora reflete dano de fato.
 *   **Punição da Luz** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Golpe pesado de dano misto que causa $250\%$ base (até $400\%$ no nível 5) calculado sobre a **média de Constituição e Força** do personagem:
         $$\text{Dano Base} = (\text{Constituição} \times 1.25 + \text{Força} \times 1.25) \times \text{Multiplicador de Nível}$$
@@ -664,10 +666,10 @@ Escala suas habilidades com **Magia** (`magic`).
 *   **Golpe de Fé** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $150\%$ de dano sagrado base (até $240\%$ no nível 5).
     *   *Efeito Visual*: Esfera de energia dourada disparada em direção ao monstro, gerando explosão de faíscas.
-*   **Bênção Divina** (Passiva, Nível Requerido: 3):
-    *   *Mecânica*: Aumento passivo de $+5$ em Magia para cada nível da habilidade comprado (até $+25$ de Magia no nível 5).
-*   **Escudo Sagrado** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Constituição para cada nível da habilidade comprado (até $+25$ de Constituição no nível 5).
+*   **Bênção Divina** (Passiva de Atributo, Nível Requerido: 3):
+    *   *Mecânica*: Aumento passivo de $+5$ em Magia e $+2$ em Constituição para cada nível da habilidade comprado (até $+25$ Magia e $+10$ Con no nível 5). *(v9.5.0: passou a incluir Constituição.)* O Clérigo é a única classe com 3 slots de passiva, então mantém 2 passivas de atributo (esta e Crescimento Espiritual, abaixo) além da mecânica.
+*   **Escudo Sagrado** (Passiva Mecânica, Nível Requerido: 5):
+    *   *Mecânica (v9.5.0)*: A cada $10$ segundos em combate (`update()`, `CombatFSM.ts`), gera um escudo de absorção (`playerShield`) equivalente a $\min(50\%,\ 5\% + 2\% \times \text{Nível})$ do HP Máximo, sem consumir nenhum recurso. Antes da v9.5.0, era uma passiva de atributo (+5 Constituição/nível) — a descrição "barreira passiva" já existia, mas sem nenhuma barreira real; agora gera escudo de fato.
 *   **Ira do Céu** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $300\%$ de dano sagrado base (até $480\%$ no nível 5) e **aplica Exposto por 5 segundos**, aumentando todo o dano recebido pelo monstro em 20%.
     *   *Efeito Visual*: Relâmpago dourado caindo do céu diretamente sobre o monstro e gerando o rótulo `[EXPOSTO]`.
@@ -685,15 +687,15 @@ Escala suas habilidades de ataque com **Destreza** (`dexterity`).
 *   **Adaga de Veneno** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano de perfuração base (até $192\%$ no nível 5) e **aplica Veneno por 4 segundos**, causando dano contínuo equivalente a $25\%$ da Destreza do jogador por segundo.
     *   *Efeito Visual*: Corte de adaga acompanhado de névoa roxa, aplicando o rótulo `[TOXINA]` no monstro.
-*   **Manto de Sombras** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Destreza por nível da habilidade comprado (até $+25$ de Destreza no nível 5).
+*   **Manto de Sombras** (Passiva Mecânica, Nível Requerido: 5):
+    *   *Mecânica (v9.5.0)*: Garante crítico nos primeiros **N** golpes de cada combate, onde **N = nível da passiva** (`stealthCritsRemaining`, resetado a cada novo inimigo em `setupEnemyForLevel`, `CombatFSM.ts`, e consumido a cada habilidade ativa usada). Antes da v9.5.0, era uma passiva de atributo (+5 Destreza/nível) — a descrição "furtividade passiva" já existia, mas sem nenhum efeito de furtividade real. Diferente das demais passivas mecânicas, não tem cap percentual porque o efeito é binário (crítico garantido) — o teto de nível (Seção 6, "Regras de Progressão") já limita o número máximo de golpes garantidos.
 *   **Ataque Furtivo** (Ativa, Nível Requerido: 7, Cooldown: 16s):
-    *   *Mecânica*: Golpe pelas costas causando $320\%$ de dano físico base (até $512\%$ no nível 5).
+    *   *Mecânica*: Golpe pelas costas causando $320\%$ de dano físico base (até $512\%$ no nível 5). **Sempre crítico** (v9.5.0), independente de Chance de Crítico ou da passiva Manto de Sombras.
     *   *Efeito Visual*: O herói desaparece por uma fração de segundo e executa um corte transversal letal vermelho escuro com forte tremor de tela.
-*   **Passo Sombrio** (Passiva, Nível Requerido: 9):
+*   **Passo Sombrio** (Passiva de Atributo, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+3$ em Destreza e $+3$ em Força por nível da habilidade (até $+15$ Dex e $+15$ Str no nível 5).
 *   **Florescer Letal** (Ativa, Nível Requerido: 11, Cooldown: 24s):
-    *   *Mecânica*: Redemoinho de adagas que causa $450\%$ de dano físico base (até $720\%$ no nível 5).
+    *   *Mecânica*: Redemoinho de adagas que causa $450\%$ de dano físico base (até $720\%$ no nível 5). **Aplica Sangramento por 4 segundos** (v9.5.0), causando dano contínuo equivalente a $20\%$ da Destreza do jogador por segundo.
     *   *Efeito Visual*: Múltiplos cortes físicos vermelhos cruzados em alta velocidade no corpo do monstro, seguidos de grande explosão de poeira e forte tremor.
 
 #### 💀 Necromante (Necromancer)
@@ -703,18 +705,18 @@ Escala suas habilidades de ataque com **Magia** (`magic`) e bônus de dano com *
         $$\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$$
     *   *Efeito Visual*: Dreno de energia verde/sombria do inimigo em direção ao herói.
 *   **Escudo Ósseo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
-    *   *Mecânica*: Reduz o dano recebido em 20% por 6 segundos. Ao expirar, causa 150% de dano baseado na Constituição do personagem.
+    *   *Mecânica*: Reduz o dano recebido em 20% por 6 segundos (checado diretamente contra o status `bone_shield` em `performEnemyAttack`, `CombatFSM.ts`). Ao expirar, causa 150% de dano baseado na Constituição do personagem.
     *   *Efeito Visual*: Órgãos/ossos giratórios que envolvem o herói e explodem ao final.
-*   **Sangue Frio** (Passiva, Nível Requerido: 5):
-    *   *Mecânica*: Aumento passivo de $+5$ em Magia e $+2$ em Sorte por nível da habilidade comprado (até $+25$ de Magia e $+10$ de Sorte no nível 5).
+*   **Sangue Frio** (Passiva de Atributo, Nível Requerido: 5):
+    *   *Mecânica*: Aumento passivo de $+5$ em Magia e $+2$ em Sorte por nível da habilidade comprado (até $+25$ de Magia e $+10$ de Sorte no nível 5). Mantida como a passiva "âncora" do Necromante — Sorte em vez de Constituição, por já ser tematicamente ligada ao bônus de dano do Necromante (Seção 6.B, nota de classe).
 *   **Sifão de Almas** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $320\%$ de dano mágico base. Se o inimigo morrer sob o efeito, restaura 20% da mana total do personagem.
     *   *Efeito Visual*: Feixe de almas que viaja do monstro para o jogador.
-*   **Ecos da Tumba** (Passiva, Nível Requerido: 9):
-    *   *Mecânica*: Aumento passivo permanente de $+5$ em Constituição por nível da habilidade (até $+25$ de Constituição no nível 5).
+*   **Ecos da Tumba** (Passiva Mecânica, Nível Requerido: 9):
+    *   *Mecânica (v9.5.0)*: Ao derrotar um inimigo (`handleEnemyDefeat`, `CombatFSM.ts`), cura o herói em $\min(50\%,\ 3\% \times \text{Nível})$ do HP Máximo — um "eco espectral" da vítima. Antes da v9.5.0, era uma passiva de atributo (+5 Constituição/nível).
 *   **Exército de Esqueletos** (Ativa, Nível Requerido: 11, Cooldown: 24s):
-    *   *Mecânica*: Conjura servos que atacam continuamente causando $120\%$ de dano por segundo por 8 segundos.
-    *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo.
+    *   *Mecânica*: Conjura um esqueleto que ataca continuamente causando $120\%$ de dano por segundo por 8 segundos. **Empilhável (v9.5.0)**: invocar de novo antes do fim da instância anterior soma outro esqueleto ao exército (cada instância tem seu próprio timer de dano por segundo, `enemyEffects` do tipo `skeleton_army` deixou de ser sobrescrito por `id` e passou a aceitar múltiplas instâncias simultâneas) — o exército cresce de verdade a cada recast, em vez de só resetar a duração de um único DoT.
+    *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo; cada instância empilhada desenha seu texto de dano por tick com um pequeno deslocamento horizontal (`stackIndex × 22px`, `CombatFSM.ts`), para múltiplos esqueletos ativos não sobreporem o texto de dano no mesmo ponto da tela.
 
 #### 🌌 Avatar (`avatar`)
 Classe suprema transcendental (ver Seção 11.E para desbloqueio e mecânica completa). Diferente das demais classes, todas as suas 4 habilidades são concedidas e desbloqueadas imediatamente já no Nível 1 (via `initialSkills`, sem custo de desbloqueio nem árvore de dependências entre elas) — mas continuam evoluindo normalmente de nível com Pontos de Habilidade, como qualquer outra classe. As 3 habilidades ativas escalam com o **Maior Atributo Ativo** do personagem (`max(Força, Magia, Destreza, Constituição, Sorte)`) em vez de um único atributo fixo.
@@ -1517,7 +1519,18 @@ Auditoria completa do código-fonte cobrindo performance, código morto, otimiza
     *   Upgrades de Prestígio (Seção 9.C): "Toque Divino" corrigido de $+5$ para $+8$ por nível; "Robô Assistente" corrigido de $+2$ para $+1$ Toque/s por nível.
 *   **📖 Nova Seção 13.F "Sistema de Relíquias (Altar da Alma)"**: O catálogo completo das 8 relíquias e suas fórmulas de obtenção/forja, antes disperso apenas em notas de changelog históricas, ganhou uma seção dedicada e atual.
 
-### Versão 9.0.0 "O Que Espera no Pandemônio" (Atual)
+### Versão 9.5.0 "Reformulação de Habilidades" (Atual)
+Reformulação completa das habilidades passivas das 8 classes, que até então faziam todas exatamente a mesma coisa (somar pontos flat de atributo), muitas vezes com descrições prometendo mecânicas que nunca foram implementadas (ex: "Escudo de Mana" nunca convertia mana em barreira). Também reformula algumas habilidades ativas genéricas ("causa X% de dano" sem nenhum efeito extra) para terem identidade própria.
+
+*   **⚙️ Passivas Deixam de Ser "Assadas" em `baseStats` — Cálculo Dinâmico**: antes da v9.5.0, `unlockOrUpgradeSkill` (`useGameStore.ts`) somava `statBonuses` de uma passiva permanentemente em `character.baseStats` no momento do desbloqueio/upgrade — o único bônus do jogo que funcionava assim, diferente de equipamentos, relíquias, sets, Cidadela e Transcendência, todos recalculados a cada frame em `StatEngine.calculateFinalStats`. `unlockOrUpgradeSkill` agora só grava o nível em `skillLevels`, sem tocar em `baseStats`; um novo passo em `calculateFinalStats` (Seção 7) itera `character.skillLevels`, soma `statBonuses × nível` de toda passiva do tipo `'passive'` com `statBonuses` definido no catálogo — mesmo padrão já usado para relíquias. Esse pipeline dinâmico é também o que viabiliza as novas passivas mecânicas (esquiva, reflexão de dano etc.) descritas nos bullets abaixo, computadas fora de `baseStats`.
+*   **🔄 Migração de Saves Antigos (`saveVersion` 1 → 2)**: como `baseStats` de saves anteriores já continha os bônus de passiva "assados" pela lógica antiga, uma migração em `mergeLoadedCharacter()` (`useGameStore.ts`) roda uma única vez por save (`if ((char.saveVersion || 0) < 2)`), subtraindo de `baseStats` os valores registrados em uma tabela congelada `LEGACY_PASSIVE_STAT_BONUSES` (snapshot dos `statBonuses` exatamente como eram *antes* desta versão, multiplicados pelo nível investido em cada passiva) — evitando tanto perda quanto duplicação do bônus quando o cálculo dinâmico assume o controle. `CURRENT_SAVE_VERSION` incrementado de 1 para 2.
+*   **🛡️ 7 Passivas Reformuladas com Mecânica Real** (uma por classe, mantendo a segunda passiva de cada classe como bônus simples de atributo principal + Constituição): Escudo de Mana (Mago) converte mana em `playerShield` periodicamente; Retribuição Aura (Paladino) reflete dano recebido (`reflectDamagePct`); Escudo Sagrado (Clérigo) gera barreira periódica de HP; Passo Ligeiro (Arqueiro) concede Esquiva real (`dodgeChancePct`); Manto de Sombras (Ladrão) garante crítico nos primeiros N golpes de cada combate (N = nível); Grito de Guerra (Guerreiro) aplica Fraqueza no inimigo no início do combate; Ecos da Tumba (Necromante) cura ao derrotar inimigos. Detalhamento completo de cada fórmula na Seção 6.B, dentro da respectiva classe. Duas novas propriedades opcionais em `BaseStats` (`src/core/types.ts`): `dodgeChancePct` e `reflectDamagePct`.
+*   **📊 Teto de Nível para Passivas Mecânicas (`MECHANIC_PASSIVE_SKILL_IDS`)**: diferente das passivas de atributo puro, que continuam com progressão `Infinity` na Fase 21+, as 7 passivas acima ficam presas ao teto de Nível 15 (`getSkillMaxLevel`, `useGameStore.ts`) — sem esse limite, percentuais como reflexão de dano ou redução de dano do inimigo passariam de 100% em níveis muito altos. Cada fórmula também tem um cap percentual de segurança embutido diretamente no código (`Math.min(...)`), como camada extra de proteção independente do teto de nível.
+*   **💀 Exército de Esqueletos (Necromante) Agora Empilha**: antes, era um DoT convencional disfarçado (cast inicial causava 0 dano, só o tick de 8s causava dano — mecanicamente idêntico a Veneno/Queimadura de outras classes). `enemyEffects` do tipo `skeleton_army` deixou de ser um efeito único por `id`; cada cast soma uma nova instância independente ao array (com um `stackIndex` calculado no momento do cast, contando quantas instâncias já estão ativas), então recastar antes do fim da anterior literalmente aumenta o "exército" em vez de só resetar a duração de um único efeito. Cada instância desenha seu texto de dano por tick com um deslocamento horizontal próprio (`getEnemyX() + stackIndex × 22 - 11`), para múltiplos esqueletos ativos não sobreporem visualmente o texto de dano no mesmo ponto da tela.
+*   **🗡️ Outras Ativas Reformuladas**: Ataque Furtivo (`backstab`, Ladrão) passou a ser sempre crítico; Chuva de Flechas (`rain_arrows`, Arqueiro) e Florescer Letal (`death_blossom`, Ladrão) passaram a aplicar um novo status `bleed` (Sangramento, $20\%$ de Destreza/segundo por 4s — mesmo padrão de DoT de Veneno/Queimadura, com rótulo/cor próprios); Flecha do Juízo Final (`ultimate_ranger`, Arqueiro) ganhou $+30\%$ de dano contra Elites e Chefes.
+*   **🩹 Novo Status `bleed` (Sangramento)**: adicionado à união de tipos `StatusEffect.id` (`CombatFSM.ts`), processado no mesmo loop de tick que já trata `poison`/`burn`/`skeleton_army`, com cor (`#ef4444`) e rótulo ("Sangramento") próprios.
+
+### Versão 9.0.0 "O Que Espera no Pandemônio"
 *   **📜 Santuário de Contratos de Caça (novo edifício da Cidadela, evolução do Bestiário)**: Segue o padrão dos demais edifícios (`citadelFormulas.ts`: `HUNT_SANCTUARY_MAX_LEVEL`/`HUNT_SANCTUARY_UPGRADE_COST`; `useGameStore.ts`: ação `buildOrUpgradeHuntSanctuary`, campo `huntSanctuary: CitadelBuildingState & { activeContracts, rotationId, bonusClaimedForRotation }` em `CitadelState`; painel dedicado `HuntSanctuaryPanel.tsx` usando o wrapper compartilhado `CitadelBuildingPanel`). O bônus passivo por marco de mortes do Bestiário (`StatEngine.calculateBestiaryDamageMultiplier`, `killCount` em `Character`) permanece **totalmente inalterado** — o Santuário é uma camada adicional de gerenciamento ativo, não uma substituição.
     *   **Geração determinística de contratos**: `generateHuntContracts(sanctuaryLevel, rotationId)` (`citadelFormulas.ts`), função pura seedada por `getHuntContractRotationId()` (janela fixa de 8h, `Date.now()` dividido por `HUNT_CONTRACT_ROTATION_INTERVAL_MS`) — mesma semente para todos os jogadores na mesma janela, sem precisar persistir a escolha em si (só os contadores de progresso). `HUNT_CONTRACT_SLOTS(level)`: 2 contratos a partir do Nível 1, 3 a partir do Nível 3. Cada contrato pede "derrote N do inimigo X" — `HUNT_CONTRACT_KILL_TARGET`: 5 para chefes, 15 para inimigos comuns — sorteados de `HUNT_CONTRACT_ENEMY_POOL`, uma lista de 28 ids duplicada de `ENEMY_TYPES` (`CombatFSM.ts`) só para evitar import circular (`CombatFSM.ts` já importa de `citadelFormulas.ts`).
     *   **Progresso de contrato**: contador próprio por contrato (`HuntContract.currentKills`), atualizado dentro de `registerEnemyKill` (`useGameStore.ts`) a cada abate — **separado** do `killCount` vitalício que já alimentava o Bestiário, então os dois sistemas nunca competem pelo mesmo contador.

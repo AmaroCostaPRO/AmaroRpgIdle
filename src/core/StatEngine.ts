@@ -1,5 +1,6 @@
 import { BaseStats, Character, EquipmentItem } from '../core/types';
 import { useRelicStore } from '../store/useRelicStore';
+import { SKILLS_CATALOG } from '../store/useGameStore';
 
 export const SET_BONUSES: Record<string, {
   name: string;
@@ -526,6 +527,36 @@ export class StatEngine {
       finalStats.luck += getRelicLvl('olho_sobrevivencia') * 4;
     } catch (e) {
       console.error('Erro ao somar atributos das relíquias:', e);
+    }
+
+    // 2.6. v9.5.0 "Reformulação de Habilidades": aplicar os bônus de atributo das passivas
+    // dinamicamente a partir de `skillLevels`, no mesmo padrão de equipamentos/relíquias, em vez de
+    // ficarem "assados" permanentemente em baseStats (como antes desta versão).
+    if (character.skillLevels) {
+      Object.entries(character.skillLevels).forEach(([skillId, lvl]) => {
+        if (!lvl || lvl <= 0) return;
+        const skill = SKILLS_CATALOG[skillId];
+        if (!skill || skill.type !== 'passive' || !skill.statBonuses) return;
+        Object.entries(skill.statBonuses).forEach(([stat, val]) => {
+          const key = stat as keyof BaseStats;
+          finalStats[key] = (finalStats[key] || 0) + (val as number) * lvl;
+        });
+      });
+
+      // Passo Ligeiro (Arqueiro): +3% de Esquiva por nível, capado em +30% (a fórmula de esquiva em
+      // CombatFSM já limita o total a 75%/95%, mas o cap aqui evita que essa única passiva domine
+      // sozinha o teto e torne Destreza irrelevante).
+      const fleetFootedLvl = character.skillLevels['fleet_footed'] || 0;
+      if (fleetFootedLvl > 0) {
+        finalStats.dodgeChancePct = (finalStats.dodgeChancePct || 0) + Math.min(30, fleetFootedLvl * 3);
+      }
+
+      // Retribuição Aura (Paladino): reflete +4% do dano recebido de volta ao inimigo por nível,
+      // capado em 50% (sem cap, níveis altos aproximariam de "imunidade com contra-ataque").
+      const retributionLvl = character.skillLevels['retribution'] || 0;
+      if (retributionLvl > 0) {
+        finalStats.reflectDamagePct = (finalStats.reflectDamagePct || 0) + Math.min(50, retributionLvl * 4);
+      }
     }
 
     // 3. Aplicar bônus do atributo Sorte (Luck) na chance e dano de crítico de toque

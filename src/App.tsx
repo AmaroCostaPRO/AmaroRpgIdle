@@ -325,19 +325,58 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v9.0.0 — O Que Espera no Pandemônio!
+              🔔 Atualização v9.5.0 — Reformulação de Habilidades!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A v9.0.0 traz o Santuário de Contratos de Caça (evolução do Bestiário), a Relíquia Ativa como novo slot de equipamento, o modo infinito Provações do Vácuo (pós-Transcendência) e a Convergência — o world boss semanal endgame.
+                A v9.5.0 reformula as passivas de todas as 8 classes: em vez de só somarem atributos, agora têm mecânicas próprias e coerentes com seus nomes (barreiras, reflexão de dano, esquiva, crítico garantido e mais). O Exército de Esqueletos do Necromante também ganhou uma nova identidade, e algumas outras habilidades ativas ficaram mais criativas.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v9.5.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 9.5.0 (Atual) — Reformulação de Habilidades:</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>
+                        🛡️ Passivas Ganharam Mecânicas de Verdade
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Uma passiva de cada classe continua dando bônus simples de atributo principal + Constituição, mas a segunda agora faz o que a descrição sempre prometeu: Escudo de Mana (Mago) converte mana em barreira de verdade; Retribuição Aura (Paladino) reflete parte do dano recebido no inimigo; Escudo Sagrado (Clérigo) gera barreira periódica; Passo Ligeiro (Arqueiro) dá Esquiva real; Manto de Sombras (Ladrão) garante crítico nos primeiros golpes de cada combate (a quantidade escala com o nível); Grito de Guerra (Guerreiro) enfraquece o inimigo no início da luta; Ecos da Tumba (Necromante) cura ao derrotar inimigos.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        💀 Exército de Esqueletos Agora Empilha
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Invocar a habilidade de novo antes do fim da anterior soma outro esqueleto ao exército em vez de só resetar a duração — cada instância ataca e desenha seu próprio texto de dano deslocado na tela, para ficar visível que o exército está crescendo de verdade.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#818cf8', fontSize: '0.72rem' }}>
+                        🗡️ Ativas Mais Criativas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ataque Furtivo (Ladrão) agora é sempre crítico. Chuva de Flechas (Arqueiro) e Florescer Letal (Ladrão) deixam o alvo sangrando ao longo do tempo. Flecha do Juízo Final (Arqueiro) causa dano extra contra Elites e Chefes.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        📈 Teto de Nível das Passivas Mecânicas (correção)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        As passivas de atributo continuam escalando sem limite no endgame (Fase 21+), mas as novas passivas mecânicas (Escudo de Mana, Grito de Guerra, Passo Ligeiro, Retribuição Aura, Escudo Sagrado, Manto de Sombras, Ecos da Tumba) agora têm um teto de nível, evitando percentuais absurdos como reflexão de dano acima de 100%.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v9.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 9.0.0 (Atual) — O Que Espera no Pandemônio:</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 9.0.0 — O Que Espera no Pandemônio:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#2dd4bf', fontSize: '0.72rem' }}>

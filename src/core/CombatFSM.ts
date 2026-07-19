@@ -614,11 +614,12 @@ export interface ActiveBuffInfo {
 }
 
 export interface StatusEffect {
-  id: 'stun' | 'poison' | 'slow' | 'burn' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'bleed' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
   name: string;
   duration: number; // em ms
   tickTimer: number; // em ms
   value: number; // valor associado ao efeito (dano, cura ou percentual)
+  stackIndex?: number; // v9.5.0: índice da instância empilhada (Exército de Esqueletos), usado só para deslocar o sprite/texto na tela
 }
 
 export class CombatFSM {
@@ -632,6 +633,11 @@ export class CombatFSM {
   public playerMana: number = 50;
   public playerMaxMana: number = 50;
   public playerShield: number = 0;
+
+  // v9.5.0 "Reformulação de Habilidades": estado das novas passivas mecânicas
+  private stealthCritsRemaining: number = 0; // Manto de Sombras (Ladrão): nº de golpes garantidamente críticos no início do combate = nível da passiva
+  private manaShieldProcTimer: number = 0; // Escudo de Mana (Mago): conversão periódica de mana em escudo
+  private sacredShieldProcTimer: number = 0; // Escudo Sagrado (Clérigo): geração periódica de escudo
 
   public enemyHP: number = 100;
   public enemyMaxHP: number = 100;
@@ -924,6 +930,29 @@ export class CombatFSM {
     this.crystalGuardianSecondPhase = false; // Reset da flag da segunda fase
     this.summonedAlly = null;
     this.summonedAllyTimer = 0;
+
+    // v9.5.0: reseta o estado das passivas mecânicas a cada novo combate
+    this.manaShieldProcTimer = 0;
+    this.sacredShieldProcTimer = 0;
+
+    // Manto de Sombras (Ladrão, passiva): garante crítico nos primeiros N golpes de cada combate,
+    // N = nível da passiva — assim, diferente de antes, subir de nível realmente tem efeito.
+    this.stealthCritsRemaining = this.characterData?.classId === 'rogue'
+      ? (this.characterData?.skillLevels?.['stealth'] || 0)
+      : 0;
+
+    // Grito de Guerra (Guerreiro, passiva): intimida o inimigo no início de cada combate.
+    // -10%/nível de dano do inimigo, capado em -60% (sem cap, níveis altos zerariam o dano dele).
+    const battleCryLvl = this.characterData?.skillLevels?.['battle_cry'] || 0;
+    if (battleCryLvl > 0 && this.characterData?.classId === 'warrior') {
+      this.enemyEffects.push({
+        id: 'weakness',
+        name: 'Intimidado',
+        duration: 4000 + battleCryLvl * 1000,
+        tickTimer: 0,
+        value: Math.min(0.60, 0.10 * battleCryLvl)
+      });
+    }
 
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
     const isTower = useTowerStore.getState().towerActive;
@@ -1284,6 +1313,43 @@ export class CombatFSM {
       }
     }
 
+    // v9.5.0: Escudo de Mana (Mago, passiva) — a cada 6s em combate, converte parte da mana atual
+    // em uma barreira de absorção de dano (playerShield).
+    if (this.enemyHP > 0) {
+      const manaShieldLvl = this.characterData?.skillLevels?.['mana_shield'] || 0;
+      if (manaShieldLvl > 0 && this.characterData?.classId === 'mage') {
+        this.manaShieldProcTimer += delta;
+        if (this.manaShieldProcTimer >= 6000) {
+          this.manaShieldProcTimer = 0;
+          const manaToConvert = Math.floor(this.playerMana * Math.min(0.70, 0.10 + manaShieldLvl * 0.03));
+          if (manaToConvert > 0) {
+            this.playerMana -= manaToConvert;
+            this.playerShield += manaToConvert * 2;
+            if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+              this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `🔮 +${manaToConvert * 2} Escudo`, '#38bdf8');
+            }
+            bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Escudo de Mana converteu ${manaToConvert} de mana em ${manaToConvert * 2} de barreira!` });
+          }
+        }
+      }
+
+      // Escudo Sagrado (Clérigo, passiva) — a cada 10s em combate, gera um escudo equivalente a uma
+      // fração do HP máximo, sem consumir nenhum recurso.
+      const divineShieldLvl = this.characterData?.skillLevels?.['divine_shield'] || 0;
+      if (divineShieldLvl > 0 && this.characterData?.classId === 'cleric') {
+        this.sacredShieldProcTimer += delta;
+        if (this.sacredShieldProcTimer >= 10000) {
+          this.sacredShieldProcTimer = 0;
+          const shieldVal = Math.floor(this.playerMaxHP * Math.min(0.50, 0.05 + divineShieldLvl * 0.02));
+          this.playerShield += shieldVal;
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `✨ +${shieldVal} Escudo`, '#fef08a');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Escudo Sagrado te protegeu com uma barreira de ${shieldVal}!` });
+        }
+      }
+    }
+
     // Atualização de Frenesi
     if (this.isFrenzyActive) {
       this.frenzyDuration -= delta;
@@ -1528,20 +1594,27 @@ export class CombatFSM {
       effect.tickTimer -= delta;
       if (effect.tickTimer <= 0) {
         effect.tickTimer = 1000;
-        if (effect.id === 'poison' || effect.id === 'burn' || effect.id === 'skeleton_army') {
+        if (effect.id === 'poison' || effect.id === 'burn' || effect.id === 'bleed' || effect.id === 'skeleton_army') {
           const tickDmg = Math.floor(effect.value);
           let color = '#22c55e';
           let label = 'Veneno';
           if (effect.id === 'burn') {
             color = '#f97316';
             label = 'Queima';
+          } else if (effect.id === 'bleed') {
+            color = '#ef4444';
+            label = 'Sangramento';
           } else if (effect.id === 'skeleton_army') {
             color = '#8b5cf6';
             label = 'Esqueleto';
           }
-          
+
+          // v9.5.0: cada instância empilhada do Exército de Esqueletos desenha o texto de dano com
+          // um pequeno deslocamento horizontal, para não sobrepor vários textos idênticos no mesmo ponto.
+          const stackOffsetX = effect.id === 'skeleton_army' ? (effect.stackIndex || 0) * 22 - 11 : 0;
+
           if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
+            this.scene.spawnDamageText(this.scene.getEnemyX() + stackOffsetX, this.scene.getEnemyY() - 30, `-${tickDmg} (${label})`, color);
           }
           bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo sofreu ${formatNumber(tickDmg, useGameStore.getState().abbreviateNumbers)} de dano por ${label}.` });
 
@@ -2070,7 +2143,7 @@ export class CombatFSM {
 
     // Chance de Esquiva: 0.1% por ponto de Destreza (limite de 75% para balanceamento)
     const ascensionCount = this.characterData.ascensionCount || 0;
-    let dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5));
+    let dodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5) + (this.playerFinalStats.dodgeChancePct || 0));
 
     // Elixir do Velocista (v7.0.0): +20% de Esquiva, com teto elevado para 95% enquanto ativo
     if (this.isElixirVelocistaActive) {
@@ -2115,6 +2188,19 @@ export class CombatFSM {
     if (damageToHP > 0) {
       this.playerHP = Math.max(0, this.playerHP - damageToHP);
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${damageToHP}`, '#ef4444');
+
+      // Retribuição Aura (Paladino, passiva): reflete parte do dano recebido de volta ao inimigo
+      const reflectPct = this.playerFinalStats.reflectDamagePct || 0;
+      if (reflectPct > 0 && this.enemyHP > 0) {
+        const reflectDmg = Math.floor(damageToHP * (reflectPct / 100));
+        if (reflectDmg > 0) {
+          this.damageEnemy(reflectDmg, false);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${reflectDmg} (Retribuição)`, '#fbbf24');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Retribuição Aura refletiu ${formatNumber(reflectDmg, useGameStore.getState().abbreviateNumbers)} de dano no inimigo!` });
+        }
+      }
     }
 
     const enemyLabel = this.isElite ? `ELITE ${this.currentEnemy.name}` : this.currentEnemy.name;
@@ -2286,6 +2372,19 @@ export class CombatFSM {
         this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, `+${manaHeal} (Mana)`, '#3b82f6');
       }
       bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Sifão de Almas: O inimigo foi derrotado e você restaurou +${manaHeal} de mana!` });
+    }
+
+    // Ecos da Tumba (Necromante, passiva): ao derrotar um inimigo, um eco espectral cura parte da Vida Máxima
+    const graveEchoesLvl = this.characterData?.skillLevels?.['grave_echoes'] || 0;
+    if (graveEchoesLvl > 0 && this.characterData?.classId === 'necromancer' && this.playerHP > 0) {
+      const echoHeal = Math.floor(this.playerMaxHP * Math.min(0.50, 0.03 * graveEchoesLvl));
+      if (echoHeal > 0) {
+        this.playerHP = Math.min(this.playerMaxHP, this.playerHP + echoHeal);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 60, `+${echoHeal} (Eco)`, '#a78bfa');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `👻 Ecos da Tumba: um eco espectral curou você em +${echoHeal} HP!` });
+      }
     }
 
     // Limpa os efeitos do inimigo imediatamente para evitar ticks residuais durante o respawn
@@ -3337,7 +3436,15 @@ export class CombatFSM {
     let critMultiplier = 1.0;
     const relicLvlLuz = useRelicStore.getState().relics['luz_alma']?.level || 0;
     const extraCritMult = relicLvlLuz === 5 ? (this.isRelicOverheated('luz_alma') ? 25 : 10) : 0;
-    if (this.isFrenzyActive) {
+
+    // Manto de Sombras (Ladrão, passiva): os primeiros N golpes de cada combate são sempre críticos
+    // (N = nível da passiva). Ataque Furtivo (backstab): sempre crítico, independente da passiva.
+    const forcedCrit = skillId === 'backstab' || this.stealthCritsRemaining > 0;
+    if (this.stealthCritsRemaining > 0) {
+      this.stealthCritsRemaining--;
+    }
+
+    if (this.isFrenzyActive || forcedCrit) {
       isCrit = true;
       critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
     } else {
@@ -3384,6 +3491,11 @@ export class CombatFSM {
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
     if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
       dmg = Math.floor(dmg * 1.5);
+    }
+
+    // Flecha do Juízo Final (ultimate do Arqueiro): perfura com +30% de dano contra Elites e Chefes
+    if (skillId === 'ultimate_ranger' && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) {
+      dmg = Math.floor(dmg * 1.3);
     }
 
     // Efeito do status EXPOSTO no dano final das habilidades
@@ -3591,16 +3703,31 @@ export class CombatFSM {
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[SIFÃO DE ALMAS]', '#a855f7');
     } else if (skillId === 'skeleton_army') {
       const skeletonDmg = Math.max(1, Math.floor(this.playerFinalStats.magic * 0.40 * levelMultiplier * 3.0 * (1 + relicDmgBonus) * luckMult));
+      // v9.5.0: cada cast some outra instância ao exército em vez de substituir a anterior — o
+      // `stackIndex` (posição entre as instâncias já ativas) só é usado para deslocar o texto de dano.
+      const activeSkeletons = this.enemyEffects.filter(e => e.id === 'skeleton_army').length;
       this.enemyEffects.push({
         id: 'skeleton_army',
         name: 'Exército de Esqueletos',
         duration: 8000,
         tickTimer: 1000,
-        value: skeletonDmg
+        value: skeletonDmg,
+        stackIndex: activeSkeletons
       });
-      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[EXÉRCITO DE ESQUELETOS]', '#7c3aed');
+      const skeletonOffsetX = activeSkeletons * 22 - 11;
+      this.scene.spawnDamageText(this.scene.getEnemyX() + skeletonOffsetX, this.scene.getEnemyY() - 60, `[+ESQUELETO ${activeSkeletons + 1}]`, '#7c3aed');
     } else if (skillId === 'execute' && (this.enemyHP / this.enemyMaxHP) < 0.35) {
       this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '¡MISERICÓRDIA!', '#ef4444');
+    } else if (skillId === 'rain_arrows' || skillId === 'death_blossom') {
+      const bleedDmg = Math.max(1, Math.floor(this.playerFinalStats.dexterity * 0.20 * levelMultiplier));
+      this.enemyEffects.push({
+        id: 'bleed',
+        name: 'Sangramento',
+        duration: 4000,
+        tickTimer: 1000,
+        value: bleedDmg
+      });
+      this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, '[SANGRANDO]', '#ef4444');
     }
 
     if (skillId === 'skeleton_army') {

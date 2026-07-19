@@ -99,11 +99,19 @@ export const formatNumber = (num: number, abbreviate: boolean = false): string =
   return Math.floor(num).toLocaleString();
 };
 
+// v9.5.0: passivas que viraram mecânica (não são só soma de atributo) — diferente das passivas de
+// atributo puro, essas concedem percentuais/efeitos que precisam de teto (reflexão de dano, esquiva,
+// conversão de mana em escudo, etc.), já que não têm um contrapeso natural como o dano/HP do inimigo
+// escalando junto. Por isso ficam de fora da extensão "Infinity" de passivas na fase 21+.
+export const MECHANIC_PASSIVE_SKILL_IDS = new Set([
+  'battle_cry', 'mana_shield', 'fleet_footed', 'retribution', 'divine_shield', 'stealth', 'grave_echoes'
+]);
+
 // Configurações de Atributos e Crescimento para cada Classe
 export const getSkillMaxLevel = (skillId: string, currentStage: number): number => {
   const skill = SKILLS_CATALOG[skillId];
   if (!skill) return 0;
-  
+
   // Ultimates só estão liberadas a partir da dificuldade Inferno (Fase 11+)
   if (skill.isUltimate && currentStage < 11) {
     return 0;
@@ -111,7 +119,9 @@ export const getSkillMaxLevel = (skillId: string, currentStage: number): number 
 
   if (currentStage >= 21) {
     if (skill.type === 'passive') {
-      return Infinity;
+      // Passivas de atributo puro continuam escalando sem teto; passivas mecânicas ficam com o
+      // mesmo teto das habilidades ativas (15), para não estourar percentuais como reflexão/esquiva.
+      return MECHANIC_PASSIVE_SKILL_IDS.has(skillId) ? Math.max(skill.maxLevel, 15) : Infinity;
     }
     // Habilidades ativas exclusivas do Avatar escalam além do teto padrão de 15,
     // já que a classe tem poucas habilidades e sobra ponto sem essa extensão.
@@ -332,16 +342,16 @@ export const SKILLS_CATALOG: Record<string, {
   // Guerreiro (Warrior)
   slash: { name: 'Slash', description: 'Corte rápido causando 150% do dano de Força.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'warrior' },
   shield_bash: { name: 'Impacto de Escudo', description: 'Impacto que causa 120% do dano de Força e atordoa o inimigo.', cost: 1, maxLevel: 5, dependencies: ['slash'], type: 'active', requiredLevel: 3, classId: 'warrior' },
-  berserk: { name: 'Fúria Berserk', description: 'Aumento passivo permanente de +5 em Força.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5 }, requiredLevel: 5, classId: 'warrior' },
+  berserk: { name: 'Fúria Berserk', description: 'Aumento passivo permanente de +5 em Força e +2 em Constituição por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5, constitution: 2 }, requiredLevel: 5, classId: 'warrior' },
   execute: { name: 'Executar', description: 'Golpe de misericórdia causando 300% do dano de Força.', cost: 2, maxLevel: 5, dependencies: ['shield_bash'], type: 'active', requiredLevel: 7, classId: 'warrior' },
-  battle_cry: { name: 'Grito de Guerra', description: 'Intimida oponentes. Aumento passivo de +5 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 9, classId: 'warrior' },
+  battle_cry: { name: 'Grito de Guerra', description: 'Intimidação passiva: no início de cada combate, enfraquece o inimigo (-10% de dano por nível) por alguns segundos.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'warrior' },
   bladestorm: { name: 'Tempestade de Aço', description: 'Ataque giratório contínuo que causa 400% de Força.', cost: 3, maxLevel: 5, dependencies: ['execute'], type: 'active', requiredLevel: 11, classId: 'warrior' },
   ultimate_warrior: { name: 'Cólera dos Titãs', description: 'Guerreia com fúria divina descarregando um golpe sísmico que causa 2400% de Força. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['bladestorm'], type: 'active', requiredLevel: 15, classId: 'warrior', isUltimate: true, cooldown: 60000, manaCost: 50 },
 
   // Mago (Mage)
   fireball: { name: 'Fireball', description: 'Conjura uma esfera de fogo causando 250% de Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'mage' },
   frostbolt: { name: 'Raio de Gelo', description: 'Causa 150% de Magia e reduz a velocidade do oponente.', cost: 1, maxLevel: 5, dependencies: ['fireball'], type: 'active', requiredLevel: 3, classId: 'mage' },
-  mana_shield: { name: 'Escudo de Mana', description: 'Converte mana em barreira. Aumento passivo de +5 em Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5 }, requiredLevel: 5, classId: 'mage' },
+  mana_shield: { name: 'Escudo de Mana', description: 'Passiva: periodicamente em combate, converte parte da sua mana atual em uma barreira que absorve dano.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'mage' },
   lightning: { name: 'Relâmpago', description: 'Descarga elétrica que causa 350% de Magia.', cost: 2, maxLevel: 5, dependencies: ['frostbolt'], type: 'active', requiredLevel: 7, classId: 'mage' },
   arcane_intellect: { name: 'Brilho Arcano', description: 'Expansão mental. Aumento passivo de +5 em Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5 }, requiredLevel: 9, classId: 'mage' },
   meteor: { name: 'Meteoro', description: 'Evoca um meteoro cataclísmico que causa 500% de Magia.', cost: 3, maxLevel: 5, dependencies: ['lightning'], type: 'active', requiredLevel: 11, classId: 'mage' },
@@ -350,16 +360,16 @@ export const SKILLS_CATALOG: Record<string, {
   // Arqueiro (Ranger)
   arrow_shot: { name: 'Disparo Preciso', description: 'Tiro rápido causando 150% do dano de Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'ranger' },
   poison_arrow: { name: 'Flecha Venenosa', description: 'Flecha tóxica causando 100% de Destreza com veneno ativo.', cost: 1, maxLevel: 5, dependencies: ['arrow_shot'], type: 'active', requiredLevel: 3, classId: 'ranger' },
-  eagle_eye: { name: 'Olho de Águia', description: 'Visão aprimorada. Aumento passivo de +5 em Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 5 }, requiredLevel: 5, classId: 'ranger' },
+  eagle_eye: { name: 'Olho de Águia', description: 'Visão aprimorada. Aumento passivo de +5 em Destreza e +2 em Constituição por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 5, constitution: 2 }, requiredLevel: 5, classId: 'ranger' },
   double_shot: { name: 'Disparo Duplo', description: 'Dispara duas flechas simultâneas causadoras de 280% de Destreza.', cost: 2, maxLevel: 5, dependencies: ['poison_arrow'], type: 'active', requiredLevel: 7, classId: 'ranger' },
-  fleet_footed: { name: 'Passo Ligeiro', description: 'Passividade ágil. Aumento de +3 em Destreza e +2 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 3, constitution: 2 }, requiredLevel: 9, classId: 'ranger' },
-  rain_arrows: { name: 'Chuva de Flechas', description: 'Saraivada de flechas que causa 420% de Destreza.', cost: 3, maxLevel: 5, dependencies: ['double_shot'], type: 'active', requiredLevel: 11, classId: 'ranger' },
-  ultimate_ranger: { name: 'Flecha do Juízo Final', description: 'Dispara um projétil infundido com energia cósmica que perfura e causa 2200% de Destreza. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['rain_arrows'], type: 'active', requiredLevel: 15, classId: 'ranger', isUltimate: true, cooldown: 55000, manaCost: 45 },
+  fleet_footed: { name: 'Passo Ligeiro', description: 'Passividade ágil: aumenta permanentemente sua chance de Esquiva em +3% por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'ranger' },
+  rain_arrows: { name: 'Chuva de Flechas', description: 'Saraivada de flechas que causa 420% de Destreza e deixa o alvo sangrando ao longo do tempo.', cost: 3, maxLevel: 5, dependencies: ['double_shot'], type: 'active', requiredLevel: 11, classId: 'ranger' },
+  ultimate_ranger: { name: 'Flecha do Juízo Final', description: 'Dispara um projétil infundido com energia cósmica que perfura e causa 2200% de Destreza, com dano extra contra Elites e Chefes. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['rain_arrows'], type: 'active', requiredLevel: 15, classId: 'ranger', isUltimate: true, cooldown: 55000, manaCost: 45 },
 
   // Paladino (Paladin)
   holy_strike: { name: 'Golpe Sagrado', description: 'Ataque abençoado causando 150% de Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'paladin' },
   shield_righteousness: { name: 'Escudo da Justiça', description: 'Golpe de escudo causando 120% de Constituição.', cost: 1, maxLevel: 5, dependencies: ['holy_strike'], type: 'active', requiredLevel: 3, classId: 'paladin' },
-  retribution: { name: 'Retribuição Aura', description: 'Aura passiva. Aumento de +5 em Constituição permanentemente.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 5, classId: 'paladin' },
+  retribution: { name: 'Retribuição Aura', description: 'Aura passiva: reflete de volta ao inimigo +4% do dano recebido por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'paladin' },
   smite_paladin: { name: 'Punição da Luz', description: 'Causa 250% de dano misto de Constituição e Força.', cost: 2, maxLevel: 5, dependencies: ['shield_righteousness'], type: 'active', requiredLevel: 7, classId: 'paladin' },
   sacred_duty: { name: 'Dever Sagrado', description: 'Aumento passivo de +3 em Força e +3 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 3, constitution: 3 }, requiredLevel: 9, classId: 'paladin' },
   consecration: { name: 'Consagração', description: 'Santifica o solo causando 380% de Constituição.', cost: 3, maxLevel: 5, dependencies: ['smite_paladin'], type: 'active', requiredLevel: 11, classId: 'paladin' },
@@ -367,8 +377,8 @@ export const SKILLS_CATALOG: Record<string, {
 
   // Clérigo (Cleric)
   holy_smite: { name: 'Golpe de Fé', description: 'Punição divina causando 150% de Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'cleric' },
-  bless: { name: 'Bênção Divina', description: 'Preces sagradas. Aumento passivo de +5 em Magia.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5 }, requiredLevel: 3, classId: 'cleric' },
-  divine_shield: { name: 'Escudo Sagrado', description: 'Barreira passiva. Aumento de +5 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 5, classId: 'cleric' },
+  bless: { name: 'Bênção Divina', description: 'Preces sagradas. Aumento passivo de +5 em Magia e +2 em Constituição por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5, constitution: 2 }, requiredLevel: 3, classId: 'cleric' },
+  divine_shield: { name: 'Escudo Sagrado', description: 'Barreira passiva: periodicamente em combate, gera um escudo que absorve dano equivalente a uma fração da sua Vida Máxima.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'cleric' },
   wrath_heaven: { name: 'Ira do Céu', description: 'Relâmpago sagrado que causa 300% de Magia.', cost: 2, maxLevel: 5, dependencies: ['holy_smite'], type: 'active', requiredLevel: 7, classId: 'cleric' },
   spirit_growth: { name: 'Crescimento Espiritual', description: 'Conexão divina. Aumento passivo de +3 em Magia e +3 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 3, constitution: 3 }, requiredLevel: 9, classId: 'cleric' },
   divine_judgement: { name: 'Julgamento Final', description: 'Raios sagrados massivos causando 450% de Magia.', cost: 3, maxLevel: 5, dependencies: ['wrath_heaven'], type: 'active', requiredLevel: 11, classId: 'cleric' },
@@ -377,10 +387,10 @@ export const SKILLS_CATALOG: Record<string, {
   // Ladrão (Rogue)
   stab: { name: 'Apunhalar', description: 'Golpe rápido com adagas causando 180% de Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'rogue' },
   poison_dagger: { name: 'Adaga de Veneno', description: 'Lança adaga tóxica causando 120% de Destreza mais veneno ao longo do tempo.', cost: 1, maxLevel: 5, dependencies: ['stab'], type: 'active', requiredLevel: 3, classId: 'rogue' },
-  stealth: { name: 'Manto de Sombras', description: 'Furtividade passiva. Aumento definitivo de +5 em Destreza.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 5 }, requiredLevel: 5, classId: 'rogue' },
-  backstab: { name: 'Ataque Furtivo', description: 'Ataque surpresa por trás causando 320% de Destreza.', cost: 2, maxLevel: 5, dependencies: ['poison_dagger'], type: 'active', requiredLevel: 7, classId: 'rogue' },
+  stealth: { name: 'Manto de Sombras', description: 'Furtividade passiva: os primeiros golpes de cada combate, vindos das sombras, são sempre críticos. Quantidade de golpes garantidos = nível da passiva.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'rogue' },
+  backstab: { name: 'Ataque Furtivo', description: 'Ataque surpresa por trás causando 320% de Destreza. Sempre crítico.', cost: 2, maxLevel: 5, dependencies: ['poison_dagger'], type: 'active', requiredLevel: 7, classId: 'rogue' },
   shadowstep: { name: 'Passo Sombrio', description: 'Aumento passivo de +3 em Destreza e +3 em Força.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 3, strength: 3 }, requiredLevel: 9, classId: 'rogue' },
-  death_blossom: { name: 'Florescer Letal', description: 'Redemoinho de cortes causando 450% de Destreza.', cost: 3, maxLevel: 5, dependencies: ['backstab'], type: 'active', requiredLevel: 11, classId: 'rogue' },
+  death_blossom: { name: 'Florescer Letal', description: 'Redemoinho de cortes causando 450% de Destreza e deixando o alvo sangrando ao longo do tempo.', cost: 3, maxLevel: 5, dependencies: ['backstab'], type: 'active', requiredLevel: 11, classId: 'rogue' },
   ultimate_rogue: { name: 'Lâmina da Aniquilação', description: 'Surge das sombras desferindo um corte letal instantâneo que causa 2800% de Destreza. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['death_blossom'], type: 'active', requiredLevel: 15, classId: 'rogue', isUltimate: true, cooldown: 50000, manaCost: 50 },
 
   // Necromante (Necromancer)
@@ -388,8 +398,8 @@ export const SKILLS_CATALOG: Record<string, {
   bone_shield: { name: 'Escudo Ósseo', description: 'Reduz o damage recebido em 20% por 6 segundos. Ao expirar, causa 150% de dano de Constituição.', cost: 1, maxLevel: 5, dependencies: ['death_touch'], type: 'active', requiredLevel: 3, classId: 'necromancer' },
   cold_blood: { name: 'Sangue Frio', description: 'Aumento passivo de +5 em Magia e +2 em Sorte por nível na árvore.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { magic: 5, luck: 2 }, requiredLevel: 5, classId: 'necromancer' },
   soul_siphon: { name: 'Sifão de Almas', description: 'Causa 320% de dano mágico. Se o inimigo morrer sob o efeito, restaura 20% da mana total.', cost: 2, maxLevel: 5, dependencies: ['bone_shield'], type: 'active', requiredLevel: 7, classId: 'necromancer' },
-  grave_echoes: { name: 'Ecos da Tumba', description: 'Aumento passivo permanente de +5 em Constituição por nível na árvore.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { constitution: 5 }, requiredLevel: 9, classId: 'necromancer' },
-  skeleton_army: { name: 'Exército de Esqueletos', description: 'Conjura servos que atacam continuamente causando 120% de dano por segundo por 8 segundos.', cost: 3, maxLevel: 5, dependencies: ['soul_siphon'], type: 'active', requiredLevel: 11, classId: 'necromancer' },
+  grave_echoes: { name: 'Ecos da Tumba', description: 'Ao derrotar um inimigo, um eco espectral da vítima cura você em uma fração da sua Vida Máxima por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'necromancer' },
+  skeleton_army: { name: 'Exército de Esqueletos', description: 'Conjura um esqueleto que ataca continuamente causando 120% de dano por segundo por 8 segundos. Invocar de novo antes do fim soma outro esqueleto ao exército, empilhando o dano.', cost: 3, maxLevel: 5, dependencies: ['soul_siphon'], type: 'active', requiredLevel: 11, classId: 'necromancer' },
   ultimate_necromancer: { name: 'Ceifa das Almas Perdidas', description: 'Ressuscita o último monstro morto como lacaio por 10s, causando o dobro do dano de ataque que ele causava em vida. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['skeleton_army'], type: 'active', requiredLevel: 15, classId: 'necromancer', isUltimate: true, cooldown: 60000, manaCost: 75 },
 
   // Avatar
@@ -400,6 +410,33 @@ export const SKILLS_CATALOG: Record<string, {
 
   // Comum
   heal: { name: 'Cura', description: 'Restaura 15% da vida máxima.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
+};
+
+// v9.5.0 "Reformulação de Habilidades": snapshot congelado dos `statBonuses` que as passivas
+// tinham ANTES desta versão (quando todo bônus de passiva era somado permanentemente em
+// `character.baseStats` no momento do level-up, em `unlockOrUpgradeSkill`). A partir desta versão
+// os bônus de passiva passam a ser calculados dinamicamente em `StatEngine.calculateFinalStats`
+// (mesmo pipeline de equipamentos/relíquias), então saves antigos precisam ter esses valores
+// subtraídos de `baseStats` uma única vez — ver migração em `mergeLoadedCharacter`. NÃO editar esta
+// tabela para refletir os novos valores de `SKILLS_CATALOG`: ela precisa continuar representando
+// exatamente o que já foi "assado" em saves salvos antes da v9.5.0.
+export const LEGACY_PASSIVE_STAT_BONUSES: Record<string, Partial<BaseStats>> = {
+  berserk: { strength: 5 },
+  battle_cry: { constitution: 5 },
+  mana_shield: { magic: 5 },
+  arcane_intellect: { magic: 5 },
+  eagle_eye: { dexterity: 5 },
+  fleet_footed: { dexterity: 3, constitution: 2 },
+  retribution: { constitution: 5 },
+  sacred_duty: { strength: 3, constitution: 3 },
+  bless: { magic: 5 },
+  divine_shield: { constitution: 5 },
+  spirit_growth: { magic: 3, constitution: 3 },
+  stealth: { dexterity: 5 },
+  shadowstep: { dexterity: 3, strength: 3 },
+  cold_blood: { magic: 5, luck: 2 },
+  grave_echoes: { constitution: 5 },
+  cosmic_convergence: { strength: 5, magic: 5, dexterity: 5, constitution: 5, luck: 5 }
 };
 
 export const GLOBAL_CLASS_LEVELS_KEY = 'medieval_idle_global_class_levels';
@@ -504,8 +541,9 @@ let savedStageBeforeChallenge = 1;
 let savedEnemiesDefeatedBeforeChallenge = 0;
 
 // Versão do formato de save — incrementar ao introduzir uma mudança de formato que precise de
-// migração explícita em mergeLoadedCharacter (hoje nenhuma migração depende disso ainda).
-const CURRENT_SAVE_VERSION = 1;
+// migração explícita em mergeLoadedCharacter.
+// v2 (v9.5.0): passivas deixam de ter statBonuses "assados" em baseStats; ver LEGACY_PASSIVE_STAT_BONUSES.
+const CURRENT_SAVE_VERSION = 2;
 
 const saveToLocalStorage = (char: Character) => {
   try {
@@ -905,6 +943,22 @@ const mergeLoadedCharacter = (char: Character): Character => {
       return curPP + spentPP;
     })(),
   };
+
+  // v9.5.0 (saveVersion 2): remove dos baseStats os bônus de passiva que ficaram "assados" por
+  // versões anteriores, já que agora esses bônus são recalculados dinamicamente a cada frame em
+  // StatEngine.calculateFinalStats (ver LEGACY_PASSIVE_STAT_BONUSES). Roda uma única vez por save.
+  if ((char.saveVersion || 0) < 2) {
+    const cleanedStats = { ...merged.baseStats };
+    Object.entries(LEGACY_PASSIVE_STAT_BONUSES).forEach(([skillId, bonuses]) => {
+      const lvl = merged.skillLevels[skillId] || 0;
+      if (lvl <= 0) return;
+      Object.entries(bonuses).forEach(([stat, val]) => {
+        const key = stat as keyof BaseStats;
+        cleanedStats[key] = (cleanedStats[key] || 0) - (val as number) * lvl;
+      });
+    });
+    merged.baseStats = cleanedStats;
+  }
 
   if (merged.classLevels) {
     updateGlobalClassLevels(merged.classLevels);
@@ -2675,22 +2729,15 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     const newUnlocked = [...new Set([...state.character.unlockedSkills, skillId])];
-    const newStats = { ...state.character.baseStats };
 
-    // Se a habilidade possuir bônus de atributos passivos, aplica-os
-    if (skill.statBonuses) {
-      Object.entries(skill.statBonuses).forEach(([stat, val]) => {
-        const key = stat as keyof BaseStats;
-        newStats[key] += val;
-      });
-    }
-
+    // v9.5.0: bônus de atributo de passivas não são mais "assados" em baseStats aqui — são
+    // calculados dinamicamente a partir de `skillLevels` em `StatEngine.calculateFinalStats`,
+    // do mesmo jeito que equipamentos e relíquias.
     const updated = {
       ...state.character,
       skillPoints: state.character.skillPoints - cost,
       skillLevels: newSkillLevels,
-      unlockedSkills: newUnlocked,
-      baseStats: newStats
+      unlockedSkills: newUnlocked
     };
 
     saveToLocalStorage(updated);

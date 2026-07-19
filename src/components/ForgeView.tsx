@@ -116,7 +116,9 @@ export const ForgeView: React.FC = () => {
     maxManaPct: 'Mana Máxima Pct.',
     dropChancePct: 'Chance de Drop',
     damageReductionPct: 'Redução de Dano',
-    frenzyChancePct: 'Chance de Frenesi'
+    frenzyChancePct: 'Chance de Frenesi',
+    dodgeChancePct: 'Chance de Esquiva',
+    reflectDamagePct: 'Reflexão de Dano'
   };
 
   const slotLabels: Record<string, string> = {
