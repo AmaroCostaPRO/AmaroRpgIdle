@@ -523,51 +523,50 @@ Cada classe possui uma árvore com habilidades ativas e passivas exclusivas. Adi
 As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada classe, desbloqueadas sob condições estritas:
 *   **Condições de Desbloqueio**: O personagem precisa estar na dificuldade **Inferno** ou superior (Fase 11+), ter alcançado pelo menos o **Nível 15** e possuir a habilidade tier 6 de sua classe desbloqueada (nível $\ge 1$).
 *   **Progressão de Nível**: As habilidades Ultimate possuem `maxLevel` base de **5** e seguem exatamente as mesmas regras de expansão de nível máximo descritas em "Regras de Progressão e Nível Máximo" acima — podendo ser aprimoradas até o **Nível 10** ao alcançar a Fase 11 (Inferno) e até o **Nível 15** ao alcançar a Fase 21 (Pandemônio). O dano escala em $+15\%$ multiplicativo por nível, como qualquer habilidade ativa comum. *Exceção*: a Ultimate do Avatar (*Coro da Alma Inteira*) segue o teto estendido de Nível 25 da classe (ver Seção 4.B).
-*   **Custo e Cooldown**: Possuem custos elevados de mana e tempos de recarga prolongados (50 a 80 segundos), refletindo seu impacto massivo no combate.
+*   **Custo e Cooldown**: Possuem os custos de mana mais elevados do jogo — $30\%$ a $55\%$ da mana máxima do jogador por uso (Seção 6.A) — e tempos de recarga prolongados (50 a 80 segundos), refletindo seu impacto massivo no combate.
 
 #### Catálogo de Habilidades Ultimate por Classe
 1.  **Guerreiro**: *Cólera dos Titãs* (`ultimate_warrior`)
     *   *Dano*: Causa $2400\%$ de dano físico baseado em Força.
-    *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Impacto titânico com grandes rachaduras de fogo e forte tremor contínuo de tela.
 2.  **Mago**: *Supernova* (`ultimate_mage`)
     *   *Dano*: Causa $3000\%$ de dano mágico baseado em Magia.
-    *   *Custo de Mana*: $80$ Mana | *Tempo de Recarga*: $70.000$ ms (70s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $70.000$ ms (70s)
     *   *Efeito Visual*: Explosão estelar expansiva cobrindo a tela inteira em tons brilhantes de azul e branco.
 3.  **Arqueiro**: *Flecha do Juízo Final* (`ultimate_ranger`)
     *   *Dano*: Causa $2200\%$ de dano de perfuração baseado em Destreza.
-    *   *Custo de Mana*: $45$ Mana | *Tempo de Recarga*: $55.000$ ms (55s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $55.000$ ms (55s)
     *   *Efeito Visual*: Raio de energia verde esmeralda de alta velocidade cortando a tela horizontalmente com múltiplos feixes adicionais.
 4.  **Paladino**: *Julgamento Sagrado* (`ultimate_paladin`)
     *   *Dano*: Causa $2000\%$ de dano sagrado baseado em Constituição.
-    *   *Custo de Mana*: $60$ Mana | *Tempo de Recarga*: $65.000$ ms (65s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $65.000$ ms (65s)
     *   *Efeito Visual*: Três pilares gigantes dourados atingindo o monstro consecutivamente com explosões de luz divina.
 5.  **Clérigo**: *Ascensão Celestial* (`ultimate_cleric`)
     *   *Dano e Efeito*: Causa $1800\%$ de dano sagrado baseado em Magia e **cura 100% da Vida Máxima** do herói.
-    *   *Custo de Mana*: $70$ Mana | *Tempo de Recarga*: $80.000$ ms (80s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $80.000$ ms (80s)
     *   *Efeito Visual*: Anjos de luz cruzam a tela com ondas curativas verdejantes e chuva de faíscas brilhantes.
 6.  **Ladrão**: *Lâmina da Aniquilação* (`ultimate_rogue`)
     *   *Dano*: Causa $2800\%$ de dano físico baseado em Destreza.
-    *   *Custo de Mana*: $50$ Mana | *Tempo de Recarga*: $50.000$ ms (50s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $50.000$ ms (50s)
     *   *Efeito Visual*: Animação de corte sombrio em X na cor vermelha com desfoque de movimento, tremor e partículas de sombras.
 7.  **Necromante**: *Ceifa das Almas Perdidas* (`ultimate_necromancer`)
     *   *Dano*: Não causa dano direto — ressuscita o último monstro comum derrotado como um lacaio aliado temporário por 10 segundos, cujos ataques causam o **dobro** do dano que o monstro causava em vida.
-    *   *Custo de Mana*: $75$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Foice gigante que corta a tela com explosão de névoa escura e invoca um monstro lacaio.
 8.  **Avatar**: *Coro da Alma Inteira* (`ultimate_avatar`)
     *   *Dano*: Causa dano imediato calculado sobre a soma de todos os atributos primários: $(\text{Str} + \text{Mag} + \text{Dex} + \text{Con} + \text{Luk}) \times 10.0$.
-    *   *Custo de Mana*: $100$ Mana | *Tempo de Recarga*: $60.000$ ms (60s)
+    *   *Custo de Mana*: $30\%$ a $55\%$ da Mana Máxima, conforme o nível da habilidade (Seção 6.A) | *Tempo de Recarga*: $60.000$ ms (60s)
     *   *Efeito Visual*: Reúne a força de todos os cacos de memórias passadas do herói em um único golpe unificado.
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
-Os custos de mana base e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
-*   **Custo de Mana Base (nível 1 da habilidade)**:
-    *   *Slash (Guerreiro)*: $8$ Mana
-    *   *Fireball (Mago)*: $15$ Mana
-    *   *Cura (Comum)*: **Gratuita ($0$ Mana)** *(ajuste pós-lançamento da v9.0.0 — antes custava $12$ Mana fixos; ver Seção 6.C)*
-    *   *Habilidades Ultimate*: Custo fixado por classe (45 a 80 de Mana), **não escala** por nível da habilidade
-    *   *Outras Habilidades*: $10 + (\text{Nível Requerido} \times 1.5)$ Mana
-*   **Escalonamento por Nível Investido** *(ajuste pós-lançamento da v9.0.0)*: o custo base acima é multiplicado por $1 + (\text{Nível da Habilidade} - 1) \times 0.15$ — a mesma taxa de $+15\%$ por nível já usada no escalonamento de dano (Seção 6, "Escalonamento"). No nível máximo de 15, o custo chega a $\approx 3.1\times$ o valor base. O objetivo é manter a mana relevante como recurso limitante mesmo com mana máxima/regeneração crescendo — antes o custo era praticamente fixo (só dependia de `requiredLevel`, nunca do nível investido pelo jogador). Habilidades Ultimate e Cura ficam de fora desse escalonamento (custo fixo e gratuito, respectivamente).
+
+*   **Custo de Mana — Percentual da Mana Máxima** *(ajuste pós-lançamento da v9.0.0, `manaFormulas.ts`)*: o custo de mana de cada habilidade não é mais um valor fixo (que ficava irrisório assim que a mana máxima do jogador crescia via atributos de sets/equipamento — era possível chegar a milhares de mana logo no início do jogo, enquanto o custo das habilidades continuava na casa das dezenas). Em vez disso, o custo é calculado como uma **porcentagem da mana máxima atual do jogador** (`calculateMaxMana`), reavaliada a cada uso — assim ele nunca "fica para trás", não importa a fonte do crescimento de mana (nível de personagem, atributos de sets, ascensão):
+    *   *Habilidades Comuns*: $\text{Custo} = \text{Mana Máxima} \times (0.045 + \text{Nível Requerido} \times 0.006) \times (1 + (\text{Nível da Habilidade} - 1) \times 0.12)$. Ex.: uma habilidade de Tier 1 (`requiredLevel: 1`) no nível 1 custa $\approx 5.1\%$ da mana máxima; no nível máximo (15), $\approx 13.7\%$. Uma habilidade de Tier 6 (`requiredLevel: 11`) no nível 15 chega a $\approx 29.7\%$ da mana máxima por uso.
+    *   *Habilidades Ultimate*: $\text{Custo} = \text{Mana Máxima} \times \min(0.30 + (\text{Nível da Habilidade} - 1) \times 0.02,\ 0.55)$ — de $30\%$ da mana máxima no nível 1 até um teto de $55\%$ em níveis avançados, refletindo o altíssimo poder de uma Ultimate.
+    *   *Cura (Comum)*: **Gratuita ($0$ Mana)**, sempre — sai de fora do escalonamento por completo *(antes custava $12$ Mana fixos; ver Seção 6.C)*. Decisão de design para a habilidade concedida gratuitamente a todas as classes nunca ficar inutilizável por falta de mana.
+    *   Substitui uma tentativa anterior (ainda dentro da v9.0.0) de escalonamento puramente linear por nível da habilidade ($+15\%$/nível sobre um valor base fixo), que se mostrou insuficiente: mesmo escalado, o custo continuava desprezível frente a pools de mana da ordem de milhares.
+*   **Exibição em Tempo Real na UI** *(ajuste pós-lançamento da v9.0.0)*: o custo de mana calculado passou a ser exibido tanto na Barra de Habilidades em combate (`ActiveSkillsPanel`, `GameUI.tsx`) quanto na Árvore de Habilidades (`SkillsTreePanel`), que agora mostra o custo de mana do nível atual **e** uma prévia do custo no próximo nível (linha "Próx. Nível Mana"), no mesmo padrão já usado para prever dano/cura do próximo nível.
 *   **Tempo de Recarga (Cooldown) no Combate**:
     *   *Cura (Comum)*: $10.000$ ms (10.0 segundos)
     *   *Habilidades de Nível Requerido $\le 1$*: $6.000$ ms (6.0 segundos)
@@ -580,137 +579,139 @@ Os custos de mana base e os tempos de cooldown são calculados de acordo com o n
 
 ### B. Catálogo Detalhado de Habilidades por Classe
 
+*Nota: o custo de mana de cada habilidade não é mais listado por skill nesta seção — desde o ajuste pós-lançamento da v9.0.0 (Seção 6.A), o custo é dinâmico (% da mana máxima atual do jogador), derivado do "Nível Requerido" já indicado ao lado de cada habilidade e do nível investido pelo jogador. Ver Seção 6.A para a fórmula completa e valores de exemplo.*
+
 #### ⚔️ Guerreiro (Warrior)
 Escala suas habilidades de ataque com **Força** (`strength`).
-*   **Slash** (Ativa, Nível Requerido: 1, Mana: 8, Cooldown: 6s):
+*   **Slash** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $150\%$ de dano físico base. O dano aumenta em $+15\%$ multiplicativo por nível da habilidade (até $240\%$ no nível 5).
     *   *Efeito Visual*: Executa um corte vermelho transversal sobre o monstro e treme levemente a câmera do jogo.
-*   **Impacto de Escudo** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Impacto de Escudo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano físico base (até $192\%$ no nível 5) e **aplica Atordoamento por 2 segundos** no monstro.
     *   *Efeito Visual*: Golpe físico com impacto retangular cinza e forte tremor de tela.
 *   **Fúria Berserk** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Força para cada nível da habilidade comprado (até $+25$ de Força no nível 5).
-*   **Executar** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Executar** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $300\%$ de dano físico base (até $480\%$ no nível 5). **Causa 50% de dano extra (totalizando 450% a 720%) se o HP do monstro estiver abaixo de 35%**.
     *   *Efeito Visual*: Animação de corte diagonal duplo em cor vermelha intensa com texto crítico flutuante "¡MISERICÓRDIA!".
 *   **Grito de Guerra** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+5$ em Constituição por nível da habilidade (até $+25$ de Constituição no nível 5).
-*   **Tempestade de Aço** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Tempestade de Aço** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Redemoinho de golpes físicos que causa $400\%$ de dano físico base (até $640\%$ no nível 5).
     *   *Efeito Visual*: Efeito contínuo de cortes rápidos circulares ao redor do alvo e vibração severa.
 
 #### 🔮 Mago (Mage)
 Escala suas habilidades de ataque com **Magia** (`magic`).
-*   **Fireball** (Ativa, Nível Requerido: 1, Mana: 15, Cooldown: 6s):
+*   **Fireball** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $250\%$ de dano mágico base (até $400\%$ no nível 5). **Aplica Queimadura por 3 segundos**, que causa $15\%$ do valor de Magia do jogador como dano de fogo a cada segundo.
     *   *Efeito Visual*: Círculo laranja brilhante voa do jogador e explode no monstro em uma área de fumaça e fogo.
-*   **Raio de Gelo** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Raio de Gelo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $150\%$ de dano mágico base (até $240\%$ no nível 5) e **aplica Lentidão por 4 segundos**, reduzindo a velocidade de ataque do monstro em 40%.
     *   *Efeito Visual*: Projétil azul-claro de gelo que colide gerando partículas azuis e o rótulo `[LENTO]` acima do alvo.
 *   **Escudo de Mana** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Magia para cada nível da habilidade comprado (até $+25$ de Magia no nível 5).
-*   **Relâmpago** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Relâmpago** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Dispara uma descarga que causa $350\%$ de dano mágico base (até $560\%$ no nível 5).
     *   *Efeito Visual*: Feixe elétrico roxo descendente caindo diretamente do céu sobre o alvo com clarão na tela.
 *   **Brilho Arcano** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+5$ em Magia por nível da habilidade (até $+25$ de Magia no nível 5).
-*   **Meteoro** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Meteoro** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Cataclismo que causa $500\%$ de dano mágico base (até $800\%$ no nível 5). **Aplica Atordoamento por 1.5s e Queimadura por 5s** (causando 15% de Magia por segundo).
     *   *Efeito Visual*: Meteoro gigante caindo diagonalmente com grande explosão de fogo que sacode a tela inteira.
 
 #### 🏹 Arqueiro (Ranger)
 Escala suas habilidades de ataque com **Destreza** (`dexterity`).
-*   **Disparo Preciso** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+*   **Disparo Preciso** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $150\%$ de dano de perfuração base (até $240\%$ no nível 5).
     *   *Efeito Visual*: Flecha veloz cruza a tela colidindo com partículas vermelhas no monstro.
-*   **Flecha Venenosa** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Flecha Venenosa** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $100\%$ de dano de perfuração base (até $160\%$ no nível 5) e **aplica Veneno por 5 segundos**, causando dano contínuo equivalente a $20\%$ da Destreza do jogador por segundo.
     *   *Efeito Visual*: Projétil verde deixando rastro de partículas tóxicas e marcando o inimigo com o status `[ENVENENADO]`.
 *   **Olho de Águia** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Destreza por nível da habilidade comprado (até $+25$ de Destreza no nível 5).
-*   **Disparo Duplo** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Disparo Duplo** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Dispara dois projéteis de alta velocidade causando $280\%$ de dano de perfuração base (até $448\%$ no nível 5).
     *   *Efeito Visual*: Dois projéteis paralelos rápidos atingindo o inimigo consecutivamente em curto intervalo.
 *   **Passo Ligeiro** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+3$ em Destreza e $+2$ em Constituição por nível da habilidade (até $+15$ Dex e $+10$ Con no nível 5).
-*   **Chuva de Flechas** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Chuva de Flechas** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Causa $420\%$ de dano de perfuração base (até $672\%$ no nível 5).
     *   *Efeito Visual*: Uma tempestade de pequenas flechas descendo sobre o monstro causando tremidos de tela e múltiplos textos de dano.
 
 #### 🛡️ Paladino (Paladin)
 Escala suas habilidades de ataque com **Constituição** (`constitution`).
-*   **Golpe Sagrado** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+*   **Golpe Sagrado** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $150\%$ de dano sagrado baseado em Constituição (até $240\%$ no nível 5).
     *   *Efeito Visual*: Corte diagonal brilhante em tom dourado acompanhado de flash de luz.
-*   **Escudo da Justiça** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Escudo da Justiça** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano sagrado (até $192\%$ no nível 5) e **aplica Fraqueza por 5 segundos**, reduzindo todo o dano infligido pelo monstro em 30%.
     *   *Efeito Visual*: Explosão retangular dourada sobre o monstro marcando-o com o status `[ENFRAQUECIDO]`.
 *   **Retribuição Aura** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Constituição por nível da habilidade comprado (até $+25$ de Constituição no nível 5).
-*   **Punição da Luz** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Punição da Luz** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Golpe pesado de dano misto que causa $250\%$ base (até $400\%$ no nível 5) calculado sobre a **média de Constituição e Força** do personagem:
         $$\text{Dano Base} = (\text{Constituição} \times 1.25 + \text{Força} \times 1.25) \times \text{Multiplicador de Nível}$$
     *   *Efeito Visual*: Pilar de luz dourada brilhante cobrindo o monstro com partículas de energia que sobem.
 *   **Dever Sagrado** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+3$ em Força e $+3$ em Constituição por nível da habilidade (até $+15$ Str e $+15$ Con no nível 5).
-*   **Consagração** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Consagração** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Causa $380\%$ de dano sagrado ao monstro (até $608\%$ no nível 5) e **aplica Consagração (Regeneração) ao jogador por 6 segundos**, restaurando $15\%$ do valor de Constituição do herói como HP por segundo.
     *   *Efeito Visual*: Chão sob os combatentes brilha em tom dourado sagrado, com efeito de cura subindo nos pés do herói.
 
 #### ✝️ Clérigo (Cleric)
 Escala suas habilidades com **Magia** (`magic`).
-*   **Golpe de Fé** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+*   **Golpe de Fé** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $150\%$ de dano sagrado base (até $240\%$ no nível 5).
     *   *Efeito Visual*: Esfera de energia dourada disparada em direção ao monstro, gerando explosão de faíscas.
 *   **Bênção Divina** (Passiva, Nível Requerido: 3):
     *   *Mecânica*: Aumento passivo de $+5$ em Magia para cada nível da habilidade comprado (até $+25$ de Magia no nível 5).
 *   **Escudo Sagrado** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Constituição para cada nível da habilidade comprado (até $+25$ de Constituição no nível 5).
-*   **Ira do Céu** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Ira do Céu** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $300\%$ de dano sagrado base (até $480\%$ no nível 5) e **aplica Exposto por 5 segundos**, aumentando todo o dano recebido pelo monstro em 20%.
     *   *Efeito Visual*: Relâmpago dourado caindo do céu diretamente sobre o monstro e gerando o rótulo `[EXPOSTO]`.
 *   **Crescimento Espiritual** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+3$ em Magia e $+3$ em Constituição por nível da habilidade (até $+15$ Magic e $+15$ Con no nível 5).
-*   **Julgamento Final** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Julgamento Final** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Causa $450\%$ de dano sagrado base (até $720\%$ no nível 5).
     *   *Efeito Visual*: Grande explosão dourada (1.6x maior que o normal) com tremores intensos e múltiplos feixes de luz cruzando a tela.
 
 #### 🗡️ Ladrão (Rogue)
 Escala suas habilidades de ataque com **Destreza** (`dexterity`).
-*   **Apunhalar** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+*   **Apunhalar** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $180\%$ de dano físico base (até $288\%$ no nível 5).
     *   *Efeito Visual*: Corte físico vermelho de alta velocidade em ângulo diagonal sobre o inimigo.
-*   **Adaga de Veneno** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Adaga de Veneno** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Causa $120\%$ de dano de perfuração base (até $192\%$ no nível 5) e **aplica Veneno por 4 segundos**, causando dano contínuo equivalente a $25\%$ da Destreza do jogador por segundo.
     *   *Efeito Visual*: Corte de adaga acompanhado de névoa roxa, aplicando o rótulo `[TOXINA]` no monstro.
 *   **Manto de Sombras** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Destreza por nível da habilidade comprado (até $+25$ de Destreza no nível 5).
-*   **Ataque Furtivo** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Ataque Furtivo** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Golpe pelas costas causando $320\%$ de dano físico base (até $512\%$ no nível 5).
     *   *Efeito Visual*: O herói desaparece por uma fração de segundo e executa um corte transversal letal vermelho escuro com forte tremor de tela.
 *   **Passo Sombrio** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo de $+3$ em Destreza e $+3$ em Força por nível da habilidade (até $+15$ Dex e $+15$ Str no nível 5).
-*   **Florescer Letal** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Florescer Letal** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Redemoinho de adagas que causa $450\%$ de dano físico base (até $720\%$ no nível 5).
     *   *Efeito Visual*: Múltiplos cortes físicos vermelhos cruzados em alta velocidade no corpo do monstro, seguidos de grande explosão de poeira e forte tremor.
 
 #### 💀 Necromante (Necromancer)
 Escala suas habilidades de ataque com **Magia** (`magic`) e bônus de dano com **Sorte** (`luck`).
-*   **Toque da Morte** (Ativa, Nível Requerido: 1, Mana: 11.5, Cooldown: 6s):
+*   **Toque da Morte** (Ativa, Nível Requerido: 1, Cooldown: 6s):
     *   *Mecânica*: Causa $160\%$ de dano mágico base. Cura o herói através da mecânica de Cura de Drenagem:
         $$\text{Cura de Drenagem} = \lfloor (\text{HP Máximo} - \text{HP Atual}) \times (0.20 + 0.05 \times \text{Nível}) \rfloor$$
     *   *Efeito Visual*: Dreno de energia verde/sombria do inimigo em direção ao herói.
-*   **Escudo Ósseo** (Ativa, Nível Requerido: 3, Mana: 14.5, Cooldown: 10s):
+*   **Escudo Ósseo** (Ativa, Nível Requerido: 3, Cooldown: 10s):
     *   *Mecânica*: Reduz o dano recebido em 20% por 6 segundos. Ao expirar, causa 150% de dano baseado na Constituição do personagem.
     *   *Efeito Visual*: Órgãos/ossos giratórios que envolvem o herói e explodem ao final.
 *   **Sangue Frio** (Passiva, Nível Requerido: 5):
     *   *Mecânica*: Aumento passivo de $+5$ em Magia e $+2$ em Sorte por nível da habilidade comprado (até $+25$ de Magia e $+10$ de Sorte no nível 5).
-*   **Sifão de Almas** (Ativa, Nível Requerido: 7, Mana: 20.5, Cooldown: 16s):
+*   **Sifão de Almas** (Ativa, Nível Requerido: 7, Cooldown: 16s):
     *   *Mecânica*: Causa $320\%$ de dano mágico base. Se o inimigo morrer sob o efeito, restaura 20% da mana total do personagem.
     *   *Efeito Visual*: Feixe de almas que viaja do monstro para o jogador.
 *   **Ecos da Tumba** (Passiva, Nível Requerido: 9):
     *   *Mecânica*: Aumento passivo permanente de $+5$ em Constituição por nível da habilidade (até $+25$ de Constituição no nível 5).
-*   **Exército de Esqueletos** (Ativa, Nível Requerido: 11, Mana: 26.5, Cooldown: 24s):
+*   **Exército de Esqueletos** (Ativa, Nível Requerido: 11, Cooldown: 24s):
     *   *Mecânica*: Conjura servos que atacam continuamente causando $120\%$ de dano por segundo por 8 segundos.
     *   *Efeito Visual*: Esqueletos que emergem e atacam o inimigo.
 
@@ -1549,8 +1550,9 @@ Auditoria completa do código-fonte cobrindo performance, código morto, otimiza
 *   **🩸 Bônus do Set da Lua de Sangue Nunca Funcionava (correção)**: o Set da Lua de Sangue (item "Sanguinário") era gerado como drop desde a v8.0.0, mas nunca foi cadastrado em `SET_BONUSES` (`StatEngine.ts`) — o cálculo de bônus de 2/3/5 peças (`calculateFinalStats`) e a lista "Conjuntos Ativos" da UI (que itera `Object.keys(SET_BONUSES)`) simplesmente o ignoravam; peças equipadas do conjunto nunca concediam nenhum bônus de set, apenas os atributos fixos rolados no próprio item. Adicionadas as 8 entradas (uma por classe) em `SET_BONUSES`, com valores interpolados entre o Set Ancestral e o Set Pandemoníaco (o multiplicador de drop do set, $5.5\times$, fica entre os dois, $4.5\times$ e $6.0\times$ — ver Seção 5.B para a tabela completa), além de um novo bônus especial de categoria (`bloodMoonCount`) com tema de Roubo de Vida.
 *   **💠 Fonte do Dano de Toque Reduzida (ajuste pós-lançamento)**: `spawnTouchEffect` (`CombatScene.ts`) usava `42px`/`60px` (normal/crítico) para o texto de dano de clique manual, bem maior que os `28px` usados por `spawnDamageText` para os demais números de dano (combate automático, roubo de vida, etc.). Reduzido para `28px`/`32px`, para ficar visualmente consistente com o resto dos números flutuantes em tela.
 *   **💠 Texto de Roubo de Vida Simplificado (ajuste pós-lançamento)**: o texto flutuante de cura por Roubo de Vida (`CombatFSM.ts`) exibia `+{valor} (Roubo de Vida)`; o sufixo foi removido, mostrando só `+{valor}`, no mesmo padrão enxuto dos demais números de dano/cura em combate.
-*   **💧 Custo de Mana Passou a Escalar por Nível da Habilidade (ajuste pós-lançamento)**: `getSkillManaCost` (`CombatFSM.ts`) calculava o custo só a partir de `requiredLevel` (fixo, do catálogo) — nunca do nível efetivamente investido pelo jogador (`skillLevels`), então o custo ficava irrelevante conforme mana máxima/regeneração cresciam com o progresso do personagem. Passou a multiplicar o custo base por $1 + (\text{Nível da Habilidade} - 1) \times 0.15$, reaproveitando a mesma taxa de $+15\%$/nível já usada no escalonamento de dano — ver Seção 6.A. Cura passou a ter custo $0$ (ver próximo item), ficando de fora desse escalonamento.
-*   **💚 Habilidade Cura Tornou-se Gratuita (ajuste pós-lançamento)**: `getSkillManaCost` retornava $12$ Mana fixos para `heal`; passou a retornar $0$ incondicionalmente. Decisão de design para a Cura (concedida gratuitamente a todas as classes desde o Nível 1) nunca ficar inutilizável por falta de mana, já que ela é a única rede de segurança comum a todas as classes.
+*   **💧 Custo de Mana Convertido para Percentual da Mana Máxima (ajuste pós-lançamento)**: `getSkillManaCost` (`CombatFSM.ts`) calculava o custo a partir de valores fixos por habilidade (ex.: Slash $8$, Fireball $15$) só multiplicados pelo `requiredLevel` — mesmo com uma primeira tentativa de escalonamento por nível investido (+15%/nível), o custo continuava desprezível frente a pools de mana da ordem de milhares (facilmente atingíveis logo no início do jogo via atributos de sets/equipamento), já que o valor fixo nunca acompanhava o crescimento real da mana máxima do jogador. A fórmula foi reescrita do zero em um módulo compartilhado, `src/core/manaFormulas.ts` (`getSkillManaCost`/`calculateMaxMana`, usado tanto por `CombatFSM.ts` quanto pela UI fora de combate), calculando o custo como **porcentagem da mana máxima atual** (`maxMana`): habilidades comuns custam $(0.045 + \text{Nível Requerido} \times 0.006) \times (1 + (\text{Nível da Habilidade} - 1) \times 0.12)$ da mana máxima (de $\approx 5\%$ no Tier 1/Nível 1 até $\approx 30\%$ em habilidades de tier alto no nível máximo); Ultimates custam de $30\%$ a $55\%$ da mana máxima (escalando $+2\%$/nível), substituindo o antigo custo fixo por classe (`manaCost` do catálogo, agora não utilizado no cálculo). Por ser proporcional, o custo nunca mais "fica para trás" — continua relevante como recurso limitante em qualquer estágio do jogo. Ver Seção 6.A para a tabela completa.
+*   **💚 Habilidade Cura Tornou-se Gratuita (ajuste pós-lançamento)**: `getSkillManaCost` retornava $12$ Mana fixos para `heal`; passou a retornar $0$ incondicionalmente, de fora de qualquer escalonamento. Decisão de design para a Cura (concedida gratuitamente a todas as classes desde o Nível 1) nunca ficar inutilizável por falta de mana, já que ela é a única rede de segurança comum a todas as classes.
+*   **🔢 Custo de Mana Exibido na UI (novo, ajuste pós-lançamento)**: nem a Barra de Habilidades em combate (`ActiveSkillsPanel`, `GameUI.tsx`) nem a Árvore de Habilidades (`SkillsTreePanel`) mostravam o custo de mana real — a barra de combate usava uma cópia divergente e desatualizada da fórmula (sem escalonar por nível, `heal` custando $12$ fixos), e a Árvore de Habilidades não mostrava custo de mana algum. Ambas passaram a chamar `getSkillManaCost`/`calculateMaxMana` (`manaFormulas.ts`) diretamente, e a Árvore de Habilidades ganhou uma linha "Próx. Nível Mana" (mesmo padrão já usado para prever dano/cura do próximo nível), mostrando quanto a habilidade vai custar após o próximo upgrade.
 *   **👆 Hold-to-Repeat nos Botões de Prestígio (ajuste pós-lançamento)**: os botões "Aprimorar" da árvore de Prestígio (aba Ascensão, `PrestigeTreePanel` em `GameUI.tsx`) só aceitavam clique único, diferente do padrão "pressionar-e-segurar" já usado nos botões de Atributos e Pontos de Habilidade (v5.8.0) via o componente `HoldButton`/hook `useHoldRepeat`. Os dois botões (painel de detalhe desktop e card expansível mobile) passaram a usar `HoldButton`, sem nenhuma mudança necessária na store — `upgradePrestigeStat` já se autoprotegia contra ultrapassar nível máximo ou pontos disponíveis a cada chamada.
 
 ### Versão 8.0.0 "O Espelho Faminto"

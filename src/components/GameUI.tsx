@@ -9,6 +9,7 @@ import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
+import { calculateMaxMana, getSkillManaCost } from '../core/manaFormulas';
 import { SavesMenu } from './SavesMenu';
 import { ForgeView } from './ForgeView';
 import { ShopPanel } from './ShopPanel';
@@ -449,6 +450,7 @@ const ActiveSkillsPanel: React.FC = () => {
   };
 
   const hasHealSkill = activeSkills.some(([id]) => id === 'heal');
+  const maxMana = calculateMaxMana(character);
 
   return (
     <div className="panel" style={{ padding: '1rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -461,7 +463,7 @@ const ActiveSkillsPanel: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
           {activeSkills.map(([id, skill]) => {
             const level = character.skillLevels[id] || 0;
-            const manaCost = id === 'heal' ? 12 : (id === 'slash' ? 8 : (id === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5));
+            const manaCost = getSkillManaCost(id, skill, level, maxMana);
             const cooldownMs = cooldowns[id] || 0;
             const isOnCooldown = cooldownMs > 0;
             const cooldownSec = Math.ceil(cooldownMs / 1000);
@@ -487,7 +489,7 @@ const ActiveSkillsPanel: React.FC = () => {
                 <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--gold-400)' }}>{skill.name}</span>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>Lvl {level}</span>
-                  <span className="font-mono" style={{ fontSize: '0.45rem', color: '#60a5fa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontWeight: 600 }}>{Math.floor(manaCost)} Mana</span>
+                  <span className="font-mono" style={{ fontSize: '0.45rem', color: '#60a5fa', letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontWeight: 600 }}>{manaCost === 0 ? 'Grátis' : `${manaCost} Mana`}</span>
                 </div>
               </button>
             );
@@ -1881,6 +1883,7 @@ const SkillsTreePanel: React.FC = () => {
   
   const classId = character.classId || 'warrior';
   const availableSkillPoints = character.skillPoints;
+  const maxMana = calculateMaxMana(character);
 
   // Filtra as habilidades da classe atual + curas comuns
   const classSkills = Object.entries(SKILLS_CATALOG)
@@ -2093,11 +2096,31 @@ const SkillsTreePanel: React.FC = () => {
                             <span style={{ color: '#10b981', fontWeight: 600 }}>{nextText}</span>
                           </div>
                         )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#94a3b8' }}>Custo de Mana:</span>
+                          <span style={{ color: '#60a5fa', fontWeight: 700 }}>
+                            {skillLvl > 0 ? (() => {
+                              const cost = getSkillManaCost(selectedSkillId, selectedSkill, skillLvl, maxMana);
+                              return cost === 0 ? 'Grátis' : `${cost} Mana`;
+                            })() : '—'}
+                          </span>
+                        </div>
+                        {skillLvl > 0 && skillLvl < getSkillMaxLevel(selectedSkillId, character.currentStage) && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.85 }}>
+                            <span style={{ color: '#64748b', fontSize: '0.62rem' }}>Próx. Nível Mana:</span>
+                            <span style={{ color: '#f87171', fontWeight: 500, fontSize: '0.62rem' }}>
+                              {(() => {
+                                const nextCost = getSkillManaCost(selectedSkillId, selectedSkill, skillLvl + 1, maxMana);
+                                return nextCost === 0 ? 'Grátis' : `${nextCost} Mana`;
+                              })()}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
                 </div>
-                
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-dim)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                   <span className="font-mono" style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                     {getSkillMaxLevel(selectedSkillId, character.currentStage) === 0 
@@ -2296,6 +2319,26 @@ const SkillsTreePanel: React.FC = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ color: '#64748b' }}>Próximo Nível:</span>
                               <span style={{ color: '#10b981', fontWeight: 600 }}>{nextText}</span>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#94a3b8' }}>Custo de Mana:</span>
+                            <span style={{ color: '#60a5fa', fontWeight: 700 }}>
+                              {currentLevel > 0 ? (() => {
+                                const cost = getSkillManaCost(id, skill, currentLevel, maxMana);
+                                return cost === 0 ? 'Grátis' : `${cost} Mana`;
+                              })() : '—'}
+                            </span>
+                          </div>
+                          {currentLevel > 0 && currentLevel < getSkillMaxLevel(id, character.currentStage) && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.85 }}>
+                              <span style={{ color: '#64748b', fontSize: '0.58rem' }}>Próx. Nível Mana:</span>
+                              <span style={{ color: '#f87171', fontWeight: 500, fontSize: '0.58rem' }}>
+                                {(() => {
+                                  const nextCost = getSkillManaCost(id, skill, currentLevel + 1, maxMana);
+                                  return nextCost === 0 ? 'Grátis' : `${nextCost} Mana`;
+                                })()}
+                              </span>
                             </div>
                           )}
                         </div>

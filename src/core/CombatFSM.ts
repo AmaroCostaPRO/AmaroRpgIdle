@@ -6,6 +6,7 @@ import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTo
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
+import { calculateMaxManaFromStats, getSkillManaCost as getSkillManaCostShared } from './manaFormulas';
 
 // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal calculado por data real local, sem
 // backend. A cada semana, o véu entre o mundo desperto e o Vazio fica fino no Domingo:
@@ -750,8 +751,7 @@ export class CombatFSM {
   private calculatePlayerMaxMana(magic: number, manaBoost: number, classId: string): number {
     // Se magia é o atributo primário (Mago, Clérigo), escala menos: 6 Mana por ponto
     // Se NÃO é o atributo primário (outras classes), escala mais: 18 Mana por ponto
-    const manaPerMagic = (classId === 'mage' || classId === 'cleric') ? 6 : 18;
-    return Math.floor(magic * manaPerMagic * manaBoost);
+    return calculateMaxManaFromStats(magic, manaBoost, classId);
   }
 
   private getHpRegen(constitution: number, classId: string): number {
@@ -1164,15 +1164,12 @@ export class CombatFSM {
   }
 
   // Custo de mana de uma habilidade — usado tanto no disparo manual (triggerSkill) quanto na IA
-  // de auto-cast (runAutoCastAI), para as duas fórmulas não divergirem entre si. Escala +15% por
-  // nível da habilidade (mesmo fator usado no scaling de dano), para o custo continuar relevante
-  // conforme mana máxima/regen crescem. Cura é sempre gratuita.
+  // de auto-cast (runAutoCastAI), para as duas fórmulas não divergirem entre si. Delegado à
+  // fórmula compartilhada (`manaFormulas.ts`), que calcula o custo como % da mana máxima atual do
+  // jogador em vez de um valor fixo — assim ele nunca fica irrisório conforme a mana máxima cresce
+  // (via nível, sets/equipamento ou ascensão). Cura é sempre gratuita.
   private getSkillManaCost(skillId: string, skill: any, skillLevel: number = 1): number {
-    if (skill.isUltimate) return skill.manaCost || 50;
-    if (skillId === 'heal') return 0;
-    const baseCost = skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5);
-    const lvl = Math.max(1, skillLevel);
-    return Math.round(baseCost * (1 + (lvl - 1) * 0.15));
+    return getSkillManaCostShared(skillId, skill, skillLevel, this.playerMaxMana);
   }
 
   private updateStatsFromStore() {

@@ -413,10 +413,10 @@ const App: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#34d399', fontSize: '0.72rem' }}>
-                        💧 Custo de Mana Escalável
+                        💧 Custo de Mana Agora Escala com Sua Mana Máxima
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        O custo de mana das habilidades agora aumenta +15% a cada nível investido, para continuar relevante no fim de jogo. A habilidade Cura passou a ser totalmente gratuita.
+                        O custo de mana das habilidades passou a ser uma porcentagem da sua mana máxima (em vez de um valor fixo), então ele nunca mais fica irrisório conforme você fica mais forte — habilidades comuns custam de ~5% a ~30% da mana máxima, e Ultimates de 30% a 55%. A habilidade Cura continua totalmente gratuita. O custo real de cada habilidade agora também aparece na barra de combate e na Árvore de Habilidades (com o custo do próximo nível já visível ao lado).
                       </div>
                     </div>
                     <div>
