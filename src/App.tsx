@@ -427,6 +427,14 @@ const App: React.FC = () => {
                         Os botões de distribuição de pontos de Prestígio na aba Ascensão agora suportam segurar para repetir, como os botões de Atributos e Habilidades.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🔺 Custo dos Talentos de Transcendência Aumentado
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Mana Suprema, Domínio do Vazio e Foco Temporal agora custam 4 PT por nível (antes 1). Alma do Avatar agora custa 5 PT por nível (antes 2). Avatar Pleno continua custando 5 PT.
+                      </div>
+                    </div>
                   </div>
                 </div>
 

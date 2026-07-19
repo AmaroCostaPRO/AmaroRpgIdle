@@ -222,28 +222,28 @@ export const TRANSCENDENCE_UPGRADES_CATALOG: Record<string, {
   mana_suprema: {
     name: 'Mana Suprema',
     description: 'Aumento de +10% de Max Mana Pct por nível (acumulativo)',
-    costPerLevel: 1,
+    costPerLevel: 4,
     maxLevel: 10,
     bonusPerLevel: 10
   },
   dominio_vazio: {
     name: 'Domínio do Vazio',
     description: 'Aumento de +5% de Dano contra Elites por nível',
-    costPerLevel: 1,
+    costPerLevel: 4,
     maxLevel: 10,
     bonusPerLevel: 5
   },
   foco_temporal: {
     name: 'Foco Temporal',
     description: 'Reduz o tempo de recarga de todas as habilidades em 3% por nível',
-    costPerLevel: 1,
+    costPerLevel: 4,
     maxLevel: 10,
     bonusPerLevel: 3
   },
   alma_avatar: {
     name: 'Alma do Avatar',
     description: 'Aumento multiplicativo de atributos base em +2% por nível',
-    costPerLevel: 2,
+    costPerLevel: 5,
     maxLevel: 5,
     bonusPerLevel: 2
   },
