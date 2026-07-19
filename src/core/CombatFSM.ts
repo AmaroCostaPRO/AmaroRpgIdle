@@ -762,9 +762,9 @@ export class CombatFSM {
   }
 
   private getManaRegen(magic: number, classId: string): number {
-    // Se magia é o atributo primário (Mago, Clérigo), escala menos: 0.02 por ponto
-    // Se NÃO é o atributo primário (outras classes), escala mais: 0.05 por ponto
-    const regenPerMagic = (classId === 'mage' || classId === 'cleric') ? 0.02 : 0.05;
+    // Se magia é o atributo primário (Mago, Clérigo), escala menos: 0.10 por ponto
+    // Se NÃO é o atributo primário (outras classes), escala mais: 0.20 por ponto
+    const regenPerMagic = (classId === 'mage' || classId === 'cleric') ? 0.10 : 0.20;
     return magic * regenPerMagic;
   }
 

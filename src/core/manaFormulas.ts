@@ -22,6 +22,8 @@ export const calculateMaxMana = (character: Character): number => {
 // fixo — assim o custo escala automaticamente com qualquer fonte de crescimento de mana (nível de
 // personagem, atributos de sets/equipamento, ascensão), sem nunca "ficar para trás" e virar
 // irrisório como acontecia com a fórmula fixa anterior. Cura é sempre gratuita.
+// Ajuste pós-lançamento: os percentuais abaixo foram reduzidos pela metade em relação à primeira
+// versão (feedback de que o custo tinha ficado alto demais).
 export const getSkillManaCost = (
   skillId: string,
   skill: { isUltimate?: boolean; requiredLevel: number; manaCost?: number },
@@ -31,10 +33,10 @@ export const getSkillManaCost = (
   if (skillId === 'heal') return 0;
   const lvl = Math.max(1, skillLevel);
   if (skill.isUltimate) {
-    const pct = Math.min(0.30 + (lvl - 1) * 0.02, 0.55);
+    const pct = Math.min(0.15 + (lvl - 1) * 0.01, 0.275);
     return Math.round(maxMana * pct);
   }
-  const tierPct = 0.045 + skill.requiredLevel * 0.006;
+  const tierPct = 0.0225 + skill.requiredLevel * 0.003;
   const lvlMult = 1 + (lvl - 1) * 0.12;
   return Math.round(maxMana * tierPct * lvlMult);
 };
