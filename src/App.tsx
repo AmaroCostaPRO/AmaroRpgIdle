@@ -379,6 +379,54 @@ const App: React.FC = () => {
                         Novo indicador no canto superior esquerdo da tela de combate: mostra ícones de todo Elixir, Poção de Alquimia e buff da Relíquia Ativa em duração, cada um com contagem regressiva e um efeito de "relógio" que cobre o ícone até o buff acabar. O indicador de Lua de Sangue/Convergência também foi corrigido para aparecer no modo mobile (antes só era visível no desktop).
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🌕 Lua de Sangue Ajustada (correção)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O evento agora ativa apenas aos Domingos, e não mais durante o fim de semana inteiro.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        🔱 Correções na Relíquia Ativa (correção)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A habilidade e a descrição da Relíquia Ativa equipada agora aparecem corretamente ao abrir o item no slot de equipamento (antes só apareciam quando o item estava no inventário). Relíquias Ativas também deixaram de poder ser fundidas na Forja Mística.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🩸 Bônus do Set Sanguinário (correção)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Set da Lua de Sangue (item "Sanguinário", drop exclusivo do evento) agora concede corretamente seus bônus de 2/3/5 peças, incluindo roubo de vida e bônus de dano/vida — antes o conjunto equipado não tinha nenhum efeito.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        💠 Ajustes de Combate
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Fonte do dano de toque reduzida para o mesmo tamanho dos demais números de dano em tela. O texto de roubo de vida agora mostra só o valor curado, sem o rótulo extra.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#34d399', fontSize: '0.72rem' }}>
+                        💧 Custo de Mana Escalável
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O custo de mana das habilidades agora aumenta +15% a cada nível investido, para continuar relevante no fim de jogo. A habilidade Cura passou a ser totalmente gratuita.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#818cf8', fontSize: '0.72rem' }}>
+                        👆 Botões de Prestígio
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Os botões de distribuição de pontos de Prestígio na aba Ascensão agora suportam segurar para repetir, como os botões de Atributos e Habilidades.
+                      </div>
+                    </div>
                   </div>
                 </div>
 

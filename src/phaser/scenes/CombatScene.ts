@@ -1017,7 +1017,7 @@ export class CombatScene extends Phaser.Scene {
     const formattedDamage = formatNumber(damage, useAbbrev);
     const color = isCrit ? '#facc15' : '#38bdf8';
     const text = isCrit ? `💥 ${formattedDamage}!` : `${formattedDamage}`;
-    const fontSize = isCrit ? '60px' : '42px'; // Fontes aumentadas (antes 52px / 36px)
+    const fontSize = isCrit ? '32px' : '28px'; // Reduzido para ficar no tamanho dos demais números de dano
 
     const dmgText = this.add.text(targetX, targetY, text, {
       fontSize: fontSize,
@@ -1025,8 +1025,8 @@ export class CombatScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'monospace',
       stroke: '#000000',
-      strokeThickness: isCrit ? 8 : 5,
-      padding: { left: 25, right: 25, top: 15, bottom: 15 }
+      strokeThickness: isCrit ? 4 : 3,
+      padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
     const gameSpeed = useGameStore.getState().gameSpeed;

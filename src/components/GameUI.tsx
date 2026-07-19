@@ -29,7 +29,7 @@ import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { CodexPanel } from './CodexPanel';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
-import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual } from './shared/itemVisuals';
+import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
 
 // Toggle para reexibir o Modo de Teste (5x) na UI, usado apenas em testes internos.
@@ -1355,7 +1355,8 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   const isAncestral = setName.startsWith('Set Ancestral');
                   const isPandemonium = setName.startsWith('Set Pandemoníaco');
                   const isCelestial = setName.startsWith('Set Celestial');
-                  
+                  const isBloodMoon = setName.startsWith('Set da Lua de Sangue');
+
                   let bonusText2 = '(2) +15 Atrib.';
                   let bonusText3 = '(3) +20 Con/For';
                   let bonusText5 = '(5) +35 Atrib.';
@@ -1372,13 +1373,17 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     bonusText2 = '(2) +250 Atrib.';
                     bonusText3 = '(3) +300 Con/For +150 Sorte, +2 Cliques do Robô e +5% Roubo de Vida';
                     bonusText5 = '(5) +600 Atrib., +40% Dano, +20% HP e +10% Vel. Atq.';
+                  } else if (isBloodMoon) {
+                    bonusText2 = '(2) +133 Atrib.';
+                    bonusText3 = '(3) +167 Con/For +83 Sorte e +4.5% Roubo de Vida';
+                    bonusText5 = '(5) +333 Atrib., +22% Dano e +7% HP';
                   }
 
-                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : ''));
-                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : (isCelestial ? '#38bdf8' : 'var(--gold-400)'));
-                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : (isCelestial ? 'rgba(56,189,248,0.15)' : 'rgba(245,158,11,0.1)'));
-                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : (isCelestial ? '#38bdf8' : 'var(--gold-400)'));
-                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : (isCelestial ? '1px solid rgba(56,189,248,0.3)' : '1px solid rgba(245,158,11,0.2)'));
+                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : (isBloodMoon ? '🌕 ' : '')));
+                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : 'var(--gold-400)')));
+                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : (isCelestial ? 'rgba(56,189,248,0.15)' : (isBloodMoon ? 'rgba(220,38,38,0.15)' : 'rgba(245,158,11,0.1)')));
+                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : 'var(--gold-400)')));
+                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : (isCelestial ? '1px solid rgba(56,189,248,0.3)' : (isBloodMoon ? '1px solid rgba(220,38,38,0.3)' : '1px solid rgba(245,158,11,0.2)')));
 
                   return (
                     <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
@@ -3199,13 +3204,13 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                         >
                           Fechar
                         </button>
-                        <button
-                          onClick={() => upgradePrestigeStat(selectedUpgradeId)}
+                        <HoldButton
+                          onRepeat={() => upgradePrestigeStat(selectedUpgradeId)}
                           disabled={isMax || !hasPoints}
                           className={`btn btn-sm ${!isMax && hasPoints ? 'btn-purple' : 'btn-ghost'}`}
                         >
                           {isMax ? 'Nível Máximo' : `Aprimorar (${cost} PP)`}
-                        </button>
+                        </HoldButton>
                       </div>
                     </div>
                   </div>
@@ -3404,17 +3409,15 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       <span style={{ fontSize: '0.6rem', color: '#c4b5fd', fontWeight: 500 }}>
                         Bônus: +{currentLevel * upgrade.bonusPerLevel}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          upgradePrestigeStat(id);
-                        }}
+                      <HoldButton
+                        onRepeat={() => upgradePrestigeStat(id)}
+                        stopPropagation
                         disabled={isMax || !hasPoints}
                         className={`btn btn-sm ${!isMax && hasPoints ? 'btn-purple' : 'btn-ghost'}`}
                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.6rem' }}
                       >
                         {isMax ? 'Nível Máximo' : `Aprimorar (${cost} PP)`}
-                      </button>
+                      </HoldButton>
                     </div>
                   </div>
                 )}
@@ -7742,12 +7745,7 @@ export default function GameUI() {
                 </div>
 
                 {selectedItem.setName && (() => {
-                  const setAncestral = selectedItem.setName.startsWith('Set Ancestral');
-                  const setPandemonium = selectedItem.setName.startsWith('Set Pandemoníaco');
-                  const setCelestial = selectedItem.setName.startsWith('Set Celestial');
-                  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : 'var(--gold-400)'));
-                  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : 'none'));
-                  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : 'Conjunto: '));
+                  const { setTextColor, setShadow, prefix } = getSetPrefixAndColor(selectedItem.setName);
                   return (
                     <div style={{ 
                       fontSize: '0.6rem', 
@@ -7949,23 +7947,34 @@ export default function GameUI() {
                   </div>
 
                   <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                      {Object.entries(item.stats).map(([stat, val]) => (
-                        <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                          {formatStatValue(stat, val)} {statLabels[stat] || stat}
-                        </span>
-                      ))}
-                    </div>
+                    {item.slot === 'activeRelic' ? (
+                      <>
+                        <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Habilidade Ativa</span>
+                        <div style={{ fontSize: '0.65rem', color: '#c084fc', marginTop: '0.2rem', lineHeight: 1.4, fontWeight: 700 }}>
+                          {(() => {
+                            const relicDef = item.activeRelicId ? getActiveRelicDefinition(item.activeRelicId) : undefined;
+                            if (!relicDef) return 'Relíquia desconhecida.';
+                            const rolled = item.activeRelicRolledValue ?? 0;
+                            return `${relicDef.icon} ${relicDef.description.replace('{value}', String(rolled))} (Recarga: ${Math.round(relicDef.cooldownMs / 1000)}s)`;
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                          {Object.entries(item.stats).map(([stat, val]) => (
+                            <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                              {formatStatValue(stat, val)} {statLabels[stat] || stat}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {item.setName && (() => {
-                    const setAncestral = item.setName.startsWith('Set Ancestral');
-                    const setPandemonium = item.setName.startsWith('Set Pandemoníaco');
-                    const setCelestial = item.setName.startsWith('Set Celestial');
-                    const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : 'var(--gold-400)'));
-                    const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : 'none'));
-                    const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : 'Conjunto: '));
+                    const { setTextColor, setShadow, prefix } = getSetPrefixAndColor(item.setName);
                     return (
                       <div style={{ 
                         fontSize: '0.6rem', 

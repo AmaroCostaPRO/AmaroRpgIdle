@@ -297,6 +297,78 @@ export const SET_BONUSES: Record<string, {
       3: { constitution: 200, luck: 200 },
       5: { strength: 350, magic: 350, dexterity: 350, constitution: 350, luck: 350 }
     }
+  },
+  'Set da Lua de Sangue do Carrasco': {
+    name: 'Set da Lua de Sangue do Carrasco',
+    classId: 'warrior',
+    bonuses: {
+      2: { strength: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { strength: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Arauto Rubro': {
+    name: 'Set da Lua de Sangue do Arauto Rubro',
+    classId: 'mage',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Predador Noturno': {
+    name: 'Set da Lua de Sangue do Predador Noturno',
+    classId: 'ranger',
+    bonuses: {
+      2: { dexterity: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { dexterity: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Vingador Escarlate': {
+    name: 'Set da Lua de Sangue do Vingador Escarlate',
+    classId: 'paladin',
+    bonuses: {
+      2: { constitution: 133 },
+      3: { strength: 167, luck: 83 },
+      5: { constitution: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Profeta Sangrento': {
+    name: 'Set da Lua de Sangue do Profeta Sangrento',
+    classId: 'cleric',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Ceifeiro Vermelho': {
+    name: 'Set da Lua de Sangue do Ceifeiro Vermelho',
+    classId: 'rogue',
+    bonuses: {
+      2: { dexterity: 133 },
+      3: { strength: 167, luck: 83 },
+      5: { dexterity: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Devorador Rubro': {
+    name: 'Set da Lua de Sangue do Devorador Rubro',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Eco Escarlate': {
+    name: 'Set da Lua de Sangue do Eco Escarlate',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 83, magic: 83, dexterity: 83 },
+      3: { constitution: 127, luck: 127 },
+      5: { strength: 207, magic: 207, dexterity: 207, constitution: 207, luck: 207 }
+    }
   }
 };
 
@@ -393,6 +465,7 @@ export class StatEngine {
       let ancestralCount = 0;
       let pandemoniumCount = 0;
       let celestialCount = 0;
+      let bloodMoonCount = 0;
 
       Object.entries(setCounts).forEach(([setName, count]) => {
         if (setName.startsWith('Set Ancestral')) {
@@ -401,6 +474,8 @@ export class StatEngine {
           pandemoniumCount += count;
         } else if (setName.startsWith('Set Celestial')) {
           celestialCount += count;
+        } else if (setName.startsWith('Set da Lua de Sangue')) {
+          bloodMoonCount += count;
         }
       });
 
@@ -428,6 +503,14 @@ export class StatEngine {
         finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.40;
         finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.20;
         finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + 0.10;
+      }
+
+      if (bloodMoonCount >= 3) {
+        finalStats.lifesteal = (finalStats.lifesteal || 0) + 0.045;
+      }
+      if (bloodMoonCount >= 5) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.22;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.07;
       }
     }
 

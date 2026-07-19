@@ -148,8 +148,8 @@ export const ForgeView: React.FC = () => {
 
   // Filtra itens do inventário elegíveis para o slot ativo
   const getEligibleItems = (): EquipmentItem[] => {
-    // Exclui consumíveis da lista de itens elegíveis para a forja
-    const inv = (character.inventory || []).filter(item => item.slot !== 'consumable');
+    // Exclui consumíveis e Relíquias Ativas da lista de itens elegíveis para a forja
+    const inv = (character.inventory || []).filter(item => item.slot !== 'consumable' && item.slot !== 'activeRelic');
     
     // Se for o slot 1, permite selecionar qualquer item
     if (activeSelectionSlot === 1) {

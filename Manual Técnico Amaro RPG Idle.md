@@ -345,6 +345,44 @@ graph LR
         *   3 peças: $+80$ Constituição, $+80$ Sorte
         *   5 peças: $+120$ em todos os atributos primários *(Total acumulado: +170 For/Mag/Des, +200 Con/Sor)*
 
+*   **Set da Lua de Sangue (Sanguinário — Exclusivo do Evento Semanal)** *(bônus adicionado como correção pós-lançamento da v9.0.0 — o conjunto existia como drop desde a v8.0.0, mas nunca teve nenhum bônus de conjunto configurado)*:
+    Drop exclusivo de Domingo (Seção 16, "Lua de Sangue"), com multiplicador de atributos ($5.5\times$) posicionado entre o Ancestral ($4.5\times$) e o Pandemoníaco ($6.0\times$) — os bônus de conjunto abaixo foram calculados por interpolação linear entre esses dois tiers.
+    *   **Bônus Especiais de Conjunto**:
+        *   **3 peças**: $+4.5\%$ de Roubo de Vida (Lifesteal) baseado em todo o dano direto infligido.
+        *   **5 peças**: $+22\%$ de Dano Final Global e $+7\%$ de Vida Máxima.
+    *   **Set da Lua de Sangue do Carrasco (`warrior`)**:
+        *   2 peças: $+133$ Força
+        *   3 peças: $+167$ Constituição, $+83$ Sorte
+        *   5 peças: $+333$ Força *(Total acumulado: +466 Força, +167 Con, +83 Sorte)*
+    *   **Set da Lua de Sangue do Arauto Rubro (`mage`)**:
+        *   2 peças: $+133$ Magia
+        *   3 peças: $+167$ Constituição, $+83$ Sorte
+        *   5 peças: $+333$ Magia *(Total acumulado: +466 Magia, +167 Con, +83 Sorte)*
+    *   **Set da Lua de Sangue do Predador Noturno (`ranger`)**:
+        *   2 peças: $+133$ Destreza
+        *   3 peças: $+167$ Constituição, $+83$ Sorte
+        *   5 peças: $+333$ Destreza *(Total acumulado: +466 Destreza, +167 Con, +83 Sorte)*
+    *   **Set da Lua de Sangue do Vingador Escarlate (`paladin`)**:
+        *   2 peças: $+133$ Constituição
+        *   3 peças: $+167$ Força, $+83$ Sorte
+        *   5 peças: $+333$ Constituição *(Total acumulado: +466 Constituição, +167 For, +83 Sorte)*
+    *   **Set da Lua de Sangue do Profeta Sangrento (`cleric`)**:
+        *   2 peças: $+133$ Magia
+        *   3 peças: $+167$ Constituição, $+83$ Sorte
+        *   5 peças: $+333$ Magia *(Total acumulado: +466 Magia, +167 Con, +83 Sorte)*
+    *   **Set da Lua de Sangue do Ceifeiro Vermelho (`rogue`)**:
+        *   2 peças: $+133$ Destreza
+        *   3 peças: $+167$ Força, $+83$ Sorte
+        *   5 peças: $+333$ Destreza *(Total acumulado: +466 Destreza, +167 For, +83 Sorte)*
+    *   **Set da Lua de Sangue do Devorador Rubro (`necromancer`)**:
+        *   2 peças: $+133$ Magia
+        *   3 peças: $+167$ Constituição, $+83$ Sorte
+        *   5 peças: $+333$ Magia *(Total acumulado: +466 Magia, +167 Con, +83 Sorte)*
+    *   **Set da Lua de Sangue do Eco Escarlate (`avatar`)**:
+        *   2 peças: $+83$ Força, $+83$ Magia, $+83$ Destreza
+        *   3 peças: $+127$ Constituição, $+127$ Sorte
+        *   5 peças: $+207$ em todos os atributos primários *(Total acumulado: +290 For/Mag/Des, +334 Con/Sor)*
+
 *   **Sets Pandemoníacos (Exclusivos do Modo Pandemônio)**:
     Estes conjuntos de tier supremo são obtidos apenas derrotando inimigos na dificuldade Pandemônio (Fase 21+) e possuem atributos extraordinários, além de mecânicas de sobrevivência e agressividade:
     *   **Bônus Especiais de Conjunto**:
@@ -522,13 +560,14 @@ As habilidades Ultimate são técnicas extremamente poderosas exclusivas de cada
     *   *Efeito Visual*: Reúne a força de todos os cacos de memórias passadas do herói em um único golpe unificado.
 
 ### A. Custos de Recursos e Recargas (Cooldowns)
-Os custos de mana e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
-*   **Custo de Mana**:
+Os custos de mana base e os tempos de cooldown são calculados de acordo com o nível exigido para desbloqueio da habilidade (`requiredLevel`):
+*   **Custo de Mana Base (nível 1 da habilidade)**:
     *   *Slash (Guerreiro)*: $8$ Mana
     *   *Fireball (Mago)*: $15$ Mana
-    *   *Cura (Comum)*: $12$ Mana
-    *   *Habilidades Ultimate*: Custo fixado por classe (45 a 80 de Mana)
+    *   *Cura (Comum)*: **Gratuita ($0$ Mana)** *(ajuste pós-lançamento da v9.0.0 — antes custava $12$ Mana fixos; ver Seção 6.C)*
+    *   *Habilidades Ultimate*: Custo fixado por classe (45 a 80 de Mana), **não escala** por nível da habilidade
     *   *Outras Habilidades*: $10 + (\text{Nível Requerido} \times 1.5)$ Mana
+*   **Escalonamento por Nível Investido** *(ajuste pós-lançamento da v9.0.0)*: o custo base acima é multiplicado por $1 + (\text{Nível da Habilidade} - 1) \times 0.15$ — a mesma taxa de $+15\%$ por nível já usada no escalonamento de dano (Seção 6, "Escalonamento"). No nível máximo de 15, o custo chega a $\approx 3.1\times$ o valor base. O objetivo é manter a mana relevante como recurso limitante mesmo com mana máxima/regeneração crescendo — antes o custo era praticamente fixo (só dependia de `requiredLevel`, nunca do nível investido pelo jogador). Habilidades Ultimate e Cura ficam de fora desse escalonamento (custo fixo e gratuito, respectivamente).
 *   **Tempo de Recarga (Cooldown) no Combate**:
     *   *Cura (Comum)*: $10.000$ ms (10.0 segundos)
     *   *Habilidades de Nível Requerido $\le 1$*: $6.000$ ms (6.0 segundos)
@@ -694,7 +733,7 @@ Classe suprema transcendental (ver Seção 11.E para desbloqueio e mecânica com
 *   **Tipo**: Habilidade Ativa
 *   **Nível Requerido**: 1
 *   **Desbloqueio**: Concedida gratuitamente no Nível 1 para todas as classes (via `initialSkills`, já no Rank 1 desde a criação do personagem), sem custo de Pontos de Habilidade — o mesmo tratamento dado à primeira habilidade exclusiva de cada classe.
-*   **Custo de Mana**: $12$ Mana
+*   **Custo de Mana**: Gratuita ($0$ Mana) *(ajuste pós-lançamento da v9.0.0 — antes custava $12$ Mana fixos; ver Seção 6.A)*
 *   **Tempo de Recarga**: $10.000$ ms ($10$ segundos)
 *   **Cálculo Matemático da Restauração**:
     $$\text{Valor da Cura} = \lfloor \text{HP Máximo} \times (0.15 + (\text{Nível da Habilidade} - 1) \times 0.025) \rfloor$$
@@ -1165,6 +1204,7 @@ Para que dois itens possam ser fundidos no altar de forja, eles devem obrigatori
     *   **Fusão Não-Mística**: Dois itens normais/convencionais (Comum, Incomum, Raro, Épico ou Lendário). Eles não precisam ser da mesma raridade entre si (ex.: um Épico e um Lendário do mesmo tipo podem ser fundidos).
     *   **Fusão Mística**: Dois itens Místicos. Contudo, eles **devem ter exatamente o mesmo nível místico** (ex.: Místico +1 com Místico +1). Não é permitido fundir um item convencional com um místico, ou dois místicos de níveis diferentes.
 *   **Nível Místico Máximo**: O nível místico máximo de destino permitido para qualquer item é **+8** (elevado de +5 para +8 na Versão 4.2.0 — ver Histórico de Updates).
+*   **Itens Não-Elegíveis**: Consumíveis e Relíquias Ativas (`activeRelic`, Seção 5.E) nunca são elegíveis para fusão — nem aparecem como opção de seleção no altar, nem passam pela validação de `reforgeItems`. Relíquias Ativas foram adicionadas a essa exclusão como correção pós-lançamento da v9.0.0 (antes, duas relíquias do mesmo slot podiam ser fundidas indevidamente, já que `activeRelic` é tratado como um `slot` de equipamento comum na validação de compatibilidade).
 
 ### B. Custo de Fusão
 A fusão exige o pagamento de uma taxa combinada de Ouro e **Fragmentos de Forja** que aumenta progressivamente dependendo do nível místico resultante:
@@ -1503,6 +1543,15 @@ Auditoria completa do código-fonte cobrindo performance, código morto, otimiza
 *   **🩸 Visual Próprio do Set da Lua de Sangue no Inventário/Depósito (ajuste pós-lançamento)**: `getSetVisual`/`getSetPrefixAndColor` (`src/components/shared/itemVisuals.ts`) ganharam detecção de `setName.startsWith('Set da Lua de Sangue')`, com borda/glow/fundo vermelhos (`#dc2626`) — antes esses itens caíam no fallback de cor por raridade, sem nenhum destaque visual próprio como Ancestral/Pandemoníaco/Celestial já tinham. Como o módulo é compartilhado, o efeito já vale automaticamente no Inventário, no Depósito (`VaultPanel.tsx`) e nos modais de detalhe de item.
 *   **🛠️ Botões de Ação em Lote do Inventário Redesenhados (ajuste pós-lançamento)**: os antigos `sellAllCommonAndRare`/`sellAllLegendary` (`useGameStore.ts`) segmentavam por raridade e deixavam Épicos/Míticos de fora de qualquer botão. Substituídos por `sellAllEquipment` (vende **todos** os equipamentos do inventário, qualquer raridade, por Ouro) e `dismantleAllEquipment` (desmonta **todos** em Fragmentos de Forja, +1 por item, espelhando `dismantleItem`) — ver Seção 5.D.2 para o detalhamento atualizado.
 *   **🎨 Tint Temático de Fase Deixou de Afetar o Sprite do Inimigo (correção)**: `updateBackgroundForStage()` e o bloco de `enemyEffects` em `update()` (`CombatScene.ts`) aplicavam o mesmo tint de tema (Pesadelo/Inferno/Apocalipse/Ecoterra/Lua de Sangue/Pandemônio) tanto no `background` quanto no `enemyBody` — efeito colateral não pretendido, já que o sprite do monstro deveria mudar de cor só por motivo de gameplay (efeito de status ativo ou pulso metálico de Elite), nunca por decoração temática da fase. Todas as chamadas `enemyBody.setTint/clearTint` ligadas ao tema de fase foram removidas dos dois locais; o `else` final do bloco de `enemyEffects` agora só limpa o tint (`clearTint()`) quando não há status ativo nem Elite, em vez de reaplicar o tint de dificuldade.
+*   **🌕 Lua de Sangue Restrita ao Domingo (ajuste pós-lançamento)**: `isBloodMoonActive()` (`CombatFSM.ts`) checava `day === 0 || day === 6` (Domingo ou Sábado); passou a checar só `day === 0`. O evento (buff de inimigos, tabela de drop exclusiva, Set da Lua de Sangue) agora ocorre apenas aos Domingos, reduzindo a janela semanal de 2 dias para 1.
+*   **🔱 Tooltip da Relíquia Ativa Equipada Não Aparecia (correção)**: o modal de detalhes do item equipado (`GameUI.tsx`, aberto ao clicar em um slot do grid de equipamento) sempre renderizava o bloco genérico "Atributos do Item" (`Object.entries(item.stats)`), mesmo para o slot `activeRelic` — que não tem `stats` de `BaseStats`, então o painel aparecia vazio. O modal do inventário já tratava esse caso corretamente (bloco "Habilidade Ativa" com `getActiveRelicDefinition`); o mesmo branch condicional (`item.slot === 'activeRelic'`) foi replicado no modal de item equipado.
+*   **🔱 Relíquias Ativas Fundíveis na Forja Indevidamente (correção)**: `reforgeItems` (`useGameStore.ts`) só excluía `slot === 'consumable'` da fusão — como `activeRelic` é só mais um valor de `slot`, duas relíquias ativas do mesmo tipo passavam pela validação de compatibilidade e podiam ser fundidas, embora relíquias ativas nunca devessem participar de Fusão Mística (Seção 5.E). Adicionado guard equivalente para `slot === 'activeRelic'` em `reforgeItems`, e o filtro de itens elegíveis do próprio altar (`ForgeView.tsx`, `getEligibleItems`) passou a excluir esse slot também, para a peça nem aparecer como opção de seleção.
+*   **🩸 Bônus do Set da Lua de Sangue Nunca Funcionava (correção)**: o Set da Lua de Sangue (item "Sanguinário") era gerado como drop desde a v8.0.0, mas nunca foi cadastrado em `SET_BONUSES` (`StatEngine.ts`) — o cálculo de bônus de 2/3/5 peças (`calculateFinalStats`) e a lista "Conjuntos Ativos" da UI (que itera `Object.keys(SET_BONUSES)`) simplesmente o ignoravam; peças equipadas do conjunto nunca concediam nenhum bônus de set, apenas os atributos fixos rolados no próprio item. Adicionadas as 8 entradas (uma por classe) em `SET_BONUSES`, com valores interpolados entre o Set Ancestral e o Set Pandemoníaco (o multiplicador de drop do set, $5.5\times$, fica entre os dois, $4.5\times$ e $6.0\times$ — ver Seção 5.B para a tabela completa), além de um novo bônus especial de categoria (`bloodMoonCount`) com tema de Roubo de Vida.
+*   **💠 Fonte do Dano de Toque Reduzida (ajuste pós-lançamento)**: `spawnTouchEffect` (`CombatScene.ts`) usava `42px`/`60px` (normal/crítico) para o texto de dano de clique manual, bem maior que os `28px` usados por `spawnDamageText` para os demais números de dano (combate automático, roubo de vida, etc.). Reduzido para `28px`/`32px`, para ficar visualmente consistente com o resto dos números flutuantes em tela.
+*   **💠 Texto de Roubo de Vida Simplificado (ajuste pós-lançamento)**: o texto flutuante de cura por Roubo de Vida (`CombatFSM.ts`) exibia `+{valor} (Roubo de Vida)`; o sufixo foi removido, mostrando só `+{valor}`, no mesmo padrão enxuto dos demais números de dano/cura em combate.
+*   **💧 Custo de Mana Passou a Escalar por Nível da Habilidade (ajuste pós-lançamento)**: `getSkillManaCost` (`CombatFSM.ts`) calculava o custo só a partir de `requiredLevel` (fixo, do catálogo) — nunca do nível efetivamente investido pelo jogador (`skillLevels`), então o custo ficava irrelevante conforme mana máxima/regeneração cresciam com o progresso do personagem. Passou a multiplicar o custo base por $1 + (\text{Nível da Habilidade} - 1) \times 0.15$, reaproveitando a mesma taxa de $+15\%$/nível já usada no escalonamento de dano — ver Seção 6.A. Cura passou a ter custo $0$ (ver próximo item), ficando de fora desse escalonamento.
+*   **💚 Habilidade Cura Tornou-se Gratuita (ajuste pós-lançamento)**: `getSkillManaCost` retornava $12$ Mana fixos para `heal`; passou a retornar $0$ incondicionalmente. Decisão de design para a Cura (concedida gratuitamente a todas as classes desde o Nível 1) nunca ficar inutilizável por falta de mana, já que ela é a única rede de segurança comum a todas as classes.
+*   **👆 Hold-to-Repeat nos Botões de Prestígio (ajuste pós-lançamento)**: os botões "Aprimorar" da árvore de Prestígio (aba Ascensão, `PrestigeTreePanel` em `GameUI.tsx`) só aceitavam clique único, diferente do padrão "pressionar-e-segurar" já usado nos botões de Atributos e Pontos de Habilidade (v5.8.0) via o componente `HoldButton`/hook `useHoldRepeat`. Os dois botões (painel de detalhe desktop e card expansível mobile) passaram a usar `HoldButton`, sem nenhuma mudança necessária na store — `upgradePrestigeStat` já se autoprotegia contra ultrapassar nível máximo ou pontos disponíveis a cada chamada.
 
 ### Versão 8.0.0 "O Espelho Faminto"
 *   **💍 Novo Slot de Equipamento: Anel**: Ao contrário do Amuleto (v7.0.0, slot "leve" com pool de stats fixa e drop fixo de 8%), o Anel foi implementado como **slot "pesado" de itemização normal** — decisão de design deliberada para dar "mais decisões de build por classe e mais alvos para a fusão mística" (texto do roadmap). Adicionado `'ring'` ao union de `EquipmentItem.slot` e ao `Record` de `Character.equipment` (`src/core/types.ts`); entra em `normalSlots` no drop de equipamento (`CombatFSM.ts`, `handleEnemyDefeat`), competindo pela mesma rolagem de `dropChance` escalada por Sorte que Elmo/Peito/Pernas/Mãos/Arma (sem taxa fixa dedicada como Colar/Amuleto). Recebe atributos de classe via o mesmo `possibleStatsMap` dos demais slots pesados, participa de `setName`/`SET_BONUSES` (`StatEngine.ts` — agregação e contagem de set são slot-agnósticas, então nenhuma mudança foi necessária ali) e da Fusão Mística automaticamente (`getMysticFusionCost` não depende de slot). O tier de "5 peças" de `SET_BONUSES` permanece em 5 (não foi criado um tier de "6 peças"): o Anel pode ser a peça extra fora do set ou substituir outra peça do set na build do jogador. Nomes de item por classe (ex: "Anel de Guerra", "Anel Arcano") adicionados em `CombatFSM.ts` e `useGameStore.ts` (geração de itens/fusão mística), ícone 💍 em `itemVisuals.ts`/`ForgeView.tsx`. UI (`GameUI.tsx`): novo card no grid de equipamento (posição `(3,1)`, antes vazia — grid 3×3 não precisou expandir) e opção no painel admin/debug de item customizado.

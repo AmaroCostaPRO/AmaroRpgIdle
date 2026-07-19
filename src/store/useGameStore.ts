@@ -399,7 +399,7 @@ export const SKILLS_CATALOG: Record<string, {
   cosmic_convergence: { name: 'Convergência das Cinco Almas', description: 'Sintoniza permanentemente as cinco energias cardinais. Aumento passivo de +5 em Força, Magia, Destreza, Constituição e Sorte por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5, magic: 5, dexterity: 5, constitution: 5, luck: 5 }, requiredLevel: 1, classId: 'avatar' },
 
   // Comum
-  heal: { name: 'Cura', description: 'Restaura 15% da vida máxima usando mana.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
+  heal: { name: 'Cura', description: 'Restaura 15% da vida máxima.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'common' }
 };
 
 export const GLOBAL_CLASS_LEVELS_KEY = 'medieval_idle_global_class_levels';
@@ -3484,6 +3484,10 @@ export const useGameStore = create<GameState>((set) => ({
       }
       if (item1.slot === 'consumable' || item2.slot === 'consumable') {
         result = { success: false, message: 'Consumíveis não podem ser forjados.' };
+        return state;
+      }
+      if (item1.slot === 'activeRelic' || item2.slot === 'activeRelic') {
+        result = { success: false, message: 'Relíquias Ativas não podem ser forjadas.' };
         return state;
       }
       if (item1.slot !== item2.slot) {

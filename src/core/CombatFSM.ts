@@ -8,13 +8,13 @@ import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
 
 // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal calculado por data real local, sem
-// backend. A cada semana, o véu entre o mundo desperto e o Vazio fica fino no fim de semana
-// (Sábado e Domingo): inimigos da fase atual ficam mais fortes, ganham reskin visual (tint
+// backend. A cada semana, o véu entre o mundo desperto e o Vazio fica fino no Domingo:
+// inimigos da fase atual ficam mais fortes, ganham reskin visual (tint
 // vermelho) e uma tabela de drop exclusiva passa a valer. Nunca se aplica dentro da Torre Infinita
 // (mesma exclusão já usada para a Ecoterra).
 export const isBloodMoonActive = (): boolean => {
   const day = new Date().getDay(); // 0 = domingo ... 6 = sábado
-  return day === 0 || day === 6;
+  return day === 0;
 };
 
 export const ENEMY_TYPES: EnemyType[] = [
@@ -1164,13 +1164,15 @@ export class CombatFSM {
   }
 
   // Custo de mana de uma habilidade — usado tanto no disparo manual (triggerSkill) quanto na IA
-  // de auto-cast (runAutoCastAI), para as duas fórmulas não divergirem entre si.
-  private getSkillManaCost(skillId: string, skill: any): number {
+  // de auto-cast (runAutoCastAI), para as duas fórmulas não divergirem entre si. Escala +15% por
+  // nível da habilidade (mesmo fator usado no scaling de dano), para o custo continuar relevante
+  // conforme mana máxima/regen crescem. Cura é sempre gratuita.
+  private getSkillManaCost(skillId: string, skill: any, skillLevel: number = 1): number {
     if (skill.isUltimate) return skill.manaCost || 50;
-    if (skillId === 'heal') return 12;
-    if (skillId === 'slash') return 8;
-    if (skillId === 'fireball') return 15;
-    return 10 + skill.requiredLevel * 1.5;
+    if (skillId === 'heal') return 0;
+    const baseCost = skillId === 'slash' ? 8 : (skillId === 'fireball' ? 15 : 10 + skill.requiredLevel * 1.5);
+    const lvl = Math.max(1, skillLevel);
+    return Math.round(baseCost * (1 + (lvl - 1) * 0.15));
   }
 
   private updateStatsFromStore() {
@@ -2241,7 +2243,7 @@ export class CombatFSM {
       if (drainAmount > 0) {
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
         if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount} (Roubo de Vida)`, '#10b981');
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount}`, '#10b981');
         }
       }
     }
@@ -3199,7 +3201,7 @@ export class CombatFSM {
     }
 
     // Custo de mana dinâmico com base no nível requerido ou custo fixo da Ultimate
-    const manaCost = this.getSkillManaCost(skillId, skill);
+    const manaCost = this.getSkillManaCost(skillId, skill, skillLvl);
     if (this.playerMana < manaCost) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Mana insuficiente para ${skill.name}! (Requer ${Math.floor(manaCost)})` });
       return;
@@ -3644,7 +3646,7 @@ export class CombatFSM {
       const healSkillId = activeSkills.find((id: string) => id === 'heal');
       if (healSkillId) {
         const cooldown = this.skillCooldowns[healSkillId] || 0;
-        const manaCost = this.getSkillManaCost(healSkillId, SKILLS_CATALOG[healSkillId]);
+        const manaCost = this.getSkillManaCost(healSkillId, SKILLS_CATALOG[healSkillId], char.skillLevels[healSkillId] || 1);
         if (cooldown <= 0 && this.playerMana >= manaCost) {
           this.triggerSkill(healSkillId);
           return;
@@ -3660,7 +3662,7 @@ export class CombatFSM {
       if (!skill) continue;
 
       const cooldown = this.skillCooldowns[skillId] || 0;
-      const manaCost = this.getSkillManaCost(skillId, skill);
+      const manaCost = this.getSkillManaCost(skillId, skill, char.skillLevels[skillId] || 1);
 
       if (cooldown <= 0 && this.playerMana >= manaCost) {
         this.triggerSkill(skillId);
