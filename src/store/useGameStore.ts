@@ -33,6 +33,16 @@ export const getInventorySlotCost = (currentSlots: number): number => {
   return 100000 * (purchasedSlots + 1);
 };
 
+// Revalida a Velocidade do Jogo contra os requisitos de desbloqueio do personagem resultante —
+// chamada após trocar de save/slot, importar save, prestígio ou transcendência, para que 2x/3x
+// nunca "grude" de um personagem anterior que os tinha liberados quando o novo/atual não tem.
+export const clampGameSpeedToUnlocks = (character: Character, currentSpeed: number): number => {
+  const ascensionCount = character.ascensionCount || 0;
+  if (currentSpeed >= 3 && !character.speedUnlock3xPurchased) return 1;
+  if (currentSpeed >= 2 && ascensionCount < 1) return 1;
+  return currentSpeed;
+};
+
 export const calculateItemSellValue = (item: EquipmentItem): number => {
   if (item.rarity === 'consumable') return 0;
 
@@ -344,7 +354,7 @@ export const SKILLS_CATALOG: Record<string, {
   shield_bash: { name: 'Impacto de Escudo', description: 'Impacto que causa 120% do dano de Força e atordoa o inimigo.', cost: 1, maxLevel: 5, dependencies: ['slash'], type: 'active', requiredLevel: 3, classId: 'warrior' },
   berserk: { name: 'Fúria Berserk', description: 'Aumento passivo permanente de +5 em Força e +2 em Constituição por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 5, constitution: 2 }, requiredLevel: 5, classId: 'warrior' },
   execute: { name: 'Executar', description: 'Golpe de misericórdia causando 300% do dano de Força.', cost: 2, maxLevel: 5, dependencies: ['shield_bash'], type: 'active', requiredLevel: 7, classId: 'warrior' },
-  battle_cry: { name: 'Grito de Guerra', description: 'Intimidação passiva: no início de cada combate, enfraquece o inimigo (-10% de dano por nível) por alguns segundos.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'warrior' },
+  battle_cry: { name: 'Grito de Guerra', description: 'Intimidação passiva: no início de cada combate, enfraquece o inimigo (-4% de dano por nível, até -60%) por alguns segundos.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'warrior' },
   bladestorm: { name: 'Tempestade de Aço', description: 'Ataque giratório contínuo que causa 400% de Força.', cost: 3, maxLevel: 5, dependencies: ['execute'], type: 'active', requiredLevel: 11, classId: 'warrior' },
   ultimate_warrior: { name: 'Cólera dos Titãs', description: 'Guerreia com fúria divina descarregando um golpe sísmico que causa 2400% de Força. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['bladestorm'], type: 'active', requiredLevel: 15, classId: 'warrior', isUltimate: true, cooldown: 60000, manaCost: 50 },
 
@@ -362,14 +372,14 @@ export const SKILLS_CATALOG: Record<string, {
   poison_arrow: { name: 'Flecha Venenosa', description: 'Flecha tóxica causando 100% de Destreza com veneno ativo.', cost: 1, maxLevel: 5, dependencies: ['arrow_shot'], type: 'active', requiredLevel: 3, classId: 'ranger' },
   eagle_eye: { name: 'Olho de Águia', description: 'Visão aprimorada. Aumento passivo de +5 em Destreza e +2 em Constituição por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { dexterity: 5, constitution: 2 }, requiredLevel: 5, classId: 'ranger' },
   double_shot: { name: 'Disparo Duplo', description: 'Dispara duas flechas simultâneas causadoras de 280% de Destreza.', cost: 2, maxLevel: 5, dependencies: ['poison_arrow'], type: 'active', requiredLevel: 7, classId: 'ranger' },
-  fleet_footed: { name: 'Passo Ligeiro', description: 'Passividade ágil: aumenta permanentemente sua chance de Esquiva em +3% por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'ranger' },
+  fleet_footed: { name: 'Passo Ligeiro', description: 'Passividade ágil: aumenta permanentemente sua chance de Esquiva em +2% por nível, até +30%.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 9, classId: 'ranger' },
   rain_arrows: { name: 'Chuva de Flechas', description: 'Saraivada de flechas que causa 420% de Destreza e deixa o alvo sangrando ao longo do tempo.', cost: 3, maxLevel: 5, dependencies: ['double_shot'], type: 'active', requiredLevel: 11, classId: 'ranger' },
   ultimate_ranger: { name: 'Flecha do Juízo Final', description: 'Dispara um projétil infundido com energia cósmica que perfura e causa 2200% de Destreza, com dano extra contra Elites e Chefes. (Ultimate)', cost: 5, maxLevel: 5, dependencies: ['rain_arrows'], type: 'active', requiredLevel: 15, classId: 'ranger', isUltimate: true, cooldown: 55000, manaCost: 45 },
 
   // Paladino (Paladin)
   holy_strike: { name: 'Golpe Sagrado', description: 'Ataque abençoado causando 150% de Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'active', requiredLevel: 1, classId: 'paladin' },
   shield_righteousness: { name: 'Escudo da Justiça', description: 'Golpe de escudo causando 120% de Constituição.', cost: 1, maxLevel: 5, dependencies: ['holy_strike'], type: 'active', requiredLevel: 3, classId: 'paladin' },
-  retribution: { name: 'Retribuição Aura', description: 'Aura passiva: reflete de volta ao inimigo +4% do dano recebido por nível.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'paladin' },
+  retribution: { name: 'Retribuição Aura', description: 'Aura passiva: reflete de volta ao inimigo +3% do dano recebido por nível, até 45%.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', requiredLevel: 5, classId: 'paladin' },
   smite_paladin: { name: 'Punição da Luz', description: 'Causa 250% de dano misto de Constituição e Força.', cost: 2, maxLevel: 5, dependencies: ['shield_righteousness'], type: 'active', requiredLevel: 7, classId: 'paladin' },
   sacred_duty: { name: 'Dever Sagrado', description: 'Aumento passivo de +3 em Força e +3 em Constituição.', cost: 1, maxLevel: 5, dependencies: [], type: 'passive', statBonuses: { strength: 3, constitution: 3 }, requiredLevel: 9, classId: 'paladin' },
   consecration: { name: 'Consagração', description: 'Santifica o solo causando 380% de Constituição.', cost: 3, maxLevel: 5, dependencies: ['smite_paladin'], type: 'active', requiredLevel: 11, classId: 'paladin' },
@@ -712,7 +722,7 @@ interface GameState {
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
   // Loja e Consumíveis (v3.0.0)
-  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot'): { success: boolean; message: string };
+  buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | 'speed_unlock_3x'): { success: boolean; message: string };
   buyTranscendenceConsumable(type: 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal'): { success: boolean; message: string };
   useConsumable(itemId: string): { success: boolean; message: string };
 
@@ -1177,7 +1187,7 @@ export const useGameStore = create<GameState>((set) => ({
   setGameSpeed: (speed) => set((state) => {
     const ascensionCount = state.character.ascensionCount || 0;
     if (speed === 2 && ascensionCount < 1) return state;
-    if (speed === 3 && ascensionCount < 5) return state;
+    if (speed === 3 && !state.character.speedUnlock3xPurchased) return state;
     return { gameSpeed: speed };
   }),
 
@@ -2487,7 +2497,7 @@ export const useGameStore = create<GameState>((set) => ({
     }
 
     saveToLocalStorage(updated);
-    return { character: updated };
+    return { character: updated, gameSpeed: clampGameSpeedToUnlocks(updated, state.gameSpeed) };
   }),
 
   unlockPandemonium: () => set((state) => {
@@ -2640,7 +2650,7 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     saveToLocalStorage(updatedChar);
-    return { character: updatedChar, screen: 'playing' };
+    return { character: updatedChar, screen: 'playing', gameSpeed: clampGameSpeedToUnlocks(updatedChar, state.gameSpeed) };
   }),
 
   upgradeTranscendenceStat: (upgradeId) => set((state) => {
@@ -2779,7 +2789,12 @@ export const useGameStore = create<GameState>((set) => ({
             }
           })();
 
-          set({ character: merged, currentSlot: currentSlotVal, screen: 'playing' });
+          set((state) => ({
+            character: merged,
+            currentSlot: currentSlotVal,
+            screen: 'playing',
+            gameSpeed: clampGameSpeedToUnlocks(merged, state.gameSpeed)
+          }));
           return true;
         }
       }
@@ -3211,7 +3226,12 @@ export const useGameStore = create<GameState>((set) => ({
 
           localStorage.setItem('medieval_idle_save', JSON.stringify(merged));
           localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
-          set({ character: merged, currentSlot: slotIndex, screen: 'playing' });
+          set((state) => ({
+            character: merged,
+            currentSlot: slotIndex,
+            screen: 'playing',
+            gameSpeed: clampGameSpeedToUnlocks(merged, state.gameSpeed)
+          }));
           return true;
         }
       }
@@ -3253,7 +3273,11 @@ export const useGameStore = create<GameState>((set) => ({
         if (currentSlot === String(slotIndex) || !currentSlot) {
           localStorage.setItem('medieval_idle_save', JSON.stringify(merged));
           localStorage.setItem('medieval_idle_current_slot', String(slotIndex));
-          set({ character: merged, currentSlot: slotIndex });
+          set((state) => ({
+            character: merged,
+            currentSlot: slotIndex,
+            gameSpeed: clampGameSpeedToUnlocks(merged, state.gameSpeed)
+          }));
         }
         return true;
       }
@@ -3472,20 +3496,8 @@ export const useGameStore = create<GameState>((set) => ({
         return { character: updated };
       }
 
-      const isEquipment = item.slot !== 'consumable' || 
-                          item.consumableType === 'chest_legendary' || 
-                          item.consumableType === 'chest_ancestral';
-
-      if (isEquipment) {
-        const equipmentCount = state.character.inventory.filter(i => 
-          i.slot !== 'consumable' || 
-          i.consumableType === 'chest_legendary' || 
-          i.consumableType === 'chest_ancestral'
-        ).length;
-
-        if (equipmentCount >= state.character.inventorySlots) {
-          return state;
-        }
+      if (state.character.inventory.length >= state.character.inventorySlots) {
+        return state;
       }
 
       success = true;
@@ -3782,7 +3794,8 @@ export const useGameStore = create<GameState>((set) => ({
         boost_touch: 1000,
         boost_touch_x3: 5000,
         relic_chest: 2000000,
-        inventory_slot: getInventorySlotCost(state.character.inventorySlots || 30)
+        inventory_slot: getInventorySlotCost(state.character.inventorySlots || 30),
+        speed_unlock_3x: 100000000
       };
       const cost = costs[type];
       if ((state.character.gold || 0) < cost) {
@@ -3805,6 +3818,23 @@ export const useGameStore = create<GameState>((set) => ({
 
         saveToLocalStorage(updated);
         result = { success: true, message: `Espaço no inventário aumentado para ${currentSlots + 1}!` };
+        return { character: updated };
+      }
+
+      if (type === 'speed_unlock_3x') {
+        if (state.character.speedUnlock3xPurchased) {
+          result = { success: false, message: 'Velocidade 3x já foi desbloqueada!' };
+          return state;
+        }
+
+        const updated = {
+          ...state.character,
+          gold: (state.character.gold || 0) - cost,
+          speedUnlock3xPurchased: true
+        };
+
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Velocidade 3x desbloqueada permanentemente!' };
         return { character: updated };
       }
 

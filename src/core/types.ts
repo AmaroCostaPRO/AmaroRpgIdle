@@ -207,6 +207,7 @@ export interface Character {
   transcendenceLoreShown?: boolean;
   activeEcoterra?: boolean;
   transcendenceEssence?: number;
+  speedUnlock3xPurchased?: boolean;
   totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
   materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
   citadel?: CitadelState;

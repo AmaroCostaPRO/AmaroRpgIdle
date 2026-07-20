@@ -543,19 +543,22 @@ export class StatEngine {
         });
       });
 
-      // Passo Ligeiro (Arqueiro): +3% de Esquiva por nível, capado em +30% (a fórmula de esquiva em
+      // Passo Ligeiro (Arqueiro): +2% de Esquiva por nível, capado em +30% (a fórmula de esquiva em
       // CombatFSM já limita o total a 75%/95%, mas o cap aqui evita que essa única passiva domine
-      // sozinha o teto e torne Destreza irrelevante).
+      // sozinha o teto e torne Destreza irrelevante). Rebalanceado para o teto só ser atingido
+      // exatamente no nível máximo 15, sem desperdiçar pontos de habilidade investidos além disso.
       const fleetFootedLvl = character.skillLevels['fleet_footed'] || 0;
       if (fleetFootedLvl > 0) {
-        finalStats.dodgeChancePct = (finalStats.dodgeChancePct || 0) + Math.min(30, fleetFootedLvl * 3);
+        finalStats.dodgeChancePct = (finalStats.dodgeChancePct || 0) + Math.min(30, fleetFootedLvl * 2);
       }
 
-      // Retribuição Aura (Paladino): reflete +4% do dano recebido de volta ao inimigo por nível,
-      // capado em 50% (sem cap, níveis altos aproximariam de "imunidade com contra-ataque").
+      // Retribuição Aura (Paladino): reflete +3% do dano recebido de volta ao inimigo por nível,
+      // capado em 45% (sem cap, níveis altos aproximariam de "imunidade com contra-ataque").
+      // Rebalanceado (cap reduzido de 50% para 45%) para o teto só ser atingido exatamente no
+      // nível máximo 15, sem desperdiçar pontos de habilidade investidos além disso.
       const retributionLvl = character.skillLevels['retribution'] || 0;
       if (retributionLvl > 0) {
-        finalStats.reflectDamagePct = (finalStats.reflectDamagePct || 0) + Math.min(50, retributionLvl * 4);
+        finalStats.reflectDamagePct = (finalStats.reflectDamagePct || 0) + Math.min(45, retributionLvl * 3);
       }
     }
 

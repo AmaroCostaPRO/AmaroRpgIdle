@@ -108,6 +108,7 @@ export interface TowerStoreState {
   lastWeeklyResetTime: number;
   savedStageBeforeTower: number;
   savedEnemiesDefeatedBeforeTower: number;
+  savedLevelBeforeTower: number;
   activeKeyType: 'normal' | 'evolved';
   towerBranch: 'normal' | 'curse' | 'voidTrials';
   activeCurses: TowerCurse[];
@@ -237,6 +238,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
   lastWeeklyResetTime: initialData.lastWeeklyResetTime || 0,
   savedStageBeforeTower: 1,
   savedEnemiesDefeatedBeforeTower: 0,
+  savedLevelBeforeTower: 1,
   activeKeyType: 'normal',
   towerBranch: 'normal',
   activeCurses: [],
@@ -296,6 +298,7 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       currentFloor: 1,
       savedStageBeforeTower: savedStage,
       savedEnemiesDefeatedBeforeTower: savedEnemies,
+      savedLevelBeforeTower: char.level,
       activeKeyType: keyType,
       towerBranch: branch,
       activeCurses: [],

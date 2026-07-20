@@ -942,7 +942,8 @@ export class CombatFSM {
       : 0;
 
     // Grito de Guerra (Guerreiro, passiva): intimida o inimigo no início de cada combate.
-    // -10%/nível de dano do inimigo, capado em -60% (sem cap, níveis altos zerariam o dano dele).
+    // -4%/nível de dano do inimigo, capado em -60% (rebalanceado para o teto só ser atingido
+    // exatamente no nível máximo 15, sem desperdiçar pontos de habilidade investidos além disso).
     const battleCryLvl = this.characterData?.skillLevels?.['battle_cry'] || 0;
     if (battleCryLvl > 0 && this.characterData?.classId === 'warrior') {
       this.enemyEffects.push({
@@ -950,7 +951,7 @@ export class CombatFSM {
         name: 'Intimidado',
         duration: 4000 + battleCryLvl * 1000,
         tickTimer: 0,
-        value: Math.min(0.60, 0.10 * battleCryLvl)
+        value: Math.min(0.60, 0.04 * battleCryLvl)
       });
     }
 
@@ -2442,8 +2443,12 @@ export class CombatFSM {
 
     let baseGainedXp: number;
     if (isTower) {
-      // Torre Infinita: XP fixo de 1% do XP necessário para o próximo nível, independente da fase/nível do jogador
-      baseGainedXp = Math.floor(getXpNeededForLevel(char.level, char.currentStage) * 0.01);
+      // Torre Infinita: XP fixo de 1% do XP necessário para o próximo nível, usando o nível
+      // congelado no momento em que a torre foi iniciada — evita que o ganho por abate cresça
+      // junto com o nível ao vivo, o que causava um loop de retroalimentação (mais níveis por
+      // abate quanto mais o personagem subia dentro da própria subida da torre).
+      const frozenLevel = useTowerStore.getState().savedLevelBeforeTower;
+      baseGainedXp = Math.floor(getXpNeededForLevel(frozenLevel, char.currentStage) * 0.01);
     } else {
       // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
       const xpScale = Math.pow(1.35, char.currentStage - 1);
@@ -2549,7 +2554,7 @@ export class CombatFSM {
 
     // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
     if (!useTowerStore.getState().towerActive && char.activeEcoterra && char.currentStage <= 20) {
-      const essenceAmount = isBoss ? 5 : (this.isElite ? 2 : 1);
+      const essenceAmount = Math.max(1, Math.floor((isBoss ? 5 : (this.isElite ? 2 : 1)) / 4));
       useGameStore.getState().addTranscendenceEssence(essenceAmount);
       bridge.emit(GameEvent.LOG_EMITTED, { 
         message: `🌌 Ecoterra: Você extraiu +${essenceAmount} Essência de Transcendência das cinzas do inimigo!` 

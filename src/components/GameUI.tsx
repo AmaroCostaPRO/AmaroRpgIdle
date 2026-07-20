@@ -533,6 +533,85 @@ const ActiveSkillsPanel: React.FC = () => {
         );
       })()}
 
+      {/* Seção de Velocidade do Jogo (Aceleração 1x/2x/3x) */}
+      <div style={{
+        marginTop: '0.6rem',
+        paddingTop: '0.6rem',
+        borderTop: '1px solid var(--border-dim)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.15)',
+        padding: '0.5rem 0.6rem',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-dim)'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            ⚡ Velocidade do Jogo
+          </span>
+          <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Acelera o tempo e combates.</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.3rem' }}>
+          {[0, 1, 2, 3].map((speed) => {
+            const isActive = gameSpeed === speed;
+            const isSpeedLocked = (speed === 2 && (character.ascensionCount || 0) < 1) || (speed === 3 && !character.speedUnlock3xPurchased);
+
+            const getSpeedTooltip = () => {
+              if (speed === 2 && (character.ascensionCount || 0) < 1) return "Velocidade 2x: Requer 1 Ascensão";
+              if (speed === 3 && !character.speedUnlock3xPurchased) return "Velocidade 3x: Compre na Loja";
+              return undefined;
+            };
+
+            return (
+              <button
+                key={speed}
+                onClick={(e) => {
+                  if (isSpeedLocked) {
+                    e.stopPropagation();
+                    AudioManager.getInstance().playClick();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const fitsBelow = window.innerHeight - rect.bottom > 50;
+                    setSpeedTooltip((prev) =>
+                      prev?.speed === speed
+                        ? null
+                        : {
+                            speed,
+                            label: getSpeedTooltip() || '',
+                            x: rect.left + rect.width / 2,
+                            y: fitsBelow ? rect.bottom + 6 : rect.top - 6,
+                            placement: fitsBelow ? 'below' : 'above',
+                          }
+                    );
+                    return;
+                  }
+                  AudioManager.getInstance().playClick();
+                  setGameSpeed(speed);
+                }}
+                className={`btn btn-sm ${isActive ? 'btn-gold' : 'btn-ghost'}`}
+                style={{
+                  minWidth: '1.8rem',
+                  height: '1.3rem',
+                  padding: 0,
+                  fontSize: '0.55rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: isActive ? undefined : 'rgba(255,255,255,0.03)',
+                  border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)',
+                  opacity: isSpeedLocked ? 0.3 : 1,
+                  cursor: isSpeedLocked ? 'not-allowed' : 'pointer'
+                }}
+                title={getSpeedTooltip()}
+              >
+                {isSpeedLocked ? '🔒' : (speed === 0 ? '⏸' : `${speed}x`)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Seção de Auto-Cast */}
       {isAutoCastUnlocked ? (
         <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -708,86 +787,6 @@ const ActiveSkillsPanel: React.FC = () => {
           <span className="badge badge-locked">Bloqueado</span>
         </div>
       )}
-
-      {/* Seção de Velocidade do Jogo (Aceleração 1x/2x/3x) */}
-      <div style={{ 
-        marginTop: '0.6rem', 
-        paddingTop: '0.6rem', 
-        borderTop: '1px solid var(--border-dim)', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        background: 'rgba(0,0,0,0.15)', 
-        padding: '0.5rem 0.6rem', 
-        borderRadius: 'var(--radius-md)', 
-        border: '1px solid var(--border-dim)' 
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className="font-heading" style={{ fontSize: '0.62rem', fontWeight: 700, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            ⚡ Velocidade do Jogo
-          </span>
-          <span style={{ fontSize: '0.5rem', color: '#64748b', lineHeight: 1.4 }}>Acelera o tempo e combates.</span>
-        </div>
-        <div style={{ display: 'flex', gap: '0.3rem' }}>
-          {[0, 1, 2, 3].map((speed) => {
-            const isActive = gameSpeed === speed;
-            const ascensionCount = character.ascensionCount || 0;
-            const isSpeedLocked = (speed === 2 && ascensionCount < 1) || (speed === 3 && ascensionCount < 5);
-            
-            const getSpeedTooltip = () => {
-              if (speed === 2 && ascensionCount < 1) return "Velocidade 2x: Requer 1 Ascensão";
-              if (speed === 3 && ascensionCount < 5) return "Velocidade 3x: Requer 5 Ascensões";
-              return undefined;
-            };
-
-            return (
-              <button
-                key={speed}
-                onClick={(e) => {
-                  if (isSpeedLocked) {
-                    e.stopPropagation();
-                    AudioManager.getInstance().playClick();
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const fitsBelow = window.innerHeight - rect.bottom > 50;
-                    setSpeedTooltip((prev) =>
-                      prev?.speed === speed
-                        ? null
-                        : {
-                            speed,
-                            label: getSpeedTooltip() || '',
-                            x: rect.left + rect.width / 2,
-                            y: fitsBelow ? rect.bottom + 6 : rect.top - 6,
-                            placement: fitsBelow ? 'below' : 'above',
-                          }
-                    );
-                    return;
-                  }
-                  AudioManager.getInstance().playClick();
-                  setGameSpeed(speed);
-                }}
-                className={`btn btn-sm ${isActive ? 'btn-gold' : 'btn-ghost'}`}
-                style={{
-                  minWidth: '1.8rem',
-                  height: '1.3rem',
-                  padding: 0,
-                  fontSize: '0.55rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isActive ? undefined : 'rgba(255,255,255,0.03)',
-                  border: isActive ? undefined : '1px solid rgba(255,255,255,0.08)',
-                  opacity: isSpeedLocked ? 0.3 : 1,
-                  cursor: isSpeedLocked ? 'not-allowed' : 'pointer'
-                }}
-                title={getSpeedTooltip()}
-              >
-                {isSpeedLocked ? '🔒' : (speed === 0 ? '⏸' : `${speed}x`)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {speedTooltip && createPortal(
         <div

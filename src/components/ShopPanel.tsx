@@ -7,7 +7,7 @@ export const ShopPanel: React.FC = () => {
   const buyConsumable = useGameStore((state) => state.buyConsumable);
   const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | null>(null);
+  const [confirmBuyId, setConfirmBuyId] = useState<'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | 'speed_unlock_3x' | null>(null);
 
   const shopItems = [
     {
@@ -75,10 +75,21 @@ export const ShopPanel: React.FC = () => {
       bgColor: 'rgba(16, 185, 129, 0.08)',
       borderColor: 'rgba(16, 185, 129, 0.3)',
       badge: `${character.inventorySlots || 30}/100 Slots`
+    },
+    {
+      id: 'speed_unlock_3x' as const,
+      name: 'Cristal da Velocidade Suprema',
+      description: 'Libera permanentemente a Velocidade do Jogo 3x. Compra única, não ocupa espaço no inventário.',
+      cost: 100000000,
+      icon: '💠',
+      color: '#facc15',
+      bgColor: 'rgba(250, 204, 21, 0.08)',
+      borderColor: 'rgba(250, 204, 21, 0.3)',
+      badge: 'Velocidade 3x'
     }
   ];
 
-  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot') => {
+  const handleBuy = (itemId: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | 'speed_unlock_3x') => {
     AudioManager.getInstance().playCoin();
     const result = buyConsumable(itemId);
     
@@ -123,8 +134,9 @@ export const ShopPanel: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
         {shopItems.map((item) => {
           const canAfford = (character.gold || 0) >= item.cost;
-          const isInvFull = item.id !== 'inventory_slot' && character.inventory.length >= character.inventorySlots;
+          const isInvFull = item.id !== 'inventory_slot' && item.id !== 'speed_unlock_3x' && character.inventory.length >= character.inventorySlots;
           const isMaxSlots = item.id === 'inventory_slot' && (character.inventorySlots || 30) >= 100;
+          const isAlreadyPurchased = item.id === 'speed_unlock_3x' && !!character.speedUnlock3xPurchased;
           
           return (
             <div 
@@ -203,26 +215,28 @@ export const ShopPanel: React.FC = () => {
                       }, 3000);
                     }
                   }}
-                  disabled={!canAfford || isInvFull || isMaxSlots}
-                  className={`btn btn-sm ${canAfford && !isInvFull && !isMaxSlots ? 'btn-gold' : 'btn-disabled'}`}
-                  style={{ 
+                  disabled={!canAfford || isInvFull || isMaxSlots || isAlreadyPurchased}
+                  className={`btn btn-sm ${canAfford && !isInvFull && !isMaxSlots && !isAlreadyPurchased ? 'btn-gold' : 'btn-disabled'}`}
+                  style={{
                     width: '100%',
-                    opacity: (canAfford && !isInvFull && !isMaxSlots) ? 1 : 0.5,
-                    cursor: (canAfford && !isInvFull && !isMaxSlots) ? 'pointer' : 'not-allowed',
+                    opacity: (canAfford && !isInvFull && !isMaxSlots && !isAlreadyPurchased) ? 1 : 0.5,
+                    cursor: (canAfford && !isInvFull && !isMaxSlots && !isAlreadyPurchased) ? 'pointer' : 'not-allowed',
                     background: confirmBuyId === item.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
                     borderColor: confirmBuyId === item.id ? '#10b981' : undefined,
                     color: confirmBuyId === item.id ? '#fff' : undefined,
                   }}
                 >
-                  {!canAfford 
-                    ? 'Ouro Insuficiente' 
-                    : isInvFull 
-                      ? 'Inventário Cheio' 
-                      : isMaxSlots
-                        ? 'Limite Atingido'
-                        : confirmBuyId === item.id 
-                          ? 'Confirmar?' 
-                          : 'Comprar'}
+                  {isAlreadyPurchased
+                    ? 'Já Adquirido'
+                    : !canAfford
+                      ? 'Ouro Insuficiente'
+                      : isInvFull
+                        ? 'Inventário Cheio'
+                        : isMaxSlots
+                          ? 'Limite Atingido'
+                          : confirmBuyId === item.id
+                            ? 'Confirmar?'
+                            : 'Comprar'}
                 </button>
               </div>
             </div>
