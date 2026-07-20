@@ -1,13 +1,23 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-import { ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, AlchemyPotionType } from '../../core/citadelFormulas';
+import { ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, ALCHEMY_BREW_DURATION_MS, AlchemyPotionType } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
 const POTION_LABELS: Record<AlchemyPotionType, { name: string; effect: string; icon: string }> = {
   damage: { name: 'Poção de Fúria Alquímica', effect: '+25% de Dano por 3 minutos', icon: '🔥' },
   regen: { name: 'Poção de Regeneração Alquímica', effect: 'Regeneração de HP acelerada por 2 minutos', icon: '💧' },
+};
+
+const PendingBrewRow: React.FC<{ potionType: AlchemyPotionType; completesAt: number }> = ({ potionType, completesAt }) => {
+  const countdown = useCountdown(completesAt);
+  const label = POTION_LABELS[potionType];
+  return (
+    <p style={{ fontSize: '0.75rem', color: 'var(--gold-300)', margin: 0 }}>
+      {label.icon} {label.name} em preparo — pronta em {countdown || 'instantes'}
+    </p>
+  );
 };
 
 export const AlchemyLabPanel: React.FC = () => {
@@ -17,7 +27,7 @@ export const AlchemyLabPanel: React.FC = () => {
 
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
-  const alchemyLab = citadel?.alchemyLab || { level: 0, lastTick: 0 };
+  const alchemyLab = citadel?.alchemyLab || { level: 0, lastTick: 0, pendingBrews: [] };
   const isBuilt = alchemyLab.level > 0;
   const nextLevel = alchemyLab.level + 1;
   const cost = ALCHEMY_LAB_UPGRADE_COST(nextLevel);
@@ -59,6 +69,12 @@ export const AlchemyLabPanel: React.FC = () => {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <p style={{ fontSize: '0.85rem' }}>Rendimento por preparo no nível atual: {yieldCount}x</p>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+          Cada preparo leva {Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} minutos; a poção é entregue automaticamente ao inventário assim que ficar pronta.
+        </p>
+        {alchemyLab.pendingBrews.map((brew) => (
+          <PendingBrewRow key={brew.id} potionType={brew.potionType} completesAt={brew.completesAt} />
+        ))}
         {(Object.keys(POTION_LABELS) as AlchemyPotionType[]).map((potionType) => {
           const recipe = ALCHEMY_POTION_RECIPE[potionType];
           const label = POTION_LABELS[potionType];

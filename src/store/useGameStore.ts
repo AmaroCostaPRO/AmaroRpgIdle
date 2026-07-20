@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContract } from '../core/types';
+import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContract, AlchemyPendingBrew } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
@@ -17,7 +17,7 @@ import {
   COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST,
   SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
   RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
-  ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, AlchemyPotionType,
+  ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, ALCHEMY_BREW_DURATION_MS, AlchemyPotionType,
   HUNT_SANCTUARY_MAX_LEVEL, HUNT_SANCTUARY_UPGRADE_COST, HUNT_CONTRACT_SLOTS, HUNT_CONTRACT_FULL_CLEAR_BONUS,
   getHuntContractRotationId, generateHuntContracts,
   computeClassExpeditionProduction, getMysticFusionCost,
@@ -652,6 +652,7 @@ interface GameState {
   buildOrUpgradeAcademy(): { success: boolean; message: string };
   upgradeAcademyResearch(type: 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment'): { success: boolean; message: string };
   buildOrUpgradeWatchTower(): { success: boolean; message: string };
+  collectWatchTowerKeys(): { success: boolean; message: string };
   buildOrUpgradeForgeWorkshop(): { success: boolean; message: string };
   buildOrUpgradeCosmicSiphon(): { success: boolean; message: string };
   buildOrUpgradeSynchronyAltar(): { success: boolean; message: string };
@@ -796,7 +797,7 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   cosmicSiphon: { level: 0, lastTick: Date.now() },
   synchronyAltar: { level: 0, lastTick: Date.now() },
   relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
-  alchemyLab: { level: 0, lastTick: Date.now() },
+  alchemyLab: { level: 0, lastTick: Date.now(), pendingBrews: [] as AlchemyPendingBrew[] },
   huntSanctuary: { level: 0, lastTick: Date.now(), activeContracts: [] as HuntContract[], rotationId: 0, bonusClaimedForRotation: false },
 });
 
@@ -1464,6 +1465,7 @@ export const useGameStore = create<GameState>((set) => ({
     let nextExpeditions = citadel.expeditions;
     let nextWatchTower = citadel.watchTower;
     let nextForgeWorkshop = citadel.forgeWorkshop;
+    let nextAlchemyLab = citadel.alchemyLab;
 
     // Quartel de Expedições: materiais e Insígnias de Estudo por hora; cada classe expira 8h após ser alocada
     if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClasses.length > 0) {
@@ -1509,7 +1511,9 @@ export const useGameStore = create<GameState>((set) => ({
       }
     }
 
-    // Torre de Vigia Astral: fabrica Chaves da Torre passivamente, respeitando a capacidade interna
+    // Torre de Vigia Astral: fabrica Chaves da Torre passivamente, respeitando a capacidade interna.
+    // As chaves ficam aguardando coleta manual do jogador (`collectWatchTowerKeys`) — não são mais
+    // transferidas automaticamente para o inventário.
     if (citadel.watchTower.level > 0) {
       const elapsedHours = (now - citadel.watchTower.lastTick) / (1000 * 60 * 60);
       if (elapsedHours > 0) {
@@ -1518,26 +1522,39 @@ export const useGameStore = create<GameState>((set) => ({
         const potentialKeys = Math.floor(elapsedHours / hoursPerKey);
         const availableSpace = Math.max(0, capacity - citadel.watchTower.storedKeys);
         const keysToStore = Math.min(potentialKeys, availableSpace);
-        let storedKeys = citadel.watchTower.storedKeys + keysToStore;
-
-        // Escoa as chaves armazenadas para o inventário assim que houver espaço
-        let flushed = 0;
-        while (storedKeys > 0 && inventory.length < state.character.inventorySlots) {
-          inventory = [...inventory, {
-            id: `tower_key_evolved-citadel-${now}-${flushed}`,
-            name: 'Chave da Torre Evoluída',
-            slot: 'consumable',
-            classId: state.character.classId,
-            rarity: 'legendary',
-            spriteName: 'tower_key_evolved',
-            consumableType: 'tower_key_evolved',
-            stats: {}
-          }];
-          storedKeys -= 1;
-          flushed += 1;
-        }
+        const storedKeys = citadel.watchTower.storedKeys + keysToStore;
 
         nextWatchTower = { ...citadel.watchTower, storedKeys, lastTick: now };
+        changed = true;
+      }
+    }
+
+    // Laboratório de Alquimia: entrega as poções cujo preparo (`brewAlchemyPotion`) já concluiu o
+    // tempo de espera, assim que houver espaço no inventário; preparos sem espaço continuam na fila.
+    // O rendimento é recalculado no momento da entrega a partir do nível atual do laboratório.
+    if (citadel.alchemyLab.pendingBrews.length > 0) {
+      const stillPending: AlchemyPendingBrew[] = [];
+      const yieldCount = ALCHEMY_POTION_YIELD(citadel.alchemyLab.level);
+      for (const brew of citadel.alchemyLab.pendingBrews) {
+        if (brew.completesAt > now || inventory.length + yieldCount > state.character.inventorySlots) {
+          stillPending.push(brew);
+          continue;
+        }
+        const potionName = brew.potionType === 'damage' ? 'Poção de Fúria Alquímica' : 'Poção de Regeneração Alquímica';
+        const newItems: EquipmentItem[] = Array.from({ length: yieldCount }, (_, i) => ({
+          id: `potion_${brew.potionType}-${now}-${brew.id}-${i}`,
+          name: potionName,
+          slot: 'consumable',
+          rarity: 'consumable',
+          stats: {},
+          classId: state.character.classId,
+          spriteName: `potion_${brew.potionType}`,
+          consumableType: brew.potionType === 'damage' ? 'potion_damage' : 'potion_regen'
+        }));
+        inventory = [...inventory, ...newItems];
+      }
+      if (stillPending.length !== citadel.alchemyLab.pendingBrews.length) {
+        nextAlchemyLab = { ...citadel.alchemyLab, pendingBrews: stillPending };
         changed = true;
       }
     }
@@ -1569,7 +1586,7 @@ export const useGameStore = create<GameState>((set) => ({
       inventory,
       forgeFragments,
       totalMaterialsFarmedByCitadel: farmedByCitadel,
-      citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop }
+      citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop, alchemyLab: nextAlchemyLab }
     };
     saveToLocalStorage(updated);
     return { character: updated, ...(autoSellCommon !== undefined ? { autoSellCommon, autoSellRare } : {}) };
@@ -1832,6 +1849,48 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
+  collectWatchTowerKeys: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const watchTower = citadel.watchTower;
+
+      if (watchTower.storedKeys <= 0) {
+        result = { success: false, message: 'Nenhuma Chave da Torre Evoluída aguardando coleta.' };
+        return state;
+      }
+      const freeSlots = state.character.inventorySlots - state.character.inventory.length;
+      if (freeSlots <= 0) {
+        result = { success: false, message: 'Inventário cheio! Libere espaço antes de coletar.' };
+        return state;
+      }
+
+      const now = Date.now();
+      const collected = Math.min(watchTower.storedKeys, freeSlots);
+      const newItems: EquipmentItem[] = Array.from({ length: collected }, (_, i) => ({
+        id: `tower_key_evolved-citadel-${now}-${i}`,
+        name: 'Chave da Torre Evoluída',
+        slot: 'consumable',
+        classId: state.character.classId,
+        rarity: 'legendary',
+        spriteName: 'tower_key_evolved',
+        consumableType: 'tower_key_evolved',
+        stats: {}
+      }));
+
+      const updated = {
+        ...state.character,
+        inventory: [...state.character.inventory, ...newItems],
+        citadel: { ...citadel, watchTower: { ...watchTower, storedKeys: watchTower.storedKeys - collected } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${collected}x Chave da Torre Evoluída coletada(s)!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
   buildOrUpgradeForgeWorkshop: () => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     useGameStore.getState().tickCitadelProduction();
@@ -1942,24 +2001,16 @@ export const useGameStore = create<GameState>((set) => ({
       }
 
       const potionName = potionType === 'damage' ? 'Poção de Fúria Alquímica' : 'Poção de Regeneração Alquímica';
-      const newItems: EquipmentItem[] = Array.from({ length: yieldCount }, (_, i) => ({
-        id: `potion_${potionType}-${Date.now()}-${i}`,
-        name: potionName,
-        slot: 'consumable',
-        rarity: 'consumable',
-        stats: {},
-        classId: state.character.classId,
-        spriteName: `potion_${potionType}`,
-        consumableType: potionType === 'damage' ? 'potion_damage' : 'potion_regen'
-      }));
+      const now = Date.now();
+      const pendingBrew: AlchemyPendingBrew = { id: `brew-${now}`, potionType, completesAt: now + ALCHEMY_BREW_DURATION_MS };
 
       const updated = {
         ...state.character,
         materials: { ...materials, wood: materials.wood - recipe.wood, stone: materials.stone - recipe.stone, meat: materials.meat - recipe.meat },
-        inventory: [...state.character.inventory, ...newItems]
+        citadel: { ...citadel, alchemyLab: { ...citadel.alchemyLab, pendingBrews: [...citadel.alchemyLab.pendingBrews, pendingBrew] } }
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: `${yieldCount}x ${potionName} preparada(s)!` };
+      result = { success: true, message: `Preparo de ${potionName} iniciado! Pronto em ${Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} minutos.` };
       return { character: updated };
     });
     return result;
@@ -2066,7 +2117,6 @@ export const useGameStore = create<GameState>((set) => ({
 
       const updated = {
         ...state.character,
-        gold: state.character.gold + contract.goldReward,
         materials: { ...materials, [contract.rewardMaterial]: materials[contract.rewardMaterial] + contract.rewardAmount },
         citadel: { ...citadel, huntSanctuary: { ...citadel.huntSanctuary, activeContracts: updatedContracts, bonusClaimedForRotation: citadel.huntSanctuary.bonusClaimedForRotation || allClaimed } }
       };
@@ -2074,8 +2124,8 @@ export const useGameStore = create<GameState>((set) => ({
       result = {
         success: true,
         message: bonus
-          ? `Contrato concluído! +${contract.goldReward} Ouro, +${contract.rewardAmount} ${contract.rewardMaterial}. Rotação completa: +${bonus.unstableSoulFragments} Fragmento(s) de Alma Instável!`
-          : `Contrato concluído! +${contract.goldReward} Ouro, +${contract.rewardAmount} ${contract.rewardMaterial}.`
+          ? `Contrato concluído! +${contract.rewardAmount} ${contract.rewardMaterial}. Rotação completa: +${bonus.unstableSoulFragments} Fragmento(s) de Alma Instável!`
+          : `Contrato concluído! +${contract.rewardAmount} ${contract.rewardMaterial}.`
       };
       return { character: updated };
     });

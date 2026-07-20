@@ -2552,12 +2552,13 @@ export class CombatFSM {
       }
     }
 
-    // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20)
-    if (!useTowerStore.getState().towerActive && char.activeEcoterra && char.currentStage <= 20) {
-      const essenceAmount = Math.max(1, Math.floor((isBoss ? 5 : (this.isElite ? 2 : 1)) / 4));
-      useGameStore.getState().addTranscendenceEssence(essenceAmount);
-      bridge.emit(GameEvent.LOG_EMITTED, { 
-        message: `🌌 Ecoterra: Você extraiu +${essenceAmount} Essência de Transcendência das cinzas do inimigo!` 
+    // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20):
+    // chance fixa de 25% por inimigo derrotado, +1 Essência por drop, sem influência de
+    // Sorte, tipo de inimigo (Elite/Chefe) ou qualquer outro modificador de drop.
+    if (!useTowerStore.getState().towerActive && char.activeEcoterra && char.currentStage <= 20 && Math.random() < 0.25) {
+      useGameStore.getState().addTranscendenceEssence(1);
+      bridge.emit(GameEvent.LOG_EMITTED, {
+        message: `🌌 Ecoterra: Você extraiu +1 Essência de Transcendência das cinzas do inimigo!`
       });
     }
 

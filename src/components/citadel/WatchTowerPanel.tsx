@@ -8,6 +8,7 @@ import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 export const WatchTowerPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buildOrUpgradeWatchTower = useGameStore((state) => state.buildOrUpgradeWatchTower);
+  const collectWatchTowerKeys = useGameStore((state) => state.collectWatchTowerKeys);
 
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
@@ -26,6 +27,11 @@ export const WatchTowerPanel: React.FC = () => {
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
     buildOrUpgradeWatchTower();
+  };
+
+  const handleCollect = () => {
+    AudioManager.getInstance().playClick();
+    collectWatchTowerKeys();
   };
 
   return (
@@ -51,8 +57,16 @@ export const WatchTowerPanel: React.FC = () => {
         <p style={{ fontSize: '0.85rem' }}>Produção: 1 🗝️ Chave Evoluída a cada {hoursPerKey}h · Capacidade interna: {capacity} chave{capacity > 1 ? 's' : ''}</p>
         <p style={{ fontSize: '0.85rem' }}>Chaves aguardando coleta: {watchTower.storedKeys}/{capacity}</p>
         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
-          As chaves são transferidas automaticamente para o inventário assim que houver espaço.
+          A produção pausa quando a capacidade interna está cheia — colete as chaves para liberar espaço e retomar a produção.
         </p>
+        <button
+          onClick={handleCollect}
+          disabled={watchTower.storedKeys <= 0}
+          className="btn btn-gold"
+          style={{ alignSelf: 'flex-start' }}
+        >
+          Coletar Chaves
+        </button>
       </div>
     </CitadelBuildingPanel>
   );

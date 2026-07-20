@@ -93,7 +93,7 @@ export const FORGE_WORKSHOP_UPGRADE_COST = (nextLevel: number): { wood: number; 
 });
 // Cada ordem de serviço consome 1h + recursos e converte em Fragmentos de Forja; o nível permite mais ordens paralelas por hora
 export const FORGE_ORDER_HOURS = 1;
-export const FORGE_ORDER_GOLD_COST = 200;
+export const FORGE_ORDER_GOLD_COST = 50000;
 export const FORGE_ORDER_WOOD_COST = 50;
 export const FORGE_ORDER_FRAGMENT_YIELD = 15;
 
@@ -120,13 +120,15 @@ export const ALCHEMY_LAB_UPGRADE_COST = (nextLevel: number): { wood: number; mea
 
 export type AlchemyPotionType = 'damage' | 'regen';
 // Preparo manual sob demanda (sem produção automática por tick): consome materiais na hora e
-// entrega o rendimento direto no inventário.
+// entrega o rendimento ao inventário após `ALCHEMY_BREW_DURATION_MS` de espera (v9.1.0).
 export const ALCHEMY_POTION_RECIPE: Record<AlchemyPotionType, { wood: number; stone: number; meat: number }> = {
   damage: { wood: 100, stone: 50, meat: 150 },
   regen: { wood: 50, stone: 50, meat: 200 },
 };
 // Rendimento por preparo: 1 poção nos Níveis 1-2, 2 nos Níveis 3-4, 3 no Nível 5
 export const ALCHEMY_POTION_YIELD = (labLevel: number): number => 1 + Math.floor(labLevel / 2);
+// Tempo de espera entre iniciar o preparo e a entrega automática ao inventário (v9.1.0)
+export const ALCHEMY_BREW_DURATION_MS = 10 * 60 * 1000;
 
 export const HUNT_SANCTUARY_MAX_LEVEL = 5;
 export const HUNT_SANCTUARY_UPGRADE_COST = (nextLevel: number): { wood: number; meat: number; studyInsignias: number } => ({
@@ -180,7 +182,6 @@ export const generateHuntContracts = (sanctuaryLevel: number, rotationId: number
       requiredKills: HUNT_CONTRACT_KILL_TARGET(enemyId),
       rewardMaterial,
       rewardAmount: Math.round((isBoss ? 120 : 40) * levelMult),
-      goldReward: Math.round((isBoss ? 800 : 250) * levelMult),
     });
   }
   return contracts;

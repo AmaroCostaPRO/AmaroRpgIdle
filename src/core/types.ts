@@ -90,8 +90,15 @@ export interface HuntContract {
   currentKills: number;
   rewardMaterial: 'wood' | 'stone' | 'meat' | 'studyInsignias';
   rewardAmount: number;
-  goldReward: number;
   claimed: boolean;
+}
+
+// v9.1.0: preparo de poção do Laboratório de Alquimia agora leva tempo (ver `ALCHEMY_BREW_DURATION_MS`)
+// antes de entregar o rendimento no inventário, em vez de entrega instantânea.
+export interface AlchemyPendingBrew {
+  id: string;
+  potionType: 'damage' | 'regen';
+  completesAt: number;
 }
 
 export interface CitadelState {
@@ -114,8 +121,9 @@ export interface CitadelState {
   synchronyAltar: CitadelBuildingState;
   relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
   // v8.0.0 "O Espelho Faminto": destila materiais das Expedições em poções de efeito temporário
-  // (dano/regeneração) — preparo manual sob demanda, sem produção automática por tick.
-  alchemyLab: CitadelBuildingState;
+  // (dano/regeneração) — preparo manual sob demanda, com espera de `ALCHEMY_BREW_DURATION_MS`
+  // (v9.1.0) antes da entrega automática ao inventário (ver `pendingBrews`).
+  alchemyLab: CitadelBuildingState & { pendingBrews: AlchemyPendingBrew[] };
   // v9.0.0 "O Que Espera no Pandemônio": evolução do Bestiário em gerenciamento ativo —
   // contratos de caça rotativos (ver `HuntContract`), gerados de forma determinística por
   // janela de tempo (`getHuntContractRotationId`), iguais para todos os jogadores na mesma janela.

@@ -87,7 +87,7 @@ export const HuntSanctuaryPanel: React.FC = () => {
                 {Math.min(contract.currentKills, contract.requiredKills)} / {contract.requiredKills}
               </span>
               <span style={{ fontSize: '0.75rem' }}>
-                Recompensa: 💰 {contract.goldReward} / {REWARD_MATERIAL_ICON[contract.rewardMaterial]} {contract.rewardAmount}
+                Recompensa: {REWARD_MATERIAL_ICON[contract.rewardMaterial]} {contract.rewardAmount}
               </span>
               <button
                 onClick={() => handleClaim(contract.id)}
