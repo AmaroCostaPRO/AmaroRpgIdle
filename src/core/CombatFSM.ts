@@ -709,6 +709,12 @@ export class CombatFSM {
   private potionDamageDuration: number = 0;
   public isPotionRegenActive: boolean = false;
   private potionRegenDuration: number = 0;
+  public isPotionSpeedActive: boolean = false;
+  private potionSpeedDuration: number = 0;
+  public isPotionManaRegenActive: boolean = false;
+  private potionManaRegenDuration: number = 0;
+  public isPotionRobotClickActive: boolean = false;
+  private potionRobotClickDuration: number = 0;
   // v9.0.0 "O Que Espera no Pandemônio": buffs temporários da Relíquia Ativa equipada — mesmo padrão
   // flag+duração dos Elixires/Poções acima. Redução de cooldown é instantânea (sem flag). Os campos
   // `*TotalDuration` guardam a duração cheia no momento da ativação (constante por acionamento, nunca
@@ -1423,6 +1429,27 @@ export class CombatFSM {
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + regenAmount);
       }
     }
+    if (this.isPotionSpeedActive) {
+      this.potionSpeedDuration -= delta;
+      if (this.potionSpeedDuration <= 0) {
+        this.isPotionSpeedActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Poção de Velocidade Alquímica acabou.` });
+      }
+    }
+    if (this.isPotionManaRegenActive) {
+      this.potionManaRegenDuration -= delta;
+      if (this.potionManaRegenDuration <= 0) {
+        this.isPotionManaRegenActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Poção de Clareza Alquímica acabou.` });
+      }
+    }
+    if (this.isPotionRobotClickActive) {
+      this.potionRobotClickDuration -= delta;
+      if (this.potionRobotClickDuration <= 0) {
+        this.isPotionRobotClickActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Poção de Sobrecarga do Robô acabou.` });
+      }
+    }
 
     // Atualização dos buffs temporários da Relíquia Ativa (v9.0.0)
     if (this.isActiveRelicDamageBuffActive) {
@@ -1488,10 +1515,11 @@ export class CombatFSM {
       }
     }
     
-    // Atualização de Cliques do Robô Assistente
-    if (this.playerFinalStats.robotClicks > 0 && this.enemyHP > 0 && !useGameStore.getState().disableRobotTap) {
+    // Atualização de Cliques do Robô Assistente (+1 temporário enquanto a Poção de Sobrecarga do Robô estiver ativa)
+    const effectiveRobotClicks = this.playerFinalStats.robotClicks + (this.isPotionRobotClickActive ? 1 : 0);
+    if (effectiveRobotClicks > 0 && this.enemyHP > 0 && !useGameStore.getState().disableRobotTap) {
       this.robotTapTimer += delta;
-      const tapInterval = 1000 / this.playerFinalStats.robotClicks;
+      const tapInterval = 1000 / effectiveRobotClicks;
       if (this.robotTapTimer >= tapInterval) {
         this.robotTapTimer = 0;
         this.performTap(true);
@@ -1511,9 +1539,11 @@ export class CombatFSM {
     // Recuperação de HP/Mana baseada em atributos e balanceada por classe
     const classId = this.characterData?.classId || 'warrior';
     this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
-    const regenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5
+    const relicRegenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5
       ? (this.isRelicOverheated('nucleo_pensamento') ? 1.375 : 1.15)
       : 1.0;
+    const potionManaRegenBoost = this.isPotionManaRegenActive ? 2.0 : 1.0;
+    const regenPctBoost = relicRegenPctBoost * potionManaRegenBoost;
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * regenPctBoost * (delta / 1000)));
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
@@ -1758,7 +1788,7 @@ export class CombatFSM {
     const ascensionCount = char.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
     const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
-    const elixirSpeedBoost = this.isElixirVelocistaActive ? 0.25 : 0;
+    const elixirSpeedBoost = (this.isElixirVelocistaActive ? 0.25 : 0) + (this.isPotionSpeedActive ? 0.25 : 0);
     const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost + elixirSpeedBoost;
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(finalStats.dexterity, char.classId || 'warrior', attackSpeedBoost));
     const attackSpeedHz = speedMultiplier / 3.0; // ataques por segundo
@@ -1825,15 +1855,33 @@ export class CombatFSM {
 
   // Ativa (ou reinicia a duração de) uma poção do Laboratório de Alquimia (v8.0.0), consumida do
   // inventário via useConsumable — mesmo padrão flag+duração dos Elixires do Mercador acima.
-  public activateAlchemyPotion(type: 'damage' | 'regen'): void {
-    if (type === 'damage') {
-      this.isPotionDamageActive = true;
-      this.potionDamageDuration = 180000;
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Fúria Alquímica ativada! +25% de Dano por 3 minutos!` });
-    } else {
-      this.isPotionRegenActive = true;
-      this.potionRegenDuration = 120000;
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Regeneração Alquímica ativada! Regeneração de HP acelerada por 2 minutos!` });
+  public activateAlchemyPotion(type: 'damage' | 'regen' | 'speed' | 'manaRegen' | 'robotClick'): void {
+    switch (type) {
+      case 'damage':
+        this.isPotionDamageActive = true;
+        this.potionDamageDuration = 180000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Fúria Alquímica ativada! +25% de Dano por 3 minutos!` });
+        break;
+      case 'regen':
+        this.isPotionRegenActive = true;
+        this.potionRegenDuration = 120000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Regeneração Alquímica ativada! Regeneração de HP acelerada por 2 minutos!` });
+        break;
+      case 'speed':
+        this.isPotionSpeedActive = true;
+        this.potionSpeedDuration = 60000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Velocidade Alquímica ativada! +25% de Velocidade de Ataque por 1 minuto!` });
+        break;
+      case 'manaRegen':
+        this.isPotionManaRegenActive = true;
+        this.potionManaRegenDuration = 120000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Clareza Alquímica ativada! Regeneração de Mana dobrada por 2 minutos!` });
+        break;
+      case 'robotClick':
+        this.isPotionRobotClickActive = true;
+        this.potionRobotClickDuration = 60000;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚗️ Poção de Sobrecarga do Robô ativada! +1 Clique automático do Robô por 1 minuto!` });
+        break;
     }
   }
 
@@ -1978,7 +2026,7 @@ export class CombatFSM {
     const ascensionCount = this.characterData.ascensionCount || 0;
     const relicLvlFoco = useRelicStore.getState().relics['foco_precisao']?.level || 0;
     const precisionSpeedBoost = relicLvlFoco === 5 ? (this.isRelicOverheated('foco_precisao') ? 0.125 : 0.05) : 0;
-    const elixirSpeedBoost = this.isElixirVelocistaActive ? 0.25 : 0;
+    const elixirSpeedBoost = (this.isElixirVelocistaActive ? 0.25 : 0) + (this.isPotionSpeedActive ? 0.25 : 0);
     const attackSpeedBoost = 1 + (ascensionCount * 0.01) + precisionSpeedBoost + elixirSpeedBoost;
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
@@ -3173,6 +3221,9 @@ export class CombatFSM {
     if (this.isElixirIlusionistaActive) buffs.push({ id: 'elixir_ilusionista', icon: '🌀', label: 'Elixir do Ilusionista', remainingMs: this.elixirIlusionistaDuration, totalMs: 120000 });
     if (this.isPotionDamageActive) buffs.push({ id: 'potion_damage', icon: '🔥', label: 'Poção de Fúria Alquímica', remainingMs: this.potionDamageDuration, totalMs: 180000 });
     if (this.isPotionRegenActive) buffs.push({ id: 'potion_regen', icon: '💧', label: 'Poção de Regeneração', remainingMs: this.potionRegenDuration, totalMs: 120000 });
+    if (this.isPotionSpeedActive) buffs.push({ id: 'potion_speed', icon: '🌪️', label: 'Poção de Velocidade Alquímica', remainingMs: this.potionSpeedDuration, totalMs: 60000 });
+    if (this.isPotionManaRegenActive) buffs.push({ id: 'potion_manaregen', icon: '🔷', label: 'Poção de Clareza Alquímica', remainingMs: this.potionManaRegenDuration, totalMs: 120000 });
+    if (this.isPotionRobotClickActive) buffs.push({ id: 'potion_robotclick', icon: '🤖', label: 'Poção de Sobrecarga do Robô', remainingMs: this.potionRobotClickDuration, totalMs: 60000 });
 
     if (this.isActiveRelicDamageBuffActive || this.isActiveRelicEliteBuffActive || this.isActiveRelicInvulnActive || this.isActiveRelicGoldBuffActive || this.isActiveRelicHealBuffActive) {
       const equippedRelic = this.characterData?.equipment?.activeRelic;

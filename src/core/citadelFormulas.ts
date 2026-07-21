@@ -118,12 +118,15 @@ export const ALCHEMY_LAB_UPGRADE_COST = (nextLevel: number): { wood: number; mea
   studyInsignias: Math.round(100 * Math.pow(1.6, nextLevel - 1)),
 });
 
-export type AlchemyPotionType = 'damage' | 'regen';
+export type AlchemyPotionType = 'damage' | 'regen' | 'speed' | 'manaRegen' | 'robotClick';
 // Preparo manual sob demanda (sem produção automática por tick): consome materiais na hora e
 // entrega o rendimento ao inventário após `ALCHEMY_BREW_DURATION_MS` de espera (v9.1.0).
 export const ALCHEMY_POTION_RECIPE: Record<AlchemyPotionType, { wood: number; stone: number; meat: number }> = {
   damage: { wood: 100, stone: 50, meat: 150 },
   regen: { wood: 50, stone: 50, meat: 200 },
+  speed: { wood: 100, stone: 50, meat: 100 },
+  manaRegen: { wood: 50, stone: 100, meat: 100 },
+  robotClick: { wood: 150, stone: 100, meat: 150 },
 };
 // Rendimento por preparo: 1 poção nos Níveis 1-2, 2 nos Níveis 3-4, 3 no Nível 5
 export const ALCHEMY_POTION_YIELD = (labLevel: number): number => 1 + Math.floor(labLevel / 2);

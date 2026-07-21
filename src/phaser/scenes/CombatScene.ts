@@ -323,8 +323,8 @@ export class CombatScene extends Phaser.Scene {
       padding: { left: 10, right: 10, top: 5, bottom: 5 }
     }).setOrigin(0.5);
 
-    const selectedTitle = useTowerStore.getState().selectedTitle;
-    this.playerTitleText = this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 128 * ZOOM_FACTOR, selectedTitle ? `👑 ${selectedTitle}` : '', { 
+    const selectedTitle = useTowerStore.getState().equippedTitle;
+    this.playerTitleText = this.add.text(this.PLAYER_START_X, this.PLAYER_START_Y - 128 * ZOOM_FACTOR, selectedTitle ? `👑 ${selectedTitle}` : '', {
       fontSize: '18px', 
       color: '#e9d5ff', 
       fontStyle: 'bold', 
@@ -522,7 +522,7 @@ export class CombatScene extends Phaser.Scene {
 
       if (this.playerTitleText && this.playerBody) {
         const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
-        const selectedTitle = useTowerStore.getState().selectedTitle;
+        const selectedTitle = useTowerStore.getState().equippedTitle;
         this.playerTitleText.setText(selectedTitle ? `👑 ${selectedTitle}` : '');
         this.playerTitleText.x = isTransition ? this.playerBody.x : this.PLAYER_START_X;
         this.playerTitleText.y = this.PLAYER_START_Y - 128 * ZOOM_FACTOR;
@@ -573,8 +573,8 @@ export class CombatScene extends Phaser.Scene {
       if (this.playerStatusText && this.playerBody) {
         const isTransition = this.fsm.getCurrentState() === CombatState.TRANSITION;
         this.playerStatusText.x = isTransition ? this.playerBody.x : this.PLAYER_START_X;
-        const selectedTitle = useTowerStore.getState().selectedTitle;
-        this.playerStatusText.y = selectedTitle 
+        const selectedTitle = useTowerStore.getState().equippedTitle;
+        this.playerStatusText.y = selectedTitle
           ? this.PLAYER_START_Y - 148 * ZOOM_FACTOR 
           : this.PLAYER_START_Y - 125 * ZOOM_FACTOR;
 

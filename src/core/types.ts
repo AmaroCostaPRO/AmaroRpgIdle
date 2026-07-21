@@ -33,7 +33,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen' | 'potion_speed' | 'potion_manaregen' | 'potion_robotclick';
   stage?: number;
   // v9.0.0 "O Que Espera no Pandemônio": Relíquia equipável ativa (slot `activeRelic`). Diferente do
   // equipamento normal, NÃO passa por fusão mística — a habilidade em si é fixa (`activeRelicId`,
@@ -97,7 +97,7 @@ export interface HuntContract {
 // antes de entregar o rendimento no inventário, em vez de entrega instantânea.
 export interface AlchemyPendingBrew {
   id: string;
-  potionType: 'damage' | 'regen';
+  potionType: 'damage' | 'regen' | 'speed' | 'manaRegen' | 'robotClick';
   completesAt: number;
 }
 

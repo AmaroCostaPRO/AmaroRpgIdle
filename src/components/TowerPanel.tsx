@@ -22,11 +22,10 @@ export const TowerPanel: React.FC = () => {
     weeklyHighestFloor,
     historicalHighestFloor,
     unlockedTitles,
-    selectedTitle,
+    equippedTitle,
     curseWeeklyHighestFloor,
     curseHistoricalHighestFloor,
     curseUnlockedTitles,
-    curseSelectedTitle,
     weeklySeed,
     startTowerAttempt,
     exitTower,
@@ -68,7 +67,9 @@ export const TowerPanel: React.FC = () => {
   const displayWeeklyHighest = isCurseTheme ? curseWeeklyHighestFloor : weeklyHighestFloor;
   const displayHistoricalHighest = isVoidTheme ? voidTrialsHistoricalHighestFloor : (isCurseTheme ? curseHistoricalHighestFloor : historicalHighestFloor);
   const displayUnlockedTitles = isCurseTheme ? curseUnlockedTitles : unlockedTitles;
-  const displaySelectedTitle = isCurseTheme ? curseSelectedTitle : selectedTitle;
+  // Título honorífico equipado é único e compartilhado entre as ramificações (v-unify): não
+  // depende mais de qual aba está sendo visualizada.
+  const displaySelectedTitle = equippedTitle;
   const titlesConfig = isCurseTheme ? CURSE_TITLES_CONFIG : NORMAL_TITLES_CONFIG;
 
   // Maldição do andar atual (a mais recente) e o valor REAL (pós-maldições) de cada atributo
@@ -146,7 +147,7 @@ export const TowerPanel: React.FC = () => {
   const handleSelectTitle = (title: string) => {
     if (selectedBranch === 'voidTrials') return; // Provações do Vácuo não tem títulos
     AudioManager.getInstance().playClick();
-    selectTitle(title, selectedBranch);
+    selectTitle(title);
   };
 
   return (

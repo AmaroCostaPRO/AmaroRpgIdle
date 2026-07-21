@@ -1011,6 +1011,176 @@ const AttributePanel: React.FC = () => {
   );
 };
 
+// Extraído de `EquipmentPanel` e memoizado: `EquipmentPanel` como um todo re-renderiza a cada
+// mudança em `character` (ouro, XP, abates etc. — não só o inventário), o que em combate acontece
+// várias vezes por segundo. Sem memoização, essa grade (que cresce com o número de itens no
+// inventário) era recriada e reconciliada do zero a cada um desses re-renders irrelevantes, mesmo
+// com o inventário parado — daí a queda de FPS que piorava com mais itens e só sumia ao sair da
+// aba (desmontando o componente) ou reduzir o inventário (menos itens para reconciliar). Como
+// `inventoryGrid` já é memoizado em `character.inventory`/`character.equipment` (referências que só
+// mudam quando o inventário de fato muda), o `React.memo` abaixo agora pula o trabalho nesses casos.
+interface InventoryItemGridProps {
+  inventoryTab: 'equipment' | 'consumable';
+  inventoryGrid: (EquipmentItem | null)[];
+  onSelectItem: (item: EquipmentItem) => void;
+}
+
+const InventoryItemGrid: React.FC<InventoryItemGridProps> = React.memo(({ inventoryTab, inventoryGrid, onSelectItem }) => {
+  if (inventoryTab === 'consumable' && inventoryGrid.length === 0) {
+    return (
+      <div style={{
+        gridColumn: '1 / -1',
+        padding: '2.5rem 1rem',
+        textAlign: 'center',
+        color: '#64748b',
+        fontSize: '0.65rem',
+        fontStyle: 'italic'
+      }}>
+        Nenhum item consumível no inventário.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {inventoryGrid.map((item, idx) => {
+        if (!item) {
+          return (
+            <div
+              key={`empty-${idx}`}
+              style={{
+                aspectRatio: '1',
+                background: 'rgba(0,0,0,0.3)',
+                border: '1px dashed rgba(255,255,255,0.06)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.55rem',
+                color: '#334155',
+                userSelect: 'none'
+              }}
+            >
+              {idx + 1}
+            </div>
+          );
+        }
+
+        const { isAncestral, isPandemonium, border: itemBorder, shadow: itemShadow, bg: itemBg } = getSetVisual(item);
+
+        return (
+          <button
+            key={item.id}
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              onSelectItem(item);
+            }}
+            className="inventory-item-slot"
+            style={{
+              aspectRatio: '1',
+              background: itemBg,
+              border: itemBorder,
+              boxShadow: itemShadow,
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              padding: 0,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>
+              {item.slot === 'consumable' ? (
+                item.consumableType === 'boost_touch' ? '⚡' :
+                item.consumableType === 'boost_touch_x3' ? '⚡3' :
+                item.consumableType === 'chest_ancestral' ? '🔮' :
+                item.consumableType === 'relic_chest' ? '💜' :
+                item.consumableType === 'unstable_soul_fragment' ? '🔮' :
+                item.consumableType === 'tower_key' ? '🔑' :
+                item.consumableType === 'tower_key_evolved' ? '🗝️' :
+                item.consumableType === 'potion_damage' ? '🔥' :
+                item.consumableType === 'potion_regen' ? '💧' : '🎁'
+              ) : (
+                slotIcons[item.slot]
+              )}
+            </span>
+            {isAncestral && (
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: '#c084fc',
+                boxShadow: '0 0 6px #c084fc',
+                animation: 'glow-pulse 1.5s infinite'
+              }} />
+            )}
+            {isPandemonium && (
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: '#10b981',
+                boxShadow: '0 0 6px #10b981',
+                animation: 'glow-pulse 1.5s infinite'
+              }} />
+            )}
+            {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: '#f59e0b',
+                boxShadow: '0 0 4px #f59e0b'
+              }} />
+            )}
+            {!isPandemonium && item.rarity === 'mystic' && (
+              <div style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: '#d946ef',
+                boxShadow: '0 0 6px #d946ef',
+                animation: 'glow-pulse 1.5s infinite'
+              }} />
+            )}
+            {item.rarity === 'mystic' && item.mysticLevel && (
+              <div style={{
+                position: 'absolute',
+                top: '1px',
+                left: '1px',
+                fontSize: '10px',
+                fontWeight: 800,
+                lineHeight: 1,
+                color: '#e879f9',
+                textShadow: '0 0 4px #a21caf',
+                pointerEvents: 'none',
+                userSelect: 'none'
+              }}>
+                +{item.mysticLevel}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </>
+  );
+});
+
 interface EquipmentPanelProps {
   selectedItem: EquipmentItem | null;
   setSelectedItem: (item: EquipmentItem | null) => void;
@@ -1513,153 +1683,11 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
           border: '1px solid var(--border-dim)',
           minHeight: inventoryTab === 'equipment' ? '170px' : 'auto'
         }}>
-          {inventoryTab === 'consumable' && consumableItems.length === 0 ? (
-            <div style={{
-              gridColumn: '1 / -1',
-              padding: '2.5rem 1rem',
-              textAlign: 'center',
-              color: '#64748b',
-              fontSize: '0.65rem',
-              fontStyle: 'italic'
-            }}>
-              Nenhum item consumível no inventário.
-            </div>
-          ) : (
-            inventoryGrid.map((item, idx) => {
-              if (!item) {
-                return (
-                  <div 
-                    key={`empty-${idx}`} 
-                    style={{
-                      aspectRatio: '1',
-                      background: 'rgba(0,0,0,0.3)',
-                      border: '1px dashed rgba(255,255,255,0.06)',
-                      borderRadius: 'var(--radius-md)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.55rem',
-                      color: '#334155',
-                      userSelect: 'none'
-                    }}
-                  >
-                    {idx + 1}
-                  </div>
-                );
-              }
-
-              const { isAncestral, isPandemonium, border: itemBorder, shadow: itemShadow, bg: itemBg } = getSetVisual(item);
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    AudioManager.getInstance().playClick();
-                    setSelectedItem(item);
-                  }}
-                  className="inventory-item-slot"
-                  style={{
-                    aspectRatio: '1',
-                    background: itemBg,
-                    border: itemBorder,
-                    boxShadow: itemShadow,
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    padding: 0,
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <span style={{ fontSize: '1.2rem' }}>
-                    {item.slot === 'consumable' ? (
-                      item.consumableType === 'boost_touch' ? '⚡' :
-                      item.consumableType === 'boost_touch_x3' ? '⚡3' :
-                      item.consumableType === 'chest_ancestral' ? '🔮' :
-                      item.consumableType === 'relic_chest' ? '💜' :
-                      item.consumableType === 'unstable_soul_fragment' ? '🔮' :
-                      item.consumableType === 'tower_key' ? '🔑' :
-                      item.consumableType === 'tower_key_evolved' ? '🗝️' :
-                      item.consumableType === 'potion_damage' ? '🔥' :
-                      item.consumableType === 'potion_regen' ? '💧' : '🎁'
-                    ) : (
-                      slotIcons[item.slot]
-                    )}
-                  </span>
-                  {isAncestral && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: '2px', 
-                      right: '2px', 
-                      width: '5px', 
-                      height: '5px', 
-                      borderRadius: '50%', 
-                      background: '#c084fc',
-                      boxShadow: '0 0 6px #c084fc',
-                      animation: 'glow-pulse 1.5s infinite'
-                    }} />
-                  )}
-                  {isPandemonium && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: '2px', 
-                      right: '2px', 
-                      width: '5px', 
-                      height: '5px', 
-                      borderRadius: '50%', 
-                      background: '#10b981',
-                      boxShadow: '0 0 6px #10b981',
-                      animation: 'glow-pulse 1.5s infinite'
-                    }} />
-                  )}
-                  {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: '2px', 
-                      right: '2px', 
-                      width: '4px', 
-                      height: '4px', 
-                      borderRadius: '50%', 
-                      background: '#f59e0b',
-                      boxShadow: '0 0 4px #f59e0b'
-                    }} />
-                  )}
-                  {!isPandemonium && item.rarity === 'mystic' && (
-                    <div style={{ 
-                      position: 'absolute', 
-                      top: '2px', 
-                      right: '2px', 
-                      width: '5px', 
-                      height: '5px', 
-                      borderRadius: '50%', 
-                      background: '#d946ef',
-                      boxShadow: '0 0 6px #d946ef',
-                      animation: 'glow-pulse 1.5s infinite'
-                    }} />
-                  )}
-                  {item.rarity === 'mystic' && item.mysticLevel && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '1px',
-                      left: '1px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      lineHeight: 1,
-                      color: '#e879f9',
-                      textShadow: '0 0 4px #a21caf',
-                      pointerEvents: 'none',
-                      userSelect: 'none'
-                    }}>
-                      +{item.mysticLevel}
-                    </div>
-                  )}
-                </button>
-              );
-            })
-          )}
+          <InventoryItemGrid
+            inventoryTab={inventoryTab}
+            inventoryGrid={inventoryGrid}
+            onSelectItem={setSelectedItem}
+          />
         </div>
 
         {/* Botões de Venda em Lote */}

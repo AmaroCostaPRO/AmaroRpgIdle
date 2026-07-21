@@ -33,6 +33,24 @@ export const getInventorySlotCost = (currentSlots: number): number => {
   return 100000 * (purchasedSlots + 1);
 };
 
+// Nome de exibição e `consumableType` de cada poção do Laboratório de Alquimia — usado tanto no
+// preparo (`brewAlchemyPotion`) quanto na entrega automática ao inventário (`tickCitadelProduction`)
+// e no consumo (`useConsumable`), para as 3 pontas nunca divergirem entre si.
+export const ALCHEMY_POTION_NAME: Record<AlchemyPotionType, string> = {
+  damage: 'Poção de Fúria Alquímica',
+  regen: 'Poção de Regeneração Alquímica',
+  speed: 'Poção de Velocidade Alquímica',
+  manaRegen: 'Poção de Clareza Alquímica',
+  robotClick: 'Poção de Sobrecarga do Robô',
+};
+export const ALCHEMY_POTION_CONSUMABLE_TYPE: Record<AlchemyPotionType, EquipmentItem['consumableType']> = {
+  damage: 'potion_damage',
+  regen: 'potion_regen',
+  speed: 'potion_speed',
+  manaRegen: 'potion_manaregen',
+  robotClick: 'potion_robotclick',
+};
+
 // Revalida a Velocidade do Jogo contra os requisitos de desbloqueio do personagem resultante —
 // chamada após trocar de save/slot, importar save, prestígio ou transcendência, para que 2x/3x
 // nunca "grude" de um personagem anterior que os tinha liberados quando o novo/atual não tem.
@@ -555,7 +573,27 @@ let savedEnemiesDefeatedBeforeChallenge = 0;
 // v2 (v9.5.0): passivas deixam de ter statBonuses "assados" em baseStats; ver LEGACY_PASSIVE_STAT_BONUSES.
 const CURRENT_SAVE_VERSION = 2;
 
-const saveToLocalStorage = (char: Character) => {
+// `saveToLocalStorage` é chamado ao final de praticamente toda action que muda `character` (70+
+// call sites: addGold, addXp, registerEnemyKill, etc.) — em combate isso dispara várias vezes por
+// segundo. Cada chamada fazia `JSON.stringify` do personagem inteiro (incluindo o array `inventory`
+// completo) e duas escritas síncronas no localStorage, então o custo crescia com o tamanho do
+// inventário e travava a thread principal a cada abate. Para não reescrever os 70+ call sites,
+// mantemos a assinatura síncrona (`void`, fire-and-forget, como já era) mas só agendamos a escrita
+// real: chamadas dentro da mesma janela de tempo são "coalescidas" em uma única escrita.
+// `flushPendingLocalStorageSave` garante que a última versão nunca se perca (fecha a aba, troca de
+// aba, etc.) mesmo se a escrita ainda estiver pendente.
+let pendingSaveChar: Character | null = null;
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const flushPendingLocalStorageSave = () => {
+  if (saveDebounceTimer !== null) {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = null;
+  }
+  if (!pendingSaveChar) return;
+  const char = pendingSaveChar;
+  pendingSaveChar = null;
+
   try {
     // Adiciona carimbo de data/hora do salvamento
     const updatedChar = {
@@ -563,14 +601,14 @@ const saveToLocalStorage = (char: Character) => {
       lastSaved: new Date().toISOString(),
       saveVersion: CURRENT_SAVE_VERSION,
     };
-    
+
     // Se o salvamento ocorrer durante o Desafio Diário, restaura os dados originais no JSON salvo
     if (updatedChar.activeDailyChallenge) {
       updatedChar.activeDailyChallenge = false;
       updatedChar.currentStage = savedStageBeforeChallenge;
       updatedChar.enemiesDefeatedInStage = savedEnemiesDefeatedBeforeChallenge;
     }
-    
+
     // Salva o save ativo padrão (para compatibilidade/carregamento rápido)
     localStorage.setItem('medieval_idle_save', JSON.stringify(updatedChar));
 
@@ -592,6 +630,20 @@ const saveToLocalStorage = (char: Character) => {
   } catch (e) {
     console.error('Falha ao salvar jogo no localStorage:', e);
   }
+};
+
+if (typeof window !== 'undefined') {
+  // Garante que o último estado pendente seja gravado antes de a aba fechar/ficar em segundo plano.
+  window.addEventListener('pagehide', flushPendingLocalStorageSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPendingLocalStorageSave();
+  });
+}
+
+const saveToLocalStorage = (char: Character) => {
+  pendingSaveChar = char;
+  if (saveDebounceTimer !== null) clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(flushPendingLocalStorageSave, 1000);
 };
 
 // Normaliza allocatedClasses de saves antigos (formato { classId, expiresAt }, sem slotIndex/characterName)
@@ -1540,7 +1592,7 @@ export const useGameStore = create<GameState>((set) => ({
           stillPending.push(brew);
           continue;
         }
-        const potionName = brew.potionType === 'damage' ? 'Poção de Fúria Alquímica' : 'Poção de Regeneração Alquímica';
+        const potionName = ALCHEMY_POTION_NAME[brew.potionType];
         const newItems: EquipmentItem[] = Array.from({ length: yieldCount }, (_, i) => ({
           id: `potion_${brew.potionType}-${now}-${brew.id}-${i}`,
           name: potionName,
@@ -1549,7 +1601,7 @@ export const useGameStore = create<GameState>((set) => ({
           stats: {},
           classId: state.character.classId,
           spriteName: `potion_${brew.potionType}`,
-          consumableType: brew.potionType === 'damage' ? 'potion_damage' : 'potion_regen'
+          consumableType: ALCHEMY_POTION_CONSUMABLE_TYPE[brew.potionType]
         }));
         inventory = [...inventory, ...newItems];
       }
@@ -1559,11 +1611,15 @@ export const useGameStore = create<GameState>((set) => ({
       }
     }
 
-    // Oficina de Automação da Forja: converte Ouro e Madeira em Fragmentos de Forja por ordens de serviço de 1h
+    // Oficina de Automação da Forja: converte Ouro e Madeira em Fragmentos de Forja por ordens de serviço de 1h.
+    // Só avança `lastTick` pelas horas INTEIRAS já processadas (nunca até `now`) — do contrário, o tick
+    // periódico de 60s da UI (GameUI.tsx) resetaria o relógio antes de completar 1h e a Oficina nunca
+    // produziria nada durante uma sessão contínua, só em retornos após ficar fechada por 1h+.
     if (citadel.forgeWorkshop.level > 0) {
       const elapsedHours = (now - citadel.forgeWorkshop.lastTick) / (1000 * 60 * 60);
-      if (elapsedHours > 0) {
-        const maxOrdersByTime = Math.floor(elapsedHours / FORGE_ORDER_HOURS) * citadel.forgeWorkshop.level;
+      const wholeHours = Math.floor(elapsedHours / FORGE_ORDER_HOURS) * FORGE_ORDER_HOURS;
+      if (wholeHours > 0) {
+        const maxOrdersByTime = (wholeHours / FORGE_ORDER_HOURS) * citadel.forgeWorkshop.level;
         const maxOrdersByGold = Math.floor(gold / FORGE_ORDER_GOLD_COST);
         const maxOrdersByWood = Math.floor(materials.wood / FORGE_ORDER_WOOD_COST);
         const orders = Math.max(0, Math.min(maxOrdersByTime, maxOrdersByGold, maxOrdersByWood));
@@ -1573,7 +1629,7 @@ export const useGameStore = create<GameState>((set) => ({
           materials = { ...materials, wood: materials.wood - orders * FORGE_ORDER_WOOD_COST };
           forgeFragments += orders * FORGE_ORDER_FRAGMENT_YIELD;
         }
-        nextForgeWorkshop = { ...citadel.forgeWorkshop, lastTick: now };
+        nextForgeWorkshop = { ...citadel.forgeWorkshop, lastTick: citadel.forgeWorkshop.lastTick + wholeHours * 60 * 60 * 1000 };
         changed = true;
       }
     }
@@ -2000,7 +2056,7 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
-      const potionName = potionType === 'damage' ? 'Poção de Fúria Alquímica' : 'Poção de Regeneração Alquímica';
+      const potionName = ALCHEMY_POTION_NAME[potionType];
       const now = Date.now();
       const pendingBrew: AlchemyPendingBrew = { id: `brew-${now}`, potionType, completesAt: now + ALCHEMY_BREW_DURATION_MS };
 
@@ -4151,6 +4207,42 @@ export const useGameStore = create<GameState>((set) => ({
         };
         saveToLocalStorage(updated);
         result = { success: true, message: 'Poção de Regeneração Alquímica consumida! Regeneração de HP acelerada por 2 minutos.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'potion_speed') {
+        bridge.emit(GameEvent.ALCHEMY_POTION_ACTIVATED, { potionType: 'speed' });
+
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Poção de Velocidade Alquímica consumida! +25% de Velocidade de Ataque por 1 minuto.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'potion_manaregen') {
+        bridge.emit(GameEvent.ALCHEMY_POTION_ACTIVATED, { potionType: 'manaRegen' });
+
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Poção de Clareza Alquímica consumida! Regeneração de Mana dobrada por 2 minutos.' };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'potion_robotclick') {
+        bridge.emit(GameEvent.ALCHEMY_POTION_ACTIVATED, { potionType: 'robotClick' });
+
+        const updated = {
+          ...state.character,
+          inventory: nextInventory
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: 'Poção de Sobrecarga do Robô consumida! +1 Clique automático do Robô por 1 minuto.' };
         return { character: updated };
       }
 

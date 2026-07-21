@@ -8,6 +8,9 @@ import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 const POTION_LABELS: Record<AlchemyPotionType, { name: string; effect: string; icon: string }> = {
   damage: { name: 'Poção de Fúria Alquímica', effect: '+25% de Dano por 3 minutos', icon: '🔥' },
   regen: { name: 'Poção de Regeneração Alquímica', effect: 'Regeneração de HP acelerada por 2 minutos', icon: '💧' },
+  speed: { name: 'Poção de Velocidade Alquímica', effect: '+25% de Velocidade de Ataque por 1 minuto', icon: '🌪️' },
+  manaRegen: { name: 'Poção de Clareza Alquímica', effect: 'Regeneração de Mana dobrada por 2 minutos', icon: '🔷' },
+  robotClick: { name: 'Poção de Sobrecarga do Robô', effect: '+1 Clique automático do Robô por 1 minuto', icon: '🤖' },
 };
 
 const PendingBrewRow: React.FC<{ potionType: AlchemyPotionType; completesAt: number }> = ({ potionType, completesAt }) => {

@@ -93,12 +93,14 @@ export interface TowerStoreState {
   weeklyHighestFloor: number;
   historicalHighestFloor: number;
   unlockedTitles: string[];
-  selectedTitle: string;
+  // Título honorífico atualmente equipado — único e compartilhado entre a Torre Normal e a
+  // Ramificação de Maldições (só um título fica visível acima do personagem por vez, então não
+  // faz sentido ter um campo por ramificação; os pools de desbloqueio abaixo continuam separados).
+  equippedTitle: string;
   // v8.0.0 "O Espelho Faminto": recordes/títulos da Ramificação de Maldições, independentes dos da Torre Normal acima
   curseWeeklyHighestFloor: number;
   curseHistoricalHighestFloor: number;
   curseUnlockedTitles: string[];
-  curseSelectedTitle: string;
   // v9.0.0: recorde pessoal (sem reset semanal, sem títulos) e contador de PT já concedido na
   // semana atual das Provações do Vácuo — independentes dos campos normal/curse acima.
   voidTrialsHistoricalHighestFloor: number;
@@ -118,7 +120,7 @@ export interface TowerStoreState {
   advanceTowerFloor: () => void;
   exitTower: (success: boolean) => void;
   checkWeeklyReset: () => void;
-  selectTitle: (title: string, branch: 'normal' | 'curse') => void;
+  selectTitle: (title: string) => void;
   resetTowerProgress: () => void;
 }
 
@@ -137,11 +139,10 @@ const saveTowerToStorage = (state: Partial<TowerStoreState>) => {
       weeklyHighestFloor: state.weeklyHighestFloor,
       historicalHighestFloor: state.historicalHighestFloor,
       unlockedTitles: state.unlockedTitles,
-      selectedTitle: state.selectedTitle,
+      equippedTitle: state.equippedTitle,
       curseWeeklyHighestFloor: state.curseWeeklyHighestFloor,
       curseHistoricalHighestFloor: state.curseHistoricalHighestFloor,
       curseUnlockedTitles: state.curseUnlockedTitles,
-      curseSelectedTitle: state.curseSelectedTitle,
       voidTrialsHistoricalHighestFloor: state.voidTrialsHistoricalHighestFloor,
       voidTrialsWeeklyHighestFloor: state.voidTrialsWeeklyHighestFloor,
       voidTrialsPtGrantedThisWeek: state.voidTrialsPtGrantedThisWeek,
@@ -163,12 +164,12 @@ const loadTowerFromStorage = (): Partial<TowerStoreState> => {
         weeklyHighestFloor: parsed.weeklyHighestFloor || 0,
         historicalHighestFloor: parsed.historicalHighestFloor || 0,
         unlockedTitles: parsed.unlockedTitles || ['Iniciante da Torre'],
-        selectedTitle: parsed.selectedTitle || '',
-        // v8.0.0: sem save legado para preservar, então o default fica limpo (sem título de graça)
+        // Migração: saves antigos tinham `selectedTitle`/`curseSelectedTitle` separados — preserva
+        // qualquer um dos dois que estivesse equipado (só um título pode estar visível por vez).
+        equippedTitle: parsed.equippedTitle || parsed.selectedTitle || parsed.curseSelectedTitle || '',
         curseWeeklyHighestFloor: parsed.curseWeeklyHighestFloor || 0,
         curseHistoricalHighestFloor: parsed.curseHistoricalHighestFloor || 0,
         curseUnlockedTitles: parsed.curseUnlockedTitles || [],
-        curseSelectedTitle: parsed.curseSelectedTitle || '',
         voidTrialsHistoricalHighestFloor: parsed.voidTrialsHistoricalHighestFloor || 0,
         voidTrialsWeeklyHighestFloor: parsed.voidTrialsWeeklyHighestFloor || 0,
         voidTrialsPtGrantedThisWeek: parsed.voidTrialsPtGrantedThisWeek || 0,
@@ -183,11 +184,10 @@ const loadTowerFromStorage = (): Partial<TowerStoreState> => {
     weeklyHighestFloor: 0,
     historicalHighestFloor: 0,
     unlockedTitles: ['Iniciante da Torre'],
-    selectedTitle: '',
+    equippedTitle: '',
     curseWeeklyHighestFloor: 0,
     curseHistoricalHighestFloor: 0,
     curseUnlockedTitles: [],
-    curseSelectedTitle: '',
     voidTrialsHistoricalHighestFloor: 0,
     voidTrialsWeeklyHighestFloor: 0,
     voidTrialsPtGrantedThisWeek: 0,
@@ -207,11 +207,10 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       weeklyHighestFloor: s.weeklyHighestFloor,
       historicalHighestFloor: s.historicalHighestFloor,
       unlockedTitles: s.unlockedTitles,
-      selectedTitle: s.selectedTitle,
+      equippedTitle: s.equippedTitle,
       curseWeeklyHighestFloor: s.curseWeeklyHighestFloor,
       curseHistoricalHighestFloor: s.curseHistoricalHighestFloor,
       curseUnlockedTitles: s.curseUnlockedTitles,
-      curseSelectedTitle: s.curseSelectedTitle,
       voidTrialsHistoricalHighestFloor: s.voidTrialsHistoricalHighestFloor,
       voidTrialsWeeklyHighestFloor: s.voidTrialsWeeklyHighestFloor,
       voidTrialsPtGrantedThisWeek: s.voidTrialsPtGrantedThisWeek,
@@ -226,11 +225,10 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
   weeklyHighestFloor: initialData.weeklyHighestFloor || 0,
   historicalHighestFloor: initialData.historicalHighestFloor || 0,
   unlockedTitles: initialData.unlockedTitles || ['Iniciante da Torre'],
-  selectedTitle: initialData.selectedTitle || '',
+  equippedTitle: initialData.equippedTitle || '',
   curseWeeklyHighestFloor: initialData.curseWeeklyHighestFloor || 0,
   curseHistoricalHighestFloor: initialData.curseHistoricalHighestFloor || 0,
   curseUnlockedTitles: initialData.curseUnlockedTitles || [],
-  curseSelectedTitle: initialData.curseSelectedTitle || '',
   voidTrialsHistoricalHighestFloor: initialData.voidTrialsHistoricalHighestFloor || 0,
   voidTrialsWeeklyHighestFloor: initialData.voidTrialsWeeklyHighestFloor || 0,
   voidTrialsPtGrantedThisWeek: initialData.voidTrialsPtGrantedThisWeek || 0,
@@ -506,11 +504,11 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
     }
   },
 
-  selectTitle: (title: string, branch: 'normal' | 'curse') => {
-    const titlesKey = branch === 'curse' ? 'curseUnlockedTitles' : 'unlockedTitles';
-    const selectedKey = branch === 'curse' ? 'curseSelectedTitle' : 'selectedTitle';
-    if (get()[titlesKey].includes(title) || title === '') {
-      set({ [selectedKey]: title } as Partial<TowerStoreState>);
+  selectTitle: (title: string) => {
+    // Título equipado é único e compartilhado entre as duas ramificações — só valida que o título
+    // pertence a algum dos dois pools de desbloqueio (o de origem não importa mais para exibição).
+    if (title === '' || get().unlockedTitles.includes(title) || get().curseUnlockedTitles.includes(title)) {
+      set({ equippedTitle: title });
       persistTowerState();
       bridge.emit(GameEvent.LOG_EMITTED, {
         message: title !== '' ? `🏷️ Novo título equipado: "${title}"` : '🏷️ Título desequipado.'
@@ -523,11 +521,10 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       weeklyHighestFloor: 0,
       historicalHighestFloor: 0,
       unlockedTitles: ['Iniciante da Torre'],
-      selectedTitle: '',
+      equippedTitle: '',
       curseWeeklyHighestFloor: 0,
       curseHistoricalHighestFloor: 0,
       curseUnlockedTitles: [],
-      curseSelectedTitle: '',
       voidTrialsHistoricalHighestFloor: 0,
       voidTrialsWeeklyHighestFloor: 0,
       voidTrialsPtGrantedThisWeek: 0,
