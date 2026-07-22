@@ -121,6 +121,10 @@ export interface TowerStoreState {
   exitTower: (success: boolean) => void;
   checkWeeklyReset: () => void;
   selectTitle: (title: string) => void;
+  // v10.4.0 "O Leviatã do Ciclo": concessão genérica de título fora da progressão da Torre (usada
+  // pelos marcos de profundidade das Profundezas e pela 1ª morte do Leviatã). Idempotente — não
+  // duplica se já desbloqueado.
+  unlockTitle: (title: string) => void;
   resetTowerProgress: () => void;
 }
 
@@ -502,6 +506,13 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
         message: '🔄 Uma nova semana se iniciou! O progresso da Torre e a Seed Semanal foram resetados.'
       });
     }
+  },
+
+  unlockTitle: (title: string) => {
+    if (get().unlockedTitles.includes(title)) return;
+    set((s) => ({ unlockedTitles: [...s.unlockedTitles, title] }));
+    persistTowerState();
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🏷️ Novo título desbloqueado: "${title}"!` });
   },
 
   selectTitle: (title: string) => {

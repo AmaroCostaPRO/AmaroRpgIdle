@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
 
-export type CitadelSubTab = 'overview' | 'vault' | 'expeditions' | 'academy' | 'watchTower' | 'forgeWorkshop' | 'cosmicSiphon' | 'synchronyAltar' | 'relicLab' | 'alchemyLab' | 'huntSanctuary';
+export type CitadelSubTab = 'overview' | 'vault' | 'expeditions' | 'academy' | 'watchTower' | 'forgeWorkshop' | 'cosmicSiphon' | 'synchronyAltar' | 'relicLab' | 'alchemyLab' | 'huntSanctuary' | 'engravingChamber';
 
 export const CITADEL_SUB_TABS: { id: CitadelSubTab; label: string; icon: string }[] = [
   { id: 'overview', label: 'Visão Geral', icon: '🌌' },
@@ -15,6 +15,7 @@ export const CITADEL_SUB_TABS: { id: CitadelSubTab; label: string; icon: string 
   { id: 'relicLab', label: 'Laboratório', icon: '🧪' },
   { id: 'alchemyLab', label: 'Alquimia', icon: '⚗️' },
   { id: 'huntSanctuary', label: 'Santuário', icon: '📜' },
+  { id: 'engravingChamber', label: 'Gravação', icon: '🪬' },
 ];
 
 interface Props {

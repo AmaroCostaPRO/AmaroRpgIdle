@@ -3,10 +3,32 @@ import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
 import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTowerStore';
+import { useDiveStore } from '../store/useDiveStore';
+import { useLeviathanStore } from '../store/useLeviathanStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
 import { calculateMaxManaFromStats, getSkillManaCost as getSkillManaCostShared } from './manaFormulas';
+import {
+  getDiveEnemyHP, getDiveEnemyDamage, getBreathDrainPerSecond,
+  AIR_POCKET_INTERVAL, GUARDIAN_SHIELD_PCT, GUARDIAN_SHIELD_REBUILD_MS, DROWNING_DAMAGE_MULT,
+  getEffectiveAnchorStage, isFullDepthsUnlocked, getPressureMultiplier, getZoneForDepth,
+  getGuardianForDepth, isGuardianDepth, DIVE_ZONE_ENEMY_POOL, ZONE4_MINIBOSS_CHANCE, ZONE4_MINIBOSS_ID,
+} from './abyssFormulas';
+import { RUNE_CATALOG, listSocketedRunes, hasActiveRunewordFlag } from './runeFormulas';
+import {
+  getVocationPerkTotal, getTidePhase, TIDE_HIGH_CORAL_DROP_MULT, TIDE_LOW_PRESSURE_MULT,
+  sumDistrictEfficacy, calculateEchoEfficacies,
+} from './sunkenCitadelFormulas';
+import {
+  getLeviathanAnchorDepth, getLeviathanPhaseHP, getLeviathanBaseDamage, getLeviathanPressureMultiplier,
+  getLeviathanPhase, LEVIATHAN_PROLE_SHIELD_PCT, LEVIATHAN_PROLE_SHIELD_REBUILD_MS,
+  LEVIATHAN_VAGALHAO_INTERVAL_MS, LEVIATHAN_VAGALHAO_CHANNEL_MS, LEVIATHAN_VAGALHAO_DAMAGE_MULT,
+  LEVIATHAN_CORRENTEZA_INTERVAL_MS, LEVIATHAN_CORRENTEZA_DURATION_MS,
+  LEVIATHAN_BIOLUM_WINDOW_MS, LEVIATHAN_BIOLUM_LIT_MULT, LEVIATHAN_BIOLUM_DARK_MULT, LEVIATHAN_BIOLUM_DARK_REFLECT_PCT,
+  LEVIATHAN_CANTO_INTERVAL_MS, LEVIATHAN_CANTO_CHANNEL_MS, LEVIATHAN_CANTO_HEAL_PCT,
+  LEVIATHAN_FURIA_TICK_MS, LEVIATHAN_FURIA_PCT_PER_TICK, LEVIATHAN_FURIA_CAP,
+} from './leviathanFormulas';
 
 // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal calculado por data real local, sem
 // backend. A cada semana, o véu entre o mundo desperto e o Vazio fica fino no Domingo:
@@ -386,8 +408,315 @@ export const ENEMY_TYPES: EnemyType[] = [
     flipX: false,
     yOffset: 0,
     materialDrops: ['wood', 'stone', 'meat']
+  },
+  // === v10.0.0 "A Cidadela Submersa": inimigos aquáticos do Litoral Naufragado ===
+  // Não formam um bioma próprio: são spawns ALTERNATIVOS nas Fases 1–10 (15% de chance de
+  // substituir o sorteio normal quando o Litoral está desbloqueado — ver setupEnemyForLevel).
+  {
+    id: 'wreck_crab',
+    name: 'Caranguejo de Casco Naufragado',
+    texture: 'enemy_wreck_crab',
+    hpMultiplier: 1.45,
+    damageMultiplier: 0.90,
+    attackSpeedMultiplier: 0.70,
+    xpValue: 26,
+    color: '#f97316',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['coral']
+  },
+  {
+    id: 'drift_jelly',
+    name: 'Água-Viva Errante',
+    texture: 'enemy_drift_jelly',
+    hpMultiplier: 0.70,
+    damageMultiplier: 1.20,
+    attackSpeedMultiplier: 1.10,
+    xpValue: 20,
+    color: '#c4b5fd',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['coral']
+  },
+  {
+    id: 'slime_moray',
+    name: 'Moreia do Limo',
+    texture: 'enemy_slime_moray',
+    hpMultiplier: 0.85,
+    damageMultiplier: 1.40,
+    attackSpeedMultiplier: 1.30,
+    xpValue: 24,
+    color: '#84cc16',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['coral']
+  },
+  {
+    id: 'drowned_echo',
+    name: 'Eco Afogado',
+    texture: 'enemy_drowned_echo',
+    hpMultiplier: 3.00,
+    damageMultiplier: 1.20,
+    attackSpeedMultiplier: 1.00,
+    xpValue: 90,
+    color: '#67e8f9',
+    flipX: false,
+    yOffset: 0,
+    materialDrops: ['coral']
+  },
+  // === v10.0.0: bestiário dos Mergulhos Rasos — Zona 1: Recife Partido (prof. 1–25) ===
+  // Sem materialDrops: recompensas do mergulho são bancadas pelo useDiveStore, não pelo pipeline
+  // de drops da campanha (sem XP, sem ouro, sem equipamento — pureza econômica do modo).
+  {
+    id: 'grudge_puffer',
+    name: 'Baiacu Rancoroso',
+    texture: 'enemy_grudge_puffer',
+    hpMultiplier: 0.80,
+    damageMultiplier: 0.90,
+    attackSpeedMultiplier: 1.10,
+    xpValue: 0,
+    color: '#fbbf24',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'reef_shark',
+    name: 'Tubarão do Recife',
+    texture: 'enemy_reef_shark',
+    hpMultiplier: 1.10,
+    damageMultiplier: 1.15,
+    attackSpeedMultiplier: 1.20,
+    xpValue: 0,
+    color: '#94a3b8',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'hungry_anemone',
+    name: 'Anêmona Faminta',
+    texture: 'enemy_hungry_anemone',
+    hpMultiplier: 1.30,
+    damageMultiplier: 1.00,
+    attackSpeedMultiplier: 0.80,
+    xpValue: 0,
+    color: '#f472b6',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'boss_reef_arachnid',
+    name: 'Aracnídeo do Recife',
+    texture: 'boss_reef_arachnid',
+    hpMultiplier: 1.0, // multiplicadores do Guardião (×6.0 HP / ×1.8 dano) aplicados no setup do mergulho
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 0,
+    color: '#fb7185',
+    flipX: false,
+    yOffset: 0
+  },
+  // === v10.1.0 "As Profundezas": bestiário da Zona 2 — Bosque de Algas Negras (prof. 26–50) ===
+  {
+    id: 'kelp_strangler',
+    name: 'Estrangulador de Algas',
+    texture: 'enemy_kelp_strangler',
+    hpMultiplier: 1.05,
+    damageMultiplier: 1.05,
+    attackSpeedMultiplier: 0.90,
+    xpValue: 0,
+    color: '#166534',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'mirror_octopus',
+    name: 'Polvo Espelhado',
+    texture: 'enemy_mirror_octopus',
+    hpMultiplier: 1.15,
+    damageMultiplier: 1.00,
+    attackSpeedMultiplier: 1.00,
+    xpValue: 0,
+    color: '#a855f7',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'black_moray_eel',
+    name: 'Enguia Negra',
+    texture: 'enemy_black_moray_eel',
+    hpMultiplier: 0.90,
+    damageMultiplier: 1.25,
+    attackSpeedMultiplier: 1.30,
+    xpValue: 0,
+    color: '#1e293b',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'algae_golem',
+    name: 'Golem de Algas',
+    texture: 'enemy_algae_golem',
+    hpMultiplier: 1.60,
+    damageMultiplier: 0.85,
+    attackSpeedMultiplier: 0.60,
+    xpValue: 0,
+    color: '#3f6212',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'boss_algae_thing',
+    name: 'A Coisa Entre as Algas',
+    texture: 'boss_algae_thing',
+    hpMultiplier: 1.0, // multiplicadores do Guardião (×6.0 HP / ×1.8 dano) aplicados no setup do mergulho
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 0,
+    color: '#4d7c0f',
+    flipX: false,
+    yOffset: 0
+  },
+  // === v10.1.0: bestiário da Zona 3 — Ruínas da Cidadela (prof. 51–80) ===
+  {
+    id: 'guardian_echo',
+    name: 'Eco do Guardião',
+    texture: 'boss_reef_arachnid', // fanservice: reaproveita o asset do 1º Guardião com tint espectral
+    hpMultiplier: 1.20,
+    damageMultiplier: 1.15,
+    attackSpeedMultiplier: 0.90,
+    xpValue: 0,
+    color: '#94a3b8',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'salt_mourner',
+    name: 'Carpideira do Sal',
+    texture: 'enemy_salt_mourner',
+    hpMultiplier: 1.10,
+    damageMultiplier: 1.05,
+    attackSpeedMultiplier: 0.95,
+    xpValue: 0,
+    color: '#a5f3fc',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'sunken_sentinel',
+    name: 'Sentinela Afundada',
+    texture: 'enemy_sunken_sentinel',
+    hpMultiplier: 1.70,
+    damageMultiplier: 0.95,
+    attackSpeedMultiplier: 0.65,
+    xpValue: 0,
+    color: '#57534e',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'ruin_wraith',
+    name: 'Espectro das Ruínas',
+    texture: 'enemy_ruin_wraith',
+    hpMultiplier: 0.95,
+    damageMultiplier: 1.30,
+    attackSpeedMultiplier: 1.25,
+    xpValue: 0,
+    color: '#7c3aed',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'boss_sunken_castellan',
+    name: 'O Castelão Afogado',
+    texture: 'boss_sunken_castellan',
+    hpMultiplier: 1.0, // multiplicadores do Guardião (×6.0 HP / ×1.8 dano) aplicados no setup do mergulho
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 0,
+    color: '#7c3aed',
+    flipX: false,
+    yOffset: 0
+  },
+  // === v10.1.0: bestiário da Zona 4 — Fossa do Caco (prof. 81+, infinita) ===
+  {
+    id: 'abyss_maw',
+    name: 'Fauces do Abismo',
+    texture: 'enemy_abyss_maw',
+    hpMultiplier: 1.40,
+    damageMultiplier: 1.20,
+    attackSpeedMultiplier: 0.80,
+    xpValue: 0,
+    color: '#082f49',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'void_crawler',
+    name: 'Rastejante do Vazio',
+    texture: 'enemy_void_crawler',
+    hpMultiplier: 1.00,
+    damageMultiplier: 1.35,
+    attackSpeedMultiplier: 1.15,
+    xpValue: 0,
+    color: '#1e1b4b',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'leviathan_spawn',
+    name: 'Prole do Leviatã',
+    texture: 'enemy_leviathan_spawn',
+    hpMultiplier: 2.20, // miniboss aleatório (5% de chance no pool da Zona 4)
+    damageMultiplier: 1.30,
+    attackSpeedMultiplier: 0.85,
+    xpValue: 0,
+    color: '#0369a1',
+    flipX: false,
+    yOffset: 0
+  },
+  {
+    id: 'deep_breather',
+    name: 'O Que Respira no Escuro',
+    texture: 'enemy_deep_breather',
+    hpMultiplier: 1.10,
+    damageMultiplier: 1.10,
+    attackSpeedMultiplier: 1.00,
+    xpValue: 0,
+    color: '#020617',
+    flipX: false,
+    yOffset: 0
+  },
+  // === v10.4.0 "O Leviatã do Ciclo": chefe mundial semanal (Trono Afundado restaurado) ===
+  // hpMultiplier/damageMultiplier ficam em 1.0 — os multiplicadores reais (×8 HP/×4.5 dano, mais
+  // os modificadores por fase) são aplicados em setupLeviathanEncounter/performEnemyAttack.
+  {
+    id: 'boss_leviathan',
+    name: 'O Leviatã do Ciclo',
+    texture: 'boss_leviathan',
+    hpMultiplier: 1.0,
+    damageMultiplier: 1.0,
+    attackSpeedMultiplier: 1.0,
+    xpValue: 0,
+    color: '#0c4a6e',
+    flipX: false,
+    yOffset: 0
   }
 ];
+
+// Pseudo-inimigo do Bolsão de Ar (padrão não-combatente do Mercador: renderizado na posição de
+// encontro, sem barra de HP, FSM pausado em AIR_POCKET).
+export const AIR_POCKET_ENCOUNTER: EnemyType = {
+  id: 'air_pocket',
+  name: 'Bolsão de Ar',
+  texture: 'npc_air_pocket',
+  hpMultiplier: 1,
+  damageMultiplier: 0,
+  attackSpeedMultiplier: 0,
+  xpValue: 0,
+  color: '#7dd3fc',
+  flipX: false,
+  yOffset: 0
+};
 
 export enum CombatState {
   IDLE = 'IDLE',
@@ -398,7 +727,10 @@ export enum CombatState {
   DEAD = 'DEAD',
   // v7.0.0 "Ecos que Despertam": encontro do Mercador Ambulante — pausa o fluxo normal
   // de dano/derrota (o Mercador não ataca nem pode ser "morto") até o jogador fechar o painel de compra.
-  MERCHANT_ENCOUNTER = 'MERCHANT_ENCOUNTER'
+  MERCHANT_ENCOUNTER = 'MERCHANT_ENCOUNTER',
+  // v10.0.0 "A Cidadela Submersa": Bolsão de Ar dos Mergulhos Rasos — mesmo padrão do Mercador
+  // (suspende o FSM, modal local de escolha, retoma ao resolver). O dreno de Fôlego PAUSA aqui.
+  AIR_POCKET = 'AIR_POCKET'
 }
 
 // Elixires exclusivos do Mercador Ambulante — comprados com Ouro e ativados na hora (não viram
@@ -541,6 +873,10 @@ export const CONVERGENCE_BOSS_TYPES: EnemyType[] = [
 // Ativa só às quartas-feiras (mesmo espírito de `isBloodMoonActive`, checagem pura de `Date` local).
 export const isConvergenceActive = (): boolean => new Date().getDay() === 3;
 
+// v10.4.0 "O Leviatã do Ciclo": Maré Viva, ativa só às sextas-feiras — completa o calendário
+// (Dom = Lua de Sangue, Qua = Convergência, Sex = Maré Viva), mesmo padrão de `Date` local.
+export const isMareVivaActive = (): boolean => new Date().getDay() === 5;
+
 // Determinístico por semana (mesma seed que a Torre já usa) — todo jogador vê o mesmo boss na mesma semana.
 export const getConvergenceBossOfWeek = (): EnemyType => {
   const idx = getWeeklySeed() % CONVERGENCE_BOSS_TYPES.length;
@@ -614,7 +950,10 @@ export interface ActiveBuffInfo {
 }
 
 export interface StatusEffect {
-  id: 'stun' | 'poison' | 'slow' | 'burn' | 'bleed' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier';
+  // v10.0.0: 'soaked' ([ENCHARCADO]) — primeiro debuff BIDIRECIONAL do jogo (afeta herói e inimigo):
+  // −15% Vel. de Ataque em ambos; no herói, também −25% de regeneração de Mana; habilidades de
+  // raio/gelo causam +20% de dano em alvos encharcados (sinergia elemental do update).
+  id: 'stun' | 'poison' | 'slow' | 'burn' | 'bleed' | 'consecration' | 'weakness' | 'exposed' | 'bone_shield' | 'soul_siphon' | 'skeleton_army' | 'prismatic_barrier' | 'soaked';
   name: string;
   duration: number; // em ms
   tickTimer: number; // em ms
@@ -644,13 +983,53 @@ export class CombatFSM {
   public enemyLevel: number = 1;
   public currentEnemy: EnemyType = ENEMY_TYPES[0];
   public isElite: boolean = false;
-  public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador' | 'refletor' | 'errante' | 'replicante' | 'vulneravel';
+  public eliteAfix?: 'enfurecido' | 'blindado' | 'vampirico' | 'volatil' | 'regenerador' | 'refletor' | 'errante' | 'replicante' | 'vulneravel' | 'abissal' | 'sifonador' | 'bioluminescente';
+  // v10.1.0: janela do afixo Bioluminescente — alterna "aceso" (+40% dano recebido) / "apagado"
+  // (−40%) a cada 6s. Também usado pelo Guardião de Zona 2 (A Coisa Entre as Algas).
+  private bioluminescentTimer: number = 0;
+  private bioluminescentLit: boolean = true;
+  // v10.1.0: Ur T3 (ur_crit_lifesteal) — setado antes de cada golpe DIRETO do jogador
+  // (toque/básico/habilidade), consumido pelo Lifesteal em damageEnemy().
+  private lastHitWasCrit: boolean = false;
+  // v10.1.0: Lum T3 (lum_first_crit) — o 1º ataque de cada combate é sempre crítico.
+  private firstAttackOfEncounterPending: boolean = false;
+  // v10.3.0: Palavra Rúnica CORO SUBMERSO — conta ataques básicos até 5 para o eco.
+  private basicAttackComboCounter: number = 0;
   // v7.0.0 "Ecos que Despertam": Mercador Ambulante — substitui um inimigo comum no combate
   public isMerchantEncounter: boolean = false;
   public currentMerchantOffer: MerchantOffer[] = [];
   // v9.0.0 "O Que Espera no Pandemônio": Convergência — mesmo espírito do Mercador acima, mas
   // substitui o inimigo comum por um dos 4 world bosses rotativos da semana.
   public isConvergenceEncounter: boolean = false;
+  // v10.0.0 "A Cidadela Submersa": spawn alternativo aquático do Litoral (Fases 1–10, 15%).
+  public isCoastalEncounter: boolean = false;
+  // v10.0.0: Mergulhos Rasos — Bolsão de Ar (sem combate) e estado local do Fôlego.
+  // O Fôlego drena AQUI (delta já multiplicado pela velocidade do jogo — nunca Date.now(), para
+  // 1x/2x/3x alcançarem a mesma profundidade por descida) e é sincronizado com o useDiveStore
+  // em intervalos de ~250ms para não re-renderizar a UI por frame.
+  public isAirPocketEncounter: boolean = false;
+  private diveBreath: number = 100;
+  private diveBreathSyncTimer: number = 0;
+  private guardianShieldRebuildTimer: number = 0;
+  private unsubscribeAirPocketResolved?: () => void;
+
+  // v10.4.0 "O Leviatã do Ciclo": estado de RUNTIME da luta contra o chefe mundial (não persiste —
+  // vive só na instância do FSM, igual a `diveBreath`). `leviathanPhaseIndex` espelha
+  // `useLeviathanStore.currentPhaseIndex` (cacheado aqui para os cálculos de dano/velocidade por
+  // fase, que rodam a cada golpe e não deveriam ler o store toda vez).
+  private leviathanPhaseIndex: number = 1;
+  private leviathanAnchorDepth: number = 90;
+  // Sistema GENÉRICO de canalização (Vagalhão/Canto Abissal) — não existia antes da 10.4.0.
+  // Reaproveitado nas 3 janelas: Vagalhão Fase 1 (interrompível), Canto Fase 4 (interrompível),
+  // Vagalhão Fase 5 (NÃO interrompível). `channelIntervalTimer` conta até a próxima canalização;
+  // `channelActiveTimer` conta dentro da janela de canalização em si.
+  private leviathanChannelType: 'vagalhao' | 'canto' | null = null;
+  private leviathanChannelIntervalTimer: number = 0;
+  private leviathanChannelActiveTimer: number = 0;
+  private leviathanChannelInterruptible: boolean = true;
+  private leviathanCorrentezaTimer: number = 0;
+  private leviathanFuriaTimer: number = 0;
+  private leviathanFuriaMult: number = 1.0;
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
@@ -785,7 +1164,9 @@ export class CombatFSM {
     // Se NÃO é o atributo primário (outras classes), o multiplicador de raiz quadrada é maior para compensar a falta de destreza base
     const factor = (classId === 'ranger' || classId === 'rogue') ? 0.15 : 0.40;
     const setSpeedMultiplier = 1 + (this.playerFinalStats?.attackSpeedPct || 0);
-    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier;
+    // v10.0.0: [ENCHARCADO] no herói — −15% de Velocidade de Ataque enquanto durar
+    const soakedMultiplier = this.playerEffects?.some(e => e.id === 'soaked') ? 0.85 : 1.0;
+    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier * soakedMultiplier;
   }
 
   // Verifica se uma relíquia foi submetida ao Superaquecimento de Alma no Laboratório de Relíquias Místicas da Cidadela
@@ -840,6 +1221,39 @@ export class CombatFSM {
 
     this.unsubscribeStartCombat = bridge.subscribe(GameEvent.START_COMBAT, (payload) => {
       const activeTower = useTowerStore.getState().towerActive;
+      // v10.4.0: Leviatã do Ciclo — prioridade sobre o Mergulho, fora da Torre (mesmo padrão de
+      // ramificação de modo exclusivo já usado pelo Mergulho).
+      if (!activeTower && useLeviathanStore.getState().leviathanActive) {
+        this.setupEnemyForLevel(0, 0); // args ignorados — setupLeviathanEncounter lê o próprio store
+        this.playerHP = this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.skillCooldowns = {};
+        this.currentState = CombatState.IDLE;
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        }
+        bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: {} });
+        return;
+      }
+      // v10.0.0: Mergulhos Rasos — o mergulho tem prioridade fora da Torre (padrão do branch da Torre)
+      if (!activeTower && !useLeviathanStore.getState().leviathanActive && useDiveStore.getState().diveActive) {
+        this.diveBreath = useDiveStore.getState().breath;
+        this.diveBreathSyncTimer = 0;
+        this.setupEnemyForLevel(useDiveStore.getState().currentDepth, 0);
+        this.playerHP = this.playerMaxHP;
+        this.playerMana = this.playerMaxMana;
+        this.skillCooldowns = {};
+        if (this.currentState !== CombatState.AIR_POCKET) {
+          this.currentState = CombatState.IDLE;
+        }
+        if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        }
+        bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: {} });
+        return;
+      }
       if (activeTower) {
         const floor = useTowerStore.getState().currentFloor;
         this.enemyLevel = floor;
@@ -873,6 +1287,32 @@ export class CombatFSM {
         }
       }
       bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: {} });
+    });
+
+    // v10.0.0: Bolsão de Ar resolvido — banca a profundidade do bolsão e desce para a próxima
+    // (o useDiveStore já aplicou a escolha e pode ter restaurado o Fôlego — ressincroniza).
+    this.unsubscribeAirPocketResolved = bridge.subscribe(GameEvent.AIR_POCKET_RESOLVED, () => {
+      if (this.currentState !== CombatState.AIR_POCKET) return;
+      this.diveBreath = useDiveStore.getState().breath;
+      useDiveStore.getState().completeDepth();
+      if (!useDiveStore.getState().diveActive) return; // limpou a zona / subiu — START_COMBAT campaign já foi emitido
+      this.isAirPocketEncounter = false;
+      this.currentState = CombatState.TRANSITION;
+      if (this.scene && this.scene.sys && this.scene.sys.isActive() && typeof this.scene.animateDiveTransition === 'function') {
+        this.scene.animateDiveTransition(() => {
+          this.setupEnemyForLevel(useDiveStore.getState().currentDepth, 0);
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          if (this.currentState !== CombatState.AIR_POCKET) {
+            this.currentState = CombatState.IDLE;
+          }
+        });
+      } else {
+        this.setupEnemyForLevel(useDiveStore.getState().currentDepth, 0);
+        // setupEnemyForLevel pode ter aberto OUTRO Bolsão (muta currentState — cast p/ o TS não estreitar)
+        if ((this.currentState as CombatState) !== CombatState.AIR_POCKET) {
+          this.currentState = CombatState.IDLE;
+        }
+      }
     });
 
     // v7.0.0 "Ecos que Despertam": ao fechar o painel do Mercador Ambulante, retoma o combate
@@ -926,6 +1366,10 @@ export class CombatFSM {
       this.unsubscribeMerchantDismissed();
       this.unsubscribeMerchantDismissed = undefined;
     }
+    if (this.unsubscribeAirPocketResolved) {
+      this.unsubscribeAirPocketResolved();
+      this.unsubscribeAirPocketResolved = undefined;
+    }
   }
 
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
@@ -963,6 +1407,19 @@ export class CombatFSM {
 
     const isBoss = defeatedInStage === ENEMIES_PER_STAGE;
     const isTower = useTowerStore.getState().towerActive;
+
+    // v10.4.0 "O Leviatã do Ciclo": chefe mundial semanal — modo próprio, fora da campanha/Torre,
+    // com prioridade sobre o Mergulho (Torre > Leviatã > Mergulho > campanha).
+    if (!isTower && useLeviathanStore.getState().leviathanActive) {
+      this.setupLeviathanEncounter();
+      return;
+    }
+
+    // v10.0.0 "A Cidadela Submersa": Mergulhos Rasos — modo próprio, fora da campanha/Torre.
+    if (!isTower && !useLeviathanStore.getState().leviathanActive && useDiveStore.getState().diveActive) {
+      this.setupDiveEncounter();
+      return;
+    }
 
     if (isTower) {
       const floor = useTowerStore.getState().currentFloor;
@@ -1002,13 +1459,14 @@ export class CombatFSM {
       this.enemyShield = 0;
       this.enemyShieldTimer = 0;
       this.eliteVulnerabilityTimer = 0;
+      this.firstAttackOfEncounterPending = true;
 
       if (!isTowerBoss && floor >= 5) {
         const eliteChance = Math.min(0.35, 0.08 + (floor - 5) * 0.01);
         const lcgEliteVal = randSin(lookupSeed + 999);
         if (lcgEliteVal < eliteChance) {
           this.isElite = true;
-          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel'] as const;
+          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
           const afixIdx = Math.floor(randSin(lookupSeed + 888) * afixos.length);
           this.eliteAfix = afixos[afixIdx];
           this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
@@ -1119,6 +1577,8 @@ export class CombatFSM {
     this.isMerchantEncounter = false;
     this.currentMerchantOffer = [];
     this.isConvergenceEncounter = false;
+    this.isCoastalEncounter = false;
+    this.firstAttackOfEncounterPending = true;
 
     const char = useGameStore.getState().character;
 
@@ -1130,6 +1590,37 @@ export class CombatFSM {
     const randSinCampaign = (s: number) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
     const encounterSeed = (char?.ascensionCount || 0) * 1000000 + stage * 1000 + defeatedInStage;
 
+    // v10.0.0 "A Cidadela Submersa": spawn alternativo aquático do Litoral — 15% de chance de
+    // substituir o inimigo comum sorteado nas Fases 1–10 quando o Litoral está desbloqueado
+    // (mesmo padrão determinístico da Convergência; offsets de seed +333/+334/+335 não colidem
+    // com os já usados: +500 afixo de Elite, +777 Mercador, +999 Convergência). Tem precedência
+    // sobre Mercador/Convergência (bloqueados abaixo via isCoastalEncounter).
+    // v10.4.0: Maré Viva (sexta-feira) dobra a chance para 30% — "inimigos aquáticos invadem a
+    // campanha inteira" (Design principal §8.D).
+    const coastalSpawnChance = isMareVivaActive() ? 0.30 : 0.15;
+    if (!isTower && !isBoss && stage <= 10 && char?.coastal?.unlocked && randSinCampaign(encounterSeed + 333) < coastalSpawnChance) {
+      const isDrownedEcho = randSinCampaign(encounterSeed + 334) < 0.02;
+      const coastalPool = ['wreck_crab', 'drift_jelly', 'slime_moray'];
+      const pickedId = isDrownedEcho
+        ? 'drowned_echo'
+        : coastalPool[Math.floor(randSinCampaign(encounterSeed + 335) * coastalPool.length)];
+      const coastalEnemy = ENEMY_TYPES.find(e => e.id === pickedId);
+      if (coastalEnemy) {
+        this.currentEnemy = coastalEnemy;
+        this.isCoastalEncounter = true;
+        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * coastalEnemy.hpMultiplier * hpBoost);
+        this.enemyHP = this.enemyMaxHP;
+        if (pickedId === 'wreck_crab') {
+          // Primeiro inimigo COMUM do jogo com escudo — reusa o `enemyShield` do afixo Replicante
+          // (absorve dano antes do HP real; não se refaz: quebrou, acabou).
+          this.enemyShield = Math.floor(this.enemyMaxHP * 0.15);
+        }
+        if (isDrownedEcho) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 Um ECO AFOGADO emerge da maré — os afogados da cidadela ainda vagam...' });
+        }
+      }
+    }
+
     // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
     if (!isBoss && stage >= 11) {
       let eliteChance = 0.08;
@@ -1139,7 +1630,7 @@ export class CombatFSM {
       }
       if (randSinCampaign(encounterSeed) < eliteChance) {
         this.isElite = true;
-        const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel'] as const;
+        const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
         this.eliteAfix = afixos[Math.floor(randSinCampaign(encounterSeed + 500) * afixos.length)];
 
         // HP do Elite é multiplicado por 3.0x
@@ -1156,7 +1647,7 @@ export class CombatFSM {
     // Checado ANTES do Mercador abaixo e retorna cedo se disparar, para os dois nunca coincidirem no mesmo encontro.
     const currentWeeklySeed = getWeeklySeed();
     const convergenceAlreadyResolvedThisWeek = char?.resolvedConvergenceWeekSeed === currentWeeklySeed;
-    if (!isBoss && !this.isElite && !convergenceAlreadyResolvedThisWeek && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
+    if (!isBoss && !this.isElite && !this.isCoastalEncounter && !convergenceAlreadyResolvedThisWeek && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
       const convergenceBoss = getConvergenceBossOfWeek();
       this.currentEnemy = convergenceBoss;
       this.isConvergenceEncounter = true;
@@ -1175,7 +1666,7 @@ export class CombatFSM {
     // fechamento da loja não muda `defeatedInStage`).
     const encounterKey = `${stage}:${defeatedInStage}`;
     const merchantAlreadyResolved = char?.resolvedMerchantEncounterKey === encounterKey;
-    if (!isBoss && !this.isElite && !this.isConvergenceEncounter && !merchantAlreadyResolved && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
+    if (!isBoss && !this.isElite && !this.isConvergenceEncounter && !this.isCoastalEncounter && !merchantAlreadyResolved && stage >= 3 && randSinCampaign(encounterSeed + 777) < 0.02) {
       this.isMerchantEncounter = true;
       this.currentMerchantOffer = StatEngine.pickRandomElements(MERCHANT_STOCK_POOL, 2);
       this.currentState = CombatState.MERCHANT_ENCOUNTER;
@@ -1189,6 +1680,284 @@ export class CombatFSM {
       this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
       this.enemyHP = this.enemyMaxHP;
     }
+  }
+
+  // v10.0.0/10.1.0: monta o encontro da profundidade atual dos Mergulhos Rasos/Profundezas.
+  // Âncora HÍBRIDA (getEffectiveAnchorStage): dinâmica pré-F50 (curva do Anexo, HP ×0.5×1.14^(p−1),
+  // dano ×0.6×1.085^(p−1)), fixa em F50 pós-graduação — quando também entram os Fatores de Zona
+  // (2–4) e os 3 Guardiões de Zona (ZONE_GUARDIANS).
+  private setupDiveEncounter(): void {
+    const dive = useDiveStore.getState();
+    const depth = dive.currentDepth;
+    const char = useGameStore.getState().character;
+    this.enemyLevel = depth;
+
+    // Reset dos campos de encontro (o fluxo da campanha faz isso mais abaixo; aqui retornamos cedo)
+    this.isElite = false;
+    this.eliteAfix = undefined;
+    this.enemyShield = 0;
+    this.enemyShieldTimer = 0;
+    this.eliteVulnerabilityTimer = 0;
+    this.isMerchantEncounter = false;
+    this.currentMerchantOffer = [];
+    this.isConvergenceEncounter = false;
+    this.isCoastalEncounter = false;
+    this.isAirPocketEncounter = false;
+    this.guardianShieldRebuildTimer = 0;
+    this.bioluminescentTimer = 0;
+    this.bioluminescentLit = true;
+    this.firstAttackOfEncounterPending = true;
+
+    const guardian = getGuardianForDepth(depth);
+
+    // Bolsão de Ar a cada 5 profundidades (nunca na prof. de um Guardião), uma única vez por profundidade
+    if (depth % AIR_POCKET_INTERVAL === 0 && !guardian && dive.airPocketResolvedDepth !== depth) {
+      this.isAirPocketEncounter = true;
+      this.currentEnemy = AIR_POCKET_ENCOUNTER;
+      this.enemyMaxHP = 1;
+      this.enemyHP = 1;
+      this.currentState = CombatState.AIR_POCKET;
+      useDiveStore.getState().openAirPocket();
+      return;
+    }
+
+    const anchorStage = getEffectiveAnchorStage(char.highestStageReached || 1);
+    if (guardian) {
+      this.currentEnemy = ENEMY_TYPES.find(e => e.id === guardian.enemyId) || ENEMY_TYPES[0];
+      this.enemyMaxHP = getDiveEnemyHP(depth, anchorStage, this.currentEnemy.hpMultiplier * guardian.hpMult);
+      // Escudo de 20% do HP que se refaz a cada 15s (checagem de DPS sustentado) — todos os 3 Guardiões
+      this.enemyShield = Math.floor(this.enemyMaxHP * GUARDIAN_SHIELD_PCT);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `👑 ${guardian.name.toUpperCase()} bloqueia a descida! (O Fôlego não drena durante a luta do Guardião.)` });
+    } else {
+      const zone = getZoneForDepth(depth);
+      let isMiniboss = false;
+      let pickedId: string;
+      if (zone === 4 && Math.random() < ZONE4_MINIBOSS_CHANCE) {
+        pickedId = ZONE4_MINIBOSS_ID;
+        isMiniboss = true;
+      } else {
+        const pool = DIVE_ZONE_ENEMY_POOL[zone];
+        pickedId = pool[Math.floor(Math.random() * pool.length)];
+      }
+      this.currentEnemy = ENEMY_TYPES.find(e => e.id === pickedId) || ENEMY_TYPES[0];
+      this.enemyMaxHP = getDiveEnemyHP(depth, anchorStage, this.currentEnemy.hpMultiplier);
+
+      // v10.1.0: Elites comuns dentro das Profundezas (fechamento do escopo cortado da 10.1.0) —
+      // sem isso, os 3 afixos novos (abissal/sifonador/bioluminescente) e nix_elite_pearl nunca
+      // disparavam no modo para o qual foram desenhados. Chance cresce por zona (não há régua no
+      // Anexo para isso — escolha de design desta correção); nunca no miniboss da Z4.
+      if (!isMiniboss) {
+        const eliteChance = Math.min(0.20, 0.08 + (zone - 1) * 0.02);
+        if (Math.random() < eliteChance) {
+          this.isElite = true;
+          const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
+          this.eliteAfix = afixos[Math.floor(Math.random() * afixos.length)];
+          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+        }
+      }
+    }
+    this.enemyHP = this.enemyMaxHP;
+    useDiveStore.getState().setInCombat(true);
+  }
+
+  // v10.4.0 "O Leviatã do Ciclo": monta o encontro da fase atual do chefe mundial. NÃO copia o
+  // padrão do Guardião dos Cacos (que reenche o MESMO pool de HP) — cada fase tem seu PRÓPRIO
+  // pool, do mesmo tamanho (HP_ab(p_Lev) × 8 para todas as 5, Anexo §2.2).
+  private setupLeviathanEncounter(): void {
+    const char = useGameStore.getState().character;
+    const phaseIndex = useLeviathanStore.getState().currentPhaseIndex;
+    this.leviathanPhaseIndex = phaseIndex;
+    this.leviathanAnchorDepth = getLeviathanAnchorDepth(char.abyss?.historicalMaxDepth || 0);
+    this.enemyLevel = this.leviathanAnchorDepth;
+
+    // Reset dos campos de encontro (mesmo padrão de setupDiveEncounter)
+    this.isElite = false;
+    this.eliteAfix = undefined;
+    this.enemyShield = 0;
+    this.enemyShieldTimer = 0;
+    this.eliteVulnerabilityTimer = 0;
+    this.isMerchantEncounter = false;
+    this.currentMerchantOffer = [];
+    this.isConvergenceEncounter = false;
+    this.isCoastalEncounter = false;
+    this.isAirPocketEncounter = false;
+    this.guardianShieldRebuildTimer = 0;
+    this.bioluminescentTimer = 0;
+    this.bioluminescentLit = true;
+    this.firstAttackOfEncounterPending = true;
+    this.leviathanChannelType = null;
+    this.leviathanChannelIntervalTimer = 0;
+    this.leviathanChannelActiveTimer = 0;
+    this.leviathanCorrentezaTimer = 0;
+    this.leviathanFuriaTimer = 0;
+    this.leviathanFuriaMult = 1.0;
+
+    this.currentEnemy = ENEMY_TYPES.find(e => e.id === 'boss_leviathan') || ENEMY_TYPES[0];
+    this.enemyMaxHP = Math.floor(getLeviathanPhaseHP(this.leviathanAnchorDepth));
+    this.enemyHP = this.enemyMaxHP;
+
+    const phaseDef = getLeviathanPhase(phaseIndex);
+    bridge.emit(GameEvent.LEVIATHAN_PHASE_CHANGED, { phase: phaseIndex });
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🐋 FASE ${phaseIndex} — ${phaseDef.name}: ${phaseDef.subtitle}` });
+  }
+
+  // v10.0.0: derrota de um inimigo das profundezas — banca recompensas no useDiveStore e desce
+  // com a transição vertical (pan de câmera para baixo, padrão animateTowerTransition).
+  private handleDiveEnemyDefeat(): void {
+    const guardianBeingFought = getGuardianForDepth(useDiveStore.getState().currentDepth);
+    const wasGuardian = !!guardianBeingFought && this.currentEnemy.id === guardianBeingFought.enemyId;
+
+    // v10.1.0: Vin T3 (vin_kill_regen) — +0.5% do HP máx. de regeneração ao matar um inimigo.
+    if (this.playerHP > 0 && this.hasRuneSecondaryFlag('vin_kill_regen')) {
+      this.playerHP = Math.min(this.playerMaxHP, this.playerHP + Math.floor(this.playerMaxHP * 0.005));
+    }
+
+    // Baiacu Rancoroso: explode ao morrer (reusa o cálculo do afixo Volátil, dobrado em Afogamento)
+    if (this.currentEnemy.id === 'grudge_puffer' && !this.isElixirDefensorActive) {
+      const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
+      let explosion = Math.floor(this.playerMaxHP * 0.20 * constitutionReduction);
+      if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
+        explosion = Math.floor(explosion * (1 - this.playerFinalStats.damageReductionPct));
+      }
+      if (this.diveBreath <= 0) {
+        explosion = Math.floor(explosion * DROWNING_DAMAGE_MULT);
+      }
+      if (explosion > 0) {
+        this.playerHP = Math.max(0, this.playerHP - explosion);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${explosion} (EXPLOSÃO!)`, '#fbbf24');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `💥 O Baiacu Rancoroso explodiu ao morrer e causou ${formatNumber(explosion, useGameStore.getState().abbreviateNumbers)} de dano!` });
+        if (this.playerHP <= 0) {
+          this.handlePlayerDefeat();
+          return;
+        }
+      }
+    }
+
+    const depthCompleted = useDiveStore.getState().currentDepth;
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 ${this.currentEnemy.name} derrotado na Profundidade ${depthCompleted}!` });
+
+    // v10.3.0 "O Coração do Abismo": Ciss (Carpideira do Sal, Z3, 0.5%) e Umbra (Fossa, prof.
+    // 100+, 0.3%) — dois drops de runa primordial que hoje não existiam, necessários para
+    // destravar CANÇÃO DA CARPIDEIRA e OLHAR DO VAZIO. 1ª obtenção de cada revela a receita.
+    if (this.currentEnemy.id === 'salt_mourner' && Math.random() < 0.005) {
+      const alreadyHasCiss = (useGameStore.getState().character.runeInventory?.['ciss'] || 0) > 0;
+      useGameStore.getState().addRunes({ ciss: 1 });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '🝆 A Carpideira do Sal deixou cair uma runa: CISS, O SAL ETERNO (Runa Primordial)!' });
+      if (!alreadyHasCiss) useGameStore.getState().revealRuneword('cancao_carpideira');
+    }
+    if (depthCompleted >= 100 && Math.random() < 0.003) {
+      const alreadyHasUmbra = (useGameStore.getState().character.runeInventory?.['umbra'] || 0) > 0;
+      useGameStore.getState().addRunes({ umbra: 1 });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '🜏 Das trevas da Fossa, uma runa: UMBRA, O ABISMO (Runa Primordial)!' });
+      if (!alreadyHasUmbra) useGameStore.getState().revealRuneword('olhar_vazio');
+    }
+
+    // Anima a morte ANTES de completeDepth: se esta era a prof. 25 (Guardião), completeDepth
+    // dispara surface('cleared') → START_COMBAT campaign, que já respawna o inimigo da campanha —
+    // zerar HP/animar depois disso mataria o inimigo recém-spawnado.
+    this.scene.animateEnemyDeath();
+    this.enemyHP = 0;
+
+    // Nix T3 (nix_elite_pearl): Elites soltam +1 Pérola, só nas Profundezas.
+    const bonusPearls = (this.isElite && this.hasRuneSecondaryFlag('nix_elite_pearl')) ? 1 : 0;
+    useDiveStore.getState().completeDepth({ killedGuardian: wasGuardian, runeRoll: true, guardianZone: guardianBeingFought?.zone, bonusPearls });
+
+    // Limpou a Zona 1 (Guardião da prof. 25): completeDepth já disparou surface('cleared'),
+    // que restaurou a campanha e emitiu START_COMBAT — nada mais a fazer aqui.
+    if (!useDiveStore.getState().diveActive) return;
+
+    this.currentState = CombatState.TRANSITION;
+    if (this.scene && this.scene.sys && this.scene.sys.isActive() && typeof this.scene.animateDiveTransition === 'function') {
+      this.scene.animateDiveTransition(() => {
+        this.setupEnemyForLevel(useDiveStore.getState().currentDepth, 0);
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+        if (this.currentState !== CombatState.AIR_POCKET) {
+          this.currentState = CombatState.IDLE;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `⬇️ PROFUNDIDADE ${useDiveStore.getState().currentDepth} — algo se move na penumbra da água...` });
+        }
+      });
+    } else {
+      this.setupEnemyForLevel(useDiveStore.getState().currentDepth, 0);
+      // setupEnemyForLevel pode ter aberto um Bolsão (muta currentState — cast p/ o TS não estreitar)
+      if ((this.currentState as CombatState) !== CombatState.AIR_POCKET) {
+        this.currentState = CombatState.IDLE;
+      }
+    }
+  }
+
+  // v10.1.0: efeitos secundários condicionais de runas T3/primordiais (Anexo §2.4, item 4 —
+  // avaliados aqui no combate, nunca no StatEngine, que é stateless por frame de personagem).
+  // Os efeitos primários e os primordiais puramente numéricos (Thal/Ecoh/Morvo) já são somados
+  // no passo 4.7 do StatEngine; só o que depende de HP%/eventos de combate vive aqui.
+  private hasRuneSecondaryFlag(flag: string): boolean {
+    const equipment = this.characterData?.equipment;
+    if (!equipment) return false;
+    return (Object.values(equipment) as (EquipmentItem | null | undefined)[]).some(item =>
+      (item?.socketedRunes || []).some(runeId => runeId && RUNE_CATALOG[runeId]?.secondaryFlag === flag)
+    );
+  }
+
+  // v10.3.0: Set Abissal, 5 peças — imunidade a [ENCHARCADO] (mesmo bônus que dol_soaked_immunity).
+  private hasAbyssalSet5pc(): boolean {
+    const equipment = this.characterData?.equipment;
+    if (!equipment) return false;
+    const counts: Record<string, number> = {};
+    (Object.values(equipment) as (EquipmentItem | null | undefined)[]).forEach(item => {
+      if (item?.setName?.startsWith('Set Abissal')) counts[item.setName] = (counts[item.setName] || 0) + 1;
+    });
+    return Object.values(counts).some(c => c >= 5);
+  }
+
+  private isImmuneToSoaked(): boolean {
+    return this.hasRuneSecondaryFlag('dol_soaked_immunity') || this.hasAbyssalSet5pc();
+  }
+
+  // v10.3.0: Palavra Rúnica ativa com uma dada secondaryFlag em qualquer item equipado.
+  private hasRunewordFlag(flag: string): boolean {
+    return hasActiveRunewordFlag(this.characterData?.equipment, flag);
+  }
+
+  // Lum T3 (lum_first_crit): consome o "primeiro ataque do combate" (setado em setupEnemyForLevel/
+  // setupDiveEncounter) — só força crítico se a runa estiver equipada, mas SEMPRE limpa o pendente
+  // (senão um ataque comum antes do 1º direto deixaria o bônus "vazando" para o ataque seguinte).
+  private consumeFirstAttackCrit(): boolean {
+    const pending = this.firstAttackOfEncounterPending;
+    this.firstAttackOfEncounterPending = false;
+    return pending && this.hasRuneSecondaryFlag('lum_first_crit');
+  }
+
+  // Kar T3 (kar_high_hp_bonus): +3% de Dano Geral enquanto o herói está com HP > 80%.
+  // v10.2.0: também aplica a Bênção da Maré "+10% Dano" (Templo da Maré, escolhida na Maré Alta).
+  // v10.3.0: Palavras Rúnicas CANÇÃO DA CARPIDEIRA (+35% vs. [ENCHARCADO], substitui o +20% base
+  // de gelo/raio) e OLHAR DO VAZIO (+100% "execute" contra inimigos abaixo de 15% de HP).
+  private getRuneConditionalDamageMultiplier(): number {
+    let mult = 1;
+    if (this.hasRuneSecondaryFlag('kar_high_hp_bonus') && this.playerHP > this.playerMaxHP * 0.8) {
+      mult *= 1.03;
+    }
+    if (this.hasActiveTideBlessing('blessing_damage')) {
+      mult *= 1.10;
+    }
+    if (this.hasRunewordFlag('rw_cancao_carpideira') && this.enemyEffects.some(e => e.id === 'soaked')) {
+      mult *= 1.35;
+    }
+    if (this.hasRunewordFlag('rw_olhar_vazio') && this.enemyMaxHP > 0 && (this.enemyHP / this.enemyMaxHP) < 0.15) {
+      mult *= 2.0;
+    }
+    // v10.4.0: Ecos Guardiões alocados no Trono Afundado — +dano causado só na luta do Leviatã
+    // (a metade "−dano recebido" é aplicada em performEnemyAttack).
+    if (useLeviathanStore.getState().leviathanActive) {
+      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(useGameStore.getState().character.sunkenCitadel?.echoes || [], getTidePhase()), 'throne');
+      if (throneEfficacy > 0) mult *= 1 + throneEfficacy;
+    }
+    return mult;
+  }
+
+  private hasActiveTideBlessing(id: string): boolean {
+    const blessing = useGameStore.getState().character.sunkenCitadel?.tideBlessing;
+    return !!blessing && blessing.id === id && Date.now() < blessing.expiresAt;
   }
 
   private getBestiaryMultiplier(killCount: Record<string, number>): number {
@@ -1205,7 +1974,9 @@ export class CombatFSM {
   // jogador em vez de um valor fixo — assim ele nunca fica irrisório conforme a mana máxima cresce
   // (via nível, sets/equipamento ou ascensão). Cura é sempre gratuita.
   private getSkillManaCost(skillId: string, skill: any, skillLevel: number = 1): number {
-    return getSkillManaCostShared(skillId, skill, skillLevel, this.playerMaxMana);
+    const baseCost = getSkillManaCostShared(skillId, skill, skillLevel, this.playerMaxMana);
+    // Mar T3 (mar_mana_discount): custo de mana −5% relativo.
+    return this.hasRuneSecondaryFlag('mar_mana_discount') ? Math.ceil(baseCost * 0.95) : baseCost;
   }
 
   private updateStatsFromStore() {
@@ -1288,7 +2059,167 @@ export class CombatFSM {
   }
 
   public update(delta: number): void {
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
+    // v10.0.0: dreno de Fôlego dos Mergulhos Rasos — ANTES do early-return de estados, porque o
+    // modelo de tempo do Anexo (§1.5) conta os ~4s de transição vertical no dreno. Pausa apenas:
+    // em Bolsões de Ar, com o herói morto, e durante a luta do Guardião (prof. 25 — "a adrenalina
+    // segura a respiração"). `delta` já chega multiplicado pela velocidade do jogo (CombatScene),
+    // então 1x/2x/3x alcançam a MESMA profundidade por descida.
+    const diveState = useDiveStore.getState();
+    if (diveState.diveActive && this.currentState !== CombatState.DEAD && this.currentState !== CombatState.AIR_POCKET) {
+      const depth = diveState.currentDepth;
+      const isGuardianFight = isGuardianDepth(depth) && this.enemyHP > 0 && this.currentState !== CombatState.TRANSITION;
+      if (!isGuardianFight) {
+        const suitLevel = useGameStore.getState().character.abyss?.divingSuitLevel || 0;
+        let drainPerSecond = getBreathDrainPerSecond(depth, suitLevel) * 100; // breath em 0–100
+        // Palavra Rúnica PULMÃO DE FERRO: dreno de Fôlego −30% nas Profundezas.
+        if (this.hasRunewordFlag('rw_pulmao_ferro')) drainPerSecond *= 0.7;
+        this.diveBreath = Math.max(0, this.diveBreath - drainPerSecond * (delta / 1000));
+      }
+      this.diveBreathSyncTimer += delta;
+      if (this.diveBreathSyncTimer >= 250) {
+        this.diveBreathSyncTimer = 0;
+        if (Math.abs(diveState.breath - this.diveBreath) >= 0.1) {
+          useDiveStore.getState().setBreath(this.diveBreath);
+          bridge.emit(GameEvent.BREATH_CHANGED, { breath: this.diveBreath, drowning: this.diveBreath <= 0 });
+        }
+      }
+
+      // Guardiões de Zona: o escudo (20% do HP máx.) se refaz a cada 15s sem escudo ativo
+      if (isGuardianFight && this.enemyShield <= 0) {
+        this.guardianShieldRebuildTimer += delta;
+        if (this.guardianShieldRebuildTimer >= GUARDIAN_SHIELD_REBUILD_MS) {
+          this.guardianShieldRebuildTimer = 0;
+          this.enemyShield = Math.floor(this.enemyMaxHP * GUARDIAN_SHIELD_PCT);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, 'ESCUDO REGENERADO!', '#fb7185');
+          }
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🪸 ${this.currentEnemy.name} regenerou seu escudo (${formatNumber(this.enemyShield, useGameStore.getState().abbreviateNumbers)})!` });
+        }
+      }
+
+      // v10.1.0: A Coisa Entre as Algas (Guardião 2) — aplica [ENCHARCADO] permanente no herói e
+      // alterna janelas Bioluminescentes (±40% de dano recebido) a cada 6s durante a luta.
+      if (isGuardianFight && this.currentEnemy.id === 'boss_algae_thing') {
+        // Refeito a cada frame com duração curta: fica "permanente" enquanto a luta durar e
+        // decai sozinho ~10s depois de a luta terminar, sem exigir limpeza explícita na transição.
+        this.playerEffects = this.playerEffects.filter(e => e.id !== 'soaked');
+        if (!this.isImmuneToSoaked()) {
+          this.playerEffects.push({ id: 'soaked', name: 'Encharcado', duration: 10000, tickTimer: 0, value: 0.15 });
+        }
+        this.bioluminescentTimer += delta;
+        if (this.bioluminescentTimer >= 6000) {
+          this.bioluminescentTimer = 0;
+          this.bioluminescentLit = !this.bioluminescentLit;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: this.bioluminescentLit ? '💡 A Coisa se ACENDE! (+40% de dano recebido dela)' : '🌑 A Coisa se APAGA! (−40% de dano recebido dela)' });
+        }
+      }
+    }
+
+    // v10.4.0 "O Leviatã do Ciclo": mecânicas por fase — só rodam durante a luta do chefe mundial.
+    if (useLeviathanStore.getState().leviathanActive && this.currentState !== CombatState.DEAD && this.enemyHP > 0) {
+      const phaseDef = getLeviathanPhase(this.leviathanPhaseIndex);
+
+      // Fase 2 — Escudo de Prole: 25% do HP da fase, refaz a cada 15s sem escudo ativo.
+      if (phaseDef.mechanic === 'prole' && this.enemyShield <= 0) {
+        this.guardianShieldRebuildTimer += delta;
+        if (this.guardianShieldRebuildTimer >= LEVIATHAN_PROLE_SHIELD_REBUILD_MS) {
+          this.guardianShieldRebuildTimer = 0;
+          this.enemyShield = Math.floor(this.enemyMaxHP * LEVIATHAN_PROLE_SHIELD_PCT);
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '🐋 Uma Prole do Leviatã se funde a ele — Escudo de Prole regenerado!' });
+        }
+      }
+
+      // Fase 3 — A Inundação: [ENCHARCADO] permanente + Correnteza aplica [LENTO] a cada 12s/4s.
+      if (phaseDef.mechanic === 'inundacao') {
+        this.playerEffects = this.playerEffects.filter(e => e.id !== 'soaked');
+        if (!this.isImmuneToSoaked()) {
+          this.playerEffects.push({ id: 'soaked', name: 'Encharcado', duration: 10000, tickTimer: 0, value: 0.15 });
+        }
+        this.leviathanCorrentezaTimer += delta;
+        if (this.leviathanCorrentezaTimer >= LEVIATHAN_CORRENTEZA_INTERVAL_MS) {
+          this.leviathanCorrentezaTimer = 0;
+          this.playerEffects = this.playerEffects.filter(e => e.id !== 'slow');
+          this.playerEffects.push({ id: 'slow', name: 'Correnteza', duration: LEVIATHAN_CORRENTEZA_DURATION_MS, tickTimer: 0, value: 0.15 });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '🌊 A Correnteza te arrasta — [LENTO] por 4s!' });
+        }
+      }
+
+      // Fase 4 — Ciclo Bioluminescente: janelas de 6s (Aceso +50% / Apagado −70%, reflete 15%).
+      if (phaseDef.mechanic === 'bioluminescente') {
+        this.bioluminescentTimer += delta;
+        if (this.bioluminescentTimer >= LEVIATHAN_BIOLUM_WINDOW_MS) {
+          this.bioluminescentTimer = 0;
+          this.bioluminescentLit = !this.bioluminescentLit;
+          bridge.emit(GameEvent.LOG_EMITTED, { message: this.bioluminescentLit ? '💡 O Leviatã se ACENDE! (+50% de dano recebido dele)' : '🌑 O Leviatã se APAGA! (−70%, reflete 15%)' });
+        }
+      }
+
+      // Fase 5 — Fúria do Ciclo: +2% de dano/velocidade a cada 10s decorridos de fase, cap +200%.
+      if (phaseDef.mechanic === 'furia') {
+        this.leviathanFuriaTimer += delta;
+        if (this.leviathanFuriaTimer >= LEVIATHAN_FURIA_TICK_MS) {
+          this.leviathanFuriaTimer = 0;
+          this.leviathanFuriaMult = Math.min(1 + LEVIATHAN_FURIA_CAP, this.leviathanFuriaMult + LEVIATHAN_FURIA_PCT_PER_TICK);
+        }
+      }
+
+      // Vagalhão (Fases 1 e 5) / Canto Abissal (Fase 4) — sistema genérico de canalização.
+      const isVagalhaoPhase = phaseDef.mechanic === 'vagalhao' || phaseDef.mechanic === 'furia';
+      const isCantoPhase = phaseDef.mechanic === 'bioluminescente';
+      if (this.leviathanChannelType === null && (isVagalhaoPhase || isCantoPhase)) {
+        this.leviathanChannelIntervalTimer += delta;
+        const interval = isVagalhaoPhase
+          ? (this.leviathanPhaseIndex === 1 ? LEVIATHAN_VAGALHAO_INTERVAL_MS.phase1 : LEVIATHAN_VAGALHAO_INTERVAL_MS.phase5)
+          : LEVIATHAN_CANTO_INTERVAL_MS;
+        if (this.leviathanChannelIntervalTimer >= interval) {
+          this.leviathanChannelIntervalTimer = 0;
+          this.leviathanChannelType = isVagalhaoPhase ? 'vagalhao' : 'canto';
+          this.leviathanChannelActiveTimer = 0;
+          this.leviathanChannelInterruptible = !(isVagalhaoPhase && this.leviathanPhaseIndex === 5);
+          bridge.emit(GameEvent.LEVIATHAN_CHANNEL_STARTED, { type: this.leviathanChannelType, interruptible: this.leviathanChannelInterruptible });
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: this.leviathanChannelType === 'vagalhao'
+              ? `🌊 [VAGALHÃO...] O Leviatã canaliza um golpe devastador!${this.leviathanChannelInterruptible ? ' (interrompível por Atordoamento)' : ' (NÃO interrompível)'}`
+              : '🎵 [CANTO ABISSAL...] O Leviatã canaliza uma cura!',
+          });
+        }
+      } else if (this.leviathanChannelType !== null) {
+        // Interrupção por Atordoamento — só nas janelas marcadas como interrompíveis.
+        if (this.leviathanChannelInterruptible && this.enemyEffects.some(e => e.id === 'stun')) {
+          bridge.emit(GameEvent.LEVIATHAN_CHANNEL_INTERRUPTED, { type: this.leviathanChannelType });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '⚡ Canalização INTERROMPIDA pelo Atordoamento!' });
+          this.leviathanChannelType = null;
+          this.leviathanChannelActiveTimer = 0;
+        } else {
+          this.leviathanChannelActiveTimer += delta;
+          const channelMs = this.leviathanChannelType === 'vagalhao' ? LEVIATHAN_VAGALHAO_CHANNEL_MS : LEVIATHAN_CANTO_CHANNEL_MS;
+          if (this.leviathanChannelActiveTimer >= channelMs) {
+            if (this.leviathanChannelType === 'vagalhao') {
+              const phaseDmg = getLeviathanBaseDamage(this.leviathanAnchorDepth) * phaseDef.damageMult * this.leviathanFuriaMult * LEVIATHAN_VAGALHAO_DAMAGE_MULT;
+              const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
+              const vagalhaoDamage = Math.floor(phaseDmg * constitutionReduction);
+              this.playerHP = Math.max(0, this.playerHP - vagalhaoDamage);
+              if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+                this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${vagalhaoDamage} (VAGALHÃO!)`, '#0ea5e9');
+              }
+              bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 O VAGALHÃO atingiu em cheio: ${formatNumber(vagalhaoDamage, useGameStore.getState().abbreviateNumbers)} de dano!` });
+              if (this.playerHP <= 0) { this.handlePlayerDefeat(); }
+            } else {
+              const healAmount = Math.floor(this.enemyMaxHP * LEVIATHAN_CANTO_HEAL_PCT);
+              this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + healAmount);
+              if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+                this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `+${healAmount} (Canto)`, '#10b981');
+              }
+              bridge.emit(GameEvent.LOG_EMITTED, { message: `🎵 O Canto Abissal completou: o Leviatã curou ${formatNumber(healAmount, useGameStore.getState().abbreviateNumbers)} de HP!` });
+            }
+            this.leviathanChannelType = null;
+            this.leviathanChannelActiveTimer = 0;
+          }
+        }
+      }
+    }
+
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
 
     // Processamento do servo ressuscitado (Necromancia)
     if (this.summonedAlly && this.summonedAllyTimer > 0) {
@@ -1537,13 +2468,19 @@ export class CombatFSM {
     }
 
     // Recuperação de HP/Mana baseada em atributos e balanceada por classe
+    // v10.0.0: em Afogamento (Fôlego 0 nos Mergulhos Rasos), a regeneração de HP é ZERADA
     const classId = this.characterData?.classId || 'warrior';
-    this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
+    const isDrowning = diveState.diveActive && this.diveBreath <= 0;
+    if (!isDrowning) {
+      this.playerHP = Math.min(this.playerMaxHP, this.playerHP + (this.getHpRegen(this.playerFinalStats.constitution, classId) * (delta / 1000)));
+    }
     const relicRegenPctBoost = useRelicStore.getState().relics['nucleo_pensamento']?.level === 5
       ? (this.isRelicOverheated('nucleo_pensamento') ? 1.375 : 1.15)
       : 1.0;
     const potionManaRegenBoost = this.isPotionManaRegenActive ? 2.0 : 1.0;
-    const regenPctBoost = relicRegenPctBoost * potionManaRegenBoost;
+    // v10.0.0: [ENCHARCADO] no herói também reduz a regeneração de Mana em 25%
+    const soakedManaPenalty = this.playerEffects.some(e => e.id === 'soaked') ? 0.75 : 1.0;
+    const regenPctBoost = relicRegenPctBoost * potionManaRegenBoost * soakedManaPenalty;
     this.playerMana = Math.min(this.playerMaxMana, this.playerMana + (this.getManaRegen(this.playerFinalStats.magic, classId) * regenPctBoost * (delta / 1000)));
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
@@ -1615,6 +2552,19 @@ export class CombatFSM {
       }
     }
 
+    // v10.1.0: Elite 'bioluminescente' — alterna a cada 6s entre "aceso" (+40% de dano recebido)
+    // e "apagado" (−40%), recompensando timing (segurar a Ultimate para a janela acesa).
+    if (this.isElite && this.eliteAfix === 'bioluminescente' && this.enemyHP > 0) {
+      this.bioluminescentTimer += delta;
+      if (this.bioluminescentTimer >= 6000) {
+        this.bioluminescentTimer = 0;
+        this.bioluminescentLit = !this.bioluminescentLit;
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 60, this.bioluminescentLit ? '[ACESO +40%]' : '[APAGADO −40%]', this.bioluminescentLit ? '#fde047' : '#1e3a8a');
+        }
+      }
+    }
+
     // Processar e atualizar durações de efeitos de status no inimigo
     const wasEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
 
@@ -1673,6 +2623,10 @@ export class CombatFSM {
       const isEcoterra = !isTower && char?.activeEcoterra && this.enemyLevel <= 20;
       if (isEcoterra) {
         speedMult *= 1.2;
+      }
+      // v10.0.0: [ENCHARCADO] no inimigo (espelha o mesmo modificador de enemyAttack)
+      if (this.enemyEffects.some(e => e.id === 'soaked')) {
+        speedMult *= 0.85;
       }
       this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
       bridge.emit(GameEvent.LOG_EMITTED, { message: `O inimigo se recuperou do atordoamento e recomeça a preparar seu ataque!` });
@@ -1956,12 +2910,16 @@ export class CombatFSM {
         critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
+    if (!isCrit && this.consumeFirstAttackCrit()) {
+      isCrit = true;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
+    }
 
     const bestiaryMult = this.getBestiaryMultiplier(this.characterData.killCount || {});
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -1976,6 +2934,7 @@ export class CombatFSM {
       this.scene.spawnTouchEffect(isCrit, finalTouchDmg, clickX, clickY);
     }
 
+    this.lastHitWasCrit = isCrit;
     this.damageEnemy(finalTouchDmg, true);
     useGameStore.getState().updateBestCombatStats({ damageDealt: finalTouchDmg });
   }
@@ -2031,6 +2990,10 @@ export class CombatFSM {
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
     this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
+    // v10.1.0: [LENTO] no herói (Estrangulador de Algas) — +15% no cooldown de ataque.
+    if (this.playerEffects.some(e => e.id === 'slow')) {
+      this.attackCooldown = Math.floor(this.attackCooldown * 1.15);
+    }
     useGameStore.getState().updateBestCombatStats({ attackSpeedMultiplier: speedMultiplier });
 
     // Escala de Dano baseado no Atributo Principal da Classe ativa
@@ -2077,12 +3040,16 @@ export class CombatFSM {
         critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
+    if (!isCrit && this.consumeFirstAttackCrit()) {
+      isCrit = true;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
+    }
 
     const strengthMult = 1 + (this.playerFinalStats.strength * 0.0005);
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -2096,8 +3063,22 @@ export class CombatFSM {
 
     bridge.emit(GameEvent.LOG_EMITTED, { message: `Você causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano ${damageType}${isCrit ? ' (Crítico!)' : ''}.` });
 
+    this.lastHitWasCrit = isCrit;
     this.damageEnemy(damage, true);
     useGameStore.getState().updateBestCombatStats({ damageDealt: damage });
+
+    // Palavra Rúnica CORO SUBMERSO: a cada 5 ataques básicos, o próximo ecoa 2× (50% do dano extra).
+    if (this.hasRunewordFlag('rw_coro_submerso') && this.enemyHP > 0) {
+      this.basicAttackComboCounter += 1;
+      if (this.basicAttackComboCounter >= 5) {
+        this.basicAttackComboCounter = 0;
+        const echoDamage = Math.floor(damage * 0.5);
+        if (echoDamage > 0) {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 55, `-${echoDamage} (Eco)`, '#a5f3fc');
+          this.damageEnemy(echoDamage, true);
+        }
+      }
+    }
   }
 
   private performEnemyAttack() {
@@ -2111,8 +3092,12 @@ export class CombatFSM {
     }
 
     const isTower = useTowerStore.getState().towerActive;
+    const isLeviathan = useLeviathanStore.getState().leviathanActive;
     const baseCooldown = 3600 - (this.enemyLevel * 30);
     let speedMult = this.currentEnemy.attackSpeedMultiplier;
+    if (isLeviathan) {
+      speedMult *= getLeviathanPhase(this.leviathanPhaseIndex).speedMult * this.leviathanFuriaMult;
+    }
     if (this.isElite && this.eliteAfix === 'enfurecido') {
       speedMult *= 1.4;
     }
@@ -2138,7 +3123,14 @@ export class CombatFSM {
       speedMult *= 1.2;
     }
 
-    this.enemyAttackCooldown = Math.max(1000, baseCooldown / speedMult);
+    // v10.0.0: [ENCHARCADO] no inimigo — −15% de Velocidade de Ataque enquanto durar
+    if (this.enemyEffects.some(e => e.id === 'soaked')) {
+      speedMult *= 0.85;
+    }
+
+    this.enemyAttackCooldown = isLeviathan
+      ? Math.max(500, getLeviathanPhase(this.leviathanPhaseIndex).attackCooldownMs / speedMult)
+      : Math.max(1000, baseCooldown / speedMult);
 
     // Inimigo sob status ENFRAQUECIDO causa 30% a menos de dano
     const weaknessEffect = this.enemyEffects.find(e => e.id === 'weakness');
@@ -2153,6 +3145,31 @@ export class CombatFSM {
       const floor = useTowerStore.getState().currentFloor;
       const dmgScale = Math.pow(1.10, floor - 1);
       damage = Math.floor((10 + floor * 3.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * weaknessMultiplier * constitutionReduction);
+    } else if (useDiveStore.getState().diveActive) {
+      // v10.0.0/10.1.0: dano pela âncora híbrida (dinâmica pré-F50, fixa F50 pós-graduação) +
+      // Fatores de Zona (ver getDiveEnemyDamage). A Pressão é aplicada DEPOIS da Constituição,
+      // mais abaixo (Anexo §1.4 — atravessa o cap de redução de dano).
+      const dive = useDiveStore.getState();
+      const anchorStage = getEffectiveAnchorStage(this.characterData?.highestStageReached || 1);
+      const guardian = getGuardianForDepth(dive.currentDepth);
+      const guardianMult = guardian && this.currentEnemy.id === guardian.enemyId ? guardian.dmgMult : 1.0;
+      let diveDamage = getDiveEnemyDamage(dive.currentDepth, anchorStage, this.currentEnemy.damageMultiplier * guardianMult);
+      // Tubarão do Recife: +30% de dano quando o herói está abaixo de 50% de HP ("cheiro de sangue")
+      if (this.currentEnemy.id === 'reef_shark' && this.playerHP < this.playerMaxHP * 0.5) {
+        diveDamage *= 1.3;
+      }
+      // Afogamento (Fôlego 0): todo o dano recebido é DOBRADO
+      if (this.diveBreath <= 0) {
+        diveDamage *= DROWNING_DAMAGE_MULT;
+      }
+      damage = Math.floor(diveDamage * weaknessMultiplier * constitutionReduction);
+    } else if (isLeviathan) {
+      // v10.4.0: Dano base = Dano_ab(p_Lev) × 4.5 (Anexo §2.2), modulado pelo multiplicador de dano
+      // da fase atual e pela Fúria do Ciclo (Fase 5). A Pressão fixa ×2.5 é aplicada DEPOIS da
+      // Constituição, mais abaixo — mesma regra da Pressão normal das Profundezas.
+      const phaseDef = getLeviathanPhase(this.leviathanPhaseIndex);
+      const levDamage = getLeviathanBaseDamage(this.leviathanAnchorDepth) * phaseDef.damageMult * this.leviathanFuriaMult;
+      damage = Math.floor(levDamage * weaknessMultiplier * constitutionReduction);
     } else {
       // Multiplicador de dano por dificuldade (espelha o hpBoost em setupEnemyForLevel):
       // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
@@ -2186,6 +3203,69 @@ export class CombatFSM {
     // Redução de dano adicional do Colar (damageReductionPct)
     if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
       damage = Math.floor(damage * (1 - this.playerFinalStats.damageReductionPct));
+    }
+
+    // Palavra Rúnica PULMÃO DE FERRO: FORA das Profundezas, +8% de Redução de Dano (dentro delas,
+    // o bônus vira −30% de dreno de Fôlego — ver update()).
+    if (!useDiveStore.getState().diveActive && this.hasRunewordFlag('rw_pulmao_ferro')) {
+      damage = Math.floor(damage * 0.92);
+    }
+
+    // v10.2.0: Guardião (perk global de Ecos Afogados) — +1% de Redução de Dano dentro das
+    // Profundezas, cap +4%, só ativo durante uma descida.
+    if (useDiveStore.getState().diveActive) {
+      const wardenPerk = getVocationPerkTotal(useGameStore.getState().character.sunkenCitadel?.echoes || [], 'warden');
+      if (wardenPerk > 0) damage = Math.floor(damage * (1 - wardenPerk));
+    }
+
+    // v10.1.0: Elite 'abissal' — aura de Pressão: +15% de dano recebido enquanto este Elite vive
+    // (funciona em qualquer modo, não só nas Profundezas).
+    if (this.isElite && this.eliteAfix === 'abissal') {
+      damage = Math.floor(damage * 1.15);
+    }
+    // Elite 'bioluminescente': janela "acesa" (+40%) / "apagada" (−40%) — ver toggle no update().
+    if (this.isElite && this.eliteAfix === 'bioluminescente') {
+      damage = Math.floor(damage * (this.bioluminescentLit ? 1.4 : 0.6));
+    }
+    // v10.4.0: Leviatã Fase 4 — Ciclo Bioluminescente (aceso +50% / apagado −70%, reflete 15% do
+    // dano absorvido na janela apagada — variação do afixo padrão, com reflexo).
+    if (isLeviathan && getLeviathanPhase(this.leviathanPhaseIndex).mechanic === 'bioluminescente') {
+      if (this.bioluminescentLit) {
+        damage = Math.floor(damage * LEVIATHAN_BIOLUM_LIT_MULT);
+      } else {
+        const absorbed = Math.floor(damage * (1 - LEVIATHAN_BIOLUM_DARK_MULT));
+        damage = Math.floor(damage * LEVIATHAN_BIOLUM_DARK_MULT);
+        const reflected = Math.floor(absorbed * LEVIATHAN_BIOLUM_DARK_REFLECT_PCT);
+        if (reflected > 0 && this.enemyHP > 0) {
+          this.damageEnemy(reflected, false);
+          if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+            this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `-${reflected} (Refletido)`, '#fbbf24');
+          }
+        }
+      }
+    }
+
+    // v10.1.0: Pressão das Profundezas completas — aplicada DEPOIS de toda redução (Constituição,
+    // Escudo Ósseo, Colar/runas) para ser a única fonte de dano que atravessa esses caps (Anexo
+    // §1.4). Só ativa pós-F50; a Zona 1 pré-F50 (Mergulhos Rasos) continua sem Pressão.
+    if (useDiveStore.getState().diveActive && isFullDepthsUnlocked(this.characterData?.highestStageReached || 0)) {
+      const suitLevel = useGameStore.getState().character.abyss?.divingSuitLevel || 0;
+      let pressureMult = getPressureMultiplier(useDiveStore.getState().currentDepth, suitLevel);
+      // v10.2.0: Ciclo de Marés — Maré Baixa reduz a Pressão em 10%.
+      if (getTidePhase() === 'low') pressureMult *= TIDE_LOW_PRESSURE_MULT;
+      damage = Math.floor(damage * pressureMult);
+    }
+
+    // v10.4.0: Pressão FIXA ×2.5 do Leviatã (reduzida pelo Traje, mesma redução de 6%/nível) +
+    // bônus dos Ecos Guardiões alocados no Trono Afundado (−dano recebido, proporção 2/3 do
+    // "+3% dano causado" que o mesmo Eco já concede — ver getRuneConditionalDamageMultiplier).
+    if (isLeviathan) {
+      const suitLevel = useGameStore.getState().character.abyss?.divingSuitLevel || 0;
+      damage = Math.floor(damage * getLeviathanPressureMultiplier(suitLevel));
+      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(useGameStore.getState().character.sunkenCitadel?.echoes || [], getTidePhase()), 'throne');
+      if (throneEfficacy > 0) {
+        damage = Math.floor(damage * (1 - Math.min(0.5, throneEfficacy * (2 / 3))));
+      }
     }
 
     this.scene.animateEnemyAttack();
@@ -2252,8 +3332,84 @@ export class CombatFSM {
       }
     }
 
+    // v10.0.0: Moreia do Limo — ataca em rajadas de 2 golpes (o 2º com 50% do dano, aplicado
+    // direto ao HP: a rajada acompanha o golpe que já atravessou esquiva/barreira acima).
+    if (this.currentEnemy.id === 'slime_moray' && damageToHP > 0 && this.playerHP > 0) {
+      const burstDamage = Math.floor(damageToHP * 0.5);
+      if (burstDamage > 0) {
+        this.playerHP = Math.max(0, this.playerHP - burstDamage);
+        this.scene.spawnDamageText(this.scene.getPlayerX() + 24, this.scene.getPlayerY() - 55, `-${burstDamage} (Rajada)`, '#84cc16');
+      }
+    }
+
+    // v10.0.0: Água-Viva Errante — 10% de chance de aplicar [ENCHARCADO] no herói ao atacar
+    // (push em playerEffects, mesmo pipeline alvo-herói da Consagração).
+    if (this.currentEnemy.id === 'drift_jelly' && damageToHP > 0 && this.playerHP > 0 && Math.random() < 0.10 && !this.isImmuneToSoaked()) {
+      this.playerEffects = this.playerEffects.filter(e => e.id !== 'soaked');
+      this.playerEffects.push({ id: 'soaked', name: 'Encharcado', duration: 6000, tickTimer: 0, value: 0.15 });
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 80, '[ENCHARCADO]', '#38bdf8');
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '💧 Você foi ENCHARCADO! −15% Vel. de Ataque e −25% de regeneração de Mana por 6s.' });
+    }
+
+    // v10.1.0: Estrangulador de Algas — sempre aplica [ENCHARCADO] + [LENTO] ao acertar (o único
+    // inimigo comum que garante os dois debuffs juntos, em vez de por chance).
+    if (this.currentEnemy.id === 'kelp_strangler' && damageToHP > 0 && this.playerHP > 0) {
+      const soakedImmune = this.isImmuneToSoaked();
+      this.playerEffects = this.playerEffects.filter(e => e.id !== 'soaked' && e.id !== 'slow');
+      if (!soakedImmune) this.playerEffects.push({ id: 'soaked', name: 'Encharcado', duration: 6000, tickTimer: 0, value: 0.15 });
+      this.playerEffects.push({ id: 'slow', name: 'Lento', duration: 6000, tickTimer: 0, value: 0.15 });
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 80, '[ENCHARCADO+LENTO]', '#166534');
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '🌿 O Estrangulador de Algas te prendeu: [ENCHARCADO] + [LENTO] por 6s.' });
+    }
+
+    // v10.1.0: Polvo Espelhado — copia um debuff que o HERÓI aplicou nele e devolve ao jogador.
+    if (this.currentEnemy.id === 'mirror_octopus' && damageToHP > 0 && this.playerHP > 0) {
+      const copyable = this.enemyEffects.find(e => ['weakness', 'exposed', 'slow', 'poison', 'burn', 'bleed'].includes(e.id));
+      if (copyable) {
+        this.playerEffects = this.playerEffects.filter(e => e.id !== copyable.id);
+        this.playerEffects.push({ ...copyable, tickTimer: 0 });
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 80, `[${copyable.name.toUpperCase()} DEVOLVIDO]`, '#a855f7');
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🐙 O Polvo Espelhado devolveu ${copyable.name} contra você!` });
+      }
+    }
+
+    // v10.1.0: Carpideira do Sal — cura-se ao acertar um herói [ENCHARCADO].
+    if (this.currentEnemy.id === 'salt_mourner' && this.playerEffects.some(e => e.id === 'soaked') && this.enemyHP > 0) {
+      const healVal = Math.floor(damage * 0.20);
+      if (healVal > 0) {
+        this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + healVal);
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `+${healVal} (Carpideira)`, '#a5f3fc');
+        }
+      }
+    }
+
+    // v10.1.0: Prole do Leviatã / O Que Respira no Escuro — rouba 5% de Fôlego por golpe (o único
+    // gimmick que ataca o relógio da descida, não o HP).
+    if ((this.currentEnemy.id === 'leviathan_spawn' || this.currentEnemy.id === 'deep_breather') && useDiveStore.getState().diveActive) {
+      this.diveBreath = Math.max(0, this.diveBreath - 5);
+      useDiveStore.getState().setBreath(this.diveBreath);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🫧 ${this.currentEnemy.name} roubou 5% do seu Fôlego!` });
+    }
+
     const enemyLabel = this.isElite ? `ELITE ${this.currentEnemy.name}` : this.currentEnemy.name;
     bridge.emit(GameEvent.LOG_EMITTED, { message: `O ${enemyLabel} causou ${formatNumber(damage, useGameStore.getState().abbreviateNumbers)} de dano a você.` });
+
+    // v10.1.0: Elite 'sifonador' — cada golpe drena 3% da Mana máxima do herói e cura o Elite
+    // no valor drenado (convertido para HP 1:1, mesmo espírito do Vampírico).
+    if (this.isElite && this.eliteAfix === 'sifonador' && this.playerMana > 0) {
+      const manaDrained = Math.min(this.playerMana, Math.floor(this.playerMaxMana * 0.03));
+      if (manaDrained > 0) {
+        this.playerMana = Math.max(0, this.playerMana - manaDrained);
+        if (this.enemyHP > 0) {
+          this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + manaDrained);
+        }
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `+${manaDrained} (Sifonador)`, '#0ea5e9');
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🩸 O ${enemyLabel} drenou ${manaDrained} de Mana e curou-se!` });
+      }
+    }
 
     // Vampírico: cura a si mesmo em 10% do dano causado
     if (this.isElite && this.eliteAfix === 'vampirico') {
@@ -2288,8 +3444,14 @@ export class CombatFSM {
   }
 
   private damageEnemy(amount: number, isDirect: boolean): void {
-    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
-    
+    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+
+    // v10.3.0: Palavra Rúnica CANÇÃO DA CARPIDEIRA — todo golpe direto aplica [ENCHARCADO] no inimigo.
+    if (isDirect && this.hasRunewordFlag('rw_cancao_carpideira')) {
+      this.enemyEffects = this.enemyEffects.filter(e => e.id !== 'soaked');
+      this.enemyEffects.push({ id: 'soaked', name: 'Encharcado', duration: 6000, tickTimer: 0, value: 0.15 });
+    }
+
     let finalAmount = amount;
     if (this.isElite) {
       const transUpgrades = this.characterData.transcendenceUpgrades || {};
@@ -2297,6 +3459,12 @@ export class CombatFSM {
       if (dominioVazioLvl > 0) {
         finalAmount = Math.floor(finalAmount * (1 + dominioVazioLvl * 0.05));
       }
+    }
+
+    // v10.0.0: Runas Nix — dano adicional vs. Elite/Chefe (eliteDamagePct, somado no passo 4.7
+    // do StatEngine com cap de família de 25%).
+    if ((this.isElite || this.currentEnemy.id.startsWith('boss_')) && this.playerFinalStats?.eliteDamagePct && this.playerFinalStats.eliteDamagePct > 0) {
+      finalAmount = Math.floor(finalAmount * (1 + this.playerFinalStats.eliteDamagePct));
     }
 
     // v8.0.0: Elite 'replicante' — a réplica fantasma (escudo) absorve dano antes do HP real.
@@ -2371,7 +3539,15 @@ export class CombatFSM {
       // ele fica preso a, no máximo, lifesteal% da vida máxima por acerto.
       const rawDrain = amount * this.playerFinalStats.lifesteal;
       const hpBasedCap = this.playerMaxHP * this.playerFinalStats.lifesteal;
-      const drainAmount = Math.floor(Math.min(rawDrain, hpBasedCap));
+      let drainAmount = Math.floor(Math.min(rawDrain, hpBasedCap));
+      // Ur T3 (ur_crit_lifesteal): curas de Lifesteal podem criticar (usa o crit do golpe atual).
+      if (drainAmount > 0 && this.lastHitWasCrit && this.hasRuneSecondaryFlag('ur_crit_lifesteal')) {
+        drainAmount = Math.floor(drainAmount * 2);
+      }
+      // Palavra Rúnica FOME DO ABISMO: abaixo de 30% de HP, o Lifesteal dobra (8%→16% base).
+      if (drainAmount > 0 && this.playerHP < this.playerMaxHP * 0.3 && this.hasRunewordFlag('rw_fome_abismo')) {
+        drainAmount = Math.floor(drainAmount * 2);
+      }
       if (drainAmount > 0) {
         this.playerHP = Math.min(this.playerMaxHP, this.playerHP + drainAmount);
         if (this.scene && typeof this.scene.spawnDamageText === 'function') {
@@ -2411,6 +3587,11 @@ export class CombatFSM {
   private handleEnemyDefeat() {
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
+
+    // v10.1.0: Vin T3 (vin_kill_regen) — +0.5% do HP máx. de regeneração ao matar um inimigo.
+    if (this.playerHP > 0 && this.hasRuneSecondaryFlag('vin_kill_regen')) {
+      this.playerHP = Math.min(this.playerMaxHP, this.playerHP + Math.floor(this.playerMaxHP * 0.005));
+    }
 
     // Se o inimigo foi derrotado sob o efeito do Sifão de Almas (Necromante), restaura 20% da mana máxima do jogador
     const soulSiphonActive = this.enemyEffects.some(e => e.id === 'soul_siphon');
@@ -2452,6 +3633,40 @@ export class CombatFSM {
 
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
+
+    // v10.4.0 "O Leviatã do Ciclo": cada fase derrotada avança para a próxima (ou encerra a luta
+    // na 5ª) via useLeviathanStore.completePhase() — nada do pipeline de recompensas da campanha.
+    if (!useTowerStore.getState().towerActive && useLeviathanStore.getState().leviathanActive) {
+      this.scene.animateEnemyDeath();
+      this.enemyHP = 0;
+      useLeviathanStore.getState().completePhase();
+      if (useLeviathanStore.getState().leviathanActive) {
+        // Ainda em luta (avançou de fase, não morreu na 5ª): re-configura o inimigo da nova fase.
+        this.currentState = CombatState.TRANSITION;
+        if (this.scene && this.scene.sys && this.scene.sys.isActive() && typeof this.scene.animateDiveTransition === 'function') {
+          this.scene.animateDiveTransition(() => {
+            this.setupLeviathanEncounter();
+            this.scene.respawnEnemyAt(900, this.currentEnemy);
+            this.currentState = CombatState.IDLE;
+          });
+        } else {
+          this.setupLeviathanEncounter();
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.currentState = CombatState.IDLE;
+        }
+      }
+      // Se `leviathanActive` já é false, completePhase() encerrou a luta (5ª fase) e já disparou
+      // START_COMBAT campaign — nada mais a fazer aqui.
+      return;
+    }
+
+    // v10.0.0: Mergulhos Rasos — o mergulho tem economia própria (Pérolas/Coral/runas bancadas no
+    // useDiveStore): NADA do pipeline de recompensas da campanha abaixo (XP, ouro, materiais,
+    // drops de equipamento, pets, chaves) se aplica. O abate conta para o Bestiário (acima).
+    if (!useTowerStore.getState().towerActive && useDiveStore.getState().diveActive) {
+      this.handleDiveEnemyDefeat();
+      return;
+    }
 
     // Convergência (v9.0.0): drop garantido (100%, sem RNG) da relíquia exclusiva daquele boss —
     // única fonte de obtenção no jogo, por isso não compete com o roll de 2% da Relíquia Ativa normal.
@@ -2535,13 +3750,20 @@ export class CombatFSM {
 
     const luckBonus = 1 + Math.sqrt(this.playerFinalStats.luck || 0) * 0.1;
     const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
-    gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus));
+    // v10.0.0: Runas Sol — bônus de ouro (goldBonusPct, somado no passo 4.7 do StatEngine com cap de família de 30%)
+    const runeGoldBonus = this.playerFinalStats.goldBonusPct || 0;
+    gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus) * (1 + runeGoldBonus));
 
     // Capstone da Moeda do Ciclo Eterno (Lvl 5): +5% de chance de monstros normais droparem ouro em dobro
     const coinRelicLvl = useRelicStore.getState().relics['moeda_ciclo']?.level || 0;
     let isGoldDoubled = false;
     const coinDoubleChance = coinRelicLvl === 5 ? (this.isRelicOverheated('moeda_ciclo') ? 0.125 : 0.05) : 0;
     if (!isBoss && coinRelicLvl === 5 && Math.random() < coinDoubleChance) {
+      gainedGold *= 2;
+      isGoldDoubled = true;
+    }
+    // Sol T3 (sol_double_gold): +2% de chance independente de Ouro em dobro.
+    if (!isGoldDoubled && this.hasRuneSecondaryFlag('sol_double_gold') && Math.random() < 0.02) {
       gainedGold *= 2;
       isGoldDoubled = true;
     }
@@ -2588,16 +3810,33 @@ export class CombatFSM {
     // Só dropam após a 1ª Ascensão, que é quando a Cidadela é desbloqueada, e nunca dentro da Torre Infinita
     if (!isTower) {
       const isCitadelUnlockedForDrops = char.citadel?.unlocked || (char.ascensionCount || 0) >= 1;
-      if (isCitadelUnlockedForDrops && this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
+      if (this.currentEnemy.materialDrops && this.currentEnemy.materialDrops.length > 0) {
         const commandCenterLevel = char.citadel?.commandCenter.level || 1;
         const commandCenterMult = 1 + COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenterLevel);
         const materialAmount = Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * commandCenterMult;
-        const gainedMaterials = { wood: 0, stone: 0, meat: 0 };
+        const gainedMaterials = { wood: 0, stone: 0, meat: 0, coral: 0 };
         for (const material of this.currentEnemy.materialDrops) {
-          gainedMaterials[material] += materialAmount;
+          if (material === 'coral') {
+            // v10.0.0: Coral Vivo dropa para TODOS (o Litoral abre na Fase 2, pré-Ascensão) e não
+            // recebe o bônus do Centro de Comando — não é um material da Cidadela Astral.
+            // v10.2.0: Maré Alta dropa +50% de Coral de inimigos aquáticos (Ciclo de Marés).
+            const tideCoralMult = getTidePhase() === 'high' ? TIDE_HIGH_CORAL_DROP_MULT : 1.0;
+            gainedMaterials.coral += Math.max(1, Math.floor(char.currentStage * 0.5)) * (this.isElite ? 2.0 : 1.0) * tideCoralMult;
+          } else if (isCitadelUnlockedForDrops) {
+            gainedMaterials[material] += materialAmount;
+          }
         }
-        useGameStore.getState().addMaterials(Math.round(gainedMaterials.wood), Math.round(gainedMaterials.stone), Math.round(gainedMaterials.meat));
+        if (gainedMaterials.wood + gainedMaterials.stone + gainedMaterials.meat + gainedMaterials.coral > 0) {
+          useGameStore.getState().addMaterials(Math.round(gainedMaterials.wood), Math.round(gainedMaterials.stone), Math.round(gainedMaterials.meat), Math.round(gainedMaterials.coral));
+        }
       }
+    }
+
+    // v10.0.0: Eco Afogado (miniboss raro do Litoral) — drop garantido de 1 Pérola Abissal +
+    // primeiro contato do jogador com a lore da Cidadela Submersa (semente da cutscene, Anexo 3 §3.2).
+    if (!isTower && this.currentEnemy.id === 'drowned_echo') {
+      useGameStore.getState().addPearls(1);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 "Ela ainda canta lá embaixo... você não ouve?" — o Eco se desfaz em espuma, deixando 1 🦪 Pérola Abissal.' });
     }
 
     // Drop de Essência de Transcendência na Ecoterra (apenas campanha normal, fases <= 20):
@@ -2699,6 +3938,10 @@ export class CombatFSM {
     if (this.isElixirAcumuladorActive) {
       dropChance = Math.min(1.0, dropChance * 1.5);
     }
+    // v10.2.0: Bênção da Maré "+10% Chance de Drop" (Templo da Maré).
+    if (!isBoss && !this.isElite && this.hasActiveTideBlessing('blessing_drop')) {
+      dropChance = Math.min(1.0, dropChance + 0.10);
+    }
     
     const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring')[] = [];
 
@@ -2740,6 +3983,11 @@ export class CombatFSM {
       if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < learningPromoteChance) {
         rarity = Math.random() < 0.20 ? 'legendary' : 'rare';
         bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Símbolo do Aprendizado: Item comum promovido a [${rarity === 'legendary' ? 'Lendário' : 'Raro'}]!` });
+      }
+
+      // Palavra Rúnica OLHO DO NAUFRÁGIO: drops de Chefe nunca saem abaixo de Raro.
+      if (isBoss && rarity === 'common' && this.hasRunewordFlag('rw_olho_naufragio')) {
+        rarity = 'rare';
       }
 
       const stage = char.currentStage;
@@ -3133,6 +4381,47 @@ export class CombatFSM {
     const gameSpeed = useGameStore.getState().gameSpeed;
     const speedLimit = gameSpeed > 0 ? gameSpeed : 1;
 
+    // v10.4.0: morte na luta do Leviatã — a tentativa acaba, mas as fases já vencidas nesta semana
+    // permanecem (useLeviathanStore.exitLeviathanFight preserva o progresso persistido).
+    if (!useTowerStore.getState().towerActive && useLeviathanStore.getState().leviathanActive) {
+      useLeviathanStore.getState().exitLeviathanFight('defeat');
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.time.delayedCall(3000 / speedLimit, () => {
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
+          this.playerMana = this.playerMaxMana;
+          this.currentState = CombatState.IDLE;
+          const char = useGameStore.getState().character;
+          this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        });
+      }
+      return;
+    }
+
+    // v10.0.0: morte nos Mergulhos Rasos — morte "limpa" perde 25% do acumulado; morte AFOGADA
+    // (Fôlego 0) perde 50%. O surface() restaura a campanha e emite START_COMBAT (padrão exitTower).
+    if (!useTowerStore.getState().towerActive && useDiveStore.getState().diveActive) {
+      const drowned = this.diveBreath <= 0;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu na Profundidade ${useDiveStore.getState().currentDepth} do Recife Partido${drowned ? ', SEM AR NOS PULMÕES' : ''}!` });
+      useDiveStore.getState().surface(drowned ? 'drowned' : 'death');
+
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.time.delayedCall(3000 / speedLimit, () => {
+          this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
+          this.playerMana = this.playerMaxMana;
+          this.currentState = CombatState.IDLE;
+
+          const char = useGameStore.getState().character;
+          this.setupEnemyForLevel(char.currentStage, char.enemiesDefeatedInStage);
+
+          this.scene.respawnEnemyAt(900, this.currentEnemy);
+          this.scene.respawnPlayer();
+        });
+      }
+      return;
+    }
+
     const isTower = useTowerStore.getState().towerActive;
     if (isTower) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `❌ Você sucumbiu no Andar ${useTowerStore.getState().currentFloor} da Torre!` });
@@ -3242,7 +4531,7 @@ export class CombatFSM {
 
   public triggerActiveRelic(): void {
     if (useGameStore.getState().gameSpeed === 0) return;
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
 
     const equippedRelic = this.characterData?.equipment?.activeRelic;
     if (!equippedRelic || !equippedRelic.activeRelicId) {
@@ -3331,7 +4620,7 @@ export class CombatFSM {
     // Impede o uso de habilidades caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
 
     const skill = SKILLS_CATALOG[skillId];
     if (!skill) return;
@@ -3390,6 +4679,14 @@ export class CombatFSM {
     }
 
     this.skillCooldowns[skillId] = cooldownTime;
+
+    // Palavra Rúnica MARÉ VIVA: ao usar QUALQUER habilidade, 15% de chance de resetar o cooldown
+    // da Cura ('heal', universal a todas as classes).
+    if (skillId !== 'heal' && this.hasRunewordFlag('rw_mare_viva') && Math.random() < 0.15) {
+      this.skillCooldowns['heal'] = 0;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '🌊 MARÉ VIVA ressoou: o cooldown de Cura foi resetado!' });
+    }
+
     bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
 
     if (skillId === 'ultimate_necromancer') {
@@ -3511,6 +4808,10 @@ export class CombatFSM {
         critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
       }
     }
+    if (!isCrit && this.consumeFirstAttackCrit()) {
+      isCrit = true;
+      critMultiplier = (this.playerFinalStats.critDamage + extraCritMult) / 100;
+    }
 
     // Escalamento baseado em multiplicadores reais das descrições das skills e no nível da habilidade
     let dmg = 0;
@@ -3542,7 +4843,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1);
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano
@@ -3559,6 +4860,15 @@ export class CombatFSM {
     const exposedEffect = this.enemyEffects.find(e => e.id === 'exposed');
     const exposedMultiplier = exposedEffect ? (1 + exposedEffect.value) : 1.0;
     dmg = Math.floor(dmg * exposedMultiplier);
+
+    // v10.0.0: sinergia elemental do update — habilidades de raio/gelo causam +20% de dano em
+    // alvos [ENCHARCADO] (água prepara, raio/gelo detona).
+    const isShockOrIceSkill = skillId === 'frostbolt' || skillId === 'lightning' || skillId === 'wrath_heaven' || skillId === 'divine_judgement';
+    // A Palavra Rúnica CANÇÃO DA CARPIDEIRA substitui este +20% pelo +35% geral dela (aplicado
+    // via getRuneConditionalDamageMultiplier, somado mais abaixo em `setDamageMultiplier`).
+    if (isShockOrIceSkill && this.enemyEffects.some(e => e.id === 'soaked') && !this.hasRunewordFlag('rw_cancao_carpideira')) {
+      dmg = Math.floor(dmg * 1.2);
+    }
     if (this.characterData.testMode) {
       dmg *= 5;
     }
@@ -3572,6 +4882,7 @@ export class CombatFSM {
     }
 
     if (dmg > 0) {
+      this.lastHitWasCrit = isCrit;
       this.damageEnemy(dmg, true);
       useGameStore.getState().updateBestCombatStats({ damageDealt: dmg });
     }
@@ -3799,7 +5110,7 @@ export class CombatFSM {
   }
 
   private runAutoCastAI(): void {
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
     const char = this.characterData;
     const isAutoCastUnlocked = char && ((char.ascensionCount || 0) >= 1 || (char.highestStageReached || 0) > 5 || (char.currentStage || 0) > 5);
     if (!char || !isAutoCastUnlocked || !char.autoCastEnabled) return;

@@ -206,6 +206,18 @@ export const RELIC_LAB_OVERHEAT_SLOTS = (labLevel: number): number => labLevel *
 export const RELIC_OVERHEAT_GOLD_COST = 50000;
 export const RELIC_OVERHEAT_SOUL_FRAGMENT_COST = 20;
 
+// v10.0.0 "A Cidadela Submersa": Câmara de Gravação — 12ª construção (página 2 do pátio).
+// Ancora o Sistema de Soquetes/Runas Abissais: N1 perfura armas (1 soquete) | N2 peitorais +
+// remoção destrutiva | N3 2º soquete em armas + qualquer slot pesado | N4 extração intacta +
+// fusão de runas 3→1 | N5 3º soquete em armas/peitorais + Palavras Rúnicas (versão futura).
+// Primeiro uso ESTRUTURAL do Coral Vivo (pesca do Litoral + inimigos aquáticos).
+export const ENGRAVING_CHAMBER_MAX_LEVEL = 5;
+export const ENGRAVING_CHAMBER_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; coral: number } => ({
+  wood: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
+  stone: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
+  coral: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
+});
+
 // Tempo real de construção/melhoria de cada estrutura da Cidadela.
 // Centro de Comando (já começa no Nível 1): Nível 2 leva 5h, +2h por upgrade seguinte (2→3=7h, 3→4=9h, 4→5=11h).
 // Demais estruturas (começam no Nível 0/não construídas): Nível 1 leva 1h, +1h por nível (1→2=2h ... 4→5=5h).
@@ -220,7 +232,8 @@ export type CitadelStructureKey =
   | 'synchronyAltar'
   | 'relicLab'
   | 'alchemyLab'
-  | 'huntSanctuary';
+  | 'huntSanctuary'
+  | 'engravingChamber';
 
 export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
   const HOUR = 60 * 60 * 1000;

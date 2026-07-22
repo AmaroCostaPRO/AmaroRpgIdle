@@ -4,6 +4,7 @@ import { bridge } from '../../bridge/GameBridge';
 import { GameEvent, ENEMIES_PER_STAGE, PET_POOL } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
 import { useTowerStore } from '../../store/useTowerStore';
+import { useDiveStore } from '../../store/useDiveStore';
 import { AudioManager } from '../../core/AudioManager';
 import { getXpNeededForLevel } from '../../core/XpEngine';
 
@@ -134,11 +135,37 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('boss_reflection_reaper', 'assets/boss_reflection_reaper.png');
     this.load.image('boss_nameless_hunger', 'assets/boss_nameless_hunger.png');
     this.load.image('boss_empty_throne', 'assets/boss_empty_throne.png');
+
+    // v10.0.0 "A Cidadela Submersa": Litoral Naufragado — artes podem ainda não existir; falhas
+    // de load são toleradas (resolveEnemyTexture cai em sprites existentes com tint aquático).
+    this.load.image('coastal_background', 'assets/coastal_background.png');
+    this.load.image('enemy_wreck_crab', 'assets/enemy_wreck_crab.png');
+    this.load.image('enemy_drift_jelly', 'assets/enemy_drift_jelly.png');
+    this.load.image('enemy_slime_moray', 'assets/enemy_slime_moray.png');
+    this.load.image('enemy_drowned_echo', 'assets/enemy_drowned_echo.png');
+
+    // v10.0.0: Mergulhos Rasos — Zona 1 (Recife Partido)
+    this.load.image('abyss_z1_background', 'assets/abyss_z1_background.png');
+    this.load.image('enemy_grudge_puffer', 'assets/enemy_grudge_puffer.png');
+    this.load.image('enemy_reef_shark', 'assets/enemy_reef_shark.png');
+    this.load.image('enemy_hungry_anemone', 'assets/enemy_hungry_anemone.png');
+    this.load.image('boss_reef_arachnid', 'assets/boss_reef_arachnid.png');
+    this.load.image('npc_air_pocket', 'assets/npc_air_pocket.png');
+    this.load.on('loaderror', (file: any) => {
+      console.warn(`[Assets v10] Arquivo ausente (fallback ativo): ${file?.key || file}`);
+    });
   }
 
   // Função avançada para mapear e remover fundo quadriculado (xadrez) ou sólido em tempo de execução
   private makeTextureTransparent(textureKey: string, outputKey: string): void {
     if (this.textures.exists(outputKey)) {
+      return;
+    }
+
+    // v10.0.0: textura de origem ausente (asset ainda não gerado / falha de load) — sem este
+    // guard, `textures.get` devolveria a textura "__MISSING" do Phaser e processaríamos o
+    // quadrado verde de erro como se fosse a arte.
+    if (!this.textures.exists(textureKey)) {
       return;
     }
 
@@ -265,12 +292,29 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('boss_nameless_hunger', 'boss_nameless_hunger_transparent');
     this.makeTextureTransparent('boss_empty_throne', 'boss_empty_throne_transparent');
 
+    // v10.0.0 "A Cidadela Submersa": inimigos aquáticos do Litoral (no-ops se o asset não existir)
+    this.makeTextureTransparent('enemy_wreck_crab', 'enemy_wreck_crab_transparent');
+    this.makeTextureTransparent('enemy_drift_jelly', 'enemy_drift_jelly_transparent');
+    this.makeTextureTransparent('enemy_slime_moray', 'enemy_slime_moray_transparent');
+    this.makeTextureTransparent('enemy_drowned_echo', 'enemy_drowned_echo_transparent');
+    this.makeTextureTransparent('enemy_grudge_puffer', 'enemy_grudge_puffer_transparent');
+    this.makeTextureTransparent('enemy_reef_shark', 'enemy_reef_shark_transparent');
+    this.makeTextureTransparent('enemy_hungry_anemone', 'enemy_hungry_anemone_transparent');
+    this.makeTextureTransparent('boss_reef_arachnid', 'boss_reef_arachnid_transparent');
+    this.makeTextureTransparent('npc_air_pocket', 'npc_air_pocket_transparent');
+
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
     const baseBgScale = 600 / 1024;
     const currentBgScale = baseBgScale * ZOOM_FACTOR;
     this.background.setTileScale(currentBgScale, currentBgScale);
     this.background.tilePositionY = 1024 - (600 / currentBgScale);
+
+    // v10.0.0: overlay de escurecimento por profundidade dos Mergulhos Rasos — criado logo APÓS o
+    // background (fica acima do fundo e abaixo dos sprites na display list, sem mexer em depth).
+    // Alpha controlado por frame em updateBackgroundForStage: min(0.45, profundidade × 0.015).
+    this.diveDarknessOverlay = this.add.rectangle(400, 300, 800, 600, 0x001a33);
+    this.diveDarknessOverlay.setAlpha(0);
 
     // Barra de vida flutuante do inimigo e do jogador, e a barra de XP do canvas
     this.enemyHPBar = this.add.graphics();
@@ -637,7 +681,10 @@ export class CombatScene extends Phaser.Scene {
       this.drawXPBar();
 
       const isTowerActive = useTowerStore.getState().towerActive;
-      if (this.fsm.getCurrentState() === CombatState.MOVING && !isTowerActive) {
+      // v10.0.0: no mergulho o herói flutua o tempo todo (±4px em loop — sensação de estar
+      // submerso sem tocar a física do FSM); fora dele, só durante a caminhada da campanha.
+      const isDiving = useDiveStore.getState().diveActive && this.fsm.getCurrentState() !== CombatState.TRANSITION && this.fsm.getCurrentState() !== CombatState.DEAD;
+      if (isDiving || (this.fsm.getCurrentState() === CombatState.MOVING && !isTowerActive)) {
         this.playerBody.y = this.PLAYER_START_Y + Math.sin(this.accumulatedTime * 0.015) * 4;
       } else {
         this.playerBody.y = this.PLAYER_START_Y;
@@ -654,7 +701,9 @@ export class CombatScene extends Phaser.Scene {
         }
 
         const effects = this.fsm.enemyEffects;
-        if (effects.some(e => e.id === 'stun')) {
+        if (effects.some(e => e.id === 'soaked')) {
+          this.enemyBody.setTint(0x38bdf8); // v10.0.0: azul-água se [ENCHARCADO]
+        } else if (effects.some(e => e.id === 'stun')) {
           this.enemyBody.setTint(0xfacc15); // Amarelo/Dourado se atordoado
         } else if (effects.some(e => e.id === 'poison')) {
           this.enemyBody.setTint(0x22c55e); // Verde se envenenado
@@ -672,6 +721,9 @@ export class CombatScene extends Phaser.Scene {
           const component = Math.floor(160 + pulse * 95);
           const tintVal = (component << 16) + (component << 8) + component;
           this.enemyBody.setTint(tintVal);
+        } else if (this.enemyFallbackTint !== null) {
+          // v10.0.0: sprite substituto de arte ainda não gerada — mantém o tint aquático do fallback
+          this.enemyBody.setTint(this.enemyFallbackTint);
         } else {
           // O tint temático de fase/dificuldade (Pesadelo/Inferno/Apocalipse/Ecoterra/Lua de
           // Sangue/etc.) é aplicado só no background em `updateBackgroundForStage()` — o sprite do
@@ -753,12 +805,38 @@ export class CombatScene extends Phaser.Scene {
       return;
     }
 
+    // v10.0.0: Mergulhos Rasos — arena estática da Zona 1 (Recife Partido), com escurecimento
+    // progressivo por profundidade via overlay (alpha = min(0.45, prof × 0.015)); as artes de
+    // zona ficam limpas e o gradiente de descida é contínuo e barato.
+    if (useDiveStore.getState().diveActive) {
+      const diveBgKey = this.textures.exists('abyss_z1_background') ? 'abyss_z1_background' : 'cemetery_background';
+      if (this.currentBgTexture !== diveBgKey) {
+        this.background.setTexture(diveBgKey);
+        this.currentBgTexture = diveBgKey;
+        this.background.setTileScale(800 / 1024, 600 / 1024);
+        this.background.tilePositionY = 0;
+        this.background.tilePositionX = 0;
+      }
+      if (diveBgKey === 'cemetery_background') {
+        this.background.setTint(0x1e5f8a); // fallback: cemitério com tint azul-marinho
+      } else {
+        this.background.clearTint();
+      }
+      if (this.diveDarknessOverlay) {
+        this.diveDarknessOverlay.setAlpha(Math.min(0.45, useDiveStore.getState().currentDepth * 0.015));
+      }
+      return;
+    }
+    if (this.diveDarknessOverlay && this.diveDarknessOverlay.alpha > 0) {
+      this.diveDarknessOverlay.setAlpha(0);
+    }
+
     const char = useGameStore.getState().character;
     if (!char) return;
 
     const stage = char.currentStage;
     let textureKey = 'background'; // Default: Floresta
-    
+
     if (stage >= 31) {
       textureKey = 'pandemonium_background';
     } else if (stage >= 21 && stage <= 30) {
@@ -773,6 +851,19 @@ export class CombatScene extends Phaser.Scene {
       else if (stageTheme === 3) textureKey = 'snow_background';
       else if (stageTheme === 4) textureKey = 'cemetery_background';
       else if (stageTheme === 5) textureKey = 'ruins_background';
+    }
+
+    // v10.0.0: encontro aquático do Litoral — troca o cenário SÓ durante este combate.
+    // Fallback: neve com tint azul-marinho enquanto coastal_background.png não existir.
+    const isCoastalEncounter = !!(this.fsm && this.fsm.isCoastalEncounter);
+    let coastalUsingFallbackBg = false;
+    if (isCoastalEncounter) {
+      if (this.textures.exists('coastal_background')) {
+        textureKey = 'coastal_background';
+      } else {
+        textureKey = 'snow_background';
+        coastalUsingFallbackBg = true;
+      }
     }
 
     if (this.currentBgTexture !== textureKey) {
@@ -802,6 +893,13 @@ export class CombatScene extends Phaser.Scene {
     } else if (isEcoterra) {
       // Ecoterra: Tingimento azul-neon / ciano espectral
       this.background.setTint(0x00e5ff);
+    } else if (isCoastalEncounter) {
+      // v10.0.0: Litoral — a arte própria fica limpa; o fallback (neve) recebe tint azul-marinho
+      if (coastalUsingFallbackBg) {
+        this.background.setTint(0x2e86ab);
+      } else {
+        this.background.clearTint();
+      }
     } else if (isBloodMoon) {
       // Lua de Sangue: vermelho intenso sobrepondo o tint normal da dificuldade
       this.background.setTint(0x8b0000);
@@ -1096,6 +1194,61 @@ export class CombatScene extends Phaser.Scene {
     });
   }
 
+  // v10.0.0 "A Cidadela Submersa": transição vertical dos Mergulhos Rasos — em vez do avanço
+  // lateral da campanha/Torre, o herói AFUNDA (tween de y para baixo + fade) enquanto bolhas
+  // sobem, vendendo a descida sem tocar a física do FSM. Respeita a velocidade do jogo como
+  // animateTowerTransition.
+  public animateDiveTransition(onTransitionHalf: () => void): void {
+    const gameSpeed = useGameStore.getState().gameSpeed;
+    const speedLimit = gameSpeed > 0 ? gameSpeed : 1;
+
+    const fadeOutDelay = Math.round(800 / speedLimit);
+    const fadeOutDuration = Math.round(600 / speedLimit);
+    const fadeInDuration = Math.round(600 / speedLimit);
+
+    // Bolhas subindo durante a descida
+    for (let i = 0; i < 8; i++) {
+      const bubble = this.add.circle(
+        80 + Math.random() * 640,
+        620 + Math.random() * 60,
+        3 + Math.random() * 6,
+        0x7dd3fc,
+        0.5
+      );
+      this.tweens.add({
+        targets: bubble,
+        y: -30,
+        alpha: 0,
+        duration: (1200 + Math.random() * 900) / speedLimit,
+        delay: (Math.random() * 500) / speedLimit,
+        ease: 'Sine.easeIn',
+        onComplete: () => bubble.destroy(),
+      });
+    }
+
+    this.time.delayedCall(fadeOutDelay, () => {
+      this.cameras.main.fadeOut(fadeOutDuration, 0, 10, 26);
+    });
+
+    // O herói afunda suavemente (descida vertical)
+    this.tweens.add({
+      targets: this.playerBody,
+      y: this.PLAYER_START_Y + 160 * ZOOM_FACTOR,
+      angle: 6,
+      duration: 1400,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        this.tweens.killTweensOf(this.playerBody);
+        this.playerBody.y = this.PLAYER_START_Y;
+        this.playerBody.angle = 0;
+
+        onTransitionHalf();
+
+        this.cameras.main.fadeIn(fadeInDuration, 0, 10, 26);
+      }
+    });
+  }
+
   public animateEnemyDeath(): void {
     const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_') || false;
     AudioManager.getInstance().playEnemyDefeat(isBoss);
@@ -1110,11 +1263,45 @@ export class CombatScene extends Phaser.Scene {
     });
   }
 
+  // v10.0.0 "A Cidadela Submersa": fallbacks de textura para artes ainda não geradas — o padrão
+  // do jogo é "código pronto para o asset futuro": referenciamos os nomes de arquivo definitivos
+  // do Anexo 3 e, enquanto o PNG não existir em public/assets, reaproveitamos um sprite existente
+  // com tint aquático (generalização do fallback defensivo do Mercador Ambulante logo abaixo).
+  private static readonly ENEMY_TEXTURE_FALLBACKS: Record<string, { texture: string; tint: number }> = {
+    enemy_wreck_crab: { texture: 'enemy_scorpion', tint: 0x60a5fa },
+    enemy_drift_jelly: { texture: 'enemy_ghost', tint: 0x67e8f9 },
+    enemy_slime_moray: { texture: 'enemy_sand_serpent', tint: 0x34d399 },
+    enemy_drowned_echo: { texture: 'enemy_ghost', tint: 0x0ea5e9 },
+    enemy_grudge_puffer: { texture: 'enemy_imp', tint: 0xfbbf24 },
+    enemy_reef_shark: { texture: 'enemy_wolf', tint: 0x60a5fa },
+    enemy_hungry_anemone: { texture: 'enemy_gargoyle', tint: 0xf472b6 },
+    boss_reef_arachnid: { texture: 'boss_sand_scorpion', tint: 0x38bdf8 },
+    npc_air_pocket: { texture: 'enemy_ghost', tint: 0xbae6fd },
+  };
+
+  // v10.0.0: overlay de escurecimento por profundidade (Mergulhos Rasos)
+  private diveDarknessOverlay?: Phaser.GameObjects.Rectangle;
+
+  // Tint persistente do fallback (o bloco de tint por status no update() limpa tints por frame —
+  // este campo faz o tint do fallback sobreviver quando nenhum status está ativo).
+  public enemyFallbackTint: number | null = null;
+
+  private resolveEnemyTextureKey(enemyType: any): { key: string; tint: number | null } {
+    const primary = enemyType.texture + '_transparent';
+    if (this.textures.exists(primary)) return { key: primary, tint: null };
+    const fallback = CombatScene.ENEMY_TEXTURE_FALLBACKS[enemyType.texture];
+    if (fallback && this.textures.exists(fallback.texture + '_transparent')) {
+      return { key: fallback.texture + '_transparent', tint: fallback.tint };
+    }
+    return { key: primary, tint: null };
+  }
+
   public respawnEnemyAt(startX: number, enemyType: any): void {
     if (this.enemyBody) {
       this.tweens.killTweensOf(this.enemyBody);
       let flipX = !!enemyType.flipX;
-      
+      this.enemyFallbackTint = null;
+
       if (this.fsm && this.fsm.isMerchantEncounter) {
         if (this.textures.exists('merchant_traveling_transparent')) {
           this.enemyBody.setTexture('merchant_traveling_transparent');
@@ -1127,7 +1314,9 @@ export class CombatScene extends Phaser.Scene {
           this.enemyBody.setTexture(enemyType.texture + '_transparent');
         }
       } else {
-        this.enemyBody.setTexture(enemyType.texture + '_transparent');
+        const resolved = this.resolveEnemyTextureKey(enemyType);
+        this.enemyBody.setTexture(resolved.key);
+        this.enemyFallbackTint = resolved.tint;
       }
       
       const isBoss = enemyType.id.startsWith('boss_');
@@ -1143,7 +1332,8 @@ export class CombatScene extends Phaser.Scene {
       // que não roda com o combate pausado). Por isso ele precisa nascer já na posição final de combate
       // (~400px de distância do jogador, o mesmo raio que dispara CombatState.ATTACKING) em vez do
       // `startX` de spawn (900px), que fica fora da área visível do canvas de 800px de largura.
-      const spawnX = (this.fsm && this.fsm.isMerchantEncounter) ? (this.PLAYER_START_X + 400) : startX;
+      // v10.0.0: o Bolsão de Ar também pausa o combate (AIR_POCKET) — nasce na posição final, como o Mercador
+      const spawnX = (this.fsm && (this.fsm.isMerchantEncounter || this.fsm.isAirPocketEncounter)) ? (this.PLAYER_START_X + 400) : startX;
       this.enemyBody.setPosition(spawnX, targetY);
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);
@@ -1155,6 +1345,8 @@ export class CombatScene extends Phaser.Scene {
       let enemyName = isBoss ? `CHEFE ${enemyType.name}` : enemyType.name;
       if (this.fsm.isMerchantEncounter) {
         enemyName = 'Mercador Ambulante';
+      } else if (this.fsm.isAirPocketEncounter) {
+        enemyName = '🫧 Bolsão de Ar';
       } else if (this.fsm.isConvergenceEncounter) {
         enemyName = `☄️ CONVERGÊNCIA\n${enemyType.name}`;
       } else if (this.fsm.isElite) {
@@ -1165,6 +1357,8 @@ export class CombatScene extends Phaser.Scene {
 
       if (this.fsm.isMerchantEncounter) {
         this.enemyLevelText.setColor('#fbbf24'); // Cor dourada para o Mercador
+      } else if (this.fsm.isAirPocketEncounter) {
+        this.enemyLevelText.setColor('#7dd3fc'); // Azul-claro para o Bolsão de Ar
       } else if (this.fsm.isConvergenceEncounter) {
         this.enemyLevelText.setColor('#a78bfa'); // Roxo cósmico para a Convergência
       } else if (this.fsm.isElite) {

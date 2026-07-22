@@ -118,7 +118,9 @@ export const ForgeView: React.FC = () => {
     damageReductionPct: 'Redução de Dano',
     frenzyChancePct: 'Chance de Frenesi',
     dodgeChancePct: 'Chance de Esquiva',
-    reflectDamagePct: 'Reflexão de Dano'
+    reflectDamagePct: 'Reflexão de Dano',
+    goldBonusPct: 'Bônus de Ouro',
+    eliteDamagePct: 'Dano vs. Elite/Chefe'
   };
 
   const slotLabels: Record<string, string> = {
@@ -572,6 +574,13 @@ export const ForgeView: React.FC = () => {
                     <span className="forge-card-subtitle text-[9px] text-[#d946ef] font-extrabold">Previsão de Fusão</span>
                   </div>
                 </div>
+                {/* v10.0.0: aviso de runas — o resultado herda max(soquetes) e as runas do Item A;
+                    as runas engastadas no Item B voltam intactas ao cofre de runas. */}
+                {(slot2?.socketedRunes || []).some(r => !!r) && (
+                  <p style={{ fontSize: '0.6rem', color: '#c084fc', marginBottom: '0.4rem' }}>
+                    ⚠️ As runas engastadas no Item B serão devolvidas ao seu cofre de runas.
+                  </p>
+                )}
                 <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
                   {Object.keys(previewStats).map((statKey) => {
                     const key = statKey as keyof BaseStats;

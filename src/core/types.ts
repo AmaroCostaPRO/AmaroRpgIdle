@@ -1,5 +1,9 @@
 export const ENEMIES_PER_STAGE = 20;
 
+// v10.0.0 "A Cidadela Submersa": imports só de tipos (apagados na compilação — sem ciclo em runtime).
+import type { RuneId } from './runeFormulas';
+import type { BaitType } from './abyssFormulas';
+
 export interface BaseStats {
   strength: number;
   magic: number;
@@ -21,6 +25,9 @@ export interface BaseStats {
   frenzyChancePct?: number;
   dodgeChancePct?: number;
   reflectDamagePct?: number;
+  // v10.0.0 "A Cidadela Submersa": chaves alimentadas pelas Runas Abissais (passo 4.7 do StatEngine).
+  goldBonusPct?: number;   // Sol — bônus de ouro, consumido no cálculo de ouro do CombatFSM
+  eliteDamagePct?: number; // Nix — dano vs. Elite/Chefe, consumido em damageEnemy
 }
 
 export interface EquipmentItem {
@@ -42,6 +49,16 @@ export interface EquipmentItem {
   // no mesmo espírito do roll de atributos do colar.
   activeRelicId?: string;
   activeRelicRolledValue?: number;
+  // v10.0.0 "A Cidadela Submersa": Sistema de Soquetes. Só slots pesados (head/chest/legs/gloves/
+  // weapon/ring) são perfuráveis, na Câmara de Gravação. `socketedRunes` é paralelo a `sockets`
+  // (null = soquete vazio). A Fusão Mística preserva max(soquetes A, B) e devolve as runas do
+  // Item B ao runeInventory. Campos opcionais — saves antigos não precisam de migração.
+  sockets?: number;
+  socketedRunes?: (RuneId | null)[];
+  // v10.3.0 "O Coração do Abismo": Palavra Rúnica ativa (id de RUNEWORD_CATALOG). Gravada via
+  // engraveRuneword — substitui a soma individual das runas engastadas no passo 4.7 do StatEngine
+  // enquanto `socketedRunes` continuar batendo com a sequência exata da receita.
+  activeRuneword?: string;
 }
 
 export interface EnemyType {
@@ -55,7 +72,7 @@ export interface EnemyType {
   color: string;
   flipX?: boolean;
   yOffset?: number;
-  materialDrops?: ('wood' | 'stone' | 'meat')[];
+  materialDrops?: ('wood' | 'stone' | 'meat' | 'coral')[];
 }
 
 // Companheiro/Pet capturável (v7.0.0 "Ecos que Despertam") — puramente passivo e voador,
@@ -78,6 +95,35 @@ export interface CitadelBuildingState {
   lastTick: number; // Timestamp Unix do último processamento (fundação para produção offline em v5.2+)
   // Upgrade de estrutura em andamento (tempo real, resolvido em tickCitadelProduction, inclusive offline)
   upgradeInProgress?: { targetLevel: number; startedAt: number; completesAt: number };
+}
+
+// v10.2.0 "Os Ecos Afogados": os 6 distritos da Cidadela Submersa (grade fixa 2×3, Anexo 2 §1.2).
+export type DistrictId = 'dock' | 'echoHall' | 'forge' | 'archive' | 'temple' | 'throne';
+
+// Cada distrito: Alagado (flooded=true) → Drenando (drainCompletesAt definido) → Drenado
+// (flooded=false, restorationLevel 0) → Restaurado I/II/III (restorationLevel 1-3, compras
+// instantâneas em Pérolas+Coral — só a drenagem em si tem timer, ver Anexo 2 §1.3).
+export interface SunkenDistrictState {
+  flooded: boolean;
+  drainUpgrade?: { completesAt: number };
+  restorationLevel: 0 | 1 | 2 | 3;
+}
+
+export type EchoVocation = 'fisher' | 'diver' | 'scribe' | 'warden';
+
+// 12 traços do catálogo (Anexo 2 §1.6) — union fechado, valores/efeitos vivem em sunkenCitadelFormulas.ts.
+export type EchoTraitId =
+  | 'constant' | 'insomniac' | 'storyteller' | 'shy' | 'lowTideNostalgic' | 'stormChild'
+  | 'echoTwin' | 'twoHanded' | 'ironMemory' | 'humanBeacon' | 'choirVoice' | 'brokenHeart';
+
+export interface DrownedEcho {
+  id: string;                 // `${rescuedAt}_${rescueIndex}` — a própria seed determinística
+  name: string;
+  vocation: EchoVocation;
+  trait: EchoTraitId;
+  assignedDistrict?: DistrictId;
+  rescuedAt: number;
+  brokenHeartHealsAt?: number; // só para o traço 'brokenHeart' (7 dias reais alocado sem realocar)
 }
 
 // v9.0.0 "O Que Espera no Pandemônio": contrato rotativo do Santuário de Contratos de Caça —
@@ -128,6 +174,9 @@ export interface CitadelState {
   // contratos de caça rotativos (ver `HuntContract`), gerados de forma determinística por
   // janela de tempo (`getHuntContractRotationId`), iguais para todos os jogadores na mesma janela.
   huntSanctuary: CitadelBuildingState & { activeContracts: HuntContract[]; rotationId: number; bonusClaimedForRotation: boolean };
+  // v10.0.0 "A Cidadela Submersa": Câmara de Gravação — ancora o Sistema de Soquetes/Runas.
+  // Opcional para retrocompatibilidade de saves (injetada por mergeLoadedCharacter).
+  engravingChamber?: CitadelBuildingState;
 }
 
 export interface SkillNode {
@@ -217,8 +266,69 @@ export interface Character {
   transcendenceEssence?: number;
   speedUnlock3xPurchased?: boolean;
   totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
-  materials?: { wood: number; stone: number; meat: number; studyInsignias: number };
+  materials?: { wood: number; stone: number; meat: number; studyInsignias: number; coral?: number };
   citadel?: CitadelState;
+
+  // ── v10.0.0 "A Cidadela Submersa" ──────────────────────────────────────────
+  // Todos os campos abaixo são opcionais (saves antigos carregam sem migração; defaults injetados
+  // por mergeLoadedCharacter). Regras de reset: Ascensão reduz Pérolas/Coral a 2% (regra dos
+  // materiais) e PRESERVA runeInventory/chaves/fragmentos/desbloqueios; Transcendência zera
+  // runeInventory/Pérolas/Coral/chaves/fragmentos mas PRESERVA desbloqueios, recordes e o
+  // contador vitalício de acertos perfeitos (construção de conta).
+  pearls?: number;               // Pérola Abissal — a única moeda nova de gasto do update
+  diveKeys?: number;             // Chaves de Mergulho (5 Fragmentos de Batisfera = 1 chave)
+  batisphereFragments?: number;  // excedente ainda não convertido em chave
+  runeInventory?: Partial<Record<RuneId, number>>; // runas soltas empilháveis, FORA do inventário físico
+  // v10.3.0 "O Coração do Abismo": ids de RUNEWORD_CATALOG (runeFormulas.ts) já revelados —
+  // Arquivo Submerso, marcos de Ecos, ou 1ª obtenção da runa primordial exigida pela receita.
+  revealedRunewordIds?: string[];
+  // Litoral Naufragado (desbloqueia ao completar a Fase 2)
+  coastal?: {
+    unlocked: boolean;
+    dockLevel: number;           // Doca de Pesca, níveis 0–5 (0 = não construída)
+    dockUpgrade?: { targetLevel: number; startedAt: number; completesAt: number };
+    equippedBait: BaitType | null;
+    baitInventory: { basic: number; glow: number; deep: number };
+    passiveBuffer: number;       // capturas acumuladas na rede (coleta manual, padrão Torre de Vigia)
+    lastFishTick: number;
+    lastActiveFishAt?: number;   // cooldown da Pesca Ativa
+    faroPerfectCatches: number;  // contador VITALÍCIO de acertos perfeitos (sobrevive a tudo)
+    faroGranted?: boolean;       // Runa Primordial Faro já concedida (não re-concedível)
+    lifetimeCatches?: number;
+    lifetimePearls?: number;
+  };
+  // Mergulhos Rasos / Profundezas (snapshot persistente; o runtime da descida vive no useDiveStore)
+  abyss?: {
+    unlocked: boolean;
+    currentDepth: number;        // 0 = na superfície; >0 = descida pendente (resolvida no load como "subiu")
+    historicalMaxDepth: number;
+    breath: number;              // 0–100 (snapshot)
+    divingSuitLevel: number;     // 0–10 (sem uso na 10.0.0 — Doca Batial chega na 10.2.0)
+    bankedRewards: { pearls: number; coral: number; runes: Partial<Record<RuneId, number>> };
+    firstGuardianKillDone?: boolean; // legado — alias de leitura de guardiansDefeated[1] (Thal)
+    // v10.1.0 "As Profundezas": 1ª morte de cada Guardião de Zona (25/50/80) — garante a runa
+    // primordial da zona (Thal/Vrak/Morvo) e libera o checkpoint de início na profundidade seguinte.
+    guardiansDefeated?: Partial<Record<1 | 2 | 3, boolean>>;
+    airPocketPearlBonus?: number;    // +25% de Pérolas escolhido em Bolsão (acumulado da descida)
+    lifetimePearlsBanked?: number;
+  };
+
+  // v10.2.0 "Os Ecos Afogados": restauração da Cidadela Submersa (6 distritos) + simulação de
+  // população (Ecos Afogados). Visível após a 1ª descida que alcança a Zona 3 (prof. 51+).
+  // Sobrevive a Ascensão E Transcendência (construção de conta, como `citadel`) — só `tideBlessing`
+  // zera na Transcendência (é "poder do ciclo", não infraestrutura).
+  sunkenCitadel?: {
+    districts: Partial<Record<DistrictId, SunkenDistrictState>>;
+    echoes: DrownedEcho[];             // roster atual (cap 16; excedentes "descansam" sem produzir)
+    echoesRescuedLifetime: number;     // contador vitalício (nunca decresce) — dispara marcos
+    tideBlessing?: { id: string; expiresAt: number }; // escolhida no Templo da Maré durante Maré Alta
+    lastProductionTick?: number;       // relógio da produção periódica (Fragmentos da Doca/Pérolas do Arquivo)
+    // v10.4.0 "O Leviatã do Ciclo": progresso semanal do chefe mundial (Trono Afundado restaurado).
+    // Reset preguiçoso comparando `weekSeed` contra `getWeeklySeed()` (useTowerStore.ts) — mesmo
+    // padrão de `checkWeeklyReset` da Torre.
+    leviathanWeeklyProgress?: { weekSeed: number; phasesCleared: number; attemptsUsed: number };
+  };
+  leviathanKillCountLifetime?: number; // vitalício — determina recompensa de 1ª morte vs. repetição
 
   // Estatísticas completas: recordes de combate (nunca decrescem)
   bestDamageDealt?: number;
@@ -235,6 +345,9 @@ export interface Character {
   totalFragmentsDropped?: number;
   totalTowerKeysDropped?: number;
   fastestAscensionSeconds?: number; // undefined = nenhuma ascensão completa ainda
+  // v10.4.0 "O Leviatã do Ciclo"
+  leviathanFastestFullClear?: number; // recorde: 1 (marca que já ocorreu numa única tentativa)
+  leviathanCutsceneSeen?: boolean;    // dispara "O Coro e o Caco" só na 1ª morte do Leviatã
 
   // Estatísticas completas: economia e cidadela
   totalForgeFragmentsSpent?: number;
@@ -278,7 +391,21 @@ export enum GameEvent {
   MERCHANT_ENCOUNTERED = 'MERCHANT_ENCOUNTERED',
   PET_CAPTURED = 'PET_CAPTURED',
   ELIXIR_ACTIVATED = 'ELIXIR_ACTIVATED',
-  ALCHEMY_POTION_ACTIVATED = 'ALCHEMY_POTION_ACTIVATED'
+  ALCHEMY_POTION_ACTIVATED = 'ALCHEMY_POTION_ACTIVATED',
+
+  // v10.0.0 "A Cidadela Submersa": eventos dos Mergulhos Rasos (Phaser ↔ React)
+  DIVE_STARTED = 'DIVE_STARTED',
+  DIVE_ENDED = 'DIVE_ENDED',
+  DEPTH_CHANGED = 'DEPTH_CHANGED',
+  BREATH_CHANGED = 'BREATH_CHANGED',
+  AIR_POCKET_OPENED = 'AIR_POCKET_OPENED',
+  AIR_POCKET_RESOLVED = 'AIR_POCKET_RESOLVED',
+
+  // v10.4.0 "O Leviatã do Ciclo": chefe mundial semanal (Trono Afundado)
+  LEVIATHAN_PHASE_CHANGED = 'LEVIATHAN_PHASE_CHANGED',
+  LEVIATHAN_CHANNEL_STARTED = 'LEVIATHAN_CHANNEL_STARTED',
+  LEVIATHAN_CHANNEL_INTERRUPTED = 'LEVIATHAN_CHANNEL_INTERRUPTED',
+  CUTSCENE_TRIGGERED = 'CUTSCENE_TRIGGERED'
 }
 
 export interface GameEventPayload {

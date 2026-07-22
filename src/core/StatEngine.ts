@@ -1,6 +1,7 @@
 import { BaseStats, Character, EquipmentItem } from '../core/types';
 import { useRelicStore } from '../store/useRelicStore';
 import { SKILLS_CATALOG } from '../store/useGameStore';
+import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
 
 export const SET_BONUSES: Record<string, {
   name: string;
@@ -467,6 +468,7 @@ export class StatEngine {
       let pandemoniumCount = 0;
       let celestialCount = 0;
       let bloodMoonCount = 0;
+      let abyssalCount = 0;
 
       Object.entries(setCounts).forEach(([setName, count]) => {
         if (setName.startsWith('Set Ancestral')) {
@@ -477,6 +479,8 @@ export class StatEngine {
           celestialCount += count;
         } else if (setName.startsWith('Set da Lua de Sangue')) {
           bloodMoonCount += count;
+        } else if (setName.startsWith('Set Abissal')) {
+          abyssalCount += count;
         }
       });
 
@@ -512,6 +516,16 @@ export class StatEngine {
       if (bloodMoonCount >= 5) {
         finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.22;
         finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.07;
+      }
+
+      // v10.3.0 "O Coração do Abismo": Set Abissal (8.0×, exclusivo da Fossa Z4/Leviatã).
+      // 3 peças: o soquete extra acima do teto (até 4 na arma) é resolvido em `drillSocket`
+      // (useGameStore.ts), que já tem acesso a `character.equipment` para contar peças do set.
+      // 5 peças: dano/vida iguais à progressão dos outros sets de topo + imunidade a
+      // [ENCHARCADO] (checada no CombatFSM junto de `dol_soaked_immunity`, via `hasAbyssalSet5pc`).
+      if (abyssalCount >= 5) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.30;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.12;
       }
     }
 
@@ -602,6 +616,74 @@ export class StatEngine {
       finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + (academy.researchSpeedLevel || 0) * 0.01;
       finalStats.touchDamageMult = (finalStats.touchDamageMult || 1) * (1 + (academy.researchTouchDmgLevel || 0) * 0.02);
       finalStats.critDamage = (finalStats.critDamage || 0) + (academy.researchCritDmgLevel || 0) * 2;
+    }
+
+    // 4.7. Runas Abissais engastadas (v10.0.0 "A Cidadela Submersa"): soma os efeitos das runas
+    // em `equipment[*].socketedRunes` nas MESMAS variáveis percentuais que Colar/Academia já
+    // alimentam. Caps POR FAMÍLIA (runeFormulas.RUNE_FAMILY_CAPS) aplicados aqui, ANTES dos caps
+    // globais do jogo (95% red. de dano, 75% esquiva etc., no CombatFSM), que seguem sendo a
+    // última palavra. Efeitos secundários de T3 e flags condicionais das primordiais NÃO são
+    // consumidos nesta versão (cadastrados em runeFormulas.ts para a 10.1.0+). Primordiais com
+    // parte numérica direta já ativas: Thal (extraStats), Ecoh (+4% atributos primários) e
+    // Morvo (+1% dano a cada 10 profundidades do recorde, cap +40%).
+    if (character.equipment) {
+      const familyTotals: Partial<Record<RuneFamilyId, number>> = {};
+      let hasEcoh = false;
+      const primordialExtras: Partial<BaseStats> = {};
+      Object.values(character.equipment).forEach((item) => {
+        if (!item || !item.socketedRunes) return;
+        // v10.3.0: Palavra Rúnica ativa — os bônus fixos da Palavra SUBSTITUEM a soma individual
+        // das runas da sequência para este item (nunca somam junto, senão dobraria o efeito).
+        const activeRuneword = getActiveRuneword(item);
+        if (activeRuneword) {
+          if (activeRuneword.statBonuses) {
+            (Object.keys(activeRuneword.statBonuses) as Array<keyof BaseStats>).forEach((key) => {
+              const bonus = activeRuneword.statBonuses![key] as number;
+              if (key === 'reflectDamagePct') {
+                // Cap conjunto de 55% com a Retribuição Aura do Paladino (Anexo §2.3).
+                finalStats.reflectDamagePct = Math.min(55, (finalStats.reflectDamagePct || 0) + bonus);
+              } else {
+                (finalStats[key] as number) = ((finalStats[key] as number) || 0) + bonus;
+              }
+            });
+          }
+          return;
+        }
+        for (const runeId of item.socketedRunes) {
+          if (!runeId) continue;
+          const runeDef = RUNE_CATALOG[runeId];
+          if (!runeDef) continue;
+          if (runeDef.tier === 'primordial') {
+            if (runeDef.id === 'ecoh') hasEcoh = true; // 1 por personagem (validado no engaste)
+            if (runeDef.id === 'morvo') {
+              const record = character.abyss?.historicalMaxDepth || 0;
+              primordialExtras.damageMultiplierPct = (primordialExtras.damageMultiplierPct || 0) + Math.min(0.40, Math.floor(record / 10) * 0.01);
+            }
+            if (runeDef.extraStats) {
+              (Object.keys(runeDef.extraStats) as Array<keyof BaseStats>).forEach((key) => {
+                primordialExtras[key] = (primordialExtras[key] || 0) + (runeDef.extraStats![key] as number);
+              });
+            }
+          } else if (runeDef.family && runeDef.statKey && typeof runeDef.value === 'number') {
+            familyTotals[runeDef.family] = (familyTotals[runeDef.family] || 0) + runeDef.value;
+          }
+        }
+      });
+      (Object.keys(familyTotals) as RuneFamilyId[]).forEach((family) => {
+        const capped = Math.min(familyTotals[family] || 0, RUNE_FAMILY_CAPS[family]);
+        const statKey = RUNE_FAMILIES[family].statKey;
+        finalStats[statKey] = ((finalStats[statKey] as number) || 0) + capped;
+      });
+      (Object.keys(primordialExtras) as Array<keyof BaseStats>).forEach((key) => {
+        finalStats[key] = ((finalStats[key] as number) || 0) + (primordialExtras[key] as number);
+      });
+      if (hasEcoh) {
+        finalStats.strength *= 1.04;
+        finalStats.magic *= 1.04;
+        finalStats.dexterity *= 1.04;
+        finalStats.constitution *= 1.04;
+        finalStats.luck *= 1.04;
+      }
     }
 
     // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)

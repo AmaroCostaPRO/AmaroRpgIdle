@@ -29,6 +29,12 @@ import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { CodexPanel } from './CodexPanel';
+import { AbyssPanel } from './abyss/AbyssPanel';
+import { DiveHud } from './abyss/DiveHud';
+import { LoreCutscene } from './abyss/LoreCutscene';
+import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
+import { getRuneVisual, getSocketDots } from './shared/itemVisuals';
+import { RUNE_CATALOG } from '../core/runeFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
@@ -4361,7 +4367,11 @@ const BIOME_NAMES = [
   "Picos Glaciais",
   "Cemitério Maldito",
   "Ruínas Sombrias",
-  "Purgatório"
+  "Purgatório",
+  // v10.0.0 "A Cidadela Submersa": spawns alternativos do Litoral (Fases 1–10, 15% de chance) e
+  // o bestiário dos Mergulhos Rasos (3 comuns + o Guardião do Recife nesta versão).
+  "Litoral Naufragado",
+  "Profundezas (Recife Partido)"
 ];
 
 interface TranscendencePanelProps {
@@ -4928,7 +4938,7 @@ interface BestiaryPanelProps {
 // mudam em runtime), calculado uma única vez em vez de a cada render do BestiaryPanel.
 const BESTIARY_PHASES = (() => {
   const phases = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     const startIdx = i * 4;
     const endIdx = startIdx + 4;
     phases.push({
@@ -5447,6 +5457,18 @@ const StatisticsPanel: React.FC = () => {
         <Row label="Pedra farmada (Cidadela)" value={fmt(farmed.stone)} />
         <Row label="Carne farmada (Cidadela)" value={fmt(farmed.meat)} />
         <Row label="Insígnias de Estudo farmadas (Cidadela)" value={fmt(farmed.studyInsignias)} />
+      </div>
+
+      {/* v10.0.0 "A Cidadela Submersa": bloco Abismo — recorde de profundidade, Pérolas vitalícias,
+          capturas do Litoral e o contador de acertos perfeitos rumo à Runa Primordial Faro. */}
+      <div style={sectionStyle}>
+        <span style={labelStyle}>🌊 Abismo</span>
+        <Row label="Profundidade máxima (Mergulhos Rasos)" value={fmt(character.abyss?.historicalMaxDepth)} />
+        <Row label="Pérolas Abissais bancadas (vitalício)" value={fmt(character.abyss?.lifetimePearlsBanked)} />
+        <Row label="Coral Vivo (atual)" value={fmt(materials.coral)} />
+        <Row label="Capturas na pesca (vitalício)" value={fmt(character.coastal?.lifetimeCatches)} />
+        <Row label="Pérolas pescadas no Litoral (vitalício)" value={fmt(character.coastal?.lifetimePearls)} />
+        <Row label="Acertos perfeitos na Pesca Ativa" value={`${character.coastal?.faroPerfectCatches || 0}/100${character.coastal?.faroGranted ? ' — 🜠 Faro obtida' : ''}`} />
       </div>
     </div>
   );
@@ -7096,9 +7118,17 @@ export default function GameUI() {
       { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
     ],
-  }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments]);
+    // v10.0.0: Câmara de Gravação consome Madeira/Pedra/Coral (construção) e Pérolas/Ouro (soquetes)
+    engravingChamber: [
+      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🪸', value: citadelMaterials.coral || 0, color: '#fb7185', label: 'Coral Vivo' },
+      { icon: '🦪', value: character.pearls || 0, color: '#a5f3fc', label: 'Pérolas Abissais' },
+    ],
+  }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments, character.pearls]);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel' | 'abyss'>('combat');
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
   // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
@@ -7128,10 +7158,34 @@ export default function GameUI() {
     bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab, citadelEntered });
   }, [activeTab, citadelEntered]);
 
+  // v10.0.0: ao iniciar um mergulho, leva o jogador para a aba de combate assistir à descida
+  // (padrão da Torre, que troca de conteúdo ao iniciar a subida).
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.DIVE_STARTED, () => {
+      setActiveTab('combat');
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // v10.4.0: cutscene de encerramento "O Coro e o Caco", disparada 1x na 1ª morte do Leviatã.
+  const [activeCutsceneId, setActiveCutsceneId] = useState<string | null>(null);
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.CUTSCENE_TRIGGERED, (payload: any) => {
+      setActiveCutsceneId(payload?.id || 'leviathan_ending');
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Produção passiva das Expedições da Cidadela: recupera o tempo offline no carregamento
   // e segue creditando materiais a cada minuto enquanto o jogo está aberto.
+  // v10.0.0: o tick do Litoral (pesca passiva) roda junto, mas em action própria —
+  // tickCitadelProduction retorna cedo sem a Cidadela desbloqueada, e o Litoral abre na Fase 2.
   useEffect(() => {
-    const tick = () => useGameStore.getState().tickCitadelProduction();
+    const tick = () => {
+      useGameStore.getState().tickCitadelProduction();
+      useGameStore.getState().tickCoastalProduction();
+      useGameStore.getState().tickSunkenCitadelProduction();
+    };
     tick();
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
@@ -7269,6 +7323,9 @@ export default function GameUI() {
   }, [activeTab]);
 
   const isCitadelUnlocked = character.citadel?.unlocked || (character.ascensionCount || 0) >= 1;
+  // v10.0.0: a aba 🌊 Abismo só existe com o Litoral descoberto (completar a Fase 2) — mesma
+  // regra de visibilidade condicional da Transcendência abaixo.
+  const isAbyssUnlocked = character.coastal?.unlocked || (character.highestStageReached || 1) >= 3;
 
   const tabs = [
     { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false },
@@ -7276,6 +7333,9 @@ export default function GameUI() {
     { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
+    ...(isAbyssUnlocked ? [
+      { id: 'abyss' as const, label: 'Abismo', icon: '🌊', disabled: false }
+    ] : []),
     { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: false },
     { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
@@ -7619,6 +7679,8 @@ export default function GameUI() {
         <div ref={scrollContainerRef} className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {activeTab === 'combat' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* v10.0.0: HUD do mergulho (Fôlego/profundidade/Bolsão) — só renderiza com mergulho ativo */}
+              <DiveHud />
               <GameHUD />
               <ActiveSkillsPanel />
             </div>
@@ -7643,9 +7705,11 @@ export default function GameUI() {
               {citadelSubTab === 'relicLab' && <RelicLabPanel />}
               {citadelSubTab === 'alchemyLab' && <AlchemyLabPanel />}
               {citadelSubTab === 'huntSanctuary' && <HuntSanctuaryPanel />}
+              {citadelSubTab === 'engravingChamber' && <EngravingChamberPanel />}
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}
+          {activeTab === 'abyss' && <AbyssPanel />}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}
           {activeTab === 'equipment' && (
@@ -7817,9 +7881,9 @@ export default function GameUI() {
                 {selectedItem.setName && (() => {
                   const { setTextColor, setShadow, prefix } = getSetPrefixAndColor(selectedItem.setName);
                   return (
-                    <div style={{ 
-                      fontSize: '0.6rem', 
-                      color: setTextColor, 
+                    <div style={{
+                      fontSize: '0.6rem',
+                      color: setTextColor,
                       fontWeight: 600,
                       textShadow: setShadow
                     }}>
@@ -7827,6 +7891,25 @@ export default function GameUI() {
                     </div>
                   );
                 })()}
+
+                {/* v10.0.0: linha de soquetes/runas do item (engaste na Câmara de Gravação) */}
+                {(selectedItem.sockets || 0) > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 600 }}>Soquetes: {getSocketDots(selectedItem)}</span>
+                    {(selectedItem.socketedRunes || []).filter(Boolean).map((runeId, i) => {
+                      const visual = getRuneVisual(runeId!);
+                      return (
+                        <span key={i} title={`${visual.name} (${visual.tierLabel})`} style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: '22px', height: '22px', borderRadius: '4px', fontSize: '0.7rem',
+                          background: visual.bg, border: visual.border,
+                        }}>
+                          {visual.glyph}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                   {selectedItem.slot === 'consumable' ? (
@@ -8046,9 +8129,9 @@ export default function GameUI() {
                   {item.setName && (() => {
                     const { setTextColor, setShadow, prefix } = getSetPrefixAndColor(item.setName);
                     return (
-                      <div style={{ 
-                        fontSize: '0.6rem', 
-                        color: setTextColor, 
+                      <div style={{
+                        fontSize: '0.6rem',
+                        color: setTextColor,
                         fontWeight: 600,
                         textShadow: setShadow
                       }}>
@@ -8057,14 +8140,33 @@ export default function GameUI() {
                     );
                   })()}
 
+                  {/* v10.0.0: linha de soquetes/runas do item equipado */}
+                  {(item.sockets || 0) > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 600 }}>Soquetes: {getSocketDots(item)}</span>
+                      {(item.socketedRunes || []).filter(Boolean).map((runeId, i) => {
+                        const visual = getRuneVisual(runeId!);
+                        return (
+                          <span key={i} title={`${visual.name} (${visual.tierLabel})`} style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: '22px', height: '22px', borderRadius: '4px', fontSize: '0.7rem',
+                            background: visual.bg, border: visual.border,
+                          }}>
+                            {visual.glyph}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                    <button 
+                    <button
                       onClick={() => {
                         AudioManager.getInstance().playClick();
                         unequipItem(selectedSlot);
                         setSelectedSlot(null);
                       }}
-                      className="btn btn-sm btn-gold" 
+                      className="btn btn-sm btn-gold"
                       style={{ width: '100%' }}
                     >
                       Desequipar Item
@@ -8565,6 +8667,7 @@ export default function GameUI() {
       )}
 
       <ProgressNotifications />
+      {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} />}
     </div>
   );
 }

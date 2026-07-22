@@ -1,5 +1,7 @@
 import { useGameStore } from '../store/useGameStore';
 import { BGM_THEMES, BgmPhase, getPhaseForStage } from './bgmThemes';
+import { bridge } from '../bridge/GameBridge';
+import { GameEvent } from './types';
 
 export class AudioManager {
   private static instance: AudioManager;
@@ -18,6 +20,13 @@ export class AudioManager {
   // estágio de combate atual do personagem. Torre Infinita e Cidadela herdam a mesma trilha da
   // fase vigente, já que a seleção depende apenas de `character.currentStage`, não da tela ativa.
   private currentPhase: BgmPhase = 'normal';
+  // v10.0.0 "A Cidadela Submersa": enquanto um mergulho está ativo, a BGM "Luz Coada" (abyss)
+  // sobrepõe a trilha por fase — controlada pelos eventos DIVE_STARTED/DIVE_ENDED, não por estágio.
+  private diveOverrideActive = false;
+  // v10.4.0: override de BGM da luta do Leviatã, ligado/desligado pelo `mode` do GameEvent.START_COMBAT
+  // (o mesmo evento que já sinaliza entrada/saída de campanha/torre/mergulho).
+  private leviathanOverrideActive = false;
+  private lastBreathWarningAt = 0;
 
   private constructor() {
     let prevLevel = 1;
@@ -43,6 +52,56 @@ export class AudioManager {
     };
     window.addEventListener('click', resumeAudio);
     window.addEventListener('keydown', resumeAudio);
+
+    // v10.0.0 "A Cidadela Submersa": override de BGM + SFX reativos do mergulho.
+    // O AudioManager é um singleton vitalício — estas inscrições nunca precisam de cleanup.
+    bridge.subscribe(GameEvent.DIVE_STARTED, () => {
+      this.diveOverrideActive = true;
+      this.playDiveSplash();
+      if (this.currentPhase !== 'abyss') {
+        this.currentPhase = 'abyss';
+        if (this.bgmIntervalId) {
+          this.stopBGM();
+          this.startBGM();
+        }
+      }
+    });
+    bridge.subscribe(GameEvent.DIVE_ENDED, () => {
+      this.diveOverrideActive = false;
+      const phase = getPhaseForStage(useGameStore.getState().character?.currentStage ?? 1);
+      if (phase !== this.currentPhase) {
+        this.currentPhase = phase;
+        if (this.bgmIntervalId) {
+          this.stopBGM();
+          this.startBGM();
+        }
+      }
+    });
+    // v10.4.0: override "O Coro e a Fera" enquanto a luta do Leviatã durar.
+    bridge.subscribe(GameEvent.START_COMBAT, (payload: any) => {
+      if (payload?.mode === 'leviathan') {
+        this.leviathanOverrideActive = true;
+        if (this.currentPhase !== 'leviathan') {
+          this.currentPhase = 'leviathan';
+          if (this.bgmIntervalId) { this.stopBGM(); this.startBGM(); }
+        }
+      } else if (this.leviathanOverrideActive) {
+        this.leviathanOverrideActive = false;
+        const phase = this.diveOverrideActive ? 'abyss' : getPhaseForStage(useGameStore.getState().character?.currentStage ?? 1);
+        if (phase !== this.currentPhase) {
+          this.currentPhase = phase;
+          if (this.bgmIntervalId) { this.stopBGM(); this.startBGM(); }
+        }
+      }
+    });
+    // Blip de Fôlego crítico (<25%), com debounce de 4s para não virar metrônomo
+    bridge.subscribe(GameEvent.BREATH_CHANGED, (payload: any) => {
+      const breath = payload?.breath;
+      if (typeof breath === 'number' && breath > 0 && breath <= 25 && Date.now() - this.lastBreathWarningAt > 4000) {
+        this.lastBreathWarningAt = Date.now();
+        this.playBreathWarning();
+      }
+    });
 
     // Escuta mudanças no Zustand store para atualizar configurações e tocar efeitos reativos.
     // Ignora mutações que não afetam áudio/personagem (ex: ouro/inventário mudando durante o
@@ -78,7 +137,9 @@ export class AudioManager {
 
       // Troca de tema de BGM quando a fase (estágio de combate) muda — a Torre Infinita e a
       // Cidadela não têm trilha própria, então herdam automaticamente a música da fase atual.
-      const newPhase = getPhaseForStage(state.character.currentStage);
+      // v10.0.0: durante um mergulho, o override 'abyss' vence (não trocar por estágio).
+      // v10.4.0: durante a luta do Leviatã, 'leviathan' vence sobre os dois.
+      const newPhase = this.leviathanOverrideActive ? 'leviathan' : (this.diveOverrideActive ? 'abyss' : getPhaseForStage(state.character.currentStage));
       if (newPhase !== this.currentPhase) {
         this.currentPhase = newPhase;
         if (this.bgmIntervalId) {
@@ -237,6 +298,138 @@ export class AudioManager {
       osc.start(now + index * 0.07);
       osc.stop(now + index * 0.07 + 0.18);
     });
+  }
+
+  /**
+   * v10.0.0 — Splash de mergulho: ruído branco filtrado com varredura descendente (a batisfera
+   * rompendo a superfície), padrão do playSlash.
+   */
+  public playDiveSplash() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 0.5;
+
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(220, now + duration);
+    filter.Q.setValueAtTime(1.2, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(this.sfxVolume * 0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.004, now + duration);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + duration);
+  }
+
+  /**
+   * v10.0.0 — Blip de Fôlego crítico: `sine` agudo curto, disparado sob 25% (debounce no construtor).
+   */
+  public playBreathWarning() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1244.51, now); // D#6
+    osc.frequency.setValueAtTime(1244.51, now + 0.12);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+    gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.13);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.26);
+  }
+
+  /**
+   * v10.0.0 — Coleta de Pérola Abissal: díade cintilante (padrão playCoin, um degrau acima).
+   */
+  public playPearlCollect() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [1046.50, 1567.98]; // C6 -> G6 (quinta cintilante)
+
+    notes.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.08);
+
+      gain.gain.setValueAtTime(0, now + index * 0.08);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + index * 0.08 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.08);
+      osc.stop(now + index * 0.08 + 0.25);
+    });
+  }
+
+  /**
+   * v10.0.0 — Engaste de runa: clique grave + harmônico (a runa "assentando" no soquete).
+   */
+  public playRuneSocket() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const clickOsc = this.ctx.createOscillator();
+    const clickGain = this.ctx.createGain();
+    clickOsc.type = 'square';
+    clickOsc.frequency.setValueAtTime(180, now);
+    clickOsc.frequency.exponentialRampToValueAtTime(90, now + 0.08);
+    clickGain.gain.setValueAtTime(this.sfxVolume * 0.4, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    clickOsc.connect(clickGain);
+    clickGain.connect(this.ctx.destination);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.12);
+
+    const harmOsc = this.ctx.createOscillator();
+    const harmGain = this.ctx.createGain();
+    harmOsc.type = 'sine';
+    harmOsc.frequency.setValueAtTime(880, now + 0.06); // A5
+    harmGain.gain.setValueAtTime(0, now + 0.06);
+    harmGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.08);
+    harmGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    harmOsc.connect(harmGain);
+    harmGain.connect(this.ctx.destination);
+    harmOsc.start(now + 0.06);
+    harmOsc.stop(now + 0.38);
   }
 
   /**

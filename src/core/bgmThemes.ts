@@ -2,7 +2,11 @@
 // Cada tema é uma progressão de acordes sintetizada via Web Audio API (osciladores),
 // no mesmo estilo já usado pelo AudioManager — sem arquivos de áudio externos.
 
-export type BgmPhase = 'normal' | 'nightmare' | 'inferno' | 'apocalypse' | 'purgatory' | 'pandemonium';
+// v10.0.0 "A Cidadela Submersa": 'abyss' não é mapeada por estágio (getPhaseForStage) — é um
+// OVERRIDE ativado pelos eventos DIVE_STARTED/DIVE_ENDED no AudioManager, enquanto durar o mergulho.
+// v10.4.0 "O Leviatã do Ciclo": 'leviathan' é outro OVERRIDE (como 'abyss'), ativado pelo mode
+// 'leviathan' do GameEvent.START_COMBAT enquanto a luta do chefe mundial durar.
+export type BgmPhase = 'normal' | 'nightmare' | 'inferno' | 'apocalypse' | 'purgatory' | 'pandemonium' | 'abyss' | 'leviathan';
 
 export interface BgmTheme {
   name: string;
@@ -119,6 +123,46 @@ export const BGM_THEMES: Record<BgmPhase, BgmTheme> = {
     bassDuration: 0.9,
     arpDuration: 0.35,
     leadDuration: 0.5,
+  },
+  // v10.0.0: Mergulhos Rasos — Zona 1 (Recife Partido). "Luz Coada": a ÚNICA BGM em tom MAIOR do
+  // jogo (Dó Maior aquoso), quebrando o padrão sombrio de propósito — a luz filtrada do recife é o
+  // contraste que fará as zonas fundas pesarem nas versões futuras. Baixo `sine` + arpejo
+  // `triangle` borbulhante, andamento calmo.
+  abyss: {
+    name: 'Luz Coada (Dó Maior Aquoso)',
+    chords: [
+      [65.41, 130.81, 261.63, 329.63, 392.00],  // Cmaj (Dó Maior)
+      [87.31, 174.61, 261.63, 349.23, 440.00],  // Fmaj
+      [110.00, 220.00, 261.63, 329.63, 523.25], // Am7 (cor aquosa)
+      [98.00, 196.00, 293.66, 392.00, 493.88],  // Gsus→G
+    ],
+    bassOscType: 'sine',
+    arpOscType: 'triangle',
+    leadOscType: 'sine',
+    beatMs: 560,
+    bassDuration: 2.4,
+    arpDuration: 1.2,
+    leadDuration: 1.8,
+  },
+  // v10.4.0 "O Leviatã do Ciclo": "O Coro e a Fera" — alterna dentro da própria progressão de 4
+  // acordes entre o coral consonante (sine em camadas, como o "Coro Afogado" da Zona 3) e o
+  // cluster dissonante do Pandemônio, aproximando o efeito descrito no Anexo ("8 compassos de
+  // Coro alternando com 8 de cluster") dentro do motor de progressão fixa já existente.
+  leviathan: {
+    name: 'O Coro e a Fera (Lá Menor / Cluster)',
+    chords: [
+      [110.00, 164.81, 220.00, 329.63, 440.00],  // Am7 em quintas (coral)
+      [55.00, 58.27, 110.00, 116.54, 220.00],     // Cluster A/Bb (fera)
+      [98.00, 146.83, 196.00, 293.66, 392.00],    // Gm7 (coral)
+      [61.74, 65.41, 123.47, 130.81, 246.94],     // Cluster B/C (fera)
+    ],
+    bassOscType: 'sine',
+    arpOscType: 'sawtooth',
+    leadOscType: 'sine',
+    beatMs: 340,
+    bassDuration: 1.6,
+    arpDuration: 0.7,
+    leadDuration: 1.2,
   },
 };
 

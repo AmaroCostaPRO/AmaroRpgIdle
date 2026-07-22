@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContract, AlchemyPendingBrew } from '../core/types';
+import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContract, AlchemyPendingBrew, DistrictId, DrownedEcho } from '../core/types';
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
@@ -23,6 +23,36 @@ import {
   computeClassExpeditionProduction, getMysticFusionCost,
   getStructureUpgradeDurationMs, CitadelStructureKey,
 } from '../core/citadelFormulas';
+import {
+  BaitType, ActiveFishingQuality, FishingCatchId,
+  BAIT_DEFINITIONS, BAIT_BATCH_SIZE, getFishingTable,
+  getPassiveCatchesPerHour, getFishingBufferCap,
+  COASTAL_UNLOCK_STAGE, COASTAL_DOCK_MAX_LEVEL,
+  getCoastalDockUpgradeCost, getCoastalDockUpgradeDurationMs,
+  LANTERN_FISH_MEAT_YIELD, BATHYSPHERE_FRAGMENTS_PER_KEY,
+  getActiveFishingCooldownMs, FARO_PERFECT_CATCHES_REQUIRED,
+  rollTier1Rune,
+} from '../core/abyssFormulas';
+import {
+  RuneId, RUNE_CATALOG, isPrimordialRune, isHeavySlot, getMaxSocketsForSlot,
+  DRILL_SOCKET_COSTS, RUNE_FUSE_COST_PEARLS, RUNE_FUSE_INPUT_COUNT,
+  EXTRACT_RUNE_COST_PEARLS, EXTRACT_PRIMORDIAL_COST_PEARLS,
+  getFusedRuneId, listSocketedRunes,
+  getRunewordById, getRunewordEngraveCost,
+} from '../core/runeFormulas';
+import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST } from '../core/citadelFormulas';
+import {
+  DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
+  DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost, getTidePhase, getTidePhaseEndsAt,
+  TIDE_BLESSINGS, generateEcho, EchoRescueSource, ECHO_ROSTER_CAP,
+  BROKEN_HEART_HEAL_MS, ECHO_VOCATION_NAMES, ECHO_TRAIT_NAMES,
+  getVocationPerkTotal, sumDistrictEfficacy, calculateEchoEfficacies,
+  TIDE_LOW_FISHING_MULT, TIDE_HIGH_FISHING_MULT, TIDE_LOW_DRAIN_COST_MULT,
+  rollAbyssalSetDrop,
+} from '../core/sunkenCitadelFormulas';
+import {
+  LEVIATHAN_KILL_REPEAT_PEARLS, LEVIATHAN_KILL_REPEAT_2ND_PIECE_CHANCE, LEVIATHAN_FULL_CLEAR_BONUS_PEARLS,
+} from '../core/leviathanFormulas';
 
 // Preço escalonado do "Espaço no Inventário" na Loja: começa em 100.000 Ouro e sobe +100.000 a
 // cada slot já comprado além dos 30 iniciais, deixando os últimos espaços (rumo ao teto de 100)
@@ -692,7 +722,8 @@ interface GameState {
   addForgeFragments(amount: number): void;
   addTranscendencePoints(amount: number): void;
   addTranscendenceEssence(amount: number): void;
-  addMaterials(wood: number, stone: number, meat: number): void;
+  addMaterials(wood: number, stone: number, meat: number, coral?: number): void;
+  addPearls(amount: number): void;
   buildOrUpgradeCommandCenter(): { success: boolean; message: string };
   buildOrUpgradeVault(): { success: boolean; message: string };
   depositItemToVault(itemId: string): { success: boolean; message: string };
@@ -715,6 +746,39 @@ interface GameState {
   buildOrUpgradeHuntSanctuary(): { success: boolean; message: string };
   refreshHuntContractsIfNeeded(): void;
   claimHuntContract(contractId: string): { success: boolean; message: string };
+  // v10.0.0 "A Cidadela Submersa": Litoral Naufragado (pesca) — FORA de tickCitadelProduction,
+  // que retorna cedo sem Cidadela desbloqueada (o Litoral abre na Fase 2, pré-Ascensão).
+  tickCoastalProduction(): void;
+  craftBait(type: BaitType): { success: boolean; message: string };
+  equipBait(type: BaitType | null): void;
+  collectFishingNet(): { success: boolean; message: string };
+  resolveActiveFishing(quality: ActiveFishingQuality): { success: boolean; message: string };
+  buildOrUpgradeCoastalDock(): { success: boolean; message: string };
+  // v10.0.0: Câmara de Gravação + Sistema de Soquetes/Runas Abissais
+  buildOrUpgradeEngravingChamber(): { success: boolean; message: string };
+  // v10.0.0: apoio aos Mergulhos Rasos (useDiveStore persiste snapshots via estas actions)
+  updateAbyssState(patch: Partial<NonNullable<Character['abyss']>>): void;
+  addRunes(runes: Partial<Record<RuneId, number>>): void;
+  spendDiveKey(count?: number): boolean;
+  drillSocket(itemId: string): { success: boolean; message: string };
+  socketRune(itemId: string, socketIndex: number, runeId: RuneId): { success: boolean; message: string };
+  unsocketRuneDestructive(itemId: string, socketIndex: number): { success: boolean; message: string };
+  extractRune(itemId: string, socketIndex: number): { success: boolean; message: string };
+  fuseRunes(runeId: RuneId): { success: boolean; message: string };
+  // v10.2.0 "Os Ecos Afogados": Cidadela Submersa (6 distritos) + simulação de Ecos Afogados.
+  tickSunkenCitadelProduction(): void;
+  startDistrictDrain(districtId: DistrictId): { success: boolean; message: string };
+  upgradeDistrictRestoration(districtId: DistrictId): { success: boolean; message: string };
+  upgradeDivingSuit(): { success: boolean; message: string };
+  assignEcho(echoId: string, districtId: DistrictId | null): { success: boolean; message: string };
+  chooseTideBlessing(blessingId: string): { success: boolean; message: string };
+  // v10.4.0 "O Leviatã do Ciclo": recompensas de MORTE do chefe mundial (chamado por useLeviathanStore).
+  killLeviathan(pLev: number, pearlMult: number, fullClearThisAttempt: boolean): void;
+  rescueEcho(source: EchoRescueSource): { rescued: boolean; message: string };
+  // v10.3.0 "O Coração do Abismo": Palavras Rúnicas.
+  engraveRuneword(itemId: string, runewordId: string): { success: boolean; message: string };
+  undoRuneword(itemId: string): { success: boolean; message: string };
+  revealRuneword(runewordId: string): void;
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -851,9 +915,179 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
   alchemyLab: { level: 0, lastTick: Date.now(), pendingBrews: [] as AlchemyPendingBrew[] },
   huntSanctuary: { level: 0, lastTick: Date.now(), activeContracts: [] as HuntContract[], rotationId: 0, bonusClaimedForRotation: false },
+  // v10.0.0 "A Cidadela Submersa": Câmara de Gravação (Sistema de Soquetes/Runas Abissais)
+  engravingChamber: { level: 0, lastTick: Date.now() },
 });
 
-const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0 });
+const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0, coral: 0 });
+
+// v10.0.0 "A Cidadela Submersa": defaults do Litoral Naufragado e dos Mergulhos Rasos.
+const DEFAULT_COASTAL = (): NonNullable<Character['coastal']> => ({
+  unlocked: false,
+  dockLevel: 0,
+  equippedBait: null,
+  baitInventory: { basic: 0, glow: 0, deep: 0 },
+  passiveBuffer: 0,
+  lastFishTick: Date.now(),
+  faroPerfectCatches: 0,
+  faroGranted: false,
+  lifetimeCatches: 0,
+  lifetimePearls: 0,
+});
+
+const DEFAULT_ABYSS = (): NonNullable<Character['abyss']> => ({
+  unlocked: false,
+  currentDepth: 0,
+  historicalMaxDepth: 0,
+  breath: 100,
+  divingSuitLevel: 0,
+  bankedRewards: { pearls: 0, coral: 0, runes: {} },
+  firstGuardianKillDone: false,
+  guardiansDefeated: {},
+  airPocketPearlBonus: 0,
+  lifetimePearlsBanked: 0,
+});
+
+// v10.2.0 "Os Ecos Afogados": estado da Cidadela Submersa (6 distritos, todos Alagados por
+// padrão) + roster vazio de Ecos.
+const DEFAULT_SUNKEN_CITADEL = (): NonNullable<Character['sunkenCitadel']> => ({
+  districts: {},
+  echoes: [],
+  echoesRescuedLifetime: 0,
+  lastProductionTick: Date.now(),
+});
+
+// v10.0.0: resolve `count` capturas de pesca contra a tabela da isca equipada, consumindo 1 isca
+// por captura enquanto houver estoque — sem isca (ou com o estoque esgotado no meio do lote), a
+// tabela cai para a versão só-comuns (peixe/coral). RNG por Math.random é aceitável aqui: é uma
+// rolagem de coleta (como a Alquimia), não um sorteio de encontro que precise de determinismo.
+const rollFishingCatches = (
+  equippedBait: BaitType | null,
+  baitInventory: { basic: number; glow: number; deep: number },
+  count: number
+) => {
+  const gains = { meat: 0, coral: 0, pearls: 0, fragments: 0, runes: {} as Partial<Record<RuneId, number>>, runeCount: 0 };
+  const baitLeft = { ...baitInventory };
+  for (let i = 0; i < count; i++) {
+    const baitInUse = equippedBait && (baitLeft[equippedBait] || 0) > 0 ? equippedBait : null;
+    if (baitInUse) baitLeft[baitInUse] -= 1;
+    const table = getFishingTable(baitInUse);
+    const totalWeight = table.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = Math.random() * totalWeight;
+    let picked: FishingCatchId = table[0].id;
+    for (const entry of table) {
+      roll -= entry.weight;
+      if (roll <= 0) { picked = entry.id; break; }
+    }
+    switch (picked) {
+      case 'lantern_fish': gains.meat += LANTERN_FISH_MEAT_YIELD; break;
+      case 'living_coral': gains.coral += 1; break;
+      case 'abyssal_pearl': gains.pearls += 1; break;
+      case 'soaked_rune_t1': {
+        const runeId = rollTier1Rune(Math.random());
+        gains.runes[runeId] = (gains.runes[runeId] || 0) + 1;
+        gains.runeCount += 1;
+        break;
+      }
+      case 'bathysphere_fragment': gains.fragments += 1; break;
+    }
+  }
+  return { gains, baitLeft };
+};
+
+// Aplica os ganhos de pesca ao personagem (materiais, Pérolas, runas, fragmentos → chaves) e
+// devolve os campos atualizados + o resumo textual para o log.
+const applyFishingGains = (
+  char: Character,
+  gains: ReturnType<typeof rollFishingCatches>['gains']
+): { fields: Pick<Character, 'materials' | 'pearls' | 'batisphereFragments' | 'diveKeys' | 'runeInventory'>; summary: string; newKeys: number } => {
+  const materials = { ...(char.materials || DEFAULT_MATERIALS()) };
+  materials.meat += gains.meat;
+  materials.coral = (materials.coral || 0) + gains.coral;
+  let fragments = (char.batisphereFragments || 0) + gains.fragments;
+  let diveKeys = char.diveKeys || 0;
+  const newKeys = Math.floor(fragments / BATHYSPHERE_FRAGMENTS_PER_KEY);
+  fragments -= newKeys * BATHYSPHERE_FRAGMENTS_PER_KEY;
+  diveKeys += newKeys;
+  const runeInventory = { ...(char.runeInventory || {}) };
+  (Object.entries(gains.runes) as [RuneId, number][]).forEach(([runeId, qty]) => {
+    runeInventory[runeId] = (runeInventory[runeId] || 0) + qty;
+  });
+  const parts: string[] = [];
+  if (gains.meat > 0) parts.push(`🐟 +${gains.meat} Carne`);
+  if (gains.coral > 0) parts.push(`🪸 +${gains.coral} Coral Vivo`);
+  if (gains.pearls > 0) parts.push(`🦪 +${gains.pearls} Pérola${gains.pearls > 1 ? 's' : ''}`);
+  if (gains.runeCount > 0) parts.push(`📜 +${gains.runeCount} Runa${gains.runeCount > 1 ? 's' : ''} Encharcada${gains.runeCount > 1 ? 's' : ''} (T1)`);
+  if (gains.fragments > 0) parts.push(`🗝️ +${gains.fragments} Fragmento${gains.fragments > 1 ? 's' : ''} de Batisfera`);
+  return {
+    fields: { materials, pearls: (char.pearls || 0) + gains.pearls, batisphereFragments: fragments, diveKeys, runeInventory },
+    summary: parts.length > 0 ? parts.join(' · ') : 'nada além de algas...',
+    newKeys,
+  };
+};
+
+// v10.0.0: localiza um item por id em QUALQUER lugar (equipado, inventário ou Depósito da
+// Cidadela) e aplica o updater imutavelmente — a Câmara de Gravação opera nos três lugares.
+const updateItemEverywhere = (
+  char: Character,
+  itemId: string,
+  updater: (item: EquipmentItem) => EquipmentItem
+): { char: Character; item: EquipmentItem | null } => {
+  // Equipamento
+  for (const [slot, equipped] of Object.entries(char.equipment || {})) {
+    if (equipped && equipped.id === itemId) {
+      const updatedItem = updater(equipped);
+      return {
+        char: { ...char, equipment: { ...char.equipment, [slot]: updatedItem } },
+        item: updatedItem,
+      };
+    }
+  }
+  // Inventário
+  const invIndex = (char.inventory || []).findIndex(i => i.id === itemId);
+  if (invIndex >= 0) {
+    const updatedItem = updater(char.inventory[invIndex]);
+    const inventory = [...char.inventory];
+    inventory[invIndex] = updatedItem;
+    return { char: { ...char, inventory }, item: updatedItem };
+  }
+  // Depósito da Cidadela
+  const stored = char.citadel?.vault?.storedItems || [];
+  const vaultIndex = stored.findIndex(i => i.id === itemId);
+  if (vaultIndex >= 0 && char.citadel) {
+    const updatedItem = updater(stored[vaultIndex]);
+    const storedItems = [...stored];
+    storedItems[vaultIndex] = updatedItem;
+    return {
+      char: { ...char, citadel: { ...char.citadel, vault: { ...char.citadel.vault, storedItems } } },
+      item: updatedItem,
+    };
+  }
+  return { char, item: null };
+};
+
+// Todas as runas engastadas do personagem (equipamento + inventário + Depósito) — usado para a
+// regra "1 Runa Primordial por personagem" no engaste.
+const listAllSocketedRunes = (char: Character): RuneId[] => [
+  ...listSocketedRunes(Object.values(char.equipment || {})),
+  ...listSocketedRunes(char.inventory || []),
+  ...listSocketedRunes(char.citadel?.vault?.storedItems || []),
+];
+
+// v10.0.0: vender/desmontar um item com runas engastadas devolve as runas intactas ao cofre —
+// nenhuma runa é destruída silenciosamente por uma venda (individual ou em lote).
+const reclaimRunesToInventory = (
+  runeInventory: Character['runeInventory'],
+  items: EquipmentItem[]
+): { runeInventory: Character['runeInventory']; reclaimed: number } => {
+  const reclaimedRunes = listSocketedRunes(items);
+  if (reclaimedRunes.length === 0) return { runeInventory, reclaimed: 0 };
+  const updated = { ...(runeInventory || {}) };
+  for (const runeId of reclaimedRunes) {
+    updated[runeId] = (updated[runeId] || 0) + 1;
+  }
+  return { runeInventory: updated, reclaimed: reclaimedRunes.length };
+};
 
 const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Character => {
   const config = CLASS_CONFIGS[classId] || CLASS_CONFIGS.warrior;
@@ -904,6 +1138,14 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     transcendenceEssence: 0,
     materials: DEFAULT_MATERIALS(),
     citadel: DEFAULT_CITADEL(),
+    pearls: 0,
+    diveKeys: 0,
+    batisphereFragments: 0,
+    runeInventory: {},
+    coastal: DEFAULT_COASTAL(),
+    abyss: DEFAULT_ABYSS(),
+    sunkenCitadel: DEFAULT_SUNKEN_CITADEL(),
+    revealedRunewordIds: [],
     bestDamageDealt: 0,
     bestMaxHP: 0,
     bestCritChance: 0,
@@ -968,6 +1210,36 @@ const mergeLoadedCharacter = (char: Character): Character => {
     activeEcoterra: char.activeEcoterra !== undefined ? char.activeEcoterra : false,
     transcendenceEssence: char.transcendenceEssence !== undefined ? char.transcendenceEssence : 0,
     materials: { ...(defaults.materials || DEFAULT_MATERIALS()), ...(char.materials || DEFAULT_MATERIALS()) },
+    // v10.0.0 "A Cidadela Submersa": defaults dos campos novos (saves antigos, sem migração)
+    pearls: clampNonNegativeFinite(char.pearls, 0),
+    diveKeys: clampNonNegativeFinite(char.diveKeys, 0),
+    batisphereFragments: clampNonNegativeFinite(char.batisphereFragments, 0),
+    runeInventory: { ...(char.runeInventory || {}) },
+    coastal: {
+      ...DEFAULT_COASTAL(),
+      ...(char.coastal || {}),
+      baitInventory: { ...DEFAULT_COASTAL().baitInventory, ...(char.coastal?.baitInventory || {}) },
+    },
+    abyss: {
+      ...DEFAULT_ABYSS(),
+      ...(char.abyss || {}),
+      bankedRewards: { ...DEFAULT_ABYSS().bankedRewards, ...(char.abyss?.bankedRewards || {}) },
+      // v10.1.0: saves antigos com firstGuardianKillDone=true (mas sem guardiansDefeated) já
+      // venceram o Guardião da Zona 1 — migra sem exigir bump de CURRENT_SAVE_VERSION.
+      guardiansDefeated: {
+        ...(char.abyss?.firstGuardianKillDone ? { 1: true } : {}),
+        ...(char.abyss?.guardiansDefeated || {}),
+      },
+    },
+    // v10.3.0 "O Coração do Abismo": defaults dos campos novos (saves antigos, sem migração)
+    revealedRunewordIds: [...(char.revealedRunewordIds || [])],
+    // v10.2.0 "Os Ecos Afogados": defaults dos campos novos (saves antigos, sem migração)
+    sunkenCitadel: {
+      ...DEFAULT_SUNKEN_CITADEL(),
+      ...(char.sunkenCitadel || {}),
+      districts: { ...(char.sunkenCitadel?.districts || {}) },
+      echoes: [...(char.sunkenCitadel?.echoes || [])],
+    },
     // Estatísticas completas: contadores novos, sem forma de reconstruir retroativamente o histórico
     // de saves anteriores a esta versão — começam do zero via defaults.
     totalMaterialsFarmedByCitadel: { ...(defaults.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS()), ...(char.totalMaterialsFarmedByCitadel || {}) },
@@ -987,6 +1259,7 @@ const mergeLoadedCharacter = (char: Character): Character => {
       relicLab: { ...defaults.citadel!.relicLab, ...(char.citadel?.relicLab || {}), overheatedRelicIds: char.citadel?.relicLab?.overheatedRelicIds || [] },
       alchemyLab: { ...defaults.citadel!.alchemyLab, ...(char.citadel?.alchemyLab || {}) },
       huntSanctuary: { ...defaults.citadel!.huntSanctuary, ...(char.citadel?.huntSanctuary || {}), activeContracts: char.citadel?.huntSanctuary?.activeContracts || [] },
+      engravingChamber: { ...defaults.citadel!.engravingChamber!, ...(char.citadel?.engravingChamber || {}) },
     },
     totalXpEarned: char.totalXpEarned !== undefined
       ? char.totalXpEarned
@@ -1021,6 +1294,29 @@ const mergeLoadedCharacter = (char: Character): Character => {
       });
     });
     merged.baseStats = cleanedStats;
+  }
+
+  // v10.0.0: descida pendente de sessão anterior (save fechado no meio de um mergulho) resolve
+  // como "Subiu à Superfície" — banca 100% das recompensas acumuladas e volta ao estado neutro.
+  // É offline-safe e generoso; evita reidratar um combate de mergulho no meio.
+  if (merged.abyss && merged.abyss.currentDepth > 0) {
+    const banked = merged.abyss.bankedRewards || { pearls: 0, coral: 0, runes: {} };
+    const pearlMult = 1 + (merged.abyss.airPocketPearlBonus || 0);
+    merged.pearls = (merged.pearls || 0) + Math.floor((banked.pearls || 0) * pearlMult);
+    merged.materials = { ...(merged.materials || DEFAULT_MATERIALS()), coral: ((merged.materials?.coral) || 0) + (banked.coral || 0) };
+    const mergedRunes = { ...(merged.runeInventory || {}) };
+    Object.entries(banked.runes || {}).forEach(([runeId, count]) => {
+      if (count && count > 0) mergedRunes[runeId as keyof typeof mergedRunes] = (mergedRunes[runeId as keyof typeof mergedRunes] || 0) + count;
+    });
+    merged.runeInventory = mergedRunes;
+    merged.abyss = {
+      ...merged.abyss,
+      currentDepth: 0,
+      breath: 100,
+      bankedRewards: { pearls: 0, coral: 0, runes: {} },
+      airPocketPearlBonus: 0,
+      lifetimePearlsBanked: (merged.abyss.lifetimePearlsBanked || 0) + Math.floor((banked.pearls || 0) * pearlMult),
+    };
   }
 
   if (merged.classLevels) {
@@ -1287,7 +1583,7 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
-  addMaterials: (wood, stone, meat) => set((state) => {
+  addMaterials: (wood, stone, meat, coral = 0) => set((state) => {
     const current = state.character.materials || DEFAULT_MATERIALS();
     const farmedLifetime = state.character.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS();
     const updated = {
@@ -1297,6 +1593,9 @@ export const useGameStore = create<GameState>((set) => ({
         wood: current.wood + wood,
         stone: current.stone + stone,
         meat: current.meat + meat,
+        // v10.0.0: Coral Vivo (inimigos aquáticos do Litoral + pesca) — fora do rastreador
+        // totalMaterialsFarmedByCitadel, que é exclusivo da produção da Cidadela Astral.
+        coral: (current.coral || 0) + coral,
       },
       totalMaterialsFarmedByCitadel: {
         ...farmedLifetime,
@@ -1304,6 +1603,58 @@ export const useGameStore = create<GameState>((set) => ({
         stone: farmedLifetime.stone + stone,
         meat: farmedLifetime.meat + meat,
       }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  // v10.0.0: snapshot persistente do estado do Abismo (escrito pelo useDiveStore a cada
+  // profundidade concluída — um save fechado no meio de um mergulho é resolvido como "subiu à
+  // superfície" no mergeLoadedCharacter).
+  updateAbyssState: (patch) => set((state) => {
+    const updated = {
+      ...state.character,
+      abyss: { ...DEFAULT_ABYSS(), ...(state.character.abyss || {}), ...patch },
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  addRunes: (runes) => set((state) => {
+    const entries = Object.entries(runes).filter(([, qty]) => (qty || 0) > 0) as [RuneId, number][];
+    if (entries.length === 0) return state;
+    const runeInventory = { ...(state.character.runeInventory || {}) };
+    for (const [runeId, qty] of entries) {
+      runeInventory[runeId] = (runeInventory[runeId] || 0) + qty;
+    }
+    const updated = { ...state.character, runeInventory };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  // v10.1.0: aceita `count` para os checkpoints de zona (26/51/81), que custam 2 Chaves em vez
+  // de 1 — falha atomicamente (não gasta nada) se o estoque for insuficiente.
+  spendDiveKey: (count = 1) => {
+    let spent = false;
+    set((state) => {
+      if ((state.character.diveKeys || 0) < count) return state;
+      spent = true;
+      const updated = { ...state.character, diveKeys: (state.character.diveKeys || 0) - count };
+      saveToLocalStorage(updated);
+      return { character: updated };
+    });
+    return spent;
+  },
+
+  // v10.0.0: Pérolas Abissais — moeda do update (pesca, Eco Afogado, Mergulhos Rasos)
+  addPearls: (amount) => set((state) => {
+    if (!amount || amount <= 0) return state;
+    const updated = {
+      ...state.character,
+      pearls: (state.character.pearls || 0) + amount,
+      coastal: state.character.coastal
+        ? { ...state.character.coastal, lifetimePearls: (state.character.coastal.lifetimePearls || 0) + amount }
+        : state.character.coastal,
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -1490,9 +1841,11 @@ export const useGameStore = create<GameState>((set) => ({
       relicLab: 'Laboratório de Relíquias Místicas',
       alchemyLab: 'Laboratório de Alquimia',
       huntSanctuary: 'Santuário de Contratos de Caça',
+      engravingChamber: 'Câmara de Gravação',
     };
     (Object.keys(structureLabels) as CitadelStructureKey[]).forEach((key) => {
       const building = citadel![key];
+      if (!building) return; // engravingChamber é opcional em saves antigos ainda não mesclados
       if (building.upgradeInProgress && now >= building.upgradeInProgress.completesAt) {
         const targetLevel = building.upgradeInProgress.targetLevel;
         citadel = { ...citadel!, [key]: { ...building, level: targetLevel, upgradeInProgress: undefined } };
@@ -1566,18 +1919,39 @@ export const useGameStore = create<GameState>((set) => ({
     // Torre de Vigia Astral: fabrica Chaves da Torre passivamente, respeitando a capacidade interna.
     // As chaves ficam aguardando coleta manual do jogador (`collectWatchTowerKeys`) — não são mais
     // transferidas automaticamente para o inventário.
+    // Igual à Oficina da Forja abaixo, `lastTick` só avança pelo tempo REALMENTE consumido pelas
+    // chaves produzidas (nunca direto até `now`) — do contrário, o tick periódico de 60s da UI
+    // (GameUI.tsx) resetaria o relógio antes de completar `hoursPerKey` e a Torre nunca produziria
+    // nada durante uma sessão contínua com o jogo aberto, só em retornos após ficar fechada.
     if (citadel.watchTower.level > 0) {
-      const elapsedHours = (now - citadel.watchTower.lastTick) / (1000 * 60 * 60);
-      if (elapsedHours > 0) {
-        const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(citadel.watchTower.level);
-        const capacity = WATCH_TOWER_KEY_CAPACITY(citadel.watchTower.level);
-        const potentialKeys = Math.floor(elapsedHours / hoursPerKey);
-        const availableSpace = Math.max(0, capacity - citadel.watchTower.storedKeys);
-        const keysToStore = Math.min(potentialKeys, availableSpace);
-        const storedKeys = citadel.watchTower.storedKeys + keysToStore;
+      const capacity = WATCH_TOWER_KEY_CAPACITY(citadel.watchTower.level);
+      if (citadel.watchTower.storedKeys >= capacity) {
+        // Buffer já cheio: produção pausada, não há por que deixar o relógio correr à toa.
+        if (citadel.watchTower.lastTick !== now) {
+          nextWatchTower = { ...citadel.watchTower, lastTick: now };
+          changed = true;
+        }
+      } else {
+        const elapsedHours = (now - citadel.watchTower.lastTick) / (1000 * 60 * 60);
+        if (elapsedHours > 0) {
+          const hoursPerKey = WATCH_TOWER_HOURS_PER_KEY(citadel.watchTower.level);
+          const potentialKeys = Math.floor(elapsedHours / hoursPerKey);
+          const availableSpace = capacity - citadel.watchTower.storedKeys;
+          const keysToStore = Math.min(potentialKeys, availableSpace);
+          const storedKeys = citadel.watchTower.storedKeys + keysToStore;
 
-        nextWatchTower = { ...citadel.watchTower, storedKeys, lastTick: now };
-        changed = true;
+          // Preserva a fração de hora ainda não convertida em chave para o próximo tick; só pula
+          // direto para `now` se o buffer acabou de encher (não há mais nada a acumular).
+          const consumedMs = keysToStore * hoursPerKey * 60 * 60 * 1000;
+          const bufferNowFull = storedKeys >= capacity;
+
+          nextWatchTower = {
+            ...citadel.watchTower,
+            storedKeys,
+            lastTick: bufferNowFull ? now : citadel.watchTower.lastTick + consumedMs,
+          };
+          changed = true;
+        }
       }
     }
 
@@ -1945,6 +2319,1000 @@ export const useGameStore = create<GameState>((set) => ({
       return { character: updated };
     });
     return result;
+  },
+
+  // ── v10.0.0 "A Cidadela Submersa": Litoral Naufragado ──────────────────────
+  // Produção da pesca passiva + resolução do timer da Doca. Deliberadamente FORA de
+  // tickCitadelProduction (que retorna cedo sem a Cidadela desbloqueada — o Litoral abre na
+  // Fase 2, pré-Ascensão). Offline-safe por timestamps; chamado junto do tick de 60s no GameUI.
+  tickCoastalProduction: () => set((state) => {
+    const char = state.character;
+    const now = Date.now();
+    let coastal = char.coastal || DEFAULT_COASTAL();
+    let changed = false;
+
+    // Desbloqueio automático ao completar a Fase 2
+    if (!coastal.unlocked) {
+      if ((char.highestStageReached || 1) >= COASTAL_UNLOCK_STAGE) {
+        coastal = { ...coastal, unlocked: true, lastFishTick: now };
+        changed = true;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: '🌊 A maré recuou e revelou o LITORAL NAUFRAGADO! Uma nova aba foi desbloqueada.' });
+      } else {
+        return state;
+      }
+    }
+
+    // Resolve a melhoria da Doca de Pesca cujo tempo já decorreu (inclusive offline)
+    if (coastal.dockUpgrade && now >= coastal.dockUpgrade.completesAt) {
+      coastal = { ...coastal, dockLevel: coastal.dockUpgrade.targetLevel, dockUpgrade: undefined };
+      changed = true;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🎣 Doca de Pesca concluída: Nível ${coastal.dockLevel}!` });
+    }
+
+    // Pesca passiva: acumula capturas inteiras no buffer da rede. O relógio avança APENAS pelo
+    // tempo consumido pelas capturas processadas (preserva a fração entre ticks de 60s); com o
+    // buffer cheio, a produção pausa e o relógio acompanha o presente (sem acumular crédito).
+    const cap = getFishingBufferCap(coastal.dockLevel);
+    if (coastal.passiveBuffer >= cap) {
+      if (now - coastal.lastFishTick > 60000) {
+        coastal = { ...coastal, lastFishTick: now };
+        changed = true;
+      }
+    } else {
+      // v10.2.0: perk global de Ecos Pescadores + eficácia dos Ecos alocados na Doca Batial +
+      // modificador de Maré (Baixa +50% / Alta −25%) sobre o rendimento passivo de pesca.
+      const sunkenForFishing = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      const fisherPerk = getVocationPerkTotal(sunkenForFishing.echoes, 'fisher');
+      const dockEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunkenForFishing.echoes, getTidePhase()), 'dock');
+      const tideFishingMult = getTidePhase() === 'low' ? TIDE_LOW_FISHING_MULT : TIDE_HIGH_FISHING_MULT;
+      const ratePerHour = getPassiveCatchesPerHour(char.highestStageReached || 1, coastal.dockLevel) * (1 + fisherPerk + dockEfficacy) * tideFishingMult;
+      const elapsedHours = (now - coastal.lastFishTick) / 3600000;
+      const wholeCatches = Math.floor(elapsedHours * ratePerHour);
+      if (wholeCatches > 0) {
+        const stored = Math.min(wholeCatches, cap - coastal.passiveBuffer);
+        const hitCap = stored < wholeCatches;
+        const consumedMs = (wholeCatches / ratePerHour) * 3600000;
+        coastal = {
+          ...coastal,
+          passiveBuffer: coastal.passiveBuffer + stored,
+          lastFishTick: hitCap ? now : coastal.lastFishTick + consumedMs,
+        };
+        changed = true;
+      }
+    }
+
+    if (!changed) return state;
+    const updated = { ...char, coastal };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  craftBait: (type) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const coastal = state.character.coastal || DEFAULT_COASTAL();
+      if (!coastal.unlocked) {
+        result = { success: false, message: 'O Litoral ainda não foi descoberto.' };
+        return state;
+      }
+      const def = BAIT_DEFINITIONS[type];
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      if (materials.meat < def.meatCost) {
+        result = { success: false, message: `Carne insuficiente: fabricar ${BAIT_BATCH_SIZE}x ${def.name} custa ${def.meatCost} 🥩.` };
+        return state;
+      }
+      const updated = {
+        ...state.character,
+        materials: { ...materials, meat: materials.meat - def.meatCost },
+        coastal: {
+          ...coastal,
+          baitInventory: { ...coastal.baitInventory, [type]: (coastal.baitInventory[type] || 0) + BAIT_BATCH_SIZE },
+        },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${def.icon} ${BAIT_BATCH_SIZE}x ${def.name} fabricada(s)!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  equipBait: (type) => set((state) => {
+    const coastal = state.character.coastal || DEFAULT_COASTAL();
+    if (!coastal.unlocked) return state;
+    const updated = { ...state.character, coastal: { ...coastal, equippedBait: type } };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  collectFishingNet: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCoastalProduction();
+    set((state) => {
+      const char = state.character;
+      const coastal = char.coastal || DEFAULT_COASTAL();
+      const catches = Math.floor(coastal.passiveBuffer);
+      if (catches <= 0) {
+        result = { success: false, message: 'A rede ainda está vazia.' };
+        return state;
+      }
+      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches);
+      const { fields, summary, newKeys } = applyFishingGains(char, gains);
+      const updated = {
+        ...char,
+        ...fields,
+        coastal: {
+          ...coastal,
+          passiveBuffer: 0,
+          lastFishTick: Date.now(),
+          baitInventory: baitLeft,
+          lifetimeCatches: (coastal.lifetimeCatches || 0) + catches,
+          lifetimePearls: (coastal.lifetimePearls || 0) + gains.pearls,
+        },
+      };
+      saveToLocalStorage(updated);
+      const keyMsg = newKeys > 0 ? ` 🤿 ${newKeys}x CHAVE DE MERGULHO montada (5 fragmentos)!` : '';
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🕸️ Rede recolhida (${catches} captura${catches > 1 ? 's' : ''}): ${summary}.${keyMsg}` });
+      result = { success: true, message: `Rede recolhida: ${summary}` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  resolveActiveFishing: (quality) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const coastal = char.coastal || DEFAULT_COASTAL();
+      if (!coastal.unlocked) {
+        result = { success: false, message: 'O Litoral ainda não foi descoberto.' };
+        return state;
+      }
+      const now = Date.now();
+      if (coastal.lastActiveFishAt && now - coastal.lastActiveFishAt < getActiveFishingCooldownMs()) {
+        result = { success: false, message: 'A linha ainda está sendo recolhida...' };
+        return state;
+      }
+      // Uma puxada sempre fisga 1 captura; acertar a janela dobra (2); perfeito também alimenta
+      // o contador vitalício da Runa Primordial Faro (100 acertos perfeitos).
+      const catches = quality === 'miss' ? 1 : 2;
+      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches);
+      const { fields, summary, newKeys } = applyFishingGains(char, gains);
+
+      const perfectCatches = coastal.faroPerfectCatches + (quality === 'perfect' ? 1 : 0);
+      let faroGranted = coastal.faroGranted || false;
+      let runeInventory = fields.runeInventory;
+      if (!faroGranted && perfectCatches >= FARO_PERFECT_CATCHES_REQUIRED) {
+        faroGranted = true;
+        runeInventory = { ...runeInventory, faro: (runeInventory?.faro || 0) + 1 };
+        bridge.emit(GameEvent.LOG_EMITTED, { message: '🜠 O centésimo acerto perfeito faz a linha brilhar: você pescou FARO, LÚMEN ABISSAL — uma Runa Primordial!' });
+      }
+
+      const updated = {
+        ...char,
+        ...fields,
+        runeInventory,
+        coastal: {
+          ...coastal,
+          baitInventory: baitLeft,
+          lastActiveFishAt: now,
+          faroPerfectCatches: perfectCatches,
+          faroGranted,
+          lifetimeCatches: (coastal.lifetimeCatches || 0) + catches,
+          lifetimePearls: (coastal.lifetimePearls || 0) + gains.pearls,
+        },
+      };
+      saveToLocalStorage(updated);
+      const qualityLabel = quality === 'perfect' ? '✨ FISGADA PERFEITA' : quality === 'hit' ? '🎯 Fisgada certeira (2x)' : '🎣 Fisgada';
+      const keyMsg = newKeys > 0 ? ` 🤿 ${newKeys}x CHAVE DE MERGULHO montada!` : '';
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${qualityLabel}: ${summary}.${keyMsg}` });
+      result = { success: true, message: `${qualityLabel}: ${summary}` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  buildOrUpgradeCoastalDock: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCoastalProduction();
+    set((state) => {
+      const coastal = state.character.coastal || DEFAULT_COASTAL();
+      if (!coastal.unlocked) {
+        result = { success: false, message: 'O Litoral ainda não foi descoberto.' };
+        return state;
+      }
+      if (coastal.dockUpgrade) {
+        result = { success: false, message: 'A Doca de Pesca já está em obras.' };
+        return state;
+      }
+      const nextLevel = coastal.dockLevel + 1;
+      if (nextLevel > COASTAL_DOCK_MAX_LEVEL) {
+        result = { success: false, message: 'A Doca de Pesca já está no nível máximo.' };
+        return state;
+      }
+      const cost = getCoastalDockUpgradeCost(nextLevel);
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      if (state.character.gold < cost.gold || materials.meat < cost.meat) {
+        result = { success: false, message: `Recursos insuficientes: requer ${cost.gold} Ouro e ${cost.meat} Carne.` };
+        return state;
+      }
+      const now = Date.now();
+      const durationMs = getCoastalDockUpgradeDurationMs(nextLevel);
+      const updated = {
+        ...state.character,
+        gold: state.character.gold - cost.gold,
+        materials: { ...materials, meat: materials.meat - cost.meat },
+        coastal: { ...coastal, dockUpgrade: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Obras da Doca de Pesca iniciadas! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // ── v10.0.0 "A Cidadela Submersa": Câmara de Gravação + Soquetes/Runas ─────
+
+  buildOrUpgradeEngravingChamber: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const chamber = citadel.engravingChamber || { level: 0, lastTick: Date.now() };
+      const nextLevel = chamber.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (chamber.upgradeInProgress) {
+        result = { success: false, message: 'A Câmara de Gravação já está em melhoria.' };
+        return state;
+      }
+      if (nextLevel > ENGRAVING_CHAMBER_MAX_LEVEL) {
+        result = { success: false, message: 'A Câmara de Gravação já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
+      const cost = ENGRAVING_CHAMBER_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || (materials.coral || 0) < cost.coral) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.coral} Coral Vivo.` };
+        return state;
+      }
+
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('engravingChamber', nextLevel);
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone, coral: (materials.coral || 0) - cost.coral },
+        citadel: { ...citadel, engravingChamber: { ...chamber, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Melhoria da Câmara de Gravação iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  drillSocket: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const chamberLevel = char.citadel?.engravingChamber?.level || 0;
+      if (chamberLevel < 1) {
+        result = { success: false, message: 'Construa a Câmara de Gravação na Cidadela primeiro.' };
+        return state;
+      }
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado.' };
+        return state;
+      }
+      if (!isHeavySlot(item.slot)) {
+        result = { success: false, message: 'Só slots pesados (Cabeça, Peito, Pernas, Mãos, Arma, Anel) podem ser perfurados.' };
+        return state;
+      }
+      // v10.3.0: bônus de 3 peças do Set Abissal — +1 soquete na arma acima do teto normal.
+      const equippedItems = Object.values(char.equipment || {}).filter(Boolean) as EquipmentItem[];
+      const abyssalSetCounts: Record<string, number> = {};
+      equippedItems.forEach((i) => { if (i.setName?.startsWith('Set Abissal')) abyssalSetCounts[i.setName] = (abyssalSetCounts[i.setName] || 0) + 1; });
+      const hasAbyssalSet3pc = Object.values(abyssalSetCounts).some(c => c >= 3);
+
+      const currentSockets = item.sockets || 0;
+      const maxAllowed = getMaxSocketsForSlot(item.slot, chamberLevel, hasAbyssalSet3pc);
+      if (maxAllowed <= 0) {
+        result = { success: false, message: `A Câmara Nível ${chamberLevel} ainda não perfura este slot.` };
+        return state;
+      }
+      if (currentSockets >= maxAllowed) {
+        result = { success: false, message: currentSockets >= getMaxSocketsForSlot(item.slot, ENGRAVING_CHAMBER_MAX_LEVEL, hasAbyssalSet3pc)
+          ? 'Este item já está no máximo de soquetes.'
+          : `Requer a Câmara de Gravação em nível mais alto para o ${currentSockets + 1}º soquete.` };
+        return state;
+      }
+      const cost = DRILL_SOCKET_COSTS[currentSockets];
+      if ((char.pearls || 0) < cost.pearls || char.gold < cost.gold) {
+        result = { success: false, message: `Perfurar o ${currentSockets + 1}º soquete custa ${cost.pearls} 🦪 Pérolas + ${formatNumber(cost.gold)} Ouro.` };
+        return state;
+      }
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i,
+        sockets: (i.sockets || 0) + 1,
+        socketedRunes: [...(i.socketedRunes || []), null],
+      }));
+      const updated = { ...afterUpdate, pearls: (char.pearls || 0) - cost.pearls, gold: char.gold - cost.gold };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `⛏️ Soquete perfurado em [${item.name}]! (${currentSockets + 1}/${maxAllowed})` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  socketRune: (itemId, socketIndex, runeId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const runeDef = RUNE_CATALOG[runeId];
+      if (!runeDef) {
+        result = { success: false, message: 'Runa desconhecida.' };
+        return state;
+      }
+      if (((char.runeInventory || {})[runeId] || 0) <= 0) {
+        result = { success: false, message: 'Você não possui esta runa no cofre.' };
+        return state;
+      }
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      if (!item || (item.sockets || 0) <= socketIndex || socketIndex < 0) {
+        result = { success: false, message: 'Soquete inexistente neste item.' };
+        return state;
+      }
+      if ((item.socketedRunes || [])[socketIndex]) {
+        result = { success: false, message: 'Este soquete já está ocupado — remova ou extraia a runa antes.' };
+        return state;
+      }
+      // Primordiais são artefatos nomeados: 1 engaste por personagem INTEIRO.
+      if (isPrimordialRune(runeId) && listAllSocketedRunes(char).includes(runeId)) {
+        result = { success: false, message: `${runeDef.name} já está engastada em outro item — Runas Primordiais são únicas.` };
+        return state;
+      }
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => {
+        const socketedRunes = [...(i.socketedRunes || Array(i.sockets || 0).fill(null))];
+        socketedRunes[socketIndex] = runeId;
+        return { ...i, socketedRunes };
+      });
+      const runeInventory = { ...(char.runeInventory || {}) };
+      runeInventory[runeId] = (runeInventory[runeId] || 0) - 1;
+      if ((runeInventory[runeId] || 0) <= 0) delete runeInventory[runeId];
+      const updated = { ...afterUpdate, runeInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${runeDef.glyph} ${runeDef.name} engastada em [${item.name}]!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  unsocketRuneDestructive: (itemId, socketIndex) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const chamberLevel = char.citadel?.engravingChamber?.level || 0;
+      if (chamberLevel < 2) {
+        result = { success: false, message: 'A remoção de runas requer a Câmara de Gravação Nível 2.' };
+        return state;
+      }
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      const runeId = item?.socketedRunes?.[socketIndex];
+      if (!item || !runeId) {
+        result = { success: false, message: 'Não há runa neste soquete.' };
+        return state;
+      }
+      if (isPrimordialRune(runeId)) {
+        result = { success: false, message: 'Runas Primordiais não podem ser destruídas — use a Extração (sempre preserva).' };
+        return state;
+      }
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => {
+        const socketedRunes = [...(i.socketedRunes || [])];
+        socketedRunes[socketIndex] = null;
+        return { ...i, socketedRunes };
+      });
+      saveToLocalStorage(afterUpdate);
+      result = { success: true, message: `💥 ${RUNE_CATALOG[runeId].name} foi destruída — o soquete de [${item.name}] está livre.` };
+      return { character: afterUpdate };
+    });
+    return result;
+  },
+
+  extractRune: (itemId, socketIndex) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const chamberLevel = char.citadel?.engravingChamber?.level || 0;
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      const runeId = item?.socketedRunes?.[socketIndex];
+      if (!item || !runeId) {
+        result = { success: false, message: 'Não há runa neste soquete.' };
+        return state;
+      }
+      const primordial = isPrimordialRune(runeId);
+      // Primordiais: extração sempre preserva e já é possível na Câmara N2 (elas não têm remoção
+      // destrutiva); runas base exigem N4.
+      const requiredLevel = primordial ? 2 : 4;
+      if (chamberLevel < requiredLevel) {
+        result = { success: false, message: `A extração ${primordial ? 'de Runas Primordiais' : 'intacta'} requer a Câmara de Gravação Nível ${requiredLevel}.` };
+        return state;
+      }
+      const cost = primordial ? EXTRACT_PRIMORDIAL_COST_PEARLS : EXTRACT_RUNE_COST_PEARLS;
+      if ((char.pearls || 0) < cost) {
+        result = { success: false, message: `A extração custa ${cost} 🦪 Pérolas.` };
+        return state;
+      }
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => {
+        const socketedRunes = [...(i.socketedRunes || [])];
+        socketedRunes[socketIndex] = null;
+        return { ...i, socketedRunes };
+      });
+      const runeInventory = { ...(char.runeInventory || {}) };
+      runeInventory[runeId] = (runeInventory[runeId] || 0) + 1;
+      const updated = { ...afterUpdate, pearls: (char.pearls || 0) - cost, runeInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${RUNE_CATALOG[runeId].glyph} ${RUNE_CATALOG[runeId].name} extraída intacta e devolvida ao cofre.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  fuseRunes: (runeId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const chamberLevel = char.citadel?.engravingChamber?.level || 0;
+      if (chamberLevel < 4) {
+        result = { success: false, message: 'A fusão de runas (3→1) requer a Câmara de Gravação Nível 4.' };
+        return state;
+      }
+      const runeDef = RUNE_CATALOG[runeId];
+      const fusedId = getFusedRuneId(runeId);
+      if (!runeDef || !fusedId) {
+        result = { success: false, message: isPrimordialRune(runeId) ? 'Runas Primordiais não fundem.' : 'Esta runa já está no tier máximo.' };
+        return state;
+      }
+      const owned = (char.runeInventory || {})[runeId] || 0;
+      if (owned < RUNE_FUSE_INPUT_COUNT) {
+        result = { success: false, message: `A fusão consome ${RUNE_FUSE_INPUT_COUNT}x ${runeDef.name} (você tem ${owned}).` };
+        return state;
+      }
+      const fuseCost = RUNE_FUSE_COST_PEARLS[runeDef.tier as 1 | 2];
+      if ((char.pearls || 0) < fuseCost) {
+        result = { success: false, message: `A fusão custa ${fuseCost} 🦪 Pérolas.` };
+        return state;
+      }
+      const runeInventory = { ...(char.runeInventory || {}) };
+      runeInventory[runeId] = owned - RUNE_FUSE_INPUT_COUNT;
+      if ((runeInventory[runeId] || 0) <= 0) delete runeInventory[runeId];
+      runeInventory[fusedId] = (runeInventory[fusedId] || 0) + 1;
+      const updated = { ...char, pearls: (char.pearls || 0) - fuseCost, runeInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `⚗️ 3x ${runeDef.name} fundidas em 1x ${RUNE_CATALOG[fusedId].name}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // ── v10.3.0 "O Coração do Abismo": Palavras Rúnicas ───────────────────────────────────────
+  // Gravar é uma AÇÃO explícita (não detecção passiva): consome as runas exatas do runeInventory,
+  // sobrescreve os soquetes do item com a sequência e ativa `activeRuneword`. Desfazer devolve as
+  // runas intactas — "o custo é o preço da tentativa, não uma armadilha" (Anexo §2.3).
+
+  revealRuneword: (runewordId) => set((state) => {
+    const revealed = state.character.revealedRunewordIds || [];
+    if (revealed.includes(runewordId)) return state;
+    const runeword = getRunewordById(runewordId);
+    const updated = { ...state.character, revealedRunewordIds: [...revealed, runewordId] };
+    saveToLocalStorage(updated);
+    if (runeword) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `📜 Uma sequência ressoa em sua mente: a Palavra Rúnica ${runeword.name} foi revelada!` });
+    }
+    return { character: updated };
+  }),
+
+  engraveRuneword: (itemId, runewordId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const chamberLevel = char.citadel?.engravingChamber?.level || 0;
+      if (chamberLevel < 5) {
+        result = { success: false, message: 'Palavras Rúnicas exigem a Câmara de Gravação Nível 5.' };
+        return state;
+      }
+      const runeword = getRunewordById(runewordId);
+      if (!runeword) {
+        result = { success: false, message: 'Palavra Rúnica desconhecida.' };
+        return state;
+      }
+      if (!(char.revealedRunewordIds || []).includes(runewordId)) {
+        result = { success: false, message: 'Esta receita ainda não foi revelada.' };
+        return state;
+      }
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado.' };
+        return state;
+      }
+      if (runeword.requiredSlot !== 'any' && item.slot !== runeword.requiredSlot) {
+        result = { success: false, message: `${runeword.name} só pode ser gravada em: ${runeword.requiredSlot}.` };
+        return state;
+      }
+      if (runeword.requiresAbyssalWeapon4Sockets && !item.setName?.startsWith('Set Abissal')) {
+        result = { success: false, message: `${runeword.name} só pode ser gravada numa arma do Set Abissal.` };
+        return state;
+      }
+      const neededSockets = runeword.sequence.length;
+      if ((item.sockets || 0) < neededSockets) {
+        result = { success: false, message: `${runeword.name} exige ${neededSockets} soquetes; este item tem ${item.sockets || 0}.` };
+        return state;
+      }
+      const runeInventory = { ...(char.runeInventory || {}) };
+      for (const runeId of runeword.sequence) {
+        const owned = runeInventory[runeId] || 0;
+        const neededOfThisRune = runeword.sequence.filter(r => r === runeId).length;
+        if (owned < neededOfThisRune) {
+          result = { success: false, message: `Faltam runas: precisa de ${neededOfThisRune}x ${RUNE_CATALOG[runeId]?.name || runeId} no cofre.` };
+          return state;
+        }
+      }
+      // Primordiais na sequência: 1 por personagem inteiro — não pode já estar engastada em OUTRO item.
+      for (const runeId of runeword.sequence) {
+        if (isPrimordialRune(runeId) && listAllSocketedRunes(char).some(r => r === runeId) && !(item.socketedRunes || []).includes(runeId)) {
+          result = { success: false, message: `${RUNE_CATALOG[runeId].name} já está engastada em outro item.` };
+          return state;
+        }
+      }
+      const cost = getRunewordEngraveCost(runeword);
+      if ((char.pearls || 0) < cost) {
+        result = { success: false, message: `Gravar ${runeword.name} custa ${cost} 🦪 Pérolas.` };
+        return state;
+      }
+      // Devolve ao cofre as runas que já estavam nos soquetes ANTES de consumir a sequência nova
+      // (senão elas seriam destruídas em silêncio — nenhuma runa some sem aviso neste sistema).
+      const previousRunes = (item.socketedRunes || []).filter((r): r is RuneId => !!r);
+      previousRunes.forEach((r) => { runeInventory[r] = (runeInventory[r] || 0) + 1; });
+      runeword.sequence.forEach((runeId) => {
+        runeInventory[runeId] = (runeInventory[runeId] || 0) - 1;
+        if ((runeInventory[runeId] || 0) <= 0) delete runeInventory[runeId];
+      });
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i,
+        socketedRunes: [...runeword.sequence],
+        activeRuneword: runewordId,
+      }));
+      const updated = { ...afterUpdate, pearls: (char.pearls || 0) - cost, runeInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `⚡ Palavra Rúnica ${runeword.name} gravada em [${item.name}]!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  undoRuneword: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const item = probe.item;
+      if (!item?.activeRuneword) {
+        result = { success: false, message: 'Este item não tem uma Palavra Rúnica ativa.' };
+        return state;
+      }
+      const runeword = getRunewordById(item.activeRuneword);
+      const runeInventory = { ...(char.runeInventory || {}) };
+      (item.socketedRunes || []).forEach((runeId) => {
+        if (runeId) runeInventory[runeId] = (runeInventory[runeId] || 0) + 1;
+      });
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i,
+        socketedRunes: (i.socketedRunes || []).map(() => null),
+        activeRuneword: undefined,
+      }));
+      const updated = { ...afterUpdate, runeInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `A Palavra Rúnica ${runeword?.name || ''} foi desfeita — as runas voltaram intactas ao cofre.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // ── v10.2.0 "Os Ecos Afogados": Cidadela Submersa (6 distritos) + Ecos Afogados ───────────
+  // Visível após a 1ª descida que alcança a Zona 3 (historicalMaxDepth >= 51). Sobrevive a
+  // Ascensão E Transcendência (construção de conta, como `citadel`) — ver reset de Transcendência.
+
+  tickSunkenCitadelProduction: () => {
+    // Distritos cuja drenagem concluiu NESTA chamada — resgata 1 Eco por distrito (100% de
+    // chance, Design §6.B) DEPOIS do set() abaixo terminar (nunca chamar outra action baseada em
+    // `set` de dentro do próprio updater — mesmo cuidado já seguido em buildOrUpgradeCoastalDock).
+    const justCompletedDrains: DistrictId[] = [];
+
+    set((state) => {
+    const char = state.character;
+    const now = Date.now();
+    let sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+    let changed = false;
+
+    // Resolve drenagens concluídas (inclusive offline): Alagado → Drenado (Restaurado I automático,
+    // gratuito — a função principal do distrito já liga e o 1º slot de Eco abre, Anexo 2 §1.3).
+    const districts = { ...sunken.districts };
+    for (const id of DISTRICT_IDS) {
+      const d = districts[id];
+      if (d?.drainUpgrade && now >= d.drainUpgrade.completesAt) {
+        districts[id] = { flooded: false, restorationLevel: 1 };
+        changed = true;
+        justCompletedDrains.push(id);
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `⚓ ${DISTRICT_NAMES[id]} drenado! Restaurado I: função principal ativa + 1 slot de Eco.` });
+      }
+    }
+    if (changed) sunken = { ...sunken, districts };
+
+    // Produção periódica FLAT (por Eco alocado): Doca gera Fragmentos de Batisfera a cada 48h
+    // (24h com Restauração III); Arquivo gera Pérolas 2/dia (4/dia com Restauração III). Ambas
+    // dependem de Ecos estarem alocados no distrito (Anexo 2 §1.4) — sem Eco, sem produção.
+    const lastTick = sunken.lastProductionTick || now;
+    const elapsedHours = (now - lastTick) / 3600000;
+    if (elapsedHours >= 1) {
+      const dockEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'dock').length;
+      const archiveEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'archive').length;
+      // Bênção da Maré "+15% Produção Submersa" (Templo da Maré).
+      const blessing = sunken.tideBlessing;
+      const productionMult = (blessing?.id === 'blessing_production' && now < blessing.expiresAt) ? 1.15 : 1.0;
+      let fragments = 0;
+      let pearlsFromArchive = 0;
+      if (dockEchoCount > 0 && !districts.dock?.flooded) {
+        const intervalHours = (districts.dock?.restorationLevel || 0) >= 3 ? 24 : 48;
+        fragments = Math.floor((elapsedHours / intervalHours) * dockEchoCount * productionMult);
+      }
+      if (archiveEchoCount > 0 && !districts.archive?.flooded) {
+        const perDay = (districts.archive?.restorationLevel || 0) >= 3 ? 4 : 2;
+        pearlsFromArchive = Math.floor((elapsedHours / 24) * perDay * archiveEchoCount * productionMult);
+      }
+      if (fragments > 0 || pearlsFromArchive > 0) {
+        sunken = { ...sunken, lastProductionTick: now };
+        changed = true;
+        if (fragments > 0) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `⚓ A Doca Batial entregou +${fragments} Fragmento(s) de Batisfera!` });
+        }
+        if (pearlsFromArchive > 0) {
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `📚 O Arquivo Submerso gerou +${pearlsFromArchive} Pérola(s)!` });
+        }
+        const updated: Character = {
+          ...char,
+          sunkenCitadel: sunken,
+          batisphereFragments: (char.batisphereFragments || 0) + fragments,
+          pearls: (char.pearls || 0) + pearlsFromArchive,
+        };
+        saveToLocalStorage(updated);
+        return { character: updated };
+      }
+    }
+
+    if (!changed) return state;
+    const updated = { ...char, sunkenCitadel: sunken };
+    saveToLocalStorage(updated);
+    return { character: updated };
+    });
+
+    for (const districtId of justCompletedDrains) {
+      useGameStore.getState().rescueEcho('districtDrain');
+      // v10.3.0: Arquivo Submerso drenado (Restauração I automática) revela PULMÃO DE FERRO.
+      if (districtId === 'archive') useGameStore.getState().revealRuneword('pulmao_ferro');
+    }
+  },
+
+  startDistrictDrain: (districtId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickSunkenCitadelProduction();
+    set((state) => {
+      const char = state.character;
+      if ((char.abyss?.historicalMaxDepth || 0) < 51) {
+        result = { success: false, message: 'A Cidadela Submersa exige alcançar a Zona 3 das Profundezas (prof. 51+).' };
+        return state;
+      }
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      const existing = sunken.districts[districtId];
+      if (existing && (!existing.flooded || existing.drainUpgrade)) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} já foi drenado ou está drenando.` };
+        return state;
+      }
+      const baseCost = DISTRICT_DRAIN_COST[districtId];
+      const tideDiscount = getTidePhase() === 'low' ? TIDE_LOW_DRAIN_COST_MULT : 1.0;
+      // Mergulhador (perk global): −5% custo de Pérolas na drenagem/restauração, cap −20%.
+      const diverDiscount = 1 - getVocationPerkTotal(sunken.echoes, 'diver');
+      const cost = { pearls: Math.round(baseCost.pearls * tideDiscount * diverDiscount), coral: Math.round(baseCost.coral * tideDiscount * diverDiscount) };
+      const materials = char.materials || DEFAULT_MATERIALS();
+      if ((char.pearls || 0) < cost.pearls || (materials.coral || 0) < cost.coral) {
+        result = { success: false, message: `Recursos insuficientes: requer ${cost.pearls} 🦪 Pérolas e ${cost.coral} 🪸 Coral.` };
+        return state;
+      }
+      const now = Date.now();
+      const completesAt = now + baseCost.durationHours * 3600000;
+      const updated: Character = {
+        ...char,
+        pearls: (char.pearls || 0) - cost.pearls,
+        materials: { ...materials, coral: (materials.coral || 0) - cost.coral },
+        sunkenCitadel: {
+          ...sunken,
+          districts: { ...sunken.districts, [districtId]: { flooded: true, restorationLevel: 0, drainUpgrade: { completesAt } } },
+        },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Drenagem de ${DISTRICT_NAMES[districtId]} iniciada! Conclusão em ${baseCost.durationHours}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  upgradeDistrictRestoration: (districtId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    let justReachedLevel2Archive = false;
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      const d = sunken.districts[districtId];
+      if (!d || d.flooded) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} ainda não foi drenado.` };
+        return state;
+      }
+      if (d.restorationLevel >= 3) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} já está na Restauração III.` };
+        return state;
+      }
+      const targetLevel = (d.restorationLevel + 1) as 2 | 3;
+      const baseCost = getRestorationCost(districtId, targetLevel);
+      const diverDiscount = 1 - getVocationPerkTotal(sunken.echoes, 'diver');
+      const cost = { pearls: Math.round(baseCost.pearls * diverDiscount), coral: Math.round(baseCost.coral * diverDiscount) };
+      const materials = char.materials || DEFAULT_MATERIALS();
+      if ((char.pearls || 0) < cost.pearls || (materials.coral || 0) < cost.coral) {
+        result = { success: false, message: `Recursos insuficientes: requer ${cost.pearls} 🦪 Pérolas e ${cost.coral} 🪸 Coral.` };
+        return state;
+      }
+      const updated: Character = {
+        ...char,
+        pearls: (char.pearls || 0) - cost.pearls,
+        materials: { ...materials, coral: (materials.coral || 0) - cost.coral },
+        sunkenCitadel: {
+          ...sunken,
+          districts: { ...sunken.districts, [districtId]: { ...d, restorationLevel: targetLevel } },
+        },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${DISTRICT_NAMES[districtId]} restaurado ao nível ${targetLevel === 2 ? 'II' : 'III'}!` };
+      if (districtId === 'archive' && targetLevel === 2) justReachedLevel2Archive = true;
+      return { character: updated };
+    });
+    // v10.3.0: Arquivo Submerso Restauração II revela CORO SUBMERSO (fora do set() acima).
+    if (justReachedLevel2Archive) useGameStore.getState().revealRuneword('coro_submerso');
+    return result;
+  },
+
+  upgradeDivingSuit: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      if ((sunken.districts.dock?.restorationLevel || 0) < 1) {
+        result = { success: false, message: 'Requer a Doca Batial drenada e restaurada (Restauração I).' };
+        return state;
+      }
+      const abyss = char.abyss || { unlocked: true, currentDepth: 0, historicalMaxDepth: 0, breath: 100, divingSuitLevel: 0, bankedRewards: { pearls: 0, coral: 0, runes: {} } };
+      const nextLevel = (abyss.divingSuitLevel || 0) + 1;
+      if (nextLevel > DIVE_SUIT_MAX_LEVEL) {
+        result = { success: false, message: 'O Traje de Mergulho já está no nível máximo.' };
+        return state;
+      }
+      const cost = getDiveSuitUpgradeCost(nextLevel);
+      const materials = char.materials || DEFAULT_MATERIALS();
+      if ((char.pearls || 0) < cost.pearls || (materials.coral || 0) < cost.coral) {
+        result = { success: false, message: `Recursos insuficientes: requer ${cost.pearls} 🦪 Pérolas e ${cost.coral} 🪸 Coral.` };
+        return state;
+      }
+      const updated: Character = {
+        ...char,
+        pearls: (char.pearls || 0) - cost.pearls,
+        materials: { ...materials, coral: (materials.coral || 0) - cost.coral },
+        abyss: { ...abyss, divingSuitLevel: nextLevel },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `🤿 Traje de Mergulho melhorado para o Nível ${nextLevel}! Pressão e dreno de Fôlego reduzidos.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  assignEcho: (echoId, districtId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      const echoIdx = sunken.echoes.findIndex(e => e.id === echoId);
+      if (echoIdx < 0) {
+        result = { success: false, message: 'Eco não encontrado.' };
+        return state;
+      }
+      const echo = sunken.echoes[echoIdx];
+      if (districtId === null) {
+        const echoes = [...sunken.echoes];
+        echoes[echoIdx] = { ...echo, assignedDistrict: undefined };
+        const updated: Character = { ...char, sunkenCitadel: { ...sunken, echoes } };
+        saveToLocalStorage(updated);
+        result = { success: true, message: `${echo.name} voltou a descansar no Salão.` };
+        return { character: updated };
+      }
+      const d = sunken.districts[districtId];
+      if (!d || d.flooded || d.restorationLevel < 1) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} ainda não tem slots de Eco disponíveis.` };
+        return state;
+      }
+      const slots = getDistrictSlotCount(d.restorationLevel);
+      const occupied = sunken.echoes.filter(e => e.id !== echoId && e.assignedDistrict === districtId).length;
+      if (occupied >= slots) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} não tem slots livres (${occupied}/${slots}).` };
+        return state;
+      }
+      const isNewDistrict = echo.assignedDistrict !== districtId;
+      const echoes = [...sunken.echoes];
+      echoes[echoIdx] = {
+        ...echo,
+        assignedDistrict: districtId,
+        // Coração Partido: realocar para um distrito DIFERENTE reinicia os 7 dias de cura.
+        brokenHeartHealsAt: (echo.trait === 'brokenHeart' && isNewDistrict) ? Date.now() + BROKEN_HEART_HEAL_MS : echo.brokenHeartHealsAt,
+      };
+      const updated: Character = { ...char, sunkenCitadel: { ...sunken, echoes } };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `${echo.name} alocado em ${DISTRICT_NAMES[districtId]}.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // Resgate de um Eco Afogado — chamado pela Profundezas (Zona 3+, useDiveStore.completeDepth)
+  // e pela conclusão de drenagem de distrito (tickSunkenCitadelProduction, 100% de chance).
+  // Geração determinística via `generateEcho(rescueIndex, source)` — mesma seed sempre produz o
+  // mesmo Eco (Anexo 2 §1.9), rescueIndex = echoesRescuedLifetime ANTES deste resgate.
+  rescueEcho: (source) => {
+    let result: { rescued: boolean; message: string } = { rescued: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      const rescueIndex = sunken.echoesRescuedLifetime;
+      const echo = generateEcho(rescueIndex, source);
+      const roomInRoster = sunken.echoes.length < ECHO_ROSTER_CAP;
+      const echoes = roomInRoster ? [...sunken.echoes, echo] : sunken.echoes;
+      const newLifetime = rescueIndex + 1;
+
+      let runeInventory = char.runeInventory;
+      let milestoneMsg = '';
+      let pearlsBonus = 0;
+      if (newLifetime === 3) {
+        pearlsBonus = 50;
+        milestoneMsg = ' 🏅 Marco de 3 resgates: título "Pastor de Ecos" (+50 Pérolas)!';
+      } else if (newLifetime === 6) {
+        milestoneMsg = ' 🕍 Marco de 6 resgates: +1 slot de Bênção guardada no Templo!';
+      } else if (newLifetime === 9) {
+        milestoneMsg = ' 📜 Marco de 9 resgates: a receita da Palavra Rúnica MARÉ VIVA ressoa no Arquivo!';
+      } else if (newLifetime === 12) {
+        runeInventory = { ...(char.runeInventory || {}) };
+        runeInventory['ecoh'] = (runeInventory['ecoh'] || 0) + 1;
+        milestoneMsg = ' 🝮 Marco de 12 resgates: Runa Primordial ECOH, A VOZ AFOGADA foi adicionada ao seu inventário de runas!';
+      } else if (newLifetime === 16) {
+        milestoneMsg = ' 🎭 O Salão está cheio — os Ecos cantam em conjunto pela primeira vez...';
+      }
+
+      const revealedRunewordIds = newLifetime === 9 && !(char.revealedRunewordIds || []).includes('mare_viva')
+        ? [...(char.revealedRunewordIds || []), 'mare_viva']
+        : char.revealedRunewordIds;
+
+      const updated: Character = {
+        ...char,
+        pearls: (char.pearls || 0) + pearlsBonus,
+        runeInventory,
+        revealedRunewordIds,
+        sunkenCitadel: { ...sunken, echoes, echoesRescuedLifetime: newLifetime },
+      };
+      saveToLocalStorage(updated);
+      const baseMsg = roomInRoster
+        ? `🌊 Um Eco Afogado emergiu: ${echo.name} (${ECHO_VOCATION_NAMES[echo.vocation]}, ${ECHO_TRAIT_NAMES[echo.trait]}).`
+        : `🌊 Um Eco Afogado tentou emergir, mas o Salão está lotado (16/16) — só o contador vitalício avançou.`;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${baseMsg}${milestoneMsg}` });
+      result = { rescued: roomInRoster, message: `${baseMsg}${milestoneMsg}` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  chooseTideBlessing: (blessingId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      if ((sunken.districts.temple?.restorationLevel || 0) < 1) {
+        result = { success: false, message: 'Requer o Templo da Maré drenado e restaurado (Restauração I).' };
+        return state;
+      }
+      if (getTidePhase() !== 'high') {
+        result = { success: false, message: 'Bênçãos só podem ser escolhidas durante a Maré Alta.' };
+        return state;
+      }
+      const blessing = TIDE_BLESSINGS.find(b => b.id === blessingId);
+      if (!blessing) {
+        result = { success: false, message: 'Bênção inválida.' };
+        return state;
+      }
+      const updated: Character = {
+        ...char,
+        sunkenCitadel: { ...sunken, tideBlessing: { id: blessingId, expiresAt: getTidePhaseEndsAt() } },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `🕍 Bênção da Maré escolhida: ${blessing.name}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // v10.4.0 "O Leviatã do Ciclo": recompensas de MORTE do chefe mundial. As de FASE já foram
+  // bancadas em `useLeviathanStore.completePhase()` antes de chamar isto (só a 5ª fase chega aqui).
+  killLeviathan: (pLev, pearlMult, fullClearThisAttempt) => {
+    set((state) => {
+      const char = state.character;
+      const isFirstKillEver = (char.leviathanKillCountLifetime || 0) <= 0;
+      let updated: Character = { ...char, leviathanKillCountLifetime: (char.leviathanKillCountLifetime || 0) + 1 };
+
+      if (isFirstKillEver) {
+        updated.runeInventory = { ...(updated.runeInventory || {}), levh: (updated.runeInventory?.levh || 0) + 1 };
+        updated.revealedRunewordIds = updated.revealedRunewordIds?.includes('coracao_leviata')
+          ? updated.revealedRunewordIds
+          : [...(updated.revealedRunewordIds || []), 'coracao_leviata'];
+        bridge.emit(GameEvent.LOG_EMITTED, {
+          message: '🝓 Das profundezas do peito da fera, a Runa Primordial LEVH, CORAÇÃO DO LEVIATÃ foi adicionada ao seu cofre! A receita da Palavra Rúnica homônima ressoa no Arquivo.',
+        });
+        useTowerStore.getState().unlockTitle('Aquele Que Ouviu o Coro');
+        if (!updated.leviathanCutsceneSeen) {
+          updated.leviathanCutsceneSeen = true;
+          bridge.emit(GameEvent.CUTSCENE_TRIGGERED, { id: 'leviathan_ending' });
+        }
+      } else {
+        const setPearls = Math.round(LEVIATHAN_KILL_REPEAT_PEARLS * pearlMult);
+        updated.pearls = (updated.pearls || 0) + setPearls;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 O Leviatã caiu novamente: +${setPearls} Pérolas.` });
+      }
+
+      if (fullClearThisAttempt) {
+        const bonusPearls = Math.round(LEVIATHAN_FULL_CLEAR_BONUS_PEARLS * pearlMult);
+        updated.pearls = (updated.pearls || 0) + bonusPearls;
+        updated.leviathanFastestFullClear = 1;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 FULL CLEAR EM 1 TENTATIVA! +${bonusPearls} Pérolas.` });
+      }
+
+      saveToLocalStorage(updated);
+      return { character: updated };
+    });
+
+    // Peça garantida do Set Abissal + chance de uma 2ª (kills seguintes E também a 1ª, per Anexo
+    // "Kill (1ª vez na vida): receita + Levh + título" não menciona excluir o Set — mantemos
+    // consistente concedendo a peça em toda morte, já que é o mesmo drop-source da Fossa Z4).
+    const char = useGameStore.getState().character;
+    const item = rollAbyssalSetDrop(char.classId, pLev);
+    useGameStore.getState().addItemToInventory(item);
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 O Leviatã concedeu uma peça do SET ABISSAL: [${item.name}]!` });
+    if (Math.random() < LEVIATHAN_KILL_REPEAT_2ND_PIECE_CHANCE) {
+      const item2 = rollAbyssalSetDrop(char.classId, pLev);
+      useGameStore.getState().addItemToInventory(item2);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 Uma 2ª peça do SET ABISSAL emergiu: [${item2.name}]!` });
+    }
   },
 
   buildOrUpgradeForgeWorkshop: () => {
@@ -2577,7 +3945,14 @@ export const useGameStore = create<GameState>((set) => ({
         stone: Math.floor((state.character.materials?.stone || 0) * 0.02),
         meat: Math.floor((state.character.materials?.meat || 0) * 0.02),
         studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.02),
+        coral: Math.floor((state.character.materials?.coral || 0) * 0.02),
       },
+      // v10.0.0: Pérolas seguem a regra dos 2% dos materiais; runeInventory, Chaves de Mergulho,
+      // Fragmentos de Batisfera e os desbloqueios/recordes do Litoral/Abismo SOBREVIVEM à Ascensão
+      // (são infraestrutura de conta, como os Fragmentos de Forja... que zeram, mas runas engastadas
+      // seguem o item — e itens equipados já seguem a regra do Pandemônio acima). O spread de
+      // `...state.character` preserva runeInventory/diveKeys/batisphereFragments/coastal/abyss.
+      pearls: Math.floor((state.character.pearls || 0) * 0.02),
     };
 
     // Processa os recordes pessoais
@@ -2752,7 +4127,31 @@ export const useGameStore = create<GameState>((set) => ({
       citadel: {
         ...(state.character.citadel || DEFAULT_CITADEL()),
         vault: { ...(state.character.citadel?.vault || DEFAULT_CITADEL().vault), storedItems: [] }
-      }
+      },
+      // v10.0.0: runeInventory, Pérolas, Coral, Chaves de Mergulho e Fragmentos de Batisfera são
+      // "poder do ciclo" — zeram na Transcendência. Os DESBLOQUEIOS e recordes do Litoral/Abismo
+      // (unlocked, historicalMaxDepth, faroPerfectCatches/faroGranted, nível da Doca) sobrevivem:
+      // são construção de conta, como a própria Cidadela Astral.
+      pearls: 0,
+      diveKeys: 0,
+      batisphereFragments: 0,
+      runeInventory: {},
+      materials: { ...(state.character.materials || DEFAULT_MATERIALS()), coral: 0 },
+      abyss: {
+        ...(state.character.abyss || DEFAULT_ABYSS()),
+        currentDepth: 0,
+        breath: 100,
+        bankedRewards: { pearls: 0, coral: 0, runes: {} },
+        airPocketPearlBonus: 0,
+        // divingSuitLevel SOBREVIVE: é infraestrutura da Doca Batial (como historicalMaxDepth),
+        // não poder de personagem — mesma lógica de nível de construção da Cidadela Astral.
+      },
+      // v10.2.0 "Os Ecos Afogados": distritos/Ecos SOBREVIVEM (construção de conta, como `citadel`);
+      // só `tideBlessing` zera — é "poder do ciclo" (buff temporário), não infraestrutura.
+      sunkenCitadel: {
+        ...(state.character.sunkenCitadel || DEFAULT_SUNKEN_CITADEL()),
+        tideBlessing: undefined,
+      },
     };
 
     saveToLocalStorage(updatedChar);
@@ -3490,16 +4889,18 @@ export const useGameStore = create<GameState>((set) => ({
 
     const goldEarned = calculateItemSellValue(item);
     const newInventory = state.character.inventory.filter(i => i.id !== itemId);
-    
+    const { runeInventory, reclaimed } = reclaimRunesToInventory(state.character.runeInventory, [item]);
+
     const updated = {
       ...state.character,
       gold: (state.character.gold || 0) + goldEarned,
-      inventory: newInventory
+      inventory: newInventory,
+      runeInventory
     };
     saveToLocalStorage(updated);
 
     if (goldEarned > 0) {
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu [${item.name}] por +${goldEarned} Ouro!` });
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu [${item.name}] por +${goldEarned} Ouro!${reclaimed > 0 ? ` (${reclaimed} runa(s) devolvida(s) ao cofre)` : ''}` });
     }
 
     return { character: updated };
@@ -3512,16 +4913,18 @@ export const useGameStore = create<GameState>((set) => ({
     if (item.slot === 'consumable') return state;
 
     const newInventory = state.character.inventory.filter(i => i.id !== itemId);
-    
+    const { runeInventory, reclaimed } = reclaimRunesToInventory(state.character.runeInventory, [item]);
+
     const updated = {
       ...state.character,
       forgeFragments: (state.character.forgeFragments || 0) + 1,
-      inventory: newInventory
+      inventory: newInventory,
+      runeInventory
     };
     saveToLocalStorage(updated);
 
-    bridge.emit(GameEvent.LOG_EMITTED, { 
-      message: `🛠️ Você desmontou [${item.name}] e obteve +1 Fragmento de Forja!` 
+    bridge.emit(GameEvent.LOG_EMITTED, {
+      message: `🛠️ Você desmontou [${item.name}] e obteve +1 Fragmento de Forja!${reclaimed > 0 ? ` (${reclaimed} runa(s) devolvida(s) ao cofre)` : ''}`
     });
 
     return { character: updated };
@@ -3541,10 +4944,12 @@ export const useGameStore = create<GameState>((set) => ({
     });
 
     const newInventory = state.character.inventory.filter(i => i.slot === 'consumable');
+    const { runeInventory } = reclaimRunesToInventory(state.character.runeInventory, itemsToSell);
     const updated = {
       ...state.character,
       gold: (state.character.gold || 0) + totalGold,
-      inventory: newInventory
+      inventory: newInventory,
+      runeInventory
     };
     saveToLocalStorage(updated);
 
@@ -3562,10 +4967,12 @@ export const useGameStore = create<GameState>((set) => ({
     if (itemsToDismantle.length === 0) return state;
 
     const newInventory = state.character.inventory.filter(i => i.slot === 'consumable');
+    const { runeInventory } = reclaimRunesToInventory(state.character.runeInventory, itemsToDismantle);
     const updated = {
       ...state.character,
       forgeFragments: (state.character.forgeFragments || 0) + itemsToDismantle.length,
-      inventory: newInventory
+      inventory: newInventory,
+      runeInventory
     };
     saveToLocalStorage(updated);
 
@@ -3773,7 +5180,8 @@ export const useGameStore = create<GameState>((set) => ({
         const isAncestral = item1.setName.startsWith('Set Ancestral');
         const isPandemonium = item1.setName.startsWith('Set Pandemoníaco');
         const isCelestial = item1.setName.startsWith('Set Celestial');
-        
+        const isAbyssal = item1.setName.startsWith('Set Abissal');
+
         if (isAncestral) {
           if (cleanSetName.startsWith('Set Ancestral do ')) {
             cleanSetName = cleanSetName.replace('Set Ancestral do ', '');
@@ -3831,6 +5239,25 @@ export const useGameStore = create<GameState>((set) => ({
             prep = 'de';
           }
           newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
+        } else if (isAbyssal) {
+          // v10.3.0: Set Abissal — mesmo padrão de nomeação de fusão dos demais sets de topo.
+          if (cleanSetName.startsWith('Set Abissal do ')) {
+            cleanSetName = cleanSetName.replace('Set Abissal do ', '');
+          } else if (cleanSetName.startsWith('Set Abissal de ')) {
+            cleanSetName = cleanSetName.replace('Set Abissal de ', '');
+          } else if (cleanSetName.startsWith('Set Abissal da ')) {
+            cleanSetName = cleanSetName.replace('Set Abissal da ', '');
+          }
+          baseName = baseName.replace('Mística', 'Mística Abissal');
+          baseName = baseName.replace('Místico', 'Místico Abissal');
+
+          let prep = 'do';
+          if (item1.setName.includes(' da ')) {
+            prep = 'da';
+          } else if (item1.setName.includes(' de ')) {
+            prep = 'de';
+          }
+          newName = `${baseName} ${prep} ${cleanSetName} +${targetMysticLevel}`;
         } else {
           if (cleanSetName.startsWith('Set do ')) {
             cleanSetName = cleanSetName.replace('Set do ', '');
@@ -3852,6 +5279,23 @@ export const useGameStore = create<GameState>((set) => ({
 
       const newId = `mystic-${item1.slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+      // v10.0.0 "A Cidadela Submersa": a Fusão Mística PRESERVA soquetes — o resultado herda
+      // max(soquetes A, B); as runas engastadas no Item A permanecem no item, as do Item B são
+      // devolvidas intactas ao cofre de runas (`runeInventory`). Isso torna soquete e Místico
+      // complementares, não concorrentes — nenhuma runa é destruída silenciosamente.
+      const resultSockets = Math.max(item1.sockets || 0, item2.sockets || 0);
+      const resultRunes: (RuneId | null)[] = Array.from({ length: resultSockets }, (_, i) =>
+        (item1.socketedRunes || [])[i] || null
+      );
+      const returnedRunes = (item2.socketedRunes || []).filter((r): r is RuneId => !!r);
+      let runeInventoryAfterFusion = state.character.runeInventory;
+      if (returnedRunes.length > 0) {
+        runeInventoryAfterFusion = { ...(state.character.runeInventory || {}) };
+        for (const r of returnedRunes) {
+          runeInventoryAfterFusion[r] = (runeInventoryAfterFusion[r] || 0) + 1;
+        }
+      }
+
       const newItem: EquipmentItem = {
         id: newId,
         name: newName,
@@ -3864,7 +5308,8 @@ export const useGameStore = create<GameState>((set) => ({
         // Preserva o set do Item A: o item Místico continua contando
         // para os bônus de conjunto como se fosse um item Lendário do mesmo set.
         setName: item1.setName,
-        stage: Math.max(item1.stage || 1, item2.stage || 1)
+        stage: Math.max(item1.stage || 1, item2.stage || 1),
+        ...(resultSockets > 0 ? { sockets: resultSockets, socketedRunes: resultRunes } : {})
       };
 
       // Remove os dois itens fundidos do inventário
@@ -3875,15 +5320,17 @@ export const useGameStore = create<GameState>((set) => ({
         gold: (state.character.gold || 0) - cost,
         forgeFragments: (state.character.forgeFragments || 0) - fragmentCost,
         inventory: [...filteredInventory, newItem],
+        runeInventory: runeInventoryAfterFusion,
         totalGoldSpentInForge: (state.character.totalGoldSpentInForge || 0) + cost,
         totalForgeFragmentsSpent: (state.character.totalForgeFragmentsSpent || 0) + fragmentCost
       };
 
       saveToLocalStorage(updated);
 
+      const runeNote = returnedRunes.length > 0 ? ` (${returnedRunes.length} runa${returnedRunes.length > 1 ? 's' : ''} do Item B devolvida${returnedRunes.length > 1 ? 's' : ''} ao cofre)` : '';
       const successMsg = isLegendaryForge
-        ? `⚡ FORJA LENDÁRIA! Os astros sorriram! ${newName} foi forjado com +50% de poder!`
-        : `Fusão bem-sucedida! Gerou: ${newName}`;
+        ? `⚡ FORJA LENDÁRIA! Os astros sorriram! ${newName} foi forjado com +50% de poder!${runeNote}`
+        : `Fusão bem-sucedida! Gerou: ${newName}${runeNote}`;
       result = { success: true, message: successMsg, newItem };
       return { character: updated };
     });

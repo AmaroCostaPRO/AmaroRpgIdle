@@ -90,7 +90,10 @@ export const statLabels: Record<string, string> = {
   maxManaPct: 'Bônus de Mana',
   dropChancePct: 'Chance de Drop',
   damageReductionPct: 'Redução de Dano',
-  frenzyChancePct: 'Chance de Frenesi'
+  frenzyChancePct: 'Chance de Frenesi',
+  // v10.0.0: chaves alimentadas pelas Runas Abissais
+  goldBonusPct: 'Bônus de Ouro',
+  eliteDamagePct: 'Dano vs. Elite/Chefe'
 };
 
 export const isPercentStat = (stat: string) => {
@@ -105,7 +108,9 @@ export const isPercentStat = (stat: string) => {
     'damageMultiplierPct',
     'touchDamageMult',
     'critChance',
-    'critDamage'
+    'critDamage',
+    'goldBonusPct',
+    'eliteDamagePct'
   ].includes(stat);
 };
 
@@ -170,6 +175,51 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
   }
 
   return { isAncestral, isPandemonium, isCelestial, isBloodMoon, isPandemoniumMystic, isPandemoniumBase, border, shadow, bg };
+};
+
+// ── v10.0.0 "A Cidadela Submersa": visual das Runas Abissais e dos soquetes ──
+// Estratégia de lançamento do Anexo 3 (§1.6): glifo rúnico Unicode sobre fundo colorido pela
+// família + borda pelo tier (bronze/prata/dourado; primordiais têm borda própria) — custo ZERO
+// de arte, tudo CSS. A arte definitiva (spritesheets 3×3) chega numa fase futura.
+import { RUNE_CATALOG, RuneId } from '../../core/runeFormulas';
+import type { EquipmentItem } from '../../core/types';
+
+export interface RuneVisual {
+  glyph: string;
+  name: string;
+  bg: string;
+  border: string;
+  shadow: string;
+  tierLabel: string;
+}
+
+const RUNE_TIER_BORDERS: Record<string, { border: string; shadow: string; label: string }> = {
+  '1': { border: '2px solid #b45309', shadow: '0 0 5px rgba(180, 83, 9, 0.6)', label: 'Tier I' },
+  '2': { border: '2px solid #cbd5e1', shadow: '0 0 6px rgba(203, 213, 225, 0.6)', label: 'Tier II' },
+  '3': { border: '2px solid #fbbf24', shadow: '0 0 8px rgba(251, 191, 36, 0.7)', label: 'Tier III' },
+  primordial: { border: '2px double #f0abfc', shadow: '0 0 10px rgba(240, 171, 252, 0.8)', label: 'Primordial' },
+};
+
+export const getRuneVisual = (runeId: RuneId): RuneVisual => {
+  const def = RUNE_CATALOG[runeId];
+  const tierKey = String(def?.tier || '1');
+  const tier = RUNE_TIER_BORDERS[tierKey] || RUNE_TIER_BORDERS['1'];
+  return {
+    glyph: def?.glyph || '?',
+    name: def?.name || runeId,
+    bg: `${def?.color || '#334155'}33`,
+    border: tier.border,
+    shadow: tier.shadow,
+    tierLabel: tier.label,
+  };
+};
+
+// Linha de soquetes de um item: ● engastado / ○ vazio / (nada se o item não tem soquetes).
+// Compartilhada entre Inventário, Depósito e Câmara de Gravação para nunca divergirem.
+export const getSocketDots = (item: Pick<EquipmentItem, 'sockets' | 'socketedRunes'> | null | undefined): string => {
+  const sockets = item?.sockets || 0;
+  if (sockets <= 0) return '';
+  return Array.from({ length: sockets }, (_, i) => (item?.socketedRunes?.[i] ? '●' : '○')).join(' ');
 };
 
 // Cor/prefixo de destaque para a linha de texto "Conjunto: ..." nos modais de detalhe do item.

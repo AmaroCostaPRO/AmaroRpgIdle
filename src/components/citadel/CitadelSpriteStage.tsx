@@ -35,7 +35,7 @@ const PAGE_BACKGROUNDS = [BACKGROUND_SRC, BACKGROUND_SRC_PAGE_2];
 // v8.0.0 "O Espelho Faminto": sub-abas que vivem na 2ª página do pátio (ver `buildingsPage2`
 // abaixo) — usado para sincronizar a página exibida quando a troca de sub-aba vem de fora do
 // pátio (ex: `CitadelTabsBar`), não só do clique direto num marcador.
-const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab', 'huntSanctuary'];
+const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab', 'huntSanctuary', 'engravingChamber'];
 
 interface BuildingData {
   id: CitadelSubTab;
@@ -228,7 +228,8 @@ export const CitadelSpriteStage: React.FC = () => {
   const buildingsPage2: (BuildingData | null)[] = [
     { id: 'alchemyLab', icon: '⚗️', label: 'Laboratório de Alquimia', level: citadel?.alchemyLab.level || 0, maxLevel: 5, built: (citadel?.alchemyLab.level || 0) > 0, top: 20, left: 20 },
     { id: 'huntSanctuary', icon: '📜', label: 'Santuário de Contratos', level: citadel?.huntSanctuary.level || 0, maxLevel: 5, built: (citadel?.huntSanctuary.level || 0) > 0, top: 20, left: 50 },
-    null,
+    // v10.0.0 "A Cidadela Submersa": Câmara de Gravação — 3ª vaga da página 2
+    { id: 'engravingChamber', icon: '🪬', label: 'Câmara de Gravação', level: citadel?.engravingChamber?.level || 0, maxLevel: 5, built: (citadel?.engravingChamber?.level || 0) > 0, top: 20, left: 80 },
     null,
     null,
     null,
