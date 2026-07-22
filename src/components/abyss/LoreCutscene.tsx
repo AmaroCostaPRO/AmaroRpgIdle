@@ -15,7 +15,9 @@ interface CutscenePanel {
   holdMs: number;   // tempo mínimo antes de permitir avançar (evita pular sem ler)
 }
 
-const PANELS: CutscenePanel[] = [
+// Painel 6 ganha uma linha extra se o jogador já resgatou 12+ Ecos Afogados quando a cutscene
+// dispara (Anexo 2 §3.4 — "barata de implementar", o único ponto dinâmico do roteiro).
+const buildPanels = (choirComplete: boolean): CutscenePanel[] => [
   { text: 'A água parou.\n\nPela primeira vez em mil anos, o Trono Afundado ficou em silêncio.', holdMs: 1800 },
   {
     text: 'O Leviatã não caiu como caem os monstros.\n\nCaiu como cai uma sentinela — rendida, não derrotada.\nDevagar. Quase agradecida.',
@@ -33,7 +35,7 @@ const PANELS: CutscenePanel[] = [
   },
   {
     image: '/assets/cutscene_choir.png',
-    text: 'Ao redor, os Ecos Afogados se reuniram nas sacadas da cidade.\n\nE cantaram.\n\nNão o lamento que o mar decorou —\no canto que a cidadela cantava quando ainda tinha sol.',
+    text: `Ao redor, os Ecos Afogados se reuniram nas sacadas da cidade.\n\nE cantaram.\n\nNão o lamento que o mar decorou —\no canto que a cidadela cantava quando ainda tinha sol.${choirComplete ? '\n\nE desta vez, o coro estava completo.' : ''}`,
     holdMs: 2600,
   },
   {
@@ -50,10 +52,11 @@ const PANELS: CutscenePanel[] = [
   },
 ];
 
-export const LoreCutscene: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const LoreCutscene: React.FC<{ onClose: () => void; choirComplete?: boolean }> = ({ onClose, choirComplete = false }) => {
   const [panelIndex, setPanelIndex] = useState(0);
   const [canAdvance, setCanAdvance] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const PANELS = React.useMemo(() => buildPanels(choirComplete), [choirComplete]);
 
   const panel = PANELS[panelIndex];
   const isLast = panelIndex === PANELS.length - 1;

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
 import { AudioManager } from '../core/AudioManager';
+import { bridge } from '../bridge/GameBridge';
+import { GameEvent } from '../core/types';
 import { CODEX_CATEGORIES, CODEX_ENTRIES, CodexCategory, CodexUnlockContext } from '../core/codexData';
 
 export const CodexPanel: React.FC = () => {
@@ -101,6 +103,20 @@ export const CodexPanel: React.FC = () => {
           outline: 'none',
         }}
       />
+
+      {/* "Memórias" — rejogar a cutscene "O Coro e o Caco" a qualquer momento após vê-la 1x. */}
+      {activeCategory === 'events' && character.leviathanCutsceneSeen && (
+        <button
+          onClick={() => {
+            AudioManager.getInstance().playClick();
+            bridge.emit(GameEvent.CUTSCENE_TRIGGERED, { id: 'leviathan_ending' });
+          }}
+          className="btn btn-xs"
+          style={{ alignSelf: 'flex-start', fontSize: '0.68rem' }}
+        >
+          🎬 Memórias: reviver "O Coro e o Caco"
+        </button>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.25rem' }}>
         {categoryEntries.length === 0 && (

@@ -139,7 +139,7 @@ export const EngravingChamberPanel: React.FC = () => {
     if (!selectedItemId) return;
     AudioManager.getInstance().playClick();
     const res = engraveRuneword(selectedItemId, runewordId);
-    if (res.success) AudioManager.getInstance().playUpgrade();
+    if (res.success) AudioManager.getInstance().playRunewordComplete();
     showToast(res.message);
   };
 

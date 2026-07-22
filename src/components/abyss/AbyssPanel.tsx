@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { useDiveStore } from '../../store/useDiveStore';
+import { useTowerStore } from '../../store/useTowerStore';
 import { AudioManager } from '../../core/AudioManager';
 import {
   GUARDIAN_DEPTH, isFullDepthsUnlocked, getDiveKeyCost,
-  CHECKPOINT_START_DEPTHS, ZONE_INFO, getZoneForDepth,
+  CHECKPOINT_START_DEPTHS, ZONE_INFO, getZoneForDepth, PROFUNDEZAS_TITLE_MILESTONES,
 } from '../../core/abyssFormulas';
 import { DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost } from '../../core/sunkenCitadelFormulas';
 import { CoastalPanel } from './CoastalPanel';
 import { SubmersaPanel } from './SubmersaPanel';
+import { EquippedTitleBox } from '../tower/EquippedTitleBox';
 
 /**
  * v10.0.0 "A Cidadela Submersa" — aba de topo 🌊 Abismo.
@@ -27,8 +29,30 @@ export const AbyssPanel: React.FC = () => {
   const diveActive = useDiveStore((state) => state.diveActive);
   const lastDiveSummary = useDiveStore((state) => state.lastDiveSummary);
   const startDive = useDiveStore((state) => state.startDive);
+  const surface = useDiveStore((state) => state.surface);
   const [subTab, setSubTab] = useState<'coastal' | 'depths' | 'citadel'>('coastal');
   const upgradeDivingSuit = useGameStore((state) => state.upgradeDivingSuit);
+  const equippedTitle = useTowerStore((state) => state.equippedTitle);
+  const unlockedTitles = useTowerStore((state) => state.unlockedTitles);
+  const selectTitle = useTowerStore((state) => state.selectTitle);
+
+  // Dupla confirmação (2 toques em ~3s) antes de encerrar a descida — mesmo padrão das ações
+  // destrutivas do inventário, protegendo contra o toque acidental (não existia nenhum jeito de
+  // subir fora do Bolsão de Ar periódico até aqui).
+  const [confirmSurface, setConfirmSurface] = useState(false);
+  const confirmSurfaceTimer = React.useRef<number | undefined>(undefined);
+  const handleSurfaceClick = () => {
+    AudioManager.getInstance().playClick();
+    if (!confirmSurface) {
+      setConfirmSurface(true);
+      if (confirmSurfaceTimer.current) window.clearTimeout(confirmSurfaceTimer.current);
+      confirmSurfaceTimer.current = window.setTimeout(() => setConfirmSurface(false), 3000);
+      return;
+    }
+    if (confirmSurfaceTimer.current) window.clearTimeout(confirmSurfaceTimer.current);
+    setConfirmSurface(false);
+    surface('voluntary');
+  };
 
   const depthsUnlocked = (character.ascensionCount || 0) >= 1;
   const diveKeys = character.diveKeys || 0;
@@ -131,6 +155,30 @@ export const AbyssPanel: React.FC = () => {
               <span>📊 Recorde: <strong>Prof. {historicalMaxDepth}</strong></span>
             </div>
 
+            <EquippedTitleBox
+              selectedTitle={equippedTitle}
+              onRemove={() => selectTitle('')}
+              accentColor="#22d3ee"
+              borderColor="rgba(34, 211, 238, 0.35)"
+            />
+            {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>Títulos das Profundezas conquistados:</p>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).map(([depth, name]) => (
+                    <button
+                      key={depth}
+                      onClick={() => { AudioManager.getInstance().playClick(); selectTitle(equippedTitle === name ? '' : name); }}
+                      className="btn btn-xs"
+                      style={{ fontSize: '0.65rem', border: equippedTitle === name ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)' }}
+                    >
+                      👑 {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {fullDepths && (
               <div style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
@@ -174,14 +222,25 @@ export const AbyssPanel: React.FC = () => {
                 </div>
               </div>
             )}
-            <button
-              onClick={handleStartDive}
-              disabled={diveActive || diveKeys < keyCost}
-              className="btn btn-gold"
-              style={{ alignSelf: 'flex-start', opacity: diveActive || diveKeys < keyCost ? 0.5 : 1 }}
-            >
-              {diveActive ? '🤿 Mergulho em andamento...' : `🤿 INICIAR MERGULHO (${keyCost} Chave${keyCost > 1 ? 's' : ''})`}
-            </button>
+            {!diveActive && (
+              <button
+                onClick={handleStartDive}
+                disabled={diveKeys < keyCost}
+                className="btn btn-gold"
+                style={{ alignSelf: 'flex-start', opacity: diveKeys < keyCost ? 0.5 : 1 }}
+              >
+                🤿 INICIAR MERGULHO ({keyCost} Chave{keyCost > 1 ? 's' : ''})
+              </button>
+            )}
+            {diveActive && (
+              <button
+                onClick={handleSurfaceClick}
+                className="btn btn-gold"
+                style={{ alignSelf: 'flex-start', background: confirmSurface ? '#dc2626' : undefined }}
+              >
+                {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca o acumulado)'}
+              </button>
+            )}
             {diveKeys < keyCost && !diveActive && (
               <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)' }}>
                 Sem chaves suficientes: junte 5 🗝️ Fragmentos de Batisfera na pesca do Litoral para montar uma Chave de Mergulho.

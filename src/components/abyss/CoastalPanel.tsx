@@ -10,6 +10,7 @@ import {
   getActiveFishingCooldownMs, FARO_PERFECT_CATCHES_REQUIRED,
   BATHYSPHERE_FRAGMENTS_PER_KEY, ActiveFishingQuality,
 } from '../../core/abyssFormulas';
+import { getTidePhase, getTidePhaseEndsAt } from '../../core/sunkenCitadelFormulas';
 
 /**
  * v10.0.0 — 🎣 Litoral Naufragado (Anexo 3, §2.2).
@@ -43,12 +44,21 @@ export const CoastalPanel: React.FC = () => {
   const nextDockLevel = dockLevel + 1;
   const dockCost = getCoastalDockUpgradeCost(nextDockLevel);
 
+  const tidePhase = getTidePhase();
+  const tideCountdown = useCountdown(getTidePhaseEndsAt());
+
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const showToast = (message: string) => {
     setToast(message);
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 3500);
+  };
+
+  // Log das últimas 5 capturas (padrão console de combate — rolante, não persistido entre sessões).
+  const [catchLog, setCatchLog] = useState<string[]>([]);
+  const logCatch = (message: string) => {
+    setCatchLog((prev) => [message, ...prev].slice(0, 5));
   };
 
   // ── Minigame "Puxar a Linha" ───────────────────────────────────────────────
@@ -101,6 +111,7 @@ export const CoastalPanel: React.FC = () => {
     if (res.success) {
       AudioManager.getInstance().playCoin();
       setCooldownLeft(Math.ceil(getActiveFishingCooldownMs() / 1000));
+      logCatch(res.message);
     }
     showToast(res.message);
   };
@@ -109,7 +120,10 @@ export const CoastalPanel: React.FC = () => {
     AudioManager.getInstance().playClick();
     tickCoastalProduction();
     const res = collectFishingNet();
-    if (res.success) AudioManager.getInstance().playCoin();
+    if (res.success) {
+      AudioManager.getInstance().playCoin();
+      logCatch(res.message);
+    }
     showToast(res.message);
   };
 
@@ -158,6 +172,15 @@ export const CoastalPanel: React.FC = () => {
         borderRadius: 'var(--radius-md, 8px)', padding: '0.85rem',
       }}
     >
+      {/* Ciclo de Marés */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.78rem', flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 700 }}>{tidePhase === 'low' ? '🌊⬇ MARÉ BAIXA' : '🌊⬆ MARÉ ALTA'}</span>
+        <span style={{ color: 'rgba(255,255,255,0.5)' }}>vira em {tideCountdown}</span>
+        <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {tidePhase === 'low' ? '· +50% Pesca · −20% custo de drenagem · −10% Pressão' : '· −25% Pesca · +50% Coral · Bênçãos do Templo ativas'}
+        </span>
+      </div>
+
       {/* Moedas e recursos do Litoral */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 0.9rem', fontSize: '0.8rem' }}>
         <span title="Pérolas Abissais">🦪 {formatNumber(character.pearls || 0)}</span>
@@ -295,6 +318,20 @@ export const CoastalPanel: React.FC = () => {
           {coastal.faroGranted ? ' — 🜠 Faro, Lúmen Abissal obtida!' : ''}
         </p>
       </div>
+
+      {/* Log das últimas capturas */}
+      {catchLog.length > 0 && (
+        <div style={sectionStyle}>
+          <p style={{ fontWeight: 700, fontSize: '0.8rem' }}>📋 Últimas capturas</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            {catchLog.map((entry, i) => (
+              <p key={i} style={{ fontSize: '0.68rem', color: i === 0 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)', margin: 0 }}>
+                {entry}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

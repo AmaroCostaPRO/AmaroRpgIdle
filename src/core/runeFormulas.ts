@@ -57,7 +57,7 @@ interface RuneFamilyDef {
 export const RUNE_FAMILIES: Record<RuneFamilyId, RuneFamilyDef> = {
   ur:  { name: 'Ur — Sangue',   glyph: 'ᚢ', color: '#dc2626', statKey: 'lifesteal',           values: [0.02, 0.035, 0.05],  cap: 0.12, t3SecondaryDesc: 'Curas de Lifesteal podem criticar',                              t3SecondaryFlag: 'ur_crit_lifesteal' },
   kar: { name: 'Kar — Fúria',   glyph: 'ᚲ', color: '#ea580c', statKey: 'damageMultiplierPct', values: [0.04, 0.07, 0.11],   cap: 0.30, t3SecondaryDesc: '+3% adicionais enquanto HP > 80%',                              t3SecondaryFlag: 'kar_high_hp_bonus' },
-  sol: { name: 'Sol — Fortuna', glyph: 'ᛋ', color: '#eab308', statKey: 'goldBonusPct',        values: [0.03, 0.06, 0.10],   cap: 0.30, t3SecondaryDesc: '+2% de chance de Ouro em dobro',                                t3SecondaryFlag: 'sol_double_gold' },
+  sol: { name: 'Sol — Fortuna', glyph: 'ᛋ', color: '#eab308', statKey: 'goldBonusPct',        values: [0.03, 0.06, 0.10],   cap: 0.30, t3SecondaryDesc: '+1% de chance de Ouro em dobro',                                t3SecondaryFlag: 'sol_double_gold' },
   vin: { name: 'Vin — Vigor',   glyph: 'ᚹ', color: '#16a34a', statKey: 'maxHpPct',            values: [0.05, 0.09, 0.14],   cap: 0.35, t3SecondaryDesc: '+0.5% do HP máx. de regeneração ao matar um inimigo',           t3SecondaryFlag: 'vin_kill_regen' },
   mar: { name: 'Mar — Maré',    glyph: 'ᛗ', color: '#2563eb', statKey: 'maxManaPct',          values: [0.04, 0.07, 0.11],   cap: 0.30, t3SecondaryDesc: 'Custo de mana −5% relativo',                                    t3SecondaryFlag: 'mar_mana_discount' },
   nix: { name: 'Nix — Vazio',   glyph: 'ᚾ', color: '#9333ea', statKey: 'eliteDamagePct',      values: [0.03, 0.06, 0.10],   cap: 0.25, t3SecondaryDesc: 'Elites morrem soltando +1 Pérola (só nas Profundezas)',         t3SecondaryFlag: 'nix_elite_pearl' },
@@ -110,27 +110,27 @@ const PRIMORDIAL_RUNES: Record<PrimordialRuneId, RuneDefinition> = {
   nereh: {
     id: 'nereh', name: 'Nereh, a Maré Primeira', glyph: '🜄', color: '#0ea5e9', tier: 'primordial',
     secondaryDesc: 'Durante a Maré Alta: habilidades custam 0 de mana. Fora dela: −10% de custo',
-    secondaryFlag: 'nereh_tide_mana', primordialSource: 'Evento Maré Viva (em breve)',
+    secondaryFlag: 'nereh_tide_mana', primordialSource: 'Comprada no Templo da Maré (Restauração I+, 200 Pérolas)',
   },
   vrak: {
     id: 'vrak', name: 'Vrak, Ossos do Naufrágio', glyph: '🜚', color: '#f59e0b', tier: 'primordial',
     secondaryDesc: '+18% Dano Geral; você sofre recuo de 2% do dano que causa',
-    secondaryFlag: 'vrak_recoil', primordialSource: 'Guardião das Algas (prof. 50, em breve)',
+    secondaryFlag: 'vrak_recoil', primordialSource: 'Guardião das Algas (prof. 50)',
   },
   ciss: {
     id: 'ciss', name: 'Ciss, o Sal Eterno', glyph: '🝆', color: '#a5f3fc', tier: 'primordial',
     secondaryDesc: 'Imune a [ENCHARCADO]; ataques básicos aplicam [ENCHARCADO] no inimigo',
-    secondaryFlag: 'ciss_salt', primordialSource: 'Carpideira do Sal (Zona 3, em breve)',
+    secondaryFlag: 'ciss_salt', primordialSource: 'Carpideira do Sal (Zona 3)',
   },
   morvo: {
     id: 'morvo', name: 'Morvo, a Fossa', glyph: '🜃', color: '#365314', tier: 'primordial',
     secondaryDesc: '+1% Dano Geral a cada 10 profundidades do recorde histórico (cap +40%)',
-    secondaryFlag: 'morvo_depth_power', primordialSource: 'Guardião das Ruínas (prof. 80, em breve)',
+    secondaryFlag: 'morvo_depth_power', primordialSource: 'Guardião das Ruínas (prof. 80)',
   },
   ecoh: {
     id: 'ecoh', name: 'Ecoh, a Voz Afogada', glyph: '🝮', color: '#818cf8', tier: 'primordial',
     secondaryDesc: '+4% em todos os atributos primários',
-    primordialSource: 'Resgatar o 12º Eco Afogado (em breve)',
+    primordialSource: 'Resgatar o 12º Eco Afogado',
   },
   faro: {
     id: 'faro', name: 'Faro, Lúmen Abissal', glyph: '🜠', color: '#fde047', tier: 'primordial',
@@ -140,12 +140,12 @@ const PRIMORDIAL_RUNES: Record<PrimordialRuneId, RuneDefinition> = {
   levh: {
     id: 'levh', name: 'Levh, Coração do Leviatã', glyph: '🝓', color: '#0f766e', tier: 'primordial',
     secondaryDesc: 'A cada 60s de combate, ganha um escudo de 15% do HP máx.',
-    secondaryFlag: 'levh_shield', primordialSource: 'O Leviatã do Ciclo (em breve)',
+    secondaryFlag: 'levh_shield', primordialSource: 'O Leviatã do Ciclo',
   },
   umbra: {
     id: 'umbra', name: 'Umbra, o Abismo', glyph: '🜏', color: '#1e1b4b', tier: 'primordial',
     secondaryDesc: 'DoTs causam dano dobrado em alvos acima de 50% de HP',
-    secondaryFlag: 'umbra_dot_amp', primordialSource: 'Fossa prof. 100+ (em breve)',
+    secondaryFlag: 'umbra_dot_amp', primordialSource: 'Fossa prof. 100+',
   },
 };
 

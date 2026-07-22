@@ -2,6 +2,17 @@ import { useGameStore } from '../store/useGameStore';
 import { BGM_THEMES, BgmPhase, getPhaseForStage } from './bgmThemes';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent } from './types';
+import { getZoneForDepth } from './abyssFormulas';
+
+// v10.1.0: cada zona das Profundezas tem seu próprio tema (Assets §1.7) — substitui o antigo
+// override único 'abyss' fixo para toda a descida.
+const getAbyssPhaseForDepth = (depth: number): BgmPhase => {
+  const zone = getZoneForDepth(depth);
+  if (zone === 4) return 'abyss_z4';
+  if (zone === 3) return 'abyss_z3';
+  if (zone === 2) return 'abyss_z2';
+  return 'abyss';
+};
 
 export class AudioManager {
   private static instance: AudioManager;
@@ -55,15 +66,26 @@ export class AudioManager {
 
     // v10.0.0 "A Cidadela Submersa": override de BGM + SFX reativos do mergulho.
     // O AudioManager é um singleton vitalício — estas inscrições nunca precisam de cleanup.
-    bridge.subscribe(GameEvent.DIVE_STARTED, () => {
+    bridge.subscribe(GameEvent.DIVE_STARTED, (payload: any) => {
       this.diveOverrideActive = true;
       this.playDiveSplash();
-      if (this.currentPhase !== 'abyss') {
-        this.currentPhase = 'abyss';
+      const phase = getAbyssPhaseForDepth(payload?.depth ?? 1);
+      if (this.currentPhase !== phase) {
+        this.currentPhase = phase;
         if (this.bgmIntervalId) {
           this.stopBGM();
           this.startBGM();
         }
+      }
+    });
+    // v10.1.0: troca de tema ao cruzar de zona durante a descida (não a cada profundidade — só
+    // quando a fase calculada realmente muda, mesmo padrão dos overrides acima).
+    bridge.subscribe(GameEvent.DEPTH_CHANGED, (payload: any) => {
+      if (!this.diveOverrideActive || this.leviathanOverrideActive) return;
+      const phase = getAbyssPhaseForDepth(payload?.depth ?? 1);
+      if (phase !== this.currentPhase) {
+        this.currentPhase = phase;
+        if (this.bgmIntervalId) { this.stopBGM(); this.startBGM(); }
       }
     });
     bridge.subscribe(GameEvent.DIVE_ENDED, () => {
@@ -87,12 +109,26 @@ export class AudioManager {
         }
       } else if (this.leviathanOverrideActive) {
         this.leviathanOverrideActive = false;
-        const phase = this.diveOverrideActive ? 'abyss' : getPhaseForStage(useGameStore.getState().character?.currentStage ?? 1);
+        const phase = this.diveOverrideActive
+          ? getAbyssPhaseForDepth(useGameStore.getState().character?.abyss?.currentDepth ?? 1)
+          : getPhaseForStage(useGameStore.getState().character?.currentStage ?? 1);
         if (phase !== this.currentPhase) {
           this.currentPhase = phase;
           if (this.bgmIntervalId) { this.stopBGM(); this.startBGM(); }
         }
       }
+    });
+    // v10.4.0: SFX dedicados do Leviatã — sweep grave enquanto o Vagalhão canaliza, impacto+silêncio
+    // na troca de fase (antes caíam nos fallbacks genéricos de clique/upgrade).
+    bridge.subscribe(GameEvent.LEVIATHAN_CHANNEL_STARTED, (payload: any) => {
+      if (payload?.type === 'vagalhao') this.playVagalhaoCharging();
+    });
+    bridge.subscribe(GameEvent.LEVIATHAN_PHASE_CHANGED, () => {
+      this.playLeviathanPhaseChange();
+    });
+    // v10.2.0: canto de Eco Afogado resgatado.
+    bridge.subscribe(GameEvent.ECHO_RESCUED, () => {
+      this.playEchoRescued();
     });
     // Blip de Fôlego crítico (<25%), com debounce de 4s para não virar metrônomo
     bridge.subscribe(GameEvent.BREATH_CHANGED, (payload: any) => {
@@ -137,9 +173,14 @@ export class AudioManager {
 
       // Troca de tema de BGM quando a fase (estágio de combate) muda — a Torre Infinita e a
       // Cidadela não têm trilha própria, então herdam automaticamente a música da fase atual.
-      // v10.0.0: durante um mergulho, o override 'abyss' vence (não trocar por estágio).
+      // v10.0.0: durante um mergulho, o override abyss_* vence (não trocar por estágio) — o tema
+      // específico da zona já é mantido por DEPTH_CHANGED, então aqui só preserva o que já está
+      // tocando (recalcular por profundidade a cada tick de estado sobrescreveria a zona certa).
       // v10.4.0: durante a luta do Leviatã, 'leviathan' vence sobre os dois.
-      const newPhase = this.leviathanOverrideActive ? 'leviathan' : (this.diveOverrideActive ? 'abyss' : getPhaseForStage(state.character.currentStage));
+      const isAbyssPhase = this.currentPhase === 'abyss' || this.currentPhase === 'abyss_z2' || this.currentPhase === 'abyss_z3' || this.currentPhase === 'abyss_z4';
+      const newPhase = this.leviathanOverrideActive
+        ? 'leviathan'
+        : (this.diveOverrideActive ? (isAbyssPhase ? this.currentPhase : 'abyss') : getPhaseForStage(state.character.currentStage));
       if (newPhase !== this.currentPhase) {
         this.currentPhase = newPhase;
         if (this.bgmIntervalId) {
@@ -430,6 +471,101 @@ export class AudioManager {
     harmGain.connect(this.ctx.destination);
     harmOsc.start(now + 0.06);
     harmOsc.stop(now + 0.38);
+  }
+
+  /**
+   * v10.3.0 — Palavra Rúnica completa: acorde ascendente de 4 notas (a gravação "se fechando").
+   */
+  public playRunewordComplete() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [261.63, 329.63, 392.00, 523.25]; // C4-E4-G4-C5, arpejo ascendente
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + i * 0.09);
+      gain.gain.setValueAtTime(0, now + i * 0.09);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.4, now + i * 0.09 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.5);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(now + i * 0.09);
+      osc.stop(now + i * 0.09 + 0.55);
+    });
+  }
+
+  /**
+   * v10.4.0 — Vagalhão carregando: sweep grave de 3s (áudio-telégrafo além do visual da canalização).
+   */
+  public playVagalhaoCharging() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 3.0;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(55, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + duration);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.12, now);
+    gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.45, now + duration * 0.9);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.1);
+  }
+
+  /**
+   * v10.4.0 — Troca de fase do Leviatã: impacto grave seguido de 0.5s de silêncio (o "respiro"
+   * entre fases).
+   */
+  public playLeviathanPhaseChange() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(48, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.4);
+    gain.gain.setValueAtTime(this.sfxVolume * 0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.5); // + 0.5s de silêncio depois é só a ausência de novo som, não precisa de nó extra
+  }
+
+  /**
+   * v10.2.0 — Canto de Eco resgatado: voz `sine` breve e serena.
+   */
+  public playEchoRescued() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now); // A4
+    osc.frequency.linearRampToValueAtTime(523.25, now + 0.3); // -> C5
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.3, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.65);
   }
 
   /**

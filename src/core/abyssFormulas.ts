@@ -117,8 +117,8 @@ export interface ZoneGuardianDef {
 
 export const ZONE_GUARDIANS: ZoneGuardianDef[] = [
   { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 6.0, dmgMult: 1.8, pearlReward: 25, primordialRuneId: 'thal' },
-  { zone: 2, depth: 50, enemyId: 'boss_algae_thing', name: 'A Coisa Entre as Algas', hpMult: 6.0, dmgMult: 1.8, pearlReward: 50, primordialRuneId: 'vrak' },
-  { zone: 3, depth: 80, enemyId: 'boss_sunken_castellan', name: 'O Castelão Afogado', hpMult: 6.0, dmgMult: 1.8, pearlReward: 100, primordialRuneId: 'morvo' },
+  { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 6.0, dmgMult: 1.8, pearlReward: 50, primordialRuneId: 'vrak' },
+  { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 6.0, dmgMult: 1.8, pearlReward: 100, primordialRuneId: 'morvo' },
 ];
 
 export const getGuardianForDepth = (depth: number): ZoneGuardianDef | undefined =>
@@ -140,9 +140,9 @@ export const getDiveKeyCost = (startDepth: number): number => (startDepth > 1 ? 
 export const DIVE_ZONE_ENEMY_POOL: Record<DiveZone, string[]> = {
   // Zona 1 (10.0.0): 3 nativos das profundezas + 2 aquáticos do Litoral reaproveitados.
   1: ['grudge_puffer', 'reef_shark', 'hungry_anemone', 'drift_jelly', 'slime_moray'],
-  2: ['kelp_strangler', 'mirror_octopus', 'black_moray_eel', 'algae_golem'],
-  3: ['guardian_echo', 'salt_mourner', 'sunken_sentinel', 'ruin_wraith'],
-  4: ['abyss_maw', 'void_crawler', 'leviathan_spawn', 'deep_breather'],
+  2: ['kelp_strangler', 'mirror_octopus', 'gloom_angler'],
+  3: ['guardian_echo', 'salt_mourner', 'barnacle_knight'],
+  4: ['dark_breather', 'trench_serpent', 'false_light', 'leviathan_spawn'],
 };
 
 // Minibosses raros dentro do próprio pool da zona (spawn alternativo de baixa chance, mesmo
@@ -152,12 +152,12 @@ export const ZONE4_MINIBOSS_ID = 'leviathan_spawn';
 
 // ─── Mergulhos Rasos: Fôlego e recompensas ───────────────────────────────────
 
-// Dreno de Fôlego em FRAÇÃO/segundo (0.8%/s base, +2% relativo por profundidade, −4%/nível de
-// Traje). O consumo DEVE usar o deltaTime já multiplicado pela velocidade do jogo (CombatFSM.update)
-// — nunca Date.now() — para que 2x/3x alcancem a MESMA profundidade por descida (QA obrigatório do
-// Anexo, §1.8). `divingSuitLevel` fica em 0 nesta versão.
+// Dreno de Fôlego em FRAÇÃO/segundo (0.8%/s base, −4%/nível de Traje). NÃO escala com profundidade
+// — é um relógio de sessão, não de poder (Design principal §5.B). O consumo DEVE usar o deltaTime
+// já multiplicado pela velocidade do jogo (CombatFSM.update) — nunca Date.now() — para que 2x/3x
+// alcancem a MESMA profundidade por descida (QA obrigatório do Anexo, §1.8).
 export const getBreathDrainPerSecond = (depth: number, divingSuitLevel: number = 0): number =>
-  0.008 * (1 + 0.02 * depth) * (1 - 0.04 * divingSuitLevel);
+  0.008 * (1 - 0.04 * divingSuitLevel);
 
 export const DROWNING_DAMAGE_MULT = 2.0;    // Afogamento (Fôlego 0): dano recebido ×2, regen HP zero
 

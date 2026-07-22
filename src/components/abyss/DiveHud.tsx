@@ -30,6 +30,8 @@ export const DiveHud: React.FC = () => {
   const surface = useDiveStore((s) => s.surface);
   const highestStageReached = useGameStore((s) => s.character.highestStageReached || 1);
   const suitLevel = useGameStore((s) => s.character.abyss?.divingSuitLevel || 0);
+  const [confirmSurface, setConfirmSurface] = React.useState(false);
+  const confirmSurfaceTimer = React.useRef<number | undefined>(undefined);
 
   if (!diveActive) return null;
 
@@ -45,8 +47,18 @@ export const DiveHud: React.FC = () => {
     resolveAirPocket(choice);
   };
 
+  // Dupla confirmação (2 toques em ~3s) — protege contra o toque acidental que encerraria a
+  // descida (mesmo padrão já usado nas ações destrutivas do inventário).
   const handleSurface = () => {
     AudioManager.getInstance().playClick();
+    if (!confirmSurface) {
+      setConfirmSurface(true);
+      if (confirmSurfaceTimer.current) window.clearTimeout(confirmSurfaceTimer.current);
+      confirmSurfaceTimer.current = window.setTimeout(() => setConfirmSurface(false), 3000);
+      return;
+    }
+    if (confirmSurfaceTimer.current) window.clearTimeout(confirmSurfaceTimer.current);
+    setConfirmSurface(false);
     surface('voluntary');
   };
 
@@ -115,8 +127,8 @@ export const DiveHud: React.FC = () => {
             {choiceCard('rune', '📜', 'Vasculhar a fenda', '+1 Runa da zona')}
             {choiceCard('pearls', '🦪', 'Colher ostras', '+25% de Pérolas na descida')}
           </div>
-          <button onClick={handleSurface} className="btn btn-gold" style={{ alignSelf: 'center', marginTop: '0.2rem' }}>
-            ⬆ SUBIR À SUPERFÍCIE (banca 100%)
+          <button onClick={handleSurface} className="btn btn-gold" style={{ alignSelf: 'center', marginTop: '0.2rem', background: confirmSurface ? '#dc2626' : undefined }}>
+            {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca 100%)'}
           </button>
           {(fullDepths || currentDepth < SHALLOW_DIVE_MAX_DEPTH) && (
             <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>

@@ -38,13 +38,13 @@ import {
   DRILL_SOCKET_COSTS, RUNE_FUSE_COST_PEARLS, RUNE_FUSE_INPUT_COUNT,
   EXTRACT_RUNE_COST_PEARLS, EXTRACT_PRIMORDIAL_COST_PEARLS,
   getFusedRuneId, listSocketedRunes,
-  getRunewordById, getRunewordEngraveCost,
+  getRunewordById, getRunewordEngraveCost, hasEquippedRuneFlag, RUNEWORD_CATALOG,
 } from '../core/runeFormulas';
 import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST } from '../core/citadelFormulas';
 import {
   DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
   DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost, getTidePhase, getTidePhaseEndsAt,
-  TIDE_BLESSINGS, generateEcho, EchoRescueSource, ECHO_ROSTER_CAP,
+  TIDE_BLESSINGS, generateEcho, EchoRescueSource, getEchoRosterCap,
   BROKEN_HEART_HEAL_MS, ECHO_VOCATION_NAMES, ECHO_TRAIT_NAMES,
   getVocationPerkTotal, sumDistrictEfficacy, calculateEchoEfficacies,
   TIDE_LOW_FISHING_MULT, TIDE_HIGH_FISHING_MULT, TIDE_LOW_DRAIN_COST_MULT,
@@ -597,6 +597,9 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
 
 let savedStageBeforeChallenge = 1;
 let savedEnemiesDefeatedBeforeChallenge = 0;
+// TIDE_CHANGED: última fase da Maré vista por tickSunkenCitadelProduction — não persistida, o
+// relógio em si é puro (getTidePhase/Date.now()), só a notificação de mudança precisa de memória.
+let lastKnownTidePhase: 'low' | 'high' | null = null;
 
 // Versão do formato de save — incrementar ao introduzir uma mudança de formato que precise de
 // migração explícita em mergeLoadedCharacter.
@@ -772,6 +775,8 @@ interface GameState {
   upgradeDivingSuit(): { success: boolean; message: string };
   assignEcho(echoId: string, districtId: DistrictId | null): { success: boolean; message: string };
   chooseTideBlessing(blessingId: string): { success: boolean; message: string };
+  chooseSecondTideBlessing(blessingId: string): { success: boolean; message: string };
+  purchaseNerehRune(): { success: boolean; message: string };
   // v10.4.0 "O Leviatã do Ciclo": recompensas de MORTE do chefe mundial (chamado por useLeviathanStore).
   killLeviathan(pLev: number, pearlMult: number, fullClearThisAttempt: boolean): void;
   rescueEcho(source: EchoRescueSource): { rescued: boolean; message: string };
@@ -964,7 +969,8 @@ const DEFAULT_SUNKEN_CITADEL = (): NonNullable<Character['sunkenCitadel']> => ({
 const rollFishingCatches = (
   equippedBait: BaitType | null,
   baitInventory: { basic: number; glow: number; deep: number },
-  count: number
+  count: number,
+  hasFaroRarityUp: boolean = false
 ) => {
   const gains = { meat: 0, coral: 0, pearls: 0, fragments: 0, runes: {} as Partial<Record<RuneId, number>>, runeCount: 0 };
   const baitLeft = { ...baitInventory };
@@ -974,10 +980,16 @@ const rollFishingCatches = (
     const table = getFishingTable(baitInUse);
     const totalWeight = table.reduce((sum, entry) => sum + entry.weight, 0);
     let roll = Math.random() * totalWeight;
+    let pickedIndex = 0;
     let picked: FishingCatchId = table[0].id;
-    for (const entry of table) {
-      roll -= entry.weight;
-      if (roll <= 0) { picked = entry.id; break; }
+    for (let idx = 0; idx < table.length; idx++) {
+      roll -= table[idx].weight;
+      if (roll <= 0) { picked = table[idx].id; pickedIndex = idx; break; }
+    }
+    // Faro (faro_rarity_up): +10% de chance de subir a captura 1 raridade (a tabela já está em
+    // ordem crescente de raridade — comum→pérola→runa→fragmento).
+    if (hasFaroRarityUp && pickedIndex < table.length - 1 && Math.random() < 0.10) {
+      picked = table[pickedIndex + 1].id;
     }
     switch (picked) {
       case 'lantern_fish': gains.meat += LANTERN_FISH_MEAT_YIELD; break;
@@ -1896,6 +1908,7 @@ export const useGameStore = create<GameState>((set) => ({
           }
         }
         materials = {
+          ...materials,
           wood: materials.wood + Math.floor(totalWood),
           stone: materials.stone + Math.floor(totalStone),
           meat: materials.meat + Math.floor(totalMeat),
@@ -2363,7 +2376,7 @@ export const useGameStore = create<GameState>((set) => ({
       // modificador de Maré (Baixa +50% / Alta −25%) sobre o rendimento passivo de pesca.
       const sunkenForFishing = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
       const fisherPerk = getVocationPerkTotal(sunkenForFishing.echoes, 'fisher');
-      const dockEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunkenForFishing.echoes, getTidePhase()), 'dock');
+      const dockEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunkenForFishing.echoes, getTidePhase(), Date.now(), sunkenForFishing.districts.echoHall?.restorationLevel || 0), 'dock');
       const tideFishingMult = getTidePhase() === 'low' ? TIDE_LOW_FISHING_MULT : TIDE_HIGH_FISHING_MULT;
       const ratePerHour = getPassiveCatchesPerHour(char.highestStageReached || 1, coastal.dockLevel) * (1 + fisherPerk + dockEfficacy) * tideFishingMult;
       const elapsedHours = (now - coastal.lastFishTick) / 3600000;
@@ -2435,7 +2448,7 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'A rede ainda está vazia.' };
         return state;
       }
-      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches);
+      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches, hasEquippedRuneFlag(char.equipment, 'faro_rarity_up'));
       const { fields, summary, newKeys } = applyFishingGains(char, gains);
       const updated = {
         ...char,
@@ -2475,7 +2488,7 @@ export const useGameStore = create<GameState>((set) => ({
       // Uma puxada sempre fisga 1 captura; acertar a janela dobra (2); perfeito também alimenta
       // o contador vitalício da Runa Primordial Faro (100 acertos perfeitos).
       const catches = quality === 'miss' ? 1 : 2;
-      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches);
+      const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches, hasEquippedRuneFlag(char.equipment, 'faro_rarity_up'));
       const { fields, summary, newKeys } = applyFishingGains(char, gains);
 
       const perfectCatches = coastal.faroPerfectCatches + (quality === 'perfect' ? 1 : 0);
@@ -2788,18 +2801,27 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: `A fusão consome ${RUNE_FUSE_INPUT_COUNT}x ${runeDef.name} (você tem ${owned}).` };
         return state;
       }
-      const fuseCost = RUNE_FUSE_COST_PEARLS[runeDef.tier as 1 | 2];
+      // Forja Encharcada (Mergulhador): eficácia acumulada reduz o custo de Pérolas da fusão e dá
+      // uma chance de devolver 1 das runas consumidas (3%→8%, escalando com a eficácia da Forja).
+      const sunkenForForge = char.sunkenCitadel;
+      const forgeEfficacy = sunkenForForge ? sumDistrictEfficacy(calculateEchoEfficacies(sunkenForForge.echoes, getTidePhase(), Date.now(), sunkenForForge.districts.echoHall?.restorationLevel || 0), 'forge') : 0;
+      const baseFuseCost = RUNE_FUSE_COST_PEARLS[runeDef.tier as 1 | 2];
+      const fuseCost = Math.max(1, Math.ceil(baseFuseCost * (1 - Math.min(0.5, forgeEfficacy))));
       if ((char.pearls || 0) < fuseCost) {
         result = { success: false, message: `A fusão custa ${fuseCost} 🦪 Pérolas.` };
         return state;
       }
       const runeInventory = { ...(char.runeInventory || {}) };
-      runeInventory[runeId] = owned - RUNE_FUSE_INPUT_COUNT;
+      let consumed = RUNE_FUSE_INPUT_COUNT;
+      const returnChance = Math.min(0.08, 0.03 + forgeEfficacy * 0.25);
+      const runeReturned = forgeEfficacy > 0 && Math.random() < returnChance;
+      if (runeReturned) consumed -= 1;
+      runeInventory[runeId] = owned - consumed;
       if ((runeInventory[runeId] || 0) <= 0) delete runeInventory[runeId];
       runeInventory[fusedId] = (runeInventory[fusedId] || 0) + 1;
       const updated = { ...char, pearls: (char.pearls || 0) - fuseCost, runeInventory };
       saveToLocalStorage(updated);
-      result = { success: true, message: `⚗️ 3x ${runeDef.name} fundidas em 1x ${RUNE_CATALOG[fusedId].name}!` };
+      result = { success: true, message: `⚗️ 3x ${runeDef.name} fundidas em 1x ${RUNE_CATALOG[fusedId].name}!${runeReturned ? ' (A Forja devolveu 1 runa!)' : ''}` };
       return { character: updated };
     });
     return result;
@@ -2814,10 +2836,28 @@ export const useGameStore = create<GameState>((set) => ({
     const revealed = state.character.revealedRunewordIds || [];
     if (revealed.includes(runewordId)) return state;
     const runeword = getRunewordById(runewordId);
-    const updated = { ...state.character, revealedRunewordIds: [...revealed, runewordId] };
+    let newRevealed = [...revealed, runewordId];
+    // Arquivo Submerso (Escriba): eficácia acumulada dá uma chance extra (=eficácia%) de também
+    // revelar uma 2ª Palavra Rúnica ainda bloqueada — não há "relógio" de revelação para acelerar,
+    // então isso é o equivalente funcional de "+10% velocidade de revelação" do Design principal.
+    const sunken = state.character.sunkenCitadel;
+    const archiveEfficacy = sunken ? sumDistrictEfficacy(calculateEchoEfficacies(sunken.echoes, getTidePhase(), Date.now(), sunken.districts.echoHall?.restorationLevel || 0), 'archive') : 0;
+    let bonusRuneword: string | undefined;
+    if (archiveEfficacy > 0 && Math.random() < archiveEfficacy) {
+      const locked = RUNEWORD_CATALOG.filter(w => !newRevealed.includes(w.id));
+      if (locked.length > 0) {
+        bonusRuneword = locked[Math.floor(Math.random() * locked.length)].id;
+        newRevealed = [...newRevealed, bonusRuneword];
+      }
+    }
+    const updated = { ...state.character, revealedRunewordIds: newRevealed };
     saveToLocalStorage(updated);
     if (runeword) {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `📜 Uma sequência ressoa em sua mente: a Palavra Rúnica ${runeword.name} foi revelada!` });
+    }
+    if (bonusRuneword) {
+      const bonusDef = getRunewordById(bonusRuneword);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `📚 O Arquivo Submerso acelera o estudo: ${bonusDef?.name || bonusRuneword} também foi revelada!` });
     }
     return { character: updated };
   }),
@@ -2875,7 +2915,11 @@ export const useGameStore = create<GameState>((set) => ({
           return state;
         }
       }
-      const cost = getRunewordEngraveCost(runeword);
+      // Forja Encharcada (Mergulhador): eficácia acumulada reduz o custo de Pérolas da gravação.
+      const sunkenForForge = char.sunkenCitadel;
+      const forgeEfficacy = sunkenForForge ? sumDistrictEfficacy(calculateEchoEfficacies(sunkenForForge.echoes, getTidePhase(), Date.now(), sunkenForForge.districts.echoHall?.restorationLevel || 0), 'forge') : 0;
+      const baseCost = getRunewordEngraveCost(runeword);
+      const cost = Math.max(1, Math.ceil(baseCost * (1 - Math.min(0.5, forgeEfficacy))));
       if ((char.pearls || 0) < cost) {
         result = { success: false, message: `Gravar ${runeword.name} custa ${cost} 🦪 Pérolas.` };
         return state;
@@ -2896,6 +2940,7 @@ export const useGameStore = create<GameState>((set) => ({
       const updated = { ...afterUpdate, pearls: (char.pearls || 0) - cost, runeInventory };
       saveToLocalStorage(updated);
       result = { success: true, message: `⚡ Palavra Rúnica ${runeword.name} gravada em [${item.name}]!` };
+      setTimeout(() => bridge.emit(GameEvent.RUNEWORD_COMPLETED, { runewordId, itemId }), 50);
       return { character: updated };
     });
     return result;
@@ -2939,6 +2984,15 @@ export const useGameStore = create<GameState>((set) => ({
     // `set` de dentro do próprio updater — mesmo cuidado já seguido em buildOrUpgradeCoastalDock).
     const justCompletedDrains: DistrictId[] = [];
 
+    // TIDE_CHANGED: comparação preguiçosa contra a última fase vista (variável de módulo, não
+    // persistida — o relógio da Maré já é puro/determinístico via Date.now(), só falta notificar
+    // a UI quando ele vira).
+    const currentTidePhase = getTidePhase();
+    if (lastKnownTidePhase !== null && lastKnownTidePhase !== currentTidePhase) {
+      setTimeout(() => bridge.emit(GameEvent.TIDE_CHANGED, { phase: currentTidePhase }), 0);
+    }
+    lastKnownTidePhase = currentTidePhase;
+
     set((state) => {
     const char = state.character;
     const now = Date.now();
@@ -2959,21 +3013,27 @@ export const useGameStore = create<GameState>((set) => ({
     }
     if (changed) sunken = { ...sunken, districts };
 
-    // Produção periódica FLAT (por Eco alocado): Doca gera Fragmentos de Batisfera a cada 48h
-    // (24h com Restauração III); Arquivo gera Pérolas 2/dia (4/dia com Restauração III). Ambas
-    // dependem de Ecos estarem alocados no distrito (Anexo 2 §1.4) — sem Eco, sem produção.
+    // Produção periódica FLAT (por Eco alocado): Doca gera Fragmentos de Batisfera diariamente
+    // (24h, desde a Restauração I — Design principal §6); Arquivo gera Pérolas 2/dia (4/dia com
+    // Restauração III). Ambas dependem de Ecos estarem alocados no distrito (Anexo 2 §1.4) — sem
+    // Eco, sem produção.
     const lastTick = sunken.lastProductionTick || now;
     const elapsedHours = (now - lastTick) / 3600000;
     if (elapsedHours >= 1) {
       const dockEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'dock').length;
       const archiveEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'archive').length;
-      // Bênção da Maré "+15% Produção Submersa" (Templo da Maré).
+      // Bênção da Maré "+15% Produção Submersa" (Templo da Maré). Restauração III do Templo permite
+      // uma 2ª Bênção simultânea, a 50% de força (+7.5%).
       const blessing = sunken.tideBlessing;
-      const productionMult = (blessing?.id === 'blessing_production' && now < blessing.expiresAt) ? 1.15 : 1.0;
+      const secondBlessing = sunken.secondTideBlessing;
+      let productionMult = 1.0;
+      if (blessing?.id === 'blessing_production' && now < blessing.expiresAt) productionMult *= 1.15;
+      if (secondBlessing?.id === 'blessing_production' && now < secondBlessing.expiresAt) productionMult *= 1.075;
       let fragments = 0;
       let pearlsFromArchive = 0;
       if (dockEchoCount > 0 && !districts.dock?.flooded) {
-        const intervalHours = (districts.dock?.restorationLevel || 0) >= 3 ? 24 : 48;
+        // Design principal: produção diária (24h) desde a Restauração I — não escala por nível.
+        const intervalHours = 24;
         fragments = Math.floor((elapsedHours / intervalHours) * dockEchoCount * productionMult);
       }
       if (archiveEchoCount > 0 && !districts.archive?.flooded) {
@@ -3190,7 +3250,8 @@ export const useGameStore = create<GameState>((set) => ({
       const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
       const rescueIndex = sunken.echoesRescuedLifetime;
       const echo = generateEcho(rescueIndex, source);
-      const roomInRoster = sunken.echoes.length < ECHO_ROSTER_CAP;
+      const rosterCap = getEchoRosterCap(sunken.districts.echoHall?.restorationLevel || 0);
+      const roomInRoster = sunken.echoes.length < rosterCap;
       const echoes = roomInRoster ? [...sunken.echoes, echo] : sunken.echoes;
       const newLifetime = rescueIndex + 1;
 
@@ -3226,8 +3287,9 @@ export const useGameStore = create<GameState>((set) => ({
       saveToLocalStorage(updated);
       const baseMsg = roomInRoster
         ? `🌊 Um Eco Afogado emergiu: ${echo.name} (${ECHO_VOCATION_NAMES[echo.vocation]}, ${ECHO_TRAIT_NAMES[echo.trait]}).`
-        : `🌊 Um Eco Afogado tentou emergir, mas o Salão está lotado (16/16) — só o contador vitalício avançou.`;
+        : `🌊 Um Eco Afogado tentou emergir, mas o Salão está lotado (${sunken.echoes.length}/${rosterCap}) — só o contador vitalício avançou.`;
       bridge.emit(GameEvent.LOG_EMITTED, { message: `${baseMsg}${milestoneMsg}` });
+      if (roomInRoster) bridge.emit(GameEvent.ECHO_RESCUED, {});
       result = { rescued: roomInRoster, message: `${baseMsg}${milestoneMsg}` };
       return { character: updated };
     });
@@ -3252,12 +3314,79 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Bênção inválida.' };
         return state;
       }
+      // Eficácia acumulada do Templo aumenta a duração da Bênção em até +20%.
+      const templeEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunken.echoes, getTidePhase(), Date.now(), sunken.districts.echoHall?.restorationLevel || 0), 'temple');
+      const extraDurationMs = Math.floor((getTidePhaseEndsAt() - Date.now()) * Math.min(0.20, templeEfficacy));
       const updated: Character = {
         ...char,
-        sunkenCitadel: { ...sunken, tideBlessing: { id: blessingId, expiresAt: getTidePhaseEndsAt() } },
+        sunkenCitadel: { ...sunken, tideBlessing: { id: blessingId, expiresAt: getTidePhaseEndsAt() + extraDurationMs } },
       };
       saveToLocalStorage(updated);
       result = { success: true, message: `🕍 Bênção da Maré escolhida: ${blessing.name}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // Restauração III do Templo da Maré: permite uma 2ª Bênção simultânea (a 50% de força).
+  chooseSecondTideBlessing: (blessingId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      if ((sunken.districts.temple?.restorationLevel || 0) < 3) {
+        result = { success: false, message: 'A 2ª Bênção simultânea requer o Templo da Maré em Restauração III.' };
+        return state;
+      }
+      if (getTidePhase() !== 'high') {
+        result = { success: false, message: 'Bênçãos só podem ser escolhidas durante a Maré Alta.' };
+        return state;
+      }
+      const blessing = TIDE_BLESSINGS.find(b => b.id === blessingId);
+      if (!blessing) {
+        result = { success: false, message: 'Bênção inválida.' };
+        return state;
+      }
+      const templeEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunken.echoes, getTidePhase(), Date.now(), sunken.districts.echoHall?.restorationLevel || 0), 'temple');
+      const extraDurationMs = Math.floor((getTidePhaseEndsAt() - Date.now()) * Math.min(0.20, templeEfficacy));
+      const updated: Character = {
+        ...char,
+        sunkenCitadel: { ...sunken, secondTideBlessing: { id: blessingId, expiresAt: getTidePhaseEndsAt() + extraDurationMs } },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `🕍 2ª Bênção da Maré escolhida: ${blessing.name} (50% de força)!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // Nereh, a Maré Primeira: única Runa Primordial sem fonte de combate/pesca — comprada no Templo
+  // da Maré (Restauração I+), 200 Pérolas, 1x por personagem (mesma regra de não-empilhamento das
+  // demais Primordiais).
+  purchaseNerehRune: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
+      if ((sunken.districts.temple?.restorationLevel || 0) < 1) {
+        result = { success: false, message: 'Requer o Templo da Maré drenado e restaurado (Restauração I).' };
+        return state;
+      }
+      if ((char.runeInventory?.['nereh'] || 0) > 0) {
+        result = { success: false, message: 'Você já possui Nereh, a Maré Primeira.' };
+        return state;
+      }
+      if ((char.pearls || 0) < 200) {
+        result = { success: false, message: 'Requer 200 Pérolas.' };
+        return state;
+      }
+      const updated: Character = {
+        ...char,
+        pearls: (char.pearls || 0) - 200,
+        runeInventory: { ...(char.runeInventory || {}), nereh: (char.runeInventory?.['nereh'] || 0) + 1 },
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: '🜄 O Templo entoa a Maré Primeira: NEREH foi adicionada ao seu cofre de runas!' };
       return { character: updated };
     });
     return result;
@@ -3285,9 +3414,11 @@ export const useGameStore = create<GameState>((set) => ({
           bridge.emit(GameEvent.CUTSCENE_TRIGGERED, { id: 'leviathan_ending' });
         }
       } else {
+        // Kills repetidos pulam a cutscene inteira — respeito ao tempo de farm semanal (Anexo 2
+        // §3.4) — mas ainda merecem um resumo do "Painel Final", condensado numa única linha.
         const setPearls = Math.round(LEVIATHAN_KILL_REPEAT_PEARLS * pearlMult);
         updated.pearls = (updated.pearls || 0) + setPearls;
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 O Leviatã caiu novamente: +${setPearls} Pérolas.` });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 — Fim do Décimo Ciclo — O Trono tem um novo guardião, mais uma vez: +${setPearls} Pérolas.` });
       }
 
       if (fullClearThisAttempt) {
@@ -4151,6 +4282,7 @@ export const useGameStore = create<GameState>((set) => ({
       sunkenCitadel: {
         ...(state.character.sunkenCitadel || DEFAULT_SUNKEN_CITADEL()),
         tideBlessing: undefined,
+        secondTideBlessing: undefined,
       },
     };
 

@@ -322,6 +322,9 @@ export interface Character {
     echoes: DrownedEcho[];             // roster atual (cap 16; excedentes "descansam" sem produzir)
     echoesRescuedLifetime: number;     // contador vitalício (nunca decresce) — dispara marcos
     tideBlessing?: { id: string; expiresAt: number }; // escolhida no Templo da Maré durante Maré Alta
+    // Restauração III do Templo: 2ª Bênção simultânea (pode repetir a mesma id do 1º slot, a 50%
+    // de força — ver CombatFSM.getTideBlessingPower/useGameStore.tickSunkenCitadelProduction).
+    secondTideBlessing?: { id: string; expiresAt: number };
     lastProductionTick?: number;       // relógio da produção periódica (Fragmentos da Doca/Pérolas do Arquivo)
     // v10.4.0 "O Leviatã do Ciclo": progresso semanal do chefe mundial (Trono Afundado restaurado).
     // Reset preguiçoso comparando `weekSeed` contra `getWeeklySeed()` (useTowerStore.ts) — mesmo
@@ -400,12 +403,15 @@ export enum GameEvent {
   BREATH_CHANGED = 'BREATH_CHANGED',
   AIR_POCKET_OPENED = 'AIR_POCKET_OPENED',
   AIR_POCKET_RESOLVED = 'AIR_POCKET_RESOLVED',
+  TIDE_CHANGED = 'TIDE_CHANGED',
+  ECHO_RESCUED = 'ECHO_RESCUED',
 
   // v10.4.0 "O Leviatã do Ciclo": chefe mundial semanal (Trono Afundado)
   LEVIATHAN_PHASE_CHANGED = 'LEVIATHAN_PHASE_CHANGED',
   LEVIATHAN_CHANNEL_STARTED = 'LEVIATHAN_CHANNEL_STARTED',
   LEVIATHAN_CHANNEL_INTERRUPTED = 'LEVIATHAN_CHANNEL_INTERRUPTED',
-  CUTSCENE_TRIGGERED = 'CUTSCENE_TRIGGERED'
+  CUTSCENE_TRIGGERED = 'CUTSCENE_TRIGGERED',
+  RUNEWORD_COMPLETED = 'RUNEWORD_COMPLETED'
 }
 
 export interface GameEventPayload {

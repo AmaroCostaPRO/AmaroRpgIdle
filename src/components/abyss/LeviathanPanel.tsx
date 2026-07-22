@@ -25,7 +25,8 @@ export const LeviathanPanel: React.FC = () => {
   const progress = getLeviathanProgressForWeek(character.sunkenCitadel?.leviathanWeeklyProgress, weekSeed);
   const maxAttempts = getLeviathanAttemptsPerWeek(throneLevel);
   const echoes = character.sunkenCitadel?.echoes || [];
-  const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(echoes, getTidePhase()), 'throne');
+  const salonLevel = character.sunkenCitadel?.districts.echoHall?.restorationLevel || 0;
+  const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(echoes, getTidePhase(), Date.now(), salonLevel), 'throne');
 
   const handleChallenge = () => {
     AudioManager.getInstance().playClick();

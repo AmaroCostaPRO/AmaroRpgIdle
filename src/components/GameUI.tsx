@@ -4,6 +4,8 @@ import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_
 import { getXpNeededForLevel, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 import { useTowerStore } from '../store/useTowerStore';
 import { useRelicStore } from '../store/useRelicStore';
+import { useLeviathanStore } from '../store/useLeviathanStore';
+import { getLeviathanPhase, LEVIATHAN_VAGALHAO_CHANNEL_MS, LEVIATHAN_CANTO_CHANNEL_MS } from '../core/leviathanFormulas';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
@@ -145,6 +147,32 @@ const GameHUD: React.FC = () => {
   const convergenceBannerActive = !isTowerActiveNow && pandemoniumUnlockedForConvergence && isConvergenceActive();
   const convergenceBossOfWeek = convergenceBannerActive ? getConvergenceBossOfWeek() : null;
 
+  // v10.4.0 "O Leviatã do Ciclo": subtítulo da fase atual + indicador de canalização ativa
+  // (Vagalhão/Canto Abissal), reaproveitando o mesmo espaço de banner de Lua de Sangue/Convergência
+  // — LEVIATHAN_PHASE_CHANGED/CHANNEL_STARTED/CHANNEL_INTERRUPTED tinham 0 consumidores até aqui.
+  const leviathanActive = useLeviathanStore((state) => state.leviathanActive);
+  const leviathanPhaseIndex = useLeviathanStore((state) => state.currentPhaseIndex);
+  const [leviathanChannel, setLeviathanChannel] = useState<'vagalhao' | 'canto' | null>(null);
+  useEffect(() => {
+    let clearTimer: number | undefined;
+    const unsubStart = bridge.subscribe(GameEvent.LEVIATHAN_CHANNEL_STARTED, (payload: any) => {
+      const type = payload?.type || null;
+      setLeviathanChannel(type);
+      if (clearTimer) window.clearTimeout(clearTimer);
+      const durationMs = type === 'canto' ? LEVIATHAN_CANTO_CHANNEL_MS : LEVIATHAN_VAGALHAO_CHANNEL_MS;
+      clearTimer = window.setTimeout(() => setLeviathanChannel(null), durationMs + 200);
+    });
+    const unsubInterrupt = bridge.subscribe(GameEvent.LEVIATHAN_CHANNEL_INTERRUPTED, () => {
+      if (clearTimer) window.clearTimeout(clearTimer);
+      setLeviathanChannel(null);
+    });
+    const unsubPhase = bridge.subscribe(GameEvent.LEVIATHAN_PHASE_CHANGED, () => {
+      if (clearTimer) window.clearTimeout(clearTimer);
+      setLeviathanChannel(null);
+    });
+    return () => { unsubStart(); unsubInterrupt(); unsubPhase(); if (clearTimer) window.clearTimeout(clearTimer); };
+  }, []);
+
   const lastHp = useRef({ current: 0, max: 0 });
   const lastMana = useRef({ current: 0, max: 0 });
 
@@ -280,7 +308,7 @@ const GameHUD: React.FC = () => {
         {/* Indicadores de evento sazonal (Lua de Sangue / Convergência) — fora do cabeçalho acima
             de propósito: `.hud-header-row` some inteiro no mobile (CSS `display: none !important`),
             o que apagava esses indicadores nesse modo. Aqui ficam visíveis em ambos os layouts. */}
-        {(bloodMoonBannerActive || convergenceBannerActive) && (
+        {(bloodMoonBannerActive || convergenceBannerActive || leviathanActive) && (
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {bloodMoonBannerActive && (
               <span title="Inimigos da fase atual com +50% de HP/Dano e chance de drops exclusivos do Set da Lua de Sangue." style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#7f1d1d', color: '#fca5a5', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>
@@ -290,6 +318,16 @@ const GameHUD: React.FC = () => {
             {convergenceBannerActive && convergenceBossOfWeek && (
               <span title={`Chance de encontrar o world boss desta semana: ${convergenceBossOfWeek.name}. Drop exclusivo garantido ao derrotá-lo.`} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#312e81', color: '#c4b5fd', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 1s infinite' }}>
                 ☄️ CONVERGÊNCIA: {convergenceBossOfWeek.name}
+              </span>
+            )}
+            {leviathanActive && (
+              <span title={getLeviathanPhase(leviathanPhaseIndex).subtitle} style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#0c4a6e', color: '#7dd3fc', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>
+                🐋 FASE {leviathanPhaseIndex} — {getLeviathanPhase(leviathanPhaseIndex).name}
+              </span>
+            )}
+            {leviathanActive && leviathanChannel && (
+              <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', backgroundColor: '#7c2d12', color: '#fdba74', fontSize: '0.6rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', animation: 'pulse 0.6s infinite' }}>
+                ⚡ {leviathanChannel === 'vagalhao' ? 'CANALIZANDO: VAGALHÃO' : 'CANALIZANDO: CANTO ABISSAL'}
               </span>
             )}
           </div>
@@ -5469,6 +5507,8 @@ const StatisticsPanel: React.FC = () => {
         <Row label="Capturas na pesca (vitalício)" value={fmt(character.coastal?.lifetimeCatches)} />
         <Row label="Pérolas pescadas no Litoral (vitalício)" value={fmt(character.coastal?.lifetimePearls)} />
         <Row label="Acertos perfeitos na Pesca Ativa" value={`${character.coastal?.faroPerfectCatches || 0}/100${character.coastal?.faroGranted ? ' — 🜠 Faro obtida' : ''}`} />
+        <Row label="Ecos Afogados resgatados (vitalício)" value={fmt(character.sunkenCitadel?.echoesRescuedLifetime)} />
+        <Row label="Full Clear do Leviatã em 1 tentativa" value={character.leviathanFastestFullClear ? '✅ Conquistado' : '—'} />
       </div>
     </div>
   );
@@ -7169,9 +7209,11 @@ export default function GameUI() {
 
   // v10.4.0: cutscene de encerramento "O Coro e o Caco", disparada 1x na 1ª morte do Leviatã.
   const [activeCutsceneId, setActiveCutsceneId] = useState<string | null>(null);
+  const [cutsceneChoirComplete, setCutsceneChoirComplete] = useState(false);
   useEffect(() => {
     const unsubscribe = bridge.subscribe(GameEvent.CUTSCENE_TRIGGERED, (payload: any) => {
       setActiveCutsceneId(payload?.id || 'leviathan_ending');
+      setCutsceneChoirComplete((useGameStore.getState().character.sunkenCitadel?.echoesRescuedLifetime || 0) >= 12);
     });
     return () => unsubscribe();
   }, []);
@@ -8667,7 +8709,7 @@ export default function GameUI() {
       )}
 
       <ProgressNotifications />
-      {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} />}
+      {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
     </div>
   );
 }

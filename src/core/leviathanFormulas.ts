@@ -73,6 +73,12 @@ export const LEVIATHAN_VAGALHAO_INTERVAL_MS = { phase1: 20000, phase5: 15000 };
 export const LEVIATHAN_VAGALHAO_CHANNEL_MS = 3000;
 export const LEVIATHAN_VAGALHAO_DAMAGE_MULT = 4.0;
 
+// Fase 5 (Vagalhão NÃO-interrompível): 30% de chance de atordoar o jogador por 2s ao completar —
+// o único stun do jogo aplicado ao jogador, alvo real da imunidade da Palavra Rúnica ÂNCORA DO
+// MUNDO (antes uma flag catalogada sem nenhum consumidor).
+export const LEVIATHAN_PHASE5_STUN_CHANCE = 0.3;
+export const LEVIATHAN_PHASE5_STUN_DURATION_MS = 2000;
+
 // Correnteza (Fase 3): [LENTO] a cada 12s por 4s (−40% velocidade de ataque do herói).
 export const LEVIATHAN_CORRENTEZA_INTERVAL_MS = 12000;
 export const LEVIATHAN_CORRENTEZA_DURATION_MS = 4000;

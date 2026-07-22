@@ -208,11 +208,14 @@ export const generateEcho = (rescueIndex: number, source: EchoRescueSource, now:
 
 export const ECHO_RESCUE_CHANCE_PER_DEPTH = 0.10; // Zona 3+, por profundidade concluída
 export const ECHO_RESCUE_MAX_PER_DIVE = 2;
-export const ECHO_ROSTER_CAP = 16;
+// Cap base 12 (Design principal §6: "cap inicial 12, expansível"), +2 por nível de Restauração do
+// Salão dos Ecos (0/1/2/3 → 12/14/16/18) — reaproveita a progressão de distrito já existente em
+// vez de um upgrade novo dedicado à expansão do elenco.
+export const getEchoRosterCap = (salonRestorationLevel: number = 0): number => 12 + 2 * salonRestorationLevel;
 export const ECHO_ALLOCATION_SLOTS_TOTAL = 12; // 6 distritos × 2 (Restauração II)
 
-// Marcos de resgate vitalício (Anexo 2 §1.8) — 16 é o cap do roster, não dispara mecânica extra
-// nesta versão (reservado para a cutscene de lore de uma versão futura).
+// Marcos de resgate vitalício (Anexo 2 §1.8) — não dispara mecânica extra nesta versão além do
+// título/runa/receita já concedidos (16 reservado para a cutscene de lore de uma versão futura).
 export const ECHO_MILESTONES = [3, 6, 9, 12, 16] as const;
 
 // ─── Eficácia dos Ecos alocados (fórmula única, Anexo 2 §1.1) ────────────────
@@ -279,14 +282,18 @@ export interface EchoEfficacyBreakdown {
 export const calculateEchoEfficacies = (
   echoes: DrownedEcho[],
   tidePhase: TidePhase,
-  now: number = Date.now()
+  now: number = Date.now(),
+  salonRestorationLevel: number = 0
 ): EchoEfficacyBreakdown[] => {
   const allocated = echoes.filter(e => e.assignedDistrict);
 
   // Bônus do Salão: soma de todos os Ecos alocados no Salão (6% normal, 12% se Voz do Coro), cap 24%.
   const salonEchoes = allocated.filter(e => e.assignedDistrict === 'echoHall');
   const salonBonusRaw = salonEchoes.reduce((sum, e) => sum + (e.trait === 'choirVoice' ? SALON_BONUS_PER_CHOIR_VOICE_ECHO : SALON_BONUS_PER_ECHO), 0);
-  const salonBonus = Math.min(SALON_BONUS_CAP, salonBonusRaw);
+  // Restauração III do Salão: +2% por Eco "descansando" (sem distrito), cap 8% — somado ao bônus normal.
+  const restingCount = salonRestorationLevel >= 3 ? echoes.filter(e => !e.assignedDistrict).length : 0;
+  const restingBonus = Math.min(0.08, restingCount * 0.02);
+  const salonBonus = Math.min(SALON_BONUS_CAP + 0.08, salonBonusRaw + restingBonus);
 
   // 1ª passada: contribuição própria/vizinha de cada Eco (contexto independente de vizinhança).
   const contributions = new Map<string, TraitContribution>();

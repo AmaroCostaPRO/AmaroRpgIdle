@@ -6,7 +6,7 @@
 // OVERRIDE ativado pelos eventos DIVE_STARTED/DIVE_ENDED no AudioManager, enquanto durar o mergulho.
 // v10.4.0 "O Leviatã do Ciclo": 'leviathan' é outro OVERRIDE (como 'abyss'), ativado pelo mode
 // 'leviathan' do GameEvent.START_COMBAT enquanto a luta do chefe mundial durar.
-export type BgmPhase = 'normal' | 'nightmare' | 'inferno' | 'apocalypse' | 'purgatory' | 'pandemonium' | 'abyss' | 'leviathan';
+export type BgmPhase = 'normal' | 'nightmare' | 'inferno' | 'apocalypse' | 'purgatory' | 'pandemonium' | 'abyss' | 'abyss_z2' | 'abyss_z3' | 'abyss_z4' | 'leviathan';
 
 export interface BgmTheme {
   name: string;
@@ -143,6 +143,62 @@ export const BGM_THEMES: Record<BgmPhase, BgmTheme> = {
     bassDuration: 2.4,
     arpDuration: 1.2,
     leadDuration: 1.8,
+  },
+  // v10.1.0 "As Profundezas": Zona 2 — Bosque de Algas Negras. "Sussurro das Algas": Mi Frígio,
+  // intervalos rastejantes — `triangle` + `sine` levemente detunado simulando o batimento lento da
+  // correnteza (Assets §1.7). Andamento lento, mais grave que a Zona 1.
+  abyss_z2: {
+    name: 'Sussurro das Algas (Mi Frígio)',
+    chords: [
+      [82.41, 98.00, 123.47, 164.81, 196.00],   // Em(b2)
+      [87.31, 103.83, 130.81, 174.61, 207.65],  // Fmaj7 rastejante
+      [77.78, 92.50, 116.54, 155.56, 185.00],   // Ebmaj(#11)
+      [82.41, 98.00, 123.47, 164.81, 220.00],   // Em(add9)
+    ],
+    bassOscType: 'triangle',
+    arpOscType: 'sine',
+    leadOscType: 'triangle',
+    beatMs: 640,
+    bassDuration: 2.6,
+    arpDuration: 1.4,
+    leadDuration: 2.0,
+  },
+  // v10.1.0: Zona 3 — Ruínas da Cidadela. "Coro Afogado": Lá menor, vozes em quintas paralelas
+  // (coral de igreja submerso) — 3 camadas `sine` defasadas, andamento solene (Assets §1.7). Base
+  // reaproveitada pelo tema do Leviatã (leviathan), que alterna isso com o cluster do Pandemônio.
+  abyss_z3: {
+    name: 'Coro Afogado (Lá Menor Solene)',
+    chords: [
+      [110.00, 164.81, 220.00, 329.63, 440.00],  // Am7 em quintas
+      [98.00, 146.83, 196.00, 293.66, 392.00],   // Gm7
+      [87.31, 130.81, 174.61, 261.63, 349.23],   // Fmaj7
+      [103.83, 155.56, 207.65, 311.13, 415.30],  // G#dim (tensão solene)
+    ],
+    bassOscType: 'sine',
+    arpOscType: 'sine',
+    leadOscType: 'sine',
+    beatMs: 700,
+    bassDuration: 2.8,
+    arpDuration: 1.6,
+    leadDuration: 2.2,
+  },
+  // v10.1.0: Zona 4 — Fossa do Caco. "Pulso do Abismo": Dó♯ cluster grave, uma nota-pulso a cada 2
+  // compassos — `sawtooth` grave filtrado + sub `sine`, andamento muito lento (Assets §1.7).
+  abyss_z4: {
+    name: 'Pulso do Abismo (Dó♯ Cluster Grave)',
+    chords: [
+      [34.65, 36.71, 69.30, 73.42, 138.59],   // Cluster C#/D grave
+      [34.65, 36.71, 69.30, 73.42, 138.59],   // pulso repetido (nota sustentada)
+      [32.70, 34.65, 65.41, 69.30, 130.81],   // Cluster C/C# grave
+      [34.65, 36.71, 69.30, 73.42, 138.59],   // retorno ao pulso
+    ],
+    bassOscType: 'sawtooth',
+    arpOscType: 'sine',
+    leadOscType: 'sine',
+    beatMs: 900,
+    bassDuration: 3.2,
+    arpDuration: 1.8,
+    leadDuration: 2.4,
   },
   // v10.4.0 "O Leviatã do Ciclo": "O Coro e a Fera" — alterna dentro da própria progressão de 4
   // acordes entre o coral consonante (sine em camadas, como o "Coro Afogado" da Zona 3) e o

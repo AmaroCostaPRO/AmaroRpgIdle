@@ -28,6 +28,7 @@ import {
   LEVIATHAN_BIOLUM_WINDOW_MS, LEVIATHAN_BIOLUM_LIT_MULT, LEVIATHAN_BIOLUM_DARK_MULT, LEVIATHAN_BIOLUM_DARK_REFLECT_PCT,
   LEVIATHAN_CANTO_INTERVAL_MS, LEVIATHAN_CANTO_CHANNEL_MS, LEVIATHAN_CANTO_HEAL_PCT,
   LEVIATHAN_FURIA_TICK_MS, LEVIATHAN_FURIA_PCT_PER_TICK, LEVIATHAN_FURIA_CAP,
+  LEVIATHAN_PHASE5_STUN_CHANCE, LEVIATHAN_PHASE5_STUN_DURATION_MS,
 } from './leviathanFormulas';
 
 // v8.0.0 "O Espelho Faminto": Lua de Sangue — evento sazonal calculado por data real local, sem
@@ -541,33 +542,21 @@ export const ENEMY_TYPES: EnemyType[] = [
     yOffset: 0
   },
   {
-    id: 'black_moray_eel',
-    name: 'Enguia Negra',
-    texture: 'enemy_black_moray_eel',
-    hpMultiplier: 0.90,
-    damageMultiplier: 1.25,
-    attackSpeedMultiplier: 1.30,
+    id: 'gloom_angler',
+    name: 'Peixe-Pescador do Breu',
+    texture: 'enemy_gloom_angler',
+    hpMultiplier: 0.95,
+    damageMultiplier: 1.30,
+    attackSpeedMultiplier: 0.75,
     xpValue: 0,
-    color: '#1e293b',
+    color: '#1c1917',
     flipX: false,
     yOffset: 0
   },
   {
-    id: 'algae_golem',
-    name: 'Golem de Algas',
-    texture: 'enemy_algae_golem',
-    hpMultiplier: 1.60,
-    damageMultiplier: 0.85,
-    attackSpeedMultiplier: 0.60,
-    xpValue: 0,
-    color: '#3f6212',
-    flipX: false,
-    yOffset: 0
-  },
-  {
-    id: 'boss_algae_thing',
+    id: 'boss_kelp_thing',
     name: 'A Coisa Entre as Algas',
-    texture: 'boss_algae_thing',
+    texture: 'boss_kelp_thing',
     hpMultiplier: 1.0, // multiplicadores do Guardião (×6.0 HP / ×1.8 dano) aplicados no setup do mergulho
     damageMultiplier: 1.0,
     attackSpeedMultiplier: 0.85,
@@ -602,9 +591,9 @@ export const ENEMY_TYPES: EnemyType[] = [
     yOffset: 0
   },
   {
-    id: 'sunken_sentinel',
-    name: 'Sentinela Afundada',
-    texture: 'enemy_sunken_sentinel',
+    id: 'barnacle_knight',
+    name: 'Cavaleiro Cracudo',
+    texture: 'enemy_barnacle_knight',
     hpMultiplier: 1.70,
     damageMultiplier: 0.95,
     attackSpeedMultiplier: 0.65,
@@ -614,21 +603,9 @@ export const ENEMY_TYPES: EnemyType[] = [
     yOffset: 0
   },
   {
-    id: 'ruin_wraith',
-    name: 'Espectro das Ruínas',
-    texture: 'enemy_ruin_wraith',
-    hpMultiplier: 0.95,
-    damageMultiplier: 1.30,
-    attackSpeedMultiplier: 1.25,
-    xpValue: 0,
-    color: '#7c3aed',
-    flipX: false,
-    yOffset: 0
-  },
-  {
-    id: 'boss_sunken_castellan',
-    name: 'O Castelão Afogado',
-    texture: 'boss_sunken_castellan',
+    id: 'boss_drowned_castellan',
+    name: 'O Castelão Afundado',
+    texture: 'boss_drowned_castellan',
     hpMultiplier: 1.0, // multiplicadores do Guardião (×6.0 HP / ×1.8 dano) aplicados no setup do mergulho
     damageMultiplier: 1.0,
     attackSpeedMultiplier: 0.85,
@@ -639,26 +616,26 @@ export const ENEMY_TYPES: EnemyType[] = [
   },
   // === v10.1.0: bestiário da Zona 4 — Fossa do Caco (prof. 81+, infinita) ===
   {
-    id: 'abyss_maw',
-    name: 'Fauces do Abismo',
-    texture: 'enemy_abyss_maw',
-    hpMultiplier: 1.40,
+    id: 'trench_serpent',
+    name: 'Serpente da Fossa',
+    texture: 'enemy_trench_serpent',
+    hpMultiplier: 1.00,
     damageMultiplier: 1.20,
-    attackSpeedMultiplier: 0.80,
+    attackSpeedMultiplier: 1.30,
     xpValue: 0,
     color: '#082f49',
     flipX: false,
     yOffset: 0
   },
   {
-    id: 'void_crawler',
-    name: 'Rastejante do Vazio',
-    texture: 'enemy_void_crawler',
-    hpMultiplier: 1.00,
-    damageMultiplier: 1.35,
-    attackSpeedMultiplier: 1.15,
+    id: 'false_light',
+    name: 'Luz Falsa',
+    texture: 'enemy_false_light',
+    hpMultiplier: 0.70,
+    damageMultiplier: 1.45,
+    attackSpeedMultiplier: 1.10,
     xpValue: 0,
-    color: '#1e1b4b',
+    color: '#facc15',
     flipX: false,
     yOffset: 0
   },
@@ -675,9 +652,9 @@ export const ENEMY_TYPES: EnemyType[] = [
     yOffset: 0
   },
   {
-    id: 'deep_breather',
+    id: 'dark_breather',
     name: 'O Que Respira no Escuro',
-    texture: 'enemy_deep_breather',
+    texture: 'enemy_dark_breather',
     hpMultiplier: 1.10,
     damageMultiplier: 1.10,
     attackSpeedMultiplier: 1.00,
@@ -1040,6 +1017,12 @@ export class CombatFSM {
   // exige múltiplos inimigos simultâneos, já que o combate só suporta um alvo por vez).
   public enemyShield: number = 0;
   private enemyShieldTimer: number = 0;
+  // Levh (levh_shield): acumula continuamente enquanto o jogador estiver em combate (não reseta
+  // por abate individual — "60s de combate" é um relógio de sessão de luta, não por monstro).
+  private levhShieldTimer: number = 0;
+  // Palavra Rúnica CORAÇÃO DO LEVIATÃ: escudo de 40% do HP máx. ao cair <25% HP, 1×/combate —
+  // resetado a cada novo encontro (setupEnemyForLevel/setupDiveEncounter/setupLeviathanEncounter).
+  private coracaoLeviataShieldUsedThisCombat: boolean = false;
   // v8.0.0: Elite 'vulneravel' — abre uma janela periódica de dano aumentado (reaproveita o
   // status 'exposed' já existente, só que disparado automaticamente pelo próprio Elite).
   private eliteVulnerabilityTimer: number = 0;
@@ -1460,6 +1443,7 @@ export class CombatFSM {
       this.enemyShieldTimer = 0;
       this.eliteVulnerabilityTimer = 0;
       this.firstAttackOfEncounterPending = true;
+      this.coracaoLeviataShieldUsedThisCombat = false;
 
       if (!isTowerBoss && floor >= 5) {
         const eliteChance = Math.min(0.35, 0.08 + (floor - 5) * 0.01);
@@ -1579,6 +1563,7 @@ export class CombatFSM {
     this.isConvergenceEncounter = false;
     this.isCoastalEncounter = false;
     this.firstAttackOfEncounterPending = true;
+    this.coracaoLeviataShieldUsedThisCombat = false;
 
     const char = useGameStore.getState().character;
 
@@ -1707,6 +1692,7 @@ export class CombatFSM {
     this.bioluminescentTimer = 0;
     this.bioluminescentLit = true;
     this.firstAttackOfEncounterPending = true;
+    this.coracaoLeviataShieldUsedThisCombat = false;
 
     const guardian = getGuardianForDepth(depth);
 
@@ -1785,6 +1771,7 @@ export class CombatFSM {
     this.bioluminescentTimer = 0;
     this.bioluminescentLit = true;
     this.firstAttackOfEncounterPending = true;
+    this.coracaoLeviataShieldUsedThisCombat = false;
     this.leviathanChannelType = null;
     this.leviathanChannelIntervalTimer = 0;
     this.leviathanChannelActiveTimer = 0;
@@ -1797,6 +1784,10 @@ export class CombatFSM {
     this.enemyHP = this.enemyMaxHP;
 
     const phaseDef = getLeviathanPhase(phaseIndex);
+    // Fase 2 "A Prole" conta como Elite (bônus de Nix/Caçador de Elites contra ela valem, como o
+    // Anexo 2 pede) — as demais fases seguem não-Elite (o multiplicador de chefe já é aplicado à
+    // parte via getLeviathanPhaseHP/getLeviathanBaseDamage).
+    this.isElite = phaseDef.mechanic === 'prole';
     bridge.emit(GameEvent.LEVIATHAN_PHASE_CHANGED, { phase: phaseIndex });
     bridge.emit(GameEvent.LOG_EMITTED, { message: `🐋 FASE ${phaseIndex} — ${phaseDef.name}: ${phaseDef.subtitle}` });
   }
@@ -1937,8 +1928,9 @@ export class CombatFSM {
     if (this.hasRuneSecondaryFlag('kar_high_hp_bonus') && this.playerHP > this.playerMaxHP * 0.8) {
       mult *= 1.03;
     }
-    if (this.hasActiveTideBlessing('blessing_damage')) {
-      mult *= 1.10;
+    const damageBlessingPower = this.getTideBlessingPower('blessing_damage');
+    if (damageBlessingPower > 0) {
+      mult *= 1 + 0.10 * damageBlessingPower;
     }
     if (this.hasRunewordFlag('rw_cancao_carpideira') && this.enemyEffects.some(e => e.id === 'soaked')) {
       mult *= 1.35;
@@ -1949,15 +1941,24 @@ export class CombatFSM {
     // v10.4.0: Ecos Guardiões alocados no Trono Afundado — +dano causado só na luta do Leviatã
     // (a metade "−dano recebido" é aplicada em performEnemyAttack).
     if (useLeviathanStore.getState().leviathanActive) {
-      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(useGameStore.getState().character.sunkenCitadel?.echoes || [], getTidePhase()), 'throne');
+      const sunkenForThrone = useGameStore.getState().character.sunkenCitadel;
+      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunkenForThrone?.echoes || [], getTidePhase(), Date.now(), sunkenForThrone?.districts.echoHall?.restorationLevel || 0), 'throne');
       if (throneEfficacy > 0) mult *= 1 + throneEfficacy;
     }
     return mult;
   }
 
-  private hasActiveTideBlessing(id: string): boolean {
-    const blessing = useGameStore.getState().character.sunkenCitadel?.tideBlessing;
-    return !!blessing && blessing.id === id && Date.now() < blessing.expiresAt;
+  // Retorna a "força" acumulada de uma Bênção da Maré (0 = inativa, 1.0 = 1 slot ativo, até 1.5 se
+  // a Restauração III do Templo permitir uma 2ª Bênção simultânea, a 50% de força, na mesma id).
+  private getTideBlessingPower(id: string): number {
+    const now = Date.now();
+    const sunken = useGameStore.getState().character.sunkenCitadel;
+    let power = 0;
+    const first = sunken?.tideBlessing;
+    if (first && first.id === id && now < first.expiresAt) power += 1.0;
+    const second = sunken?.secondTideBlessing;
+    if (second && second.id === id && now < second.expiresAt) power += 0.5;
+    return power;
   }
 
   private getBestiaryMultiplier(killCount: Record<string, number>): number {
@@ -1974,9 +1975,14 @@ export class CombatFSM {
   // jogador em vez de um valor fixo — assim ele nunca fica irrisório conforme a mana máxima cresce
   // (via nível, sets/equipamento ou ascensão). Cura é sempre gratuita.
   private getSkillManaCost(skillId: string, skill: any, skillLevel: number = 1): number {
-    const baseCost = getSkillManaCostShared(skillId, skill, skillLevel, this.playerMaxMana);
+    let baseCost = getSkillManaCostShared(skillId, skill, skillLevel, this.playerMaxMana);
     // Mar T3 (mar_mana_discount): custo de mana −5% relativo.
-    return this.hasRuneSecondaryFlag('mar_mana_discount') ? Math.ceil(baseCost * 0.95) : baseCost;
+    if (this.hasRuneSecondaryFlag('mar_mana_discount')) baseCost = Math.ceil(baseCost * 0.95);
+    // Nereh (nereh_tide_mana): grátis na Maré Alta, −10% fora dela.
+    if (this.hasRuneSecondaryFlag('nereh_tide_mana')) {
+      baseCost = getTidePhase() === 'high' ? 0 : Math.ceil(baseCost * 0.9);
+    }
+    return baseCost;
   }
 
   private updateStatsFromStore() {
@@ -2099,7 +2105,7 @@ export class CombatFSM {
 
       // v10.1.0: A Coisa Entre as Algas (Guardião 2) — aplica [ENCHARCADO] permanente no herói e
       // alterna janelas Bioluminescentes (±40% de dano recebido) a cada 6s durante a luta.
-      if (isGuardianFight && this.currentEnemy.id === 'boss_algae_thing') {
+      if (isGuardianFight && this.currentEnemy.id === 'boss_kelp_thing') {
         // Refeito a cada frame com duração curta: fica "permanente" enquanto a luta durar e
         // decai sozinho ~10s depois de a luta terminar, sem exigir limpeza explícita na transição.
         this.playerEffects = this.playerEffects.filter(e => e.id !== 'soaked');
@@ -2139,7 +2145,9 @@ export class CombatFSM {
         if (this.leviathanCorrentezaTimer >= LEVIATHAN_CORRENTEZA_INTERVAL_MS) {
           this.leviathanCorrentezaTimer = 0;
           this.playerEffects = this.playerEffects.filter(e => e.id !== 'slow');
-          this.playerEffects.push({ id: 'slow', name: 'Correnteza', duration: LEVIATHAN_CORRENTEZA_DURATION_MS, tickTimer: 0, value: 0.15 });
+          // Balanceamento: −40% de velocidade de ataque (cooldown ×1/0.6 ≈ ×1.667) — bem mais forte
+          // que o [LENTO] padrão da campanha (Estrangulador de Algas, value:0.15/+15% cooldown).
+          this.playerEffects.push({ id: 'slow', name: 'Correnteza', duration: LEVIATHAN_CORRENTEZA_DURATION_MS, tickTimer: 0, value: 0.667 });
           bridge.emit(GameEvent.LOG_EMITTED, { message: '🌊 A Correnteza te arrasta — [LENTO] por 4s!' });
         }
       }
@@ -2195,15 +2203,40 @@ export class CombatFSM {
           const channelMs = this.leviathanChannelType === 'vagalhao' ? LEVIATHAN_VAGALHAO_CHANNEL_MS : LEVIATHAN_CANTO_CHANNEL_MS;
           if (this.leviathanChannelActiveTimer >= channelMs) {
             if (this.leviathanChannelType === 'vagalhao') {
-              const phaseDmg = getLeviathanBaseDamage(this.leviathanAnchorDepth) * phaseDef.damageMult * this.leviathanFuriaMult * LEVIATHAN_VAGALHAO_DAMAGE_MULT;
-              const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
-              const vagalhaoDamage = Math.floor(phaseDmg * constitutionReduction);
-              this.playerHP = Math.max(0, this.playerHP - vagalhaoDamage);
-              if (this.scene && typeof this.scene.spawnDamageText === 'function') {
-                this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${vagalhaoDamage} (VAGALHÃO!)`, '#0ea5e9');
+              // Passa pelo mesmo pipeline de esquiva/redução de dano de qualquer golpe de inimigo
+              // (Design principal: "respeita a chance de esquiva do jogador") — a mitigação por
+              // Constituição é um extra temático do Vagalhão, não um substituto do pipeline normal.
+              const ascensionCount = this.characterData.ascensionCount || 0;
+              const vagalhaoDodgeChance = Math.min(75, this.playerFinalStats.dexterity * 0.1 + (ascensionCount * 0.5) + (this.playerFinalStats.dodgeChancePct || 0));
+              if (Math.random() * 100 < vagalhaoDodgeChance) {
+                if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+                  this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'Desviou!', '#38bdf8');
+                }
+                bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 Você se esquivou do VAGALHÃO! (Esquiva: ${vagalhaoDodgeChance.toFixed(1)}%)` });
+              } else {
+                const phaseDmg = getLeviathanBaseDamage(this.leviathanAnchorDepth) * phaseDef.damageMult * this.leviathanFuriaMult * LEVIATHAN_VAGALHAO_DAMAGE_MULT;
+                const constitutionReduction = Math.max(0.05, 1 - (this.playerFinalStats.constitution * 0.0005));
+                let vagalhaoDamage = Math.floor(phaseDmg * constitutionReduction);
+                if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
+                  vagalhaoDamage = Math.floor(vagalhaoDamage * (1 - this.playerFinalStats.damageReductionPct));
+                }
+                this.playerHP = Math.max(0, this.playerHP - vagalhaoDamage);
+                if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+                  this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${vagalhaoDamage} (VAGALHÃO!)`, '#0ea5e9');
+                }
+                bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 O VAGALHÃO atingiu em cheio: ${formatNumber(vagalhaoDamage, useGameStore.getState().abbreviateNumbers)} de dano!` });
+                if (this.playerHP <= 0) { this.handlePlayerDefeat(); }
               }
-              bridge.emit(GameEvent.LOG_EMITTED, { message: `🌊 O VAGALHÃO atingiu em cheio: ${formatNumber(vagalhaoDamage, useGameStore.getState().abbreviateNumbers)} de dano!` });
-              if (this.playerHP <= 0) { this.handlePlayerDefeat(); }
+              // Fase 5 (Vagalhão não-interrompível): chance de atordoar o jogador por 2s — o único
+              // stun do jogo no jogador, alvo da imunidade da Palavra Rúnica ÂNCORA DO MUNDO.
+              if (this.leviathanPhaseIndex === 5 && this.playerHP > 0) {
+                const stunImmune = this.hasRunewordFlag('rw_ancora_mundo');
+                if (!stunImmune && Math.random() < LEVIATHAN_PHASE5_STUN_CHANCE) {
+                  this.playerEffects = this.playerEffects.filter(e => e.id !== 'stun');
+                  this.playerEffects.push({ id: 'stun', name: 'Atordoado', duration: LEVIATHAN_PHASE5_STUN_DURATION_MS, tickTimer: 0, value: 0 });
+                  bridge.emit(GameEvent.LOG_EMITTED, { message: '💫 O VAGALHÃO te atordoou por 2s!' });
+                }
+              }
             } else {
               const healAmount = Math.floor(this.enemyMaxHP * LEVIATHAN_CANTO_HEAL_PCT);
               this.enemyHP = Math.min(this.enemyMaxHP, this.enemyHP + healAmount);
@@ -2970,13 +3003,33 @@ export class CombatFSM {
     }
 
     const isEnemyStunned = this.enemyEffects.some(e => e.id === 'stun');
+    // Único stun do jogo aplicado ao jogador (Leviatã Fase 5, Vagalhão não-interrompível) —
+    // imune via Palavra Rúnica ÂNCORA DO MUNDO (checado no ponto de aplicação do efeito).
+    const isPlayerStunned = this.playerEffects.some(e => e.id === 'stun');
 
-    if (this.attackCooldown <= 0 && this.enemyHP > 0) {
+    if (this.attackCooldown <= 0 && this.enemyHP > 0 && !isPlayerStunned) {
       this.performPlayerAttack();
     }
 
     if (this.enemyAttackCooldown <= 0 && this.playerHP > 0 && this.enemyHP > 0 && !isEnemyStunned) {
       this.performEnemyAttack();
+    }
+
+    // Levh (levh_shield): a cada 60s de combate, +15% do HP máx. de escudo (aditivo).
+    if (this.playerHP > 0 && this.hasRuneSecondaryFlag('levh_shield')) {
+      this.levhShieldTimer += delta;
+      if (this.levhShieldTimer >= 60000) {
+        this.levhShieldTimer = 0;
+        this.playerShield += Math.floor(this.playerMaxHP * 0.15);
+        bridge.emit(GameEvent.LOG_EMITTED, { message: '🝓 Levh pulsa: +15% de escudo!' });
+      }
+    }
+
+    // Palavra Rúnica CORAÇÃO DO LEVIATÃ: escudo de 40% do HP máx. ao cair <25% HP, 1×/combate.
+    if (this.playerHP > 0 && !this.coracaoLeviataShieldUsedThisCombat && this.playerHP < this.playerMaxHP * 0.25 && this.hasRunewordFlag('rw_coracao_leviata')) {
+      this.coracaoLeviataShieldUsedThisCombat = true;
+      this.playerShield += Math.floor(this.playerMaxHP * 0.40);
+      bridge.emit(GameEvent.LOG_EMITTED, { message: '🝓 O CORAÇÃO DO LEVIATÃ pulsa: escudo de emergência ativado!' });
     }
   }
 
@@ -2990,9 +3043,11 @@ export class CombatFSM {
     const classId = this.characterData.classId || 'warrior';
     const speedMultiplier = Math.min(15, this.getSpeedMultiplier(this.playerFinalStats.dexterity, classId, attackSpeedBoost));
     this.attackCooldown = Math.max(200, 3000 / speedMultiplier);
-    // v10.1.0: [LENTO] no herói (Estrangulador de Algas) — +15% no cooldown de ataque.
-    if (this.playerEffects.some(e => e.id === 'slow')) {
-      this.attackCooldown = Math.floor(this.attackCooldown * 1.15);
+    // [LENTO] no herói (Estrangulador de Algas +15%, Correnteza do Leviatã +66.7%) — lê o `value`
+    // de cada fonte em vez de um multiplicador fixo, já que a força do efeito varia por origem.
+    const slowEffect = this.playerEffects.find(e => e.id === 'slow');
+    if (slowEffect) {
+      this.attackCooldown = Math.floor(this.attackCooldown * (1 + slowEffect.value));
     }
     useGameStore.getState().updateBestCombatStats({ attackSpeedMultiplier: speedMultiplier });
 
@@ -3057,6 +3112,11 @@ export class CombatFSM {
     if (this.isElite && this.eliteAfix === 'blindado') {
       damage = Math.floor(damage * 0.75);
     }
+    // Vrak (vrak_recoil): +18% de dano no ataque básico; você sofre recuo de 2% do dano causado.
+    const hasVrak = this.hasRuneSecondaryFlag('vrak_recoil');
+    if (hasVrak) {
+      damage = Math.floor(damage * 1.18);
+    }
 
     this.scene.animatePlayerAttack();
     this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}-${damage}`, isCrit ? '#ef4444' : '#f59e0b');
@@ -3066,6 +3126,11 @@ export class CombatFSM {
     this.lastHitWasCrit = isCrit;
     this.damageEnemy(damage, true);
     useGameStore.getState().updateBestCombatStats({ damageDealt: damage });
+    if (hasVrak) {
+      const recoil = Math.max(1, Math.floor(damage * 0.02));
+      this.playerHP = Math.max(1, this.playerHP - recoil);
+      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${recoil} (recuo)`, '#f59e0b');
+    }
 
     // Palavra Rúnica CORO SUBMERSO: a cada 5 ataques básicos, o próximo ecoa 2× (50% do dano extra).
     if (this.hasRunewordFlag('rw_coro_submerso') && this.enemyHP > 0) {
@@ -3262,7 +3327,8 @@ export class CombatFSM {
     if (isLeviathan) {
       const suitLevel = useGameStore.getState().character.abyss?.divingSuitLevel || 0;
       damage = Math.floor(damage * getLeviathanPressureMultiplier(suitLevel));
-      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(useGameStore.getState().character.sunkenCitadel?.echoes || [], getTidePhase()), 'throne');
+      const sunkenForThrone = useGameStore.getState().character.sunkenCitadel;
+      const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(sunkenForThrone?.echoes || [], getTidePhase(), Date.now(), sunkenForThrone?.districts.echoHall?.restorationLevel || 0), 'throne');
       if (throneEfficacy > 0) {
         damage = Math.floor(damage * (1 - Math.min(0.5, throneEfficacy * (2 / 3))));
       }
@@ -3386,7 +3452,7 @@ export class CombatFSM {
 
     // v10.1.0: Prole do Leviatã / O Que Respira no Escuro — rouba 5% de Fôlego por golpe (o único
     // gimmick que ataca o relógio da descida, não o HP).
-    if ((this.currentEnemy.id === 'leviathan_spawn' || this.currentEnemy.id === 'deep_breather') && useDiveStore.getState().diveActive) {
+    if ((this.currentEnemy.id === 'leviathan_spawn' || this.currentEnemy.id === 'dark_breather') && useDiveStore.getState().diveActive) {
       this.diveBreath = Math.max(0, this.diveBreath - 5);
       useDiveStore.getState().setBreath(this.diveBreath);
       bridge.emit(GameEvent.LOG_EMITTED, { message: `🫧 ${this.currentEnemy.name} roubou 5% do seu Fôlego!` });
@@ -3451,8 +3517,17 @@ export class CombatFSM {
       this.enemyEffects = this.enemyEffects.filter(e => e.id !== 'soaked');
       this.enemyEffects.push({ id: 'soaked', name: 'Encharcado', duration: 6000, tickTimer: 0, value: 0.15 });
     }
-
+    // Ciss (ciss_salt): todo golpe direto também aplica [ENCHARCADO] no inimigo (imunidade própria
+    // já é checada em isImmuneToSoaked()).
+    if (isDirect && this.hasRuneSecondaryFlag('ciss_salt')) {
+      this.enemyEffects = this.enemyEffects.filter(e => e.id !== 'soaked');
+      this.enemyEffects.push({ id: 'soaked', name: 'Encharcado', duration: 6000, tickTimer: 0, value: 0.15 });
+    }
+    // Umbra (umbra_dot_amp): dano de DoT (não-direto) dobra contra alvos acima de 50% de HP.
     let finalAmount = amount;
+    if (!isDirect && this.hasRuneSecondaryFlag('umbra_dot_amp') && this.enemyMaxHP > 0 && (this.enemyHP / this.enemyMaxHP) > 0.5) {
+      finalAmount = Math.floor(finalAmount * 2);
+    }
     if (this.isElite) {
       const transUpgrades = this.characterData.transcendenceUpgrades || {};
       const dominioVazioLvl = transUpgrades['dominio_vazio'] || 0;
@@ -3478,6 +3553,11 @@ export class CombatFSM {
       }
       finalAmount -= this.enemyShield;
       this.enemyShield = 0;
+      // v10.4.0 Leviatã Fase 2 (Escudo de Prole): enquanto o escudo existiu, o excedente que
+      // passa para o HP real ainda leva −50% — diferente do Replicante padrão, que só absorve.
+      if (useLeviathanStore.getState().leviathanActive && getLeviathanPhase(this.leviathanPhaseIndex).mechanic === 'prole') {
+        finalAmount = Math.floor(finalAmount * 0.5);
+      }
       bridge.emit(GameEvent.LOG_EMITTED, { message: `👥 A réplica fantasma foi destruída!` });
     }
 
@@ -3762,8 +3842,8 @@ export class CombatFSM {
       gainedGold *= 2;
       isGoldDoubled = true;
     }
-    // Sol T3 (sol_double_gold): +2% de chance independente de Ouro em dobro.
-    if (!isGoldDoubled && this.hasRuneSecondaryFlag('sol_double_gold') && Math.random() < 0.02) {
+    // Sol T3 (sol_double_gold): +1% de chance independente de Ouro em dobro.
+    if (!isGoldDoubled && this.hasRuneSecondaryFlag('sol_double_gold') && Math.random() < 0.01) {
       gainedGold *= 2;
       isGoldDoubled = true;
     }
@@ -3939,8 +4019,9 @@ export class CombatFSM {
       dropChance = Math.min(1.0, dropChance * 1.5);
     }
     // v10.2.0: Bênção da Maré "+10% Chance de Drop" (Templo da Maré).
-    if (!isBoss && !this.isElite && this.hasActiveTideBlessing('blessing_drop')) {
-      dropChance = Math.min(1.0, dropChance + 0.10);
+    if (!isBoss && !this.isElite) {
+      const dropBlessingPower = this.getTideBlessingPower('blessing_drop');
+      if (dropBlessingPower > 0) dropChance = Math.min(1.0, dropChance + 0.10 * dropBlessingPower);
     }
     
     const slotsToDrop: ('head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring')[] = [];
