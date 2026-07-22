@@ -234,46 +234,6 @@ export const CoastalPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Iscas */}
-      <div style={sectionStyle}>
-        <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>🪱 Iscas (fabricadas com Carne)</p>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => handleEquip(null)}
-            className="btn"
-            style={{
-              fontSize: '0.72rem', padding: '0.45rem 0.6rem',
-              border: coastal.equippedBait === null ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)',
-            }}
-          >
-            🚫 Sem isca<br /><span style={{ color: 'rgba(255,255,255,0.5)' }}>só capturas comuns</span>
-          </button>
-          {(Object.values(BAIT_DEFINITIONS)).map((def) => {
-            const stock = coastal.baitInventory[def.id] || 0;
-            const equipped = coastal.equippedBait === def.id;
-            return (
-              <div key={def.id} style={{
-                border: equipped ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '6px', padding: '0.45rem 0.6rem', fontSize: '0.72rem',
-                display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: '130px',
-                background: equipped ? 'rgba(14, 116, 144, 0.25)' : 'transparent',
-              }}>
-                <span style={{ fontWeight: 700 }}>{def.icon} {def.name} × {stock}</span>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>{def.bias}</span>
-                <div style={{ display: 'flex', gap: '0.3rem' }}>
-                  <button onClick={() => handleCraft(def.id)} className="btn btn-xs" style={{ fontSize: '0.65rem' }}>
-                    +{BAIT_BATCH_SIZE} por 🥩 {def.meatCost}
-                  </button>
-                  {!equipped && stock > 0 && (
-                    <button onClick={() => handleEquip(def.id)} className="btn btn-xs btn-gold" style={{ fontSize: '0.65rem' }}>Equipar</button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Pesca Ativa */}
       <div style={sectionStyle}>
         <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>🎣 Pesca Ativa</p>
@@ -332,6 +292,46 @@ export const CoastalPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Iscas */}
+      <div style={sectionStyle}>
+        <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>🪱 Iscas (fabricadas com Carne)</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
+          <button
+            onClick={() => handleEquip(null)}
+            className="btn"
+            style={{
+              fontSize: '0.72rem', padding: '0.45rem 0.6rem',
+              border: coastal.equippedBait === null ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)',
+            }}
+          >
+            🚫 Sem isca<br /><span style={{ color: 'rgba(255,255,255,0.5)' }}>só capturas comuns</span>
+          </button>
+          {(Object.values(BAIT_DEFINITIONS)).map((def) => {
+            const stock = coastal.baitInventory[def.id] || 0;
+            const equipped = coastal.equippedBait === def.id;
+            return (
+              <div key={def.id} style={{
+                border: equipped ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '6px', padding: '0.45rem 0.6rem', fontSize: '0.72rem',
+                display: 'flex', flexDirection: 'column', gap: '0.25rem',
+                background: equipped ? 'rgba(14, 116, 144, 0.25)' : 'transparent',
+              }}>
+                <span style={{ fontWeight: 700 }}>{def.icon} {def.name} × {stock}</span>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>{def.bias}</span>
+                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                  <button onClick={() => handleCraft(def.id)} className="btn btn-xs" style={{ fontSize: '0.65rem' }}>
+                    +{BAIT_BATCH_SIZE} por 🥩 {def.meatCost}
+                  </button>
+                  {!equipped && stock > 0 && (
+                    <button onClick={() => handleEquip(def.id)} className="btn btn-xs btn-gold" style={{ fontSize: '0.65rem' }}>Equipar</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

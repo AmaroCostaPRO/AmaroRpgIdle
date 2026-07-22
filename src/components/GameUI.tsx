@@ -7,8 +7,9 @@ import { useRelicStore } from '../store/useRelicStore';
 import { useLeviathanStore } from '../store/useLeviathanStore';
 import { getLeviathanPhase, LEVIATHAN_VAGALHAO_CHANNEL_MS, LEVIATHAN_CANTO_CHANNEL_MS } from '../core/leviathanFormulas';
 import { bridge } from '../bridge/GameBridge';
-import { GameEvent, BaseStats, EquipmentItem } from '../core/types';
+import { GameEvent, BaseStats, EquipmentItem, EnemyType } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
+import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { calculateMaxMana, getSkillManaCost } from '../core/manaFormulas';
@@ -4398,19 +4399,6 @@ const LORE_DATABASE: Record<string, string> = {
 
 
 
-const BIOME_NAMES = [
-  "Bosque Sussurrante",
-  "Floresta Antiga",
-  "Deserto de Ouro",
-  "Picos Glaciais",
-  "Cemitério Maldito",
-  "Ruínas Sombrias",
-  "Purgatório",
-  // v10.0.0 "A Cidadela Submersa": spawns alternativos do Litoral (Fases 1–10, 15% de chance) e
-  // o bestiário dos Mergulhos Rasos (3 comuns + o Guardião do Recife nesta versão).
-  "Litoral Naufragado",
-  "Profundezas (Recife Partido)"
-];
 
 interface TranscendencePanelProps {
   onPrestige: () => void;
@@ -4972,21 +4960,17 @@ interface BestiaryPanelProps {
   setSelectedEnemy: (enemy: any) => void;
 }
 
-// Agrupamento de inimigos por Fase (4 por fase) — dado estático (ENEMY_TYPES/BIOME_NAMES não
-// mudam em runtime), calculado uma única vez em vez de a cada render do BestiaryPanel.
-const BESTIARY_PHASES = (() => {
-  const phases = [];
-  for (let i = 0; i < 9; i++) {
-    const startIdx = i * 4;
-    const endIdx = startIdx + 4;
-    phases.push({
-      number: i + 1,
-      name: BIOME_NAMES[i],
-      enemies: ENEMY_TYPES.slice(startIdx, endIdx)
-    });
-  }
-  return phases;
-})();
+// Agrupamento de inimigos por bioma/zona — derivado de `BESTIARY_PHASE_GROUPS` (bestiaryFormulas.ts,
+// fonte única de verdade compartilhada com StatEngine.calculateBestiaryDamageMultiplier) buscando
+// cada inimigo por ID em ENEMY_TYPES, em vez do antigo slice posicional fixo em 9 grupos — que
+// ficava desatualizado toda vez que novos inimigos eram acrescentados ao array (era o motivo do
+// Bestiário só mostrar Litoral + Profundezas Z1, ignorando Z2/Z3/Z4/Trono). Calculado uma única
+// vez (dado estático), não a cada render do BestiaryPanel.
+const BESTIARY_PHASES = BESTIARY_PHASE_GROUPS.map((group, i) => ({
+  number: i + 1,
+  name: group.name,
+  enemies: group.enemyIds.map((id) => ENEMY_TYPES.find((e) => e.id === id)).filter((e): e is EnemyType => !!e),
+}));
 
 const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
   selectedEnemy,
@@ -5022,9 +5006,9 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
           </span>
         </div>
         <p style={{ fontSize: '0.52rem', color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
-          Cada monstro com 200+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong> (Fases 1-5) e <strong className="text-white">+2%</strong> no Purgatório.
-          Concluir todos os 4 monstros de uma fase concede <strong className="text-white">+2% de Dano adicional</strong> (Fases 1-5) e <strong className="text-white">+7%</strong> no Purgatório. 
-          Completar todo o Bestiário concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +65% de Dano).
+          Cada monstro com 200+ abates (50+ para Chefes) concede <strong className="text-white">+1% de Dano Geral</strong> e <strong className="text-white">+2%</strong> no Purgatório.
+          Concluir todos os monstros de um bioma/zona concede <strong className="text-white">+2% de Dano adicional</strong> e <strong className="text-white">+7%</strong> no Purgatório.
+          Completar todo o Bestiário (campanha + Abismo) concede <strong className="text-white">+20% de Dano extra</strong> (Máx: +65% de Dano).
         </p>
       </div>
 
@@ -5042,7 +5026,7 @@ const BestiaryPanel: React.FC<BestiaryPanelProps> = ({
               {phase.enemies.map((enemy) => {
                 const kills = killCount[enemy.id] || 0;
                 const isBoss = enemy.id.startsWith('boss_');
-                const reqKills = enemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
+                const reqKills = getBestiaryRequiredKills(enemy.id);
                 const isUnlocked = kills >= reqKills;
                 const isHovered = hoveredEnemyId === enemy.id;
 
@@ -8224,9 +8208,8 @@ export default function GameUI() {
           (() => {
             const kills = (character.killCount || {})[selectedEnemy.id] || 0;
             const isBoss = selectedEnemy.id.startsWith('boss_');
-            const reqKills = selectedEnemy.id === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
-            const isPurgatory = ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian'].includes(selectedEnemy.id);
-            const enemyBonus = isPurgatory ? 2 : 1;
+            const reqKills = getBestiaryRequiredKills(selectedEnemy.id);
+            const enemyBonus = BESTIARY_PHASE_GROUPS.find((g) => g.enemyIds.includes(selectedEnemy.id))?.bonusMultiplier || 1;
 
             return (
               <div 

@@ -2,6 +2,7 @@ import { BaseStats, Character, EquipmentItem } from '../core/types';
 import { useRelicStore } from '../store/useRelicStore';
 import { SKILLS_CATALOG } from '../store/useGameStore';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
+import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from './bestiaryFormulas';
 
 export const SET_BONUSES: Record<string, {
   name: string;
@@ -716,39 +717,29 @@ export class StatEngine {
    * +20% adicionais se todas as fases forem completadas.
    */
   static calculateBestiaryDamageMultiplier(killCount: Record<string, number>): number {
-    const BESTIARY_PHASES = [
-      ['whisper_sprite', 'thorned_treant', 'fae_rabbit', 'boss_whispering_warden'],
-      ['goblin', 'shadow_wolf', 'orc_warrior', 'boss_forest_golem'],
-      ['sand_serpent', 'desert_bandit', 'desert_scorpion', 'boss_sand_scorpion'],
-      ['frost_wolf', 'ice_elemental', 'cave_yeti', 'boss_frost_dragon'],
-      ['skeleton_warrior', 'decaying_zombie', 'tormented_ghost', 'boss_necromancer'],
-      ['stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon'],
-      ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian']
-    ];
-
     let bonusPct = 0;
     let completedPhases = 0;
 
-    BESTIARY_PHASES.forEach((phaseEnemies, phaseIndex) => {
+    BESTIARY_PHASE_GROUPS.forEach((phase) => {
       let completedInPhase = 0;
-      const isPurgatory = phaseIndex === BESTIARY_PHASES.length - 1;
+      const mult = phase.bonusMultiplier || 1;
 
-      phaseEnemies.forEach((enemyId) => {
+      phase.enemyIds.forEach((enemyId) => {
         const kills = killCount[enemyId] || 0;
-        const requiredKills = enemyId === 'boss_crystal_guardian' ? 20 : (enemyId.startsWith('boss_') ? 50 : 200);
+        const requiredKills = getBestiaryRequiredKills(enemyId);
         if (kills >= requiredKills) {
-          bonusPct += isPurgatory ? 2 : 1;
+          bonusPct += 1 * mult;
           completedInPhase++;
         }
       });
 
-      if (completedInPhase === 4) {
-        bonusPct += isPurgatory ? 7 : 2;
+      if (completedInPhase === phase.enemyIds.length) {
+        bonusPct += 2 * mult;
         completedPhases++;
       }
     });
 
-    if (completedPhases === BESTIARY_PHASES.length) {
+    if (completedPhases === BESTIARY_PHASE_GROUPS.length) {
       bonusPct += 20;
     }
 

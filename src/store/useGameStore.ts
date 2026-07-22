@@ -4,6 +4,7 @@ import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
 import { StatEngine } from '../core/StatEngine';
+import { getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 import {
   COMMAND_CENTER_MAX_LEVEL, COMMAND_CENTER_UPGRADE_COST,
@@ -4752,8 +4753,7 @@ export const useGameStore = create<GameState>((set) => ({
     const prevKills = currentKills[enemyId] || 0;
     const newKills = prevKills + 1;
 
-    const isBoss = enemyId.startsWith('boss_');
-    const reqKills = enemyId === 'boss_crystal_guardian' ? 20 : (isBoss ? 50 : 200);
+    const reqKills = getBestiaryRequiredKills(enemyId);
 
     if (prevKills < reqKills && newKills >= reqKills) {
       setTimeout(() => {

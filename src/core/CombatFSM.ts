@@ -680,6 +680,19 @@ export const ENEMY_TYPES: EnemyType[] = [
   }
 ];
 
+// v10.0.0-v10.4.0 "A Cidadela Submersa": inimigos exclusivos do Litoral/Profundezas/Trono — nunca
+// devem aparecer nos pools aleatórios da campanha normal, Pandemônio ou Torre Infinita (só surgem
+// via setupCoastalEncounter/setupDiveEncounter/setupLeviathanEncounter). `EnemyType` não tem um
+// campo de bioma/exclusividade, então o filtro é por lista explícita de IDs.
+export const ABYSS_ENEMY_IDS = new Set<string>([
+  'wreck_crab', 'drift_jelly', 'slime_moray', 'drowned_echo',
+  'grudge_puffer', 'reef_shark', 'hungry_anemone', 'boss_reef_arachnid',
+  'kelp_strangler', 'mirror_octopus', 'gloom_angler', 'boss_kelp_thing',
+  'guardian_echo', 'salt_mourner', 'barnacle_knight', 'boss_drowned_castellan',
+  'trench_serpent', 'false_light', 'leviathan_spawn', 'dark_breather',
+  'boss_leviathan',
+]);
+
 // Pseudo-inimigo do Bolsão de Ar (padrão não-combatente do Mercador: renderizado na posição de
 // encontro, sem barra de HP, FSM pausado em AIR_POCKET).
 export const AIR_POCKET_ENCOUNTER: EnemyType = {
@@ -1419,11 +1432,11 @@ export class CombatFSM {
       const randVal = randSin(lookupSeed);
 
       if (isTowerBoss) {
-        const bosses = ENEMY_TYPES.filter(e => e.id.startsWith('boss_') && e.id !== 'boss_crystal_guardian');
+        const bosses = ENEMY_TYPES.filter(e => e.id.startsWith('boss_') && e.id !== 'boss_crystal_guardian' && !ABYSS_ENEMY_IDS.has(e.id));
         const idx = Math.floor(randVal * bosses.length);
         this.currentEnemy = bosses[idx];
       } else {
-        const commons = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_'));
+        const commons = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_') && !ABYSS_ENEMY_IDS.has(e.id));
         const idx = Math.floor(randVal * commons.length);
         this.currentEnemy = commons[idx];
       }
@@ -1473,13 +1486,14 @@ export class CombatFSM {
     const difficultyScale = Math.pow(1.30, stage - 1);
 
     if (stage >= 31) {
-      // No Pandemônio, todos os inimigos comuns podem aparecer aleatoriamente
-      const nonBossEnemies = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_'));
+      // No Pandemônio, todos os inimigos comuns podem aparecer aleatoriamente (exceto os
+      // exclusivos do Abismo/Cidadela Submersa — ver ABYSS_ENEMY_IDS).
+      const nonBossEnemies = ENEMY_TYPES.filter(e => !e.id.startsWith('boss_') && !ABYSS_ENEMY_IDS.has(e.id));
       const randIndex = Math.floor(Math.random() * nonBossEnemies.length);
       this.currentEnemy = nonBossEnemies[randIndex];
       if (isBoss) {
         // Boss aleatório no Pandemônio
-        const bossEnemies = ENEMY_TYPES.filter(e => e.id.startsWith('boss_'));
+        const bossEnemies = ENEMY_TYPES.filter(e => e.id.startsWith('boss_') && !ABYSS_ENEMY_IDS.has(e.id));
         const randBossIndex = Math.floor(Math.random() * bossEnemies.length);
         this.currentEnemy = bossEnemies[randBossIndex];
         this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
