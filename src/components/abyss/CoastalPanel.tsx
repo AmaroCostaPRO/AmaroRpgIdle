@@ -242,9 +242,9 @@ export const CoastalPanel: React.FC = () => {
             onClick={handleCastLine}
             disabled={cooldownLeft > 0}
             className="btn btn-gold"
-            style={{ alignSelf: 'flex-start', opacity: cooldownLeft > 0 ? 0.5 : 1 }}
+            style={{ alignSelf: 'center', opacity: cooldownLeft > 0 ? 0.5 : 1 }}
           >
-            {cooldownLeft > 0 ? `Recolhendo a linha... (${cooldownLeft}s)` : '🎣 Puxar a Linha'}
+            {cooldownLeft > 0 ? `Recolhendo a linha... (${cooldownLeft}s)` : '🎣 JOGAR A LINHA'}
           </button>
         ) : (
           <>
@@ -265,7 +265,7 @@ export const CoastalPanel: React.FC = () => {
                 background: '#fff', boxShadow: '0 0 6px #22d3ee', transform: 'translateX(-50%)',
               }} />
             </div>
-            <button onClick={handleHook} className="btn btn-gold" style={{ alignSelf: 'flex-start' }}>
+            <button onClick={handleHook} className="btn btn-gold" style={{ alignSelf: 'center' }}>
               ⚡ Fisgar!
             </button>
           </>

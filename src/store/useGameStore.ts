@@ -4071,13 +4071,14 @@ export const useGameStore = create<GameState>((set) => ({
       runStartTime: Date.now(),
       ascensionNotified: false,
       citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true },
-      // Ascensão retém apenas 2% dos materiais farmados na run, evitando acúmulo exagerado entre runs
+      // Ascensão retém apenas 2% dos materiais farmados na run, evitando acúmulo exagerado entre runs.
+      // Coral é exceção: drop raro nas Profundezas/Litoral, sobrevive 100% intacto à Ascensão.
       materials: {
         wood: Math.floor((state.character.materials?.wood || 0) * 0.02),
         stone: Math.floor((state.character.materials?.stone || 0) * 0.02),
         meat: Math.floor((state.character.materials?.meat || 0) * 0.02),
         studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.02),
-        coral: Math.floor((state.character.materials?.coral || 0) * 0.02),
+        coral: state.character.materials?.coral || 0,
       },
       // v10.0.0: Pérolas seguem a regra dos 2% dos materiais; runeInventory, Chaves de Mergulho,
       // Fragmentos de Batisfera e os desbloqueios/recordes do Litoral/Abismo SOBREVIVEM à Ascensão

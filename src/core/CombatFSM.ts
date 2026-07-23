@@ -1576,6 +1576,7 @@ export class CombatFSM {
     this.currentMerchantOffer = [];
     this.isConvergenceEncounter = false;
     this.isCoastalEncounter = false;
+    this.isAirPocketEncounter = false;
     this.firstAttackOfEncounterPending = true;
     this.coracaoLeviataShieldUsedThisCombat = false;
 
@@ -1639,22 +1640,19 @@ export class CombatFSM {
     }
 
     // Convergência (v9.0.0 "O Que Espera no Pandemônio"): substitui um inimigo comum pelo world
-    // boss rotativo da semana — nunca um chefe de fase nem um Elite, só às quartas-feiras e só
+    // boss rotativo da semana — nunca um chefe de fase nem um Elite, só às quartas-feiras, só
+    // dentro do Pandemônio (stage >= 31, mesmo limiar de tier usado no resto do arquivo) e só
     // depois do Pandemônio desbloqueado (mesmo gate usado pela Ecoterra/Transcendência). Chance
-    // baixa (1%) e limitada a UMA manifestação por semana — uma vez sorteado, `resolvedConvergenceWeekSeed`
-    // é gravado na hora e barra novos sorteios até a seed semanal mudar (próxima quarta-feira).
-    // Checado ANTES do Mercador abaixo e retorna cedo se disparar, para os dois nunca coincidirem no mesmo encontro.
-    const currentWeeklySeed = getWeeklySeed();
-    const convergenceAlreadyResolvedThisWeek = char?.resolvedConvergenceWeekSeed === currentWeeklySeed;
-    if (!isBoss && !this.isElite && !this.isCoastalEncounter && !convergenceAlreadyResolvedThisWeek && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
+    // baixa (1%) por encontro elegível, SEM limite de manifestações por semana (decisão explícita:
+    // a raridade natural do 1% já é suficiente, e travar 1×/semana impedia o jogador de tentar de
+    // novo no mesmo dia). Checado ANTES do Mercador abaixo e retorna cedo se disparar, para os
+    // dois nunca coincidirem no mesmo encontro.
+    if (!isBoss && !this.isElite && !this.isCoastalEncounter && stage >= 31 && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
       const convergenceBoss = getConvergenceBossOfWeek();
       this.currentEnemy = convergenceBoss;
       this.isConvergenceEncounter = true;
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * convergenceBoss.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
-      useGameStore.setState((state) => ({
-        character: { ...state.character, resolvedConvergenceWeekSeed: currentWeeklySeed }
-      }));
       bridge.emit(GameEvent.LOG_EMITTED, { message: `☄️ A Convergência se abre! ${convergenceBoss.name} se manifesta diante de você!` });
     }
 

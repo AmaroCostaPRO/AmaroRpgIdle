@@ -695,6 +695,7 @@ export class CombatScene extends Phaser.Scene {
         // Pulsação suave de tamanho para Elites
         const isBoss = this.fsm.currentEnemy?.id.startsWith('boss_');
         let baseSize = (isBoss ? 215 : 165) * ZOOM_FACTOR;
+        if (this.fsm.isConvergenceEncounter) baseSize *= 2;
         if (this.fsm.isElite && this.fsm.getCurrentState() !== CombatState.DEAD) {
           const pulseScale = 1.15 + Math.sin(this.accumulatedTime * 0.005) * 0.03;
           this.enemyBody.setDisplaySize(baseSize * pulseScale, baseSize * pulseScale);
@@ -1323,6 +1324,9 @@ export class CombatScene extends Phaser.Scene {
       let size = (isBoss ? 215 : 165) * ZOOM_FACTOR;
       if (this.fsm.isElite) {
         size *= 1.15; // 15% de aumento de tamanho para Elites
+      }
+      if (this.fsm.isConvergenceEncounter) {
+        size *= 2; // Convergência: boss mundial de quarta-feira, 2x o tamanho de um boss comum
       }
       
       const targetY = Math.round((600 - 50 * ZOOM_FACTOR) - size / 2 + (enemyType.yOffset || 0) * ZOOM_FACTOR);
