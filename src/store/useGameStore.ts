@@ -4080,12 +4080,14 @@ export const useGameStore = create<GameState>((set) => ({
         studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.02),
         coral: state.character.materials?.coral || 0,
       },
-      // v10.0.0: Pérolas seguem a regra dos 2% dos materiais; runeInventory, Chaves de Mergulho,
-      // Fragmentos de Batisfera e os desbloqueios/recordes do Litoral/Abismo SOBREVIVEM à Ascensão
-      // (são infraestrutura de conta, como os Fragmentos de Forja... que zeram, mas runas engastadas
-      // seguem o item — e itens equipados já seguem a regra do Pandemônio acima). O spread de
-      // `...state.character` preserva runeInventory/diveKeys/batisphereFragments/coastal/abyss.
-      pearls: Math.floor((state.character.pearls || 0) * 0.02),
+      // v10.0.0: Pérolas, assim como o Coral, são exceção à regra dos 2% — drop raro nas
+      // Profundezas/Litoral, sobrevivem 100% intactas à Ascensão. runeInventory, Chaves de
+      // Mergulho, Fragmentos de Batisfera e os desbloqueios/recordes do Litoral/Abismo também
+      // SOBREVIVEM à Ascensão (são infraestrutura de conta, como os Fragmentos de Forja... que
+      // zeram, mas runas engastadas seguem o item — e itens equipados já seguem a regra do
+      // Pandemônio acima). O spread de `...state.character` preserva
+      // runeInventory/diveKeys/batisphereFragments/coastal/abyss.
+      pearls: state.character.pearls || 0,
     };
 
     // Processa os recordes pessoais
