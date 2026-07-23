@@ -14,6 +14,7 @@ import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
 import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites';
 import { getTransparentImageUrl } from './core/imageBackgroundStrip';
+import { RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL } from './components/shared/itemVisuals';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
 import { useWakeLock } from './hooks/useWakeLock';
 
@@ -115,6 +116,14 @@ const App: React.FC = () => {
   // da arte real (processamento assíncrono) ficar pronta.
   useEffect(() => {
     Object.values(BUILDING_SPRITE_SRC).forEach((src) => {
+      getTransparentImageUrl(src).catch(() => {});
+    });
+  }, []);
+
+  // Mesmo pré-processamento acima, mas para as 2 spritesheets de Runas Abissais — evita o
+  // flash do glifo de fallback ao abrir detalhes de item/soquete com runa engastada.
+  useEffect(() => {
+    [RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL].forEach((src) => {
       getTransparentImageUrl(src).catch(() => {});
     });
   }, []);

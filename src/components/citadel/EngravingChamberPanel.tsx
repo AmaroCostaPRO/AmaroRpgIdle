@@ -14,7 +14,7 @@ import {
 } from '../../core/runeFormulas';
 import type { EquipmentItem } from '../../core/types';
 import {
-  getSetVisual, slotIcons, slotLabels, statLabels, formatStatValue, getRuneVisual, getSocketDots, RuneChip,
+  getSetVisual, slotIcons, slotLabels, getRuneVisual, getSocketDots, RuneChip, describeRuneEffect,
 } from '../shared/itemVisuals';
 
 /**
@@ -24,23 +24,6 @@ import {
  * runas do cofre (com prévia do efeito). Inclui a fusão 3→1 (N4) e o card travado de Palavras
  * Rúnicas (N5, habilitação em versão futura).
  */
-
-// Descrição curta do efeito de uma runa para a UI (efeito primário + secundário quando houver).
-const describeRune = (runeId: RuneId): string => {
-  const def = RUNE_CATALOG[runeId];
-  if (!def) return '';
-  const parts: string[] = [];
-  if (def.statKey && typeof def.value === 'number') {
-    parts.push(`${formatStatValue(def.statKey, def.value)} ${statLabels[def.statKey] || def.statKey}`);
-  }
-  if (def.extraStats) {
-    for (const [key, value] of Object.entries(def.extraStats)) {
-      parts.push(`${formatStatValue(key, value as number)} ${statLabels[key] || key}`);
-    }
-  }
-  if (def.secondaryDesc && !def.extraStats) parts.push(def.secondaryDesc);
-  return parts.join(' · ');
-};
 
 export const EngravingChamberPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -151,7 +134,7 @@ export const EngravingChamberPanel: React.FC = () => {
 
   const runeChip = (runeId: RuneId, qty?: number) => {
     const visual = getRuneVisual(runeId);
-    return <RuneChip runeId={runeId} qty={qty} title={`${visual.name} (${visual.tierLabel}) — ${describeRune(runeId)}`} />;
+    return <RuneChip runeId={runeId} qty={qty} title={`${visual.name} (${visual.tierLabel}) — ${describeRuneEffect(runeId)}`} />;
   };
 
   return (
@@ -225,9 +208,9 @@ export const EngravingChamberPanel: React.FC = () => {
           const drillCost = sockets < DRILL_SOCKET_COSTS.length ? DRILL_SOCKET_COSTS[sockets] : null;
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', border: '1px solid rgba(192, 132, 252, 0.3)', borderRadius: '8px', padding: '0.8rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>{slotIcons[item.slot]} {item.name} <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>({selected.origin})</span></p>
-                <button className="btn btn-xs" onClick={() => { setSelectedItemId(null); setConfirmDestroyIndex(null); }}>← Voltar</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <p style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 0, wordBreak: 'break-word' }}>{slotIcons[item.slot]} {item.name} <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>({selected.origin})</span></p>
+                <button className="btn btn-xs" style={{ flexShrink: 0 }} onClick={() => { setSelectedItemId(null); setConfirmDestroyIndex(null); }}>← Voltar</button>
               </div>
               <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)' }}>
                 Soquetes: {sockets}/{maxEver} {maxNow < maxEver ? `(Câmara Nv ${chamberLevel} permite até ${maxNow} neste slot)` : ''}
@@ -246,15 +229,15 @@ export const EngravingChamberPanel: React.FC = () => {
               {Array.from({ length: sockets }, (_, i) => {
                 const runeId = item.socketedRunes?.[i] || null;
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '0.4rem 0.6rem' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '0.4rem 0.6rem' }}>
                     {runeId ? runeChip(runeId) : (
                       <span style={{ width: '34px', height: '34px', borderRadius: '6px', border: '2px dashed rgba(255,255,255,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)' }}>○</span>
                     )}
-                    <div style={{ flex: 1, fontSize: '0.72rem' }}>
+                    <div style={{ flex: '1 1 140px', minWidth: '140px', fontSize: '0.72rem' }}>
                       {runeId ? (
                         <>
                           <strong>{RUNE_CATALOG[runeId]?.name}</strong>
-                          <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{describeRune(runeId)}</span>
+                          <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{describeRuneEffect(runeId)}</span>
                         </>
                       ) : (
                         <span style={{ color: 'rgba(255,255,255,0.4)' }}>Soquete vazio</span>
@@ -292,9 +275,9 @@ export const EngravingChamberPanel: React.FC = () => {
         {/* Vista 3 — Picker de runas */}
         {selected && pickerSocketIndex !== null && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', border: '1px solid rgba(34, 211, 238, 0.35)', borderRadius: '8px', padding: '0.8rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>Escolha a runa para o soquete {pickerSocketIndex + 1} de [{selected.item.name}]:</p>
-              <button className="btn btn-xs" onClick={() => setPickerSocketIndex(null)}>← Voltar</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+              <p style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 0, wordBreak: 'break-word' }}>Escolha a runa para o soquete {pickerSocketIndex + 1} de [{selected.item.name}]:</p>
+              <button className="btn btn-xs" style={{ flexShrink: 0 }} onClick={() => setPickerSocketIndex(null)}>← Voltar</button>
             </div>
             {runeEntries.length === 0 && (
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>Seu cofre de runas está vazio — pesque Runas Encharcadas no Litoral ou mergulhe no Recife Partido.</p>
@@ -303,9 +286,9 @@ export const EngravingChamberPanel: React.FC = () => {
               {runeEntries.map(([runeId, qty]) => (
                 <button key={runeId} onClick={() => handleSocket(runeId)} className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textAlign: 'left', fontSize: '0.72rem', padding: '0.4rem 0.6rem' }}>
                   {runeChip(runeId, qty)}
-                  <span>
+                  <span style={{ minWidth: 0 }}>
                     <strong>{RUNE_CATALOG[runeId]?.name}</strong> × {qty}
-                    <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{describeRune(runeId)}</span>
+                    <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{describeRuneEffect(runeId)}</span>
                   </span>
                 </button>
               ))}

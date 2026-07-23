@@ -222,8 +222,8 @@ export const getRuneVisual = (runeId: RuneId): RuneVisual => {
   };
 };
 
-const RUNE_SHEET_BASE = '/assets/runes_base.png';
-const RUNE_SHEET_PRIMORDIAL = '/assets/runes_primordial.png';
+export const RUNE_SHEET_BASE = '/assets/runes_base.png';
+export const RUNE_SHEET_PRIMORDIAL = '/assets/runes_primordial.png';
 
 // Ordem de leitura em linha da spritesheet `runes_primordial.png` — confirmada visualmente
 // contra a arte gerada, e igual à ordem em que os glifos alquímicos já aparecem no Anexo 3
@@ -267,6 +267,24 @@ export const RuneChip: React.FC<{ runeId: RuneId; qty?: number; size?: number; t
       )}
     </span>
   );
+};
+
+// Descrição curta do efeito de uma runa para a UI (efeito primário + secundário quando houver).
+// Compartilhada entre a Câmara de Gravação e o mostruário de runas do Inventário.
+export const describeRuneEffect = (runeId: RuneId): string => {
+  const def = RUNE_CATALOG[runeId];
+  if (!def) return '';
+  const parts: string[] = [];
+  if (def.statKey && typeof def.value === 'number') {
+    parts.push(`${formatStatValue(def.statKey, def.value)} ${statLabels[def.statKey] || def.statKey}`);
+  }
+  if (def.extraStats) {
+    for (const [key, value] of Object.entries(def.extraStats)) {
+      parts.push(`${formatStatValue(key, value as number)} ${statLabels[key] || key}`);
+    }
+  }
+  if (def.secondaryDesc && !def.extraStats) parts.push(def.secondaryDesc);
+  return parts.join(' · ');
 };
 
 // Linha de soquetes de um item: ● engastado / ○ vazio / (nada se o item não tem soquetes).

@@ -41,6 +41,7 @@ import { RUNE_CATALOG } from '../core/runeFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
+import { RuneInventoryPanel } from './shared/RuneInventoryPanel';
 
 // Toggle para reexibir o Modo de Teste (5x) na UI, usado apenas em testes internos.
 const SHOW_TEST_MODE_TOGGLE = false;
@@ -1274,8 +1275,13 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
     return { equippedItems: items, setCounts: counts };
   }, [character.equipment]);
 
-  const [inventoryTab, setInventoryTab] = useState<'equipment' | 'consumable'>('equipment');
+  const [inventoryTab, setInventoryTab] = useState<'equipment' | 'consumable' | 'rune'>('equipment');
   const maxSlots = character.inventorySlots || 30;
+
+  const runeEntryCount = useMemo(
+    () => Object.values(character.runeInventory || {}).filter((qty) => (qty || 0) > 0).length,
+    [character.runeInventory]
+  );
 
   const { equipmentItems, consumableItems } = useMemo(() => {
     const equipment = character.inventory.filter(item =>
@@ -1716,11 +1722,43 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               {consumableItems.length}
             </span>
           </button>
+
+          <button
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setInventoryTab('rune');
+            }}
+            style={{
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              background: inventoryTab === 'rune' ? 'rgba(192, 132, 252, 0.08)' : 'transparent',
+              border: 'none',
+              borderBottom: inventoryTab === 'rune' ? '2px solid #c084fc' : '2px solid transparent',
+              color: inventoryTab === 'rune' ? '#c084fc' : '#94a3b8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            🪬 Runas
+            <span style={{
+              fontSize: '0.55rem',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '0.05rem 0.25rem',
+              borderRadius: '4px',
+              color: inventoryTab === 'rune' ? '#c084fc' : '#64748b'
+            }}>
+              {runeEntryCount}
+            </span>
+          </button>
         </div>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))', 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(46px, 1fr))',
           gap: '0.5rem',
           background: 'rgba(0,0,0,0.15)',
           padding: '0.75rem',
@@ -1728,11 +1766,15 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
           border: '1px solid var(--border-dim)',
           minHeight: inventoryTab === 'equipment' ? '170px' : 'auto'
         }}>
-          <InventoryItemGrid
-            inventoryTab={inventoryTab}
-            inventoryGrid={inventoryGrid}
-            onSelectItem={setSelectedItem}
-          />
+          {inventoryTab === 'rune' ? (
+            <RuneInventoryPanel runeInventory={character.runeInventory} />
+          ) : (
+            <InventoryItemGrid
+              inventoryTab={inventoryTab}
+              inventoryGrid={inventoryGrid}
+              onSelectItem={setSelectedItem}
+            />
+          )}
         </div>
 
         {/* Botões de Venda em Lote */}

@@ -1,4 +1,5 @@
 import type { Character } from './types';
+import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_IDS, RuneId, RuneFamilyId, PrimordialRuneId } from './runeFormulas';
 
 // ============================================================================
 // CODEX — Enciclopédia de Lore do Ciclo da Alma Partida
@@ -15,13 +16,14 @@ import type { Character } from './types';
 //   `isUnlocked` retorna true; até lá mostra `unlockHint`. Mantém o gancho
 //   de descoberta que já existia no protótipo "Crônicas".
 
-export type CodexCategory = 'cosmology' | 'factions' | 'characters' | 'bestiary' | 'events' | 'locations';
+export type CodexCategory = 'cosmology' | 'factions' | 'characters' | 'bestiary' | 'runes' | 'events' | 'locations';
 
 export const CODEX_CATEGORIES: { id: CodexCategory; label: string; icon: string }[] = [
   { id: 'cosmology', label: 'Cosmologia', icon: '🌌' },
   { id: 'factions', label: 'Facções', icon: '🏛️' },
   { id: 'characters', label: 'Personagens', icon: '👤' },
   { id: 'bestiary', label: 'Biologia', icon: '🐉' },
+  { id: 'runes', label: 'Runas', icon: '🪬' },
   { id: 'events', label: 'História', icon: '📜' },
   { id: 'locations', label: 'Locais', icon: '🗺️' },
 ];
@@ -51,6 +53,9 @@ export interface CodexEntry {
 const killed = (ctx: CodexUnlockContext, enemyId: string): boolean => (ctx.character.killCount?.[enemyId] ?? 0) > 0;
 const anyKilled = (ctx: CodexUnlockContext, ids: string[]): boolean => ids.some((id) => killed(ctx, id));
 const always = (): boolean => true;
+const runeObtained = (ctx: CodexUnlockContext, runeId: RuneId): boolean => (ctx.character.runeInventory?.[runeId] ?? 0) > 0;
+const runeFamilyObtained = (ctx: CodexUnlockContext, family: RuneFamilyId): boolean =>
+  ([1, 2, 3] as const).some((tier) => runeObtained(ctx, `${family}_t${tier}` as RuneId));
 
 const CONVERGENCE_BOSS_IDS = ['boss_what_still_dreams', 'boss_reflection_reaper', 'boss_nameless_hunger', 'boss_empty_throne'];
 
@@ -1364,6 +1369,81 @@ const bestiaryEntries: CodexEntry[] = [
 ];
 
 // ============================================================================
+// 4.5. RUNAS ABISSAIS
+// ============================================================================
+// Uma entrada por família (agrupando Tier I/II/III — mesma mecânica em intensidades diferentes,
+// não vale repetir o lore 3x) + uma por Runa Primordial (tier único, cada uma com origem própria).
+const RUNE_FAMILY_LORE: Record<RuneFamilyId, string> = {
+  ur: 'Estilhaços vermelho-escuros que pulsam como um segundo coração. Dizem que Ur nasceu do instante em que a Alma-Mundo sentiu a primeira dor — e decidiu, teimosa, que dor também podia ser combustível. Quem engasta uma Runa Ur sente o próprio sangue "emprestar" força ao golpe seguinte.',
+  kar: 'Fúria cristalizada em glifo. As Runas Kar carregam o eco de uma raiva tão antiga que já não lembra sua causa original — só o formato dela. Aqueles que as portam relatam um calor crescente no peito quando o corpo ainda está inteiro e o perigo, por perto.',
+  sol: 'Fragmentos dourados que tilintam como moeda mesmo quando presos ao metal. Sol é a única família das nove associada a fortuna, não a sobrevivência — um lembrete de que, mesmo afundada, parte da Alma-Mundo nunca deixou de barganhar com o destino.',
+  vin: 'Runas verde-musgo, frias ao toque, quentes por dentro. Vin guarda o instinto mais simples de todos: continuar existindo. Soldados da Cidadela Submersa as chamam de "o battimento emprestado" — um vigor que não é seu, mas que o corpo aceita sem perguntar.',
+  mar: 'Talhadas em pedra que nunca seca de todo, as Runas Mar respondem ao ritmo das marés mesmo longe do oceano. Dizem que ainda "puxam" fracamente na direção do Recife Partido, como se quisessem voltar para casa.',
+  nix: 'Glifos de um roxo quase negro, absorvendo luz em vez de refleti-la. Nix é o instinto que sobrou depois que o Vazio engoliu tudo que podia ser engolido — a vontade fria e calculada de acertar exatamente onde mais dói.',
+  lum: 'Runas claras, quase transparentes, que parecem vibrar um instante antes de qualquer coisa acontecer. Lum guarda o eco — literalmente: cada golpe socado com ela ressoa um instante antes do golpe em si, como se o tempo hesitasse.',
+  dol: 'Pesadas, cinzentas, entalhadas em ângulos que doem de olhar por muito tempo. Dol é pressão pura — a mesma que esmaga tudo na Fossa abaixo da profundidade 50. Quem a porta aprende a suportar peso que devia ser impossível suportar.',
+  fen: 'Runas cor de ferrugem, com um cheiro de sal e sangue seco que nenhuma limpeza tira. Fen é instinto de caça — a fome que a Alma-Mundo sentiu quando percebeu, tarde demais, que também podia ser presa.',
+};
+
+const RUNE_PRIMORDIAL_LORE: Record<PrimordialRuneId, string> = {
+  thal: 'Uma âncora de pedra escura que nunca termina de afundar. Thal não empresta força — empresta peso, a certeza teimosa de que nada vai te derrubar enquanto você mesmo não decidir cair.',
+  nereh: 'Nereh nasceu no instante exato em que a maré mudou de direção pela primeira vez, e carrega esse "primeiro instante" com ela para sempre. Comprá-la é comprar um pedaço do próprio tempo do oceano.',
+  vrak: 'Feita dos ossos do primeiro naufrágio que o Recife já engoliu, Vrak concede poder ao custo de dor — cada golpe que ela ajuda a desferir cobra um pequeno pedágio de quem a usa.',
+  ciss: 'Sal que nunca dissolve, nunca se dilui, nunca esquece. Ciss guarda a memória de tudo que a água já carregou para longe — e devolve parte dela a quem a carrega.',
+  morvo: 'Quanto mais fundo alguém já desceu na Fossa, mais forte Morvo fica — como se a runa também estivesse contando os passos, ansiosa para ver até onde o portador está dispost a ir.',
+  ecoh: 'O décimo segundo Eco Afogado resgatado das profundezas não quis seguir para o Além — quis ficar, gravado em runa, garantindo que uma parte de quem ele foi continuasse ajudando os vivos.',
+  faro: 'Cem acertos perfeitos na pesca ativa transformaram um simples pescador em lenda — e a lenda, em glifo. Faro brilha fraco mesmo no escuro total, como se ainda estivesse esperando a próxima mordida.',
+  levh: 'Arrancada do próprio peito do Leviatã do Ciclo, Levh ainda pulsa no ritmo de um coração muito maior que qualquer corpo mortal. A cada minuto de combate, esse pulso empresta um escudo.',
+  umbra: 'Ninguém sabe dizer se Umbra foi encontrada ou se ela decidiu ser encontrada. Vinda do fundo mais fundo da Fossa (profundidade 100+), ela reconhece o que já está fraco e pune com o dobro de força.',
+};
+
+const runeOverviewEntry: CodexEntry = {
+  id: 'rune_overview',
+  category: 'runes',
+  icon: '🪬',
+  title: 'As Runas Abissais',
+  subtitle: 'Fragmentos do Caco que aprenderam a se encaixar',
+  lore:
+    'Nenhuma Runa Abissal nasceu inteira — cada uma é um estilhaço tão pequeno do Caco Submerso que só ganha função quando encaixada em algo maior que si mesma: um soquete perfurado na Câmara de Gravação, um item que aceita carregar um pedaço de vontade alheia. Nove famílias (Ur, Kar, Sol, Vin, Mar, Nix, Lum, Dol, Fen) representam nove instintos que sobreviveram ao afundamento, cada uma em três intensidades crescentes — e nove Runas Primordiais, mais raras, carregam algo que se recusa a ser dividido em tiers.',
+  color: '#c084fc',
+  tags: ['runas', 'cidadela-submersa', 'camara-de-gravacao'],
+  alwaysVisible: true,
+  isUnlocked: always,
+};
+
+const runeFamilyEntries: CodexEntry[] = RUNE_FAMILY_IDS.map((family) => ({
+  id: `rune_family_${family}`,
+  category: 'runes' as const,
+  icon: RUNE_FAMILIES[family].glyph,
+  title: RUNE_FAMILIES[family].name,
+  subtitle: 'Runa base (Tier I–III)',
+  lore: RUNE_FAMILY_LORE[family],
+  color: RUNE_FAMILIES[family].color,
+  tags: ['runas', family],
+  alwaysVisible: false,
+  unlockHint: `Obtenha ou engaste uma Runa ${RUNE_FAMILIES[family].name.split(' — ')[0]} (qualquer tier).`,
+  isUnlocked: (ctx: CodexUnlockContext) => runeFamilyObtained(ctx, family),
+}));
+
+const PRIMORDIAL_RUNE_IDS: PrimordialRuneId[] = ['thal', 'nereh', 'vrak', 'ciss', 'morvo', 'ecoh', 'faro', 'levh', 'umbra'];
+
+const runePrimordialEntries: CodexEntry[] = PRIMORDIAL_RUNE_IDS.map((runeId) => ({
+  id: `rune_primordial_${runeId}`,
+  category: 'runes' as const,
+  icon: RUNE_CATALOG[runeId].glyph,
+  title: RUNE_CATALOG[runeId].name,
+  subtitle: 'Runa Primordial',
+  lore: RUNE_PRIMORDIAL_LORE[runeId],
+  color: RUNE_CATALOG[runeId].color,
+  tags: ['runas', 'primordial'],
+  alwaysVisible: false,
+  unlockHint: `Como obter: ${RUNE_CATALOG[runeId].primordialSource}`,
+  isUnlocked: (ctx: CodexUnlockContext) => runeObtained(ctx, runeId),
+}));
+
+const runeEntries: CodexEntry[] = [runeOverviewEntry, ...runeFamilyEntries, ...runePrimordialEntries];
+
+// ============================================================================
 // 5. EVENTOS HISTÓRICOS
 // ============================================================================
 const eventEntries: CodexEntry[] = [
@@ -1796,6 +1876,7 @@ export const CODEX_ENTRIES: CodexEntry[] = [
   ...factionEntries,
   ...characterEntries,
   ...bestiaryEntries,
+  ...runeEntries,
   ...eventEntries,
   ...locationEntries,
 ];
