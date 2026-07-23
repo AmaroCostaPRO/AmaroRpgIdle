@@ -274,9 +274,10 @@ export const CoastalPanel: React.FC = () => {
           Acertar a janela verde dobra a captura. A faixa dourada central conta como <strong>acerto perfeito</strong>.
         </p>
         <p style={{ fontSize: '0.72rem', color: '#fde047' }}>
-          {coastal.faroGranted
-            ? '🜠 Faro, Lúmen Abissal já obtida!'
-            : `✨ Acertos perfeitos: ${coastal.faroPerfectCatches}/${FARO_PERFECT_CATCHES_REQUIRED}`}
+          ✨ Acertos perfeitos: {coastal.faroPerfectCatches % FARO_PERFECT_CATCHES_REQUIRED}/{FARO_PERFECT_CATCHES_REQUIRED}
+          {(coastal.faroGrantedCount ?? (coastal.faroGranted ? 1 : 0)) > 0
+            ? ` — 🜠 Faro obtida ${coastal.faroGrantedCount ?? 1}x!`
+            : ''}
         </p>
       </div>
 

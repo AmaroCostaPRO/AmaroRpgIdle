@@ -425,7 +425,7 @@ const App: React.FC = () => {
                         🐛 Correções Pós-Lançamento
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Corrigido o Coral sendo zerado ao pescar com Expedições da Cidadela alocadas; o Bestiário só mostrava 2 das 6 novas zonas do Abismo (agrupamento por ID substituiu o recorte fixo antigo, e o bônus de dano do Bestiário passou a contar os abates do Abismo); inimigos exclusivos do Abismo vazando para os sorteios da Torre Infinita e do Pandemônio; layout dos cartões de isca no Litoral desalinhado no mobile.
+                        Corrigido o Coral sendo zerado ao pescar com Expedições da Cidadela alocadas; o Bestiário só mostrava 2 das 6 novas zonas do Abismo (agrupamento por ID substituiu o recorte fixo antigo, e o bônus de dano do Bestiário passou a contar os abates do Abismo); inimigos exclusivos do Abismo vazando para os sorteios da Torre Infinita e do Pandemônio; layout dos cartões de isca no Litoral desalinhado no mobile. Além disso, foram feitos diversos ajustes de interface e algumas mudanças no sistema de Runas (layout, ícones, novas abas de consulta e regras de obtenção das Runas Primordiais).
                       </div>
                     </div>
                   </div>

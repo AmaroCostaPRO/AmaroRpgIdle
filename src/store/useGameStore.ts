@@ -2492,13 +2492,16 @@ export const useGameStore = create<GameState>((set) => ({
       const { gains, baitLeft } = rollFishingCatches(coastal.equippedBait, coastal.baitInventory, catches, hasEquippedRuneFlag(char.equipment, 'faro_rarity_up'));
       const { fields, summary, newKeys } = applyFishingGains(char, gains);
 
+      // v10.5.0: Faro deixou de ser concessão única — a cada 100 acertos perfeitos acumulados
+      // (200, 300, 400...) concede mais uma cópia, de forma determinística (sem RNG extra).
       const perfectCatches = coastal.faroPerfectCatches + (quality === 'perfect' ? 1 : 0);
-      let faroGranted = coastal.faroGranted || false;
+      const previousGrants = coastal.faroGrantedCount ?? (coastal.faroGranted ? 1 : 0);
+      const totalGrantsDue = Math.floor(perfectCatches / FARO_PERFECT_CATCHES_REQUIRED);
+      const newGrants = totalGrantsDue - previousGrants;
       let runeInventory = fields.runeInventory;
-      if (!faroGranted && perfectCatches >= FARO_PERFECT_CATCHES_REQUIRED) {
-        faroGranted = true;
-        runeInventory = { ...runeInventory, faro: (runeInventory?.faro || 0) + 1 };
-        bridge.emit(GameEvent.LOG_EMITTED, { message: '🜠 O centésimo acerto perfeito faz a linha brilhar: você pescou FARO, LÚMEN ABISSAL — uma Runa Primordial!' });
+      if (newGrants > 0) {
+        runeInventory = { ...runeInventory, faro: (runeInventory?.faro || 0) + newGrants };
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🜠 A cada 100 acertos perfeitos a linha brilha: você pescou FARO, LÚMEN ABISSAL — uma Runa Primordial! (${totalGrantsDue}ª vez)` });
       }
 
       const updated = {
@@ -2510,7 +2513,8 @@ export const useGameStore = create<GameState>((set) => ({
           baitInventory: baitLeft,
           lastActiveFishAt: now,
           faroPerfectCatches: perfectCatches,
-          faroGranted,
+          faroGranted: totalGrantsDue > 0,
+          faroGrantedCount: totalGrantsDue,
           lifetimeCatches: (coastal.lifetimeCatches || 0) + catches,
           lifetimePearls: (coastal.lifetimePearls || 0) + gains.pearls,
         },
@@ -3270,6 +3274,12 @@ export const useGameStore = create<GameState>((set) => ({
         runeInventory = { ...(char.runeInventory || {}) };
         runeInventory['ecoh'] = (runeInventory['ecoh'] || 0) + 1;
         milestoneMsg = ' 🝮 Marco de 12 resgates: Runa Primordial ECOH, A VOZ AFOGADA foi adicionada ao seu inventário de runas!';
+      } else if (newLifetime > 12 && Math.random() < 0.004) {
+        // v10.5.0: depois do marco garantido, cada resgate adicional tem uma chance pequena de
+        // repetir a Primordial (mesmo padrão de Ciss/Umbra — 0.3-0.5%).
+        runeInventory = { ...(char.runeInventory || {}) };
+        runeInventory['ecoh'] = (runeInventory['ecoh'] || 0) + 1;
+        milestoneMsg = ' 🝮 Outro Eco ressoa: mais uma Runa Primordial ECOH, A VOZ AFOGADA foi adicionada ao seu cofre!';
       } else if (newLifetime === 16) {
         milestoneMsg = ' 🎭 O Salão está cheio — os Ecos cantam em conjunto pela primeira vez...';
       }
@@ -3420,6 +3430,12 @@ export const useGameStore = create<GameState>((set) => ({
         const setPearls = Math.round(LEVIATHAN_KILL_REPEAT_PEARLS * pearlMult);
         updated.pearls = (updated.pearls || 0) + setPearls;
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🔱 — Fim do Décimo Ciclo — O Trono tem um novo guardião, mais uma vez: +${setPearls} Pérolas.` });
+        // v10.5.0: depois da 1ª morte (garantida), mortes seguintes têm uma chance pequena de
+        // soltar outra cópia da Primordial (mesmo padrão de Ciss/Umbra).
+        if (Math.random() < 0.005) {
+          updated.runeInventory = { ...(updated.runeInventory || {}), levh: (updated.runeInventory?.levh || 0) + 1 };
+          bridge.emit(GameEvent.LOG_EMITTED, { message: '🝓 O Coração ainda pulsa: outra Runa Primordial LEVH, CORAÇÃO DO LEVIATÃ foi adicionada ao seu cofre!' });
+        }
       }
 
       if (fullClearThisAttempt) {

@@ -297,7 +297,8 @@ export interface Character {
     lastFishTick: number;
     lastActiveFishAt?: number;   // cooldown da Pesca Ativa
     faroPerfectCatches: number;  // contador VITALÍCIO de acertos perfeitos (sobrevive a tudo)
-    faroGranted?: boolean;       // Runa Primordial Faro já concedida (não re-concedível)
+    faroGranted?: boolean;       // Faro já foi concedida ao menos 1 vez (mantido por compatibilidade)
+    faroGrantedCount?: number;   // quantas cópias de Faro já foram concedidas (a cada 100 acumulados)
     lifetimeCatches?: number;
     lifetimePearls?: number;
   };

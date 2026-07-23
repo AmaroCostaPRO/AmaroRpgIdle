@@ -248,6 +248,12 @@ export const useDiveStore = create<DiveStoreState>((set, get) => ({
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🜲 O Guardião caiu e deixou para trás uma Runa Primordial (${primordialId.toUpperCase()}), adicionada ao acumulado!` });
         // v10.3.0: 1ª vez com Thal → revela a receita da Palavra Rúnica ÂNCORA DO MUNDO.
         if (primordialId === 'thal') useGameStore.getState().revealRuneword('ancora_mundo');
+      } else if (guardian && Math.random() < 0.005) {
+        // v10.5.0: depois da 1ª morte (garantida), mortes seguintes do mesmo Guardião têm uma
+        // chance pequena de soltar outra cópia da Primordial (mesmo padrão de Ciss/Umbra).
+        const primordialId = guardian.primordialRuneId;
+        runes[primordialId] = (runes[primordialId] || 0) + 1;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🜲 O Guardião caiu novamente e deixou outra Runa Primordial (${primordialId.toUpperCase()})!` });
       }
       bridge.emit(GameEvent.LOG_EMITTED, { message: `👑 ${guardian?.name?.toUpperCase() || 'GUARDIÃO'} DERROTADO! +${guardian?.pearlReward ?? GUARDIAN_PEARL_REWARD} Pérolas e +1 runa garantida no acumulado.` });
     }
