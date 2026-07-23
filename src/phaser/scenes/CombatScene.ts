@@ -5,6 +5,8 @@ import { GameEvent, ENEMIES_PER_STAGE, PET_POOL } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
 import { useTowerStore } from '../../store/useTowerStore';
 import { useDiveStore } from '../../store/useDiveStore';
+import { useLeviathanStore } from '../../store/useLeviathanStore';
+import { getZoneForDepth, getLitoralBlockIndexForAscension } from '../../core/abyssFormulas';
 import { AudioManager } from '../../core/AudioManager';
 import { getXpNeededForLevel } from '../../core/XpEngine';
 
@@ -136,8 +138,7 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('boss_nameless_hunger', 'assets/boss_nameless_hunger.png');
     this.load.image('boss_empty_throne', 'assets/boss_empty_throne.png');
 
-    // v10.0.0 "A Cidadela Submersa": Litoral Naufragado — artes podem ainda não existir; falhas
-    // de load são toleradas (resolveEnemyTexture cai em sprites existentes com tint aquático).
+    // v10.0.0 "A Cidadela Submersa": Litoral Naufragado.
     this.load.image('coastal_background', 'assets/coastal_background.png');
     this.load.image('enemy_wreck_crab', 'assets/enemy_wreck_crab.png');
     this.load.image('enemy_drift_jelly', 'assets/enemy_drift_jelly.png');
@@ -151,6 +152,28 @@ export class CombatScene extends Phaser.Scene {
     this.load.image('enemy_hungry_anemone', 'assets/enemy_hungry_anemone.png');
     this.load.image('boss_reef_arachnid', 'assets/boss_reef_arachnid.png');
     this.load.image('npc_air_pocket', 'assets/npc_air_pocket.png');
+
+    // v10.5.0: Profundezas — Zonas 2-4 e o Leviatã do Ciclo (artes que chegaram após o lançamento
+    // da v10.0.0, mas nunca tinham sido conectadas ao carregador do Phaser).
+    this.load.image('abyss_z2_background', 'assets/abyss_z2_background.png');
+    this.load.image('enemy_kelp_strangler', 'assets/enemy_kelp_strangler.png');
+    this.load.image('enemy_mirror_octopus', 'assets/enemy_mirror_octopus.png');
+    this.load.image('enemy_gloom_angler', 'assets/enemy_gloom_angler.png');
+    this.load.image('boss_kelp_thing', 'assets/boss_kelp_thing.png');
+
+    this.load.image('abyss_z3_background', 'assets/abyss_z3_background.png');
+    this.load.image('enemy_salt_mourner', 'assets/enemy_salt_mourner.png');
+    this.load.image('enemy_barnacle_knight', 'assets/enemy_barnacle_knight.png');
+    this.load.image('boss_drowned_castellan', 'assets/boss_drowned_castellan.png');
+
+    this.load.image('abyss_z4_background', 'assets/abyss_z4_background.png');
+    this.load.image('enemy_trench_serpent', 'assets/enemy_trench_serpent.png');
+    this.load.image('enemy_false_light', 'assets/enemy_false_light.png');
+    this.load.image('enemy_dark_breather', 'assets/enemy_dark_breather.png');
+    this.load.image('boss_leviathan_spawn', 'assets/boss_leviathan_spawn.png');
+
+    this.load.image('throne_arena_background', 'assets/throne_arena_background.png');
+    this.load.image('boss_leviathan', 'assets/boss_leviathan.png');
     this.load.on('loaderror', (file: any) => {
       console.warn(`[Assets v10] Arquivo ausente (fallback ativo): ${file?.key || file}`);
     });
@@ -302,6 +325,20 @@ export class CombatScene extends Phaser.Scene {
     this.makeTextureTransparent('enemy_hungry_anemone', 'enemy_hungry_anemone_transparent');
     this.makeTextureTransparent('boss_reef_arachnid', 'boss_reef_arachnid_transparent');
     this.makeTextureTransparent('npc_air_pocket', 'npc_air_pocket_transparent');
+
+    // v10.5.0: Profundezas — Zonas 2-4 e o Leviatã do Ciclo.
+    this.makeTextureTransparent('enemy_kelp_strangler', 'enemy_kelp_strangler_transparent');
+    this.makeTextureTransparent('enemy_mirror_octopus', 'enemy_mirror_octopus_transparent');
+    this.makeTextureTransparent('enemy_gloom_angler', 'enemy_gloom_angler_transparent');
+    this.makeTextureTransparent('boss_kelp_thing', 'boss_kelp_thing_transparent');
+    this.makeTextureTransparent('enemy_salt_mourner', 'enemy_salt_mourner_transparent');
+    this.makeTextureTransparent('enemy_barnacle_knight', 'enemy_barnacle_knight_transparent');
+    this.makeTextureTransparent('boss_drowned_castellan', 'boss_drowned_castellan_transparent');
+    this.makeTextureTransparent('enemy_trench_serpent', 'enemy_trench_serpent_transparent');
+    this.makeTextureTransparent('enemy_false_light', 'enemy_false_light_transparent');
+    this.makeTextureTransparent('enemy_dark_breather', 'enemy_dark_breather_transparent');
+    this.makeTextureTransparent('boss_leviathan_spawn', 'boss_leviathan_spawn_transparent');
+    this.makeTextureTransparent('boss_leviathan', 'boss_leviathan_transparent');
 
     // Fundo medieval com TileSprite
     this.background = this.add.tileSprite(400, 300, 800, 600, 'background');
@@ -806,11 +843,35 @@ export class CombatScene extends Phaser.Scene {
       return;
     }
 
-    // v10.0.0: Mergulhos Rasos — arena estática da Zona 1 (Recife Partido), com escurecimento
-    // progressivo por profundidade via overlay (alpha = min(0.45, prof × 0.015)); as artes de
-    // zona ficam limpas e o gradiente de descida é contínuo e barato.
+    // v10.4.0: O Leviatã do Ciclo — arena dedicada do Trono Afundado (throne_arena_background),
+    // sem escurecimento por profundidade (não é um mergulho, é o combate do chefe mundial).
+    if (useLeviathanStore.getState().leviathanActive) {
+      const leviathanBgKey = this.textures.exists('throne_arena_background') ? 'throne_arena_background' : 'cemetery_background';
+      if (this.currentBgTexture !== leviathanBgKey) {
+        this.background.setTexture(leviathanBgKey);
+        this.currentBgTexture = leviathanBgKey;
+        this.background.setTileScale(800 / 1024, 600 / 1024);
+        this.background.tilePositionY = 0;
+        this.background.tilePositionX = 0;
+      }
+      if (leviathanBgKey === 'cemetery_background') {
+        this.background.setTint(0x0c4a6e); // fallback: cemitério com tint azul-profundo do Trono
+      } else {
+        this.background.clearTint();
+      }
+      if (this.diveDarknessOverlay && this.diveDarknessOverlay.alpha > 0) {
+        this.diveDarknessOverlay.setAlpha(0);
+      }
+      return;
+    }
+
+    // v10.0.0-v10.4.0: Mergulhos Rasos — arena estática por Zona (1: Recife Partido, 2: Bosque de
+    // Algas Negras, 3: Ruínas da Cidadela, 4: Fossa do Caco), com escurecimento progressivo por
+    // profundidade via overlay (alpha = min(0.45, prof × 0.015)) por cima da arte de zona.
     if (useDiveStore.getState().diveActive) {
-      const diveBgKey = this.textures.exists('abyss_z1_background') ? 'abyss_z1_background' : 'cemetery_background';
+      const zone = getZoneForDepth(useDiveStore.getState().currentDepth);
+      const zoneBgTexture = `abyss_z${zone}_background`;
+      const diveBgKey = this.textures.exists(zoneBgTexture) ? zoneBgTexture : 'cemetery_background';
       if (this.currentBgTexture !== diveBgKey) {
         this.background.setTexture(diveBgKey);
         this.currentBgTexture = diveBgKey;
@@ -838,6 +899,14 @@ export class CombatScene extends Phaser.Scene {
     const stage = char.currentStage;
     let textureKey = 'background'; // Default: Floresta
 
+    // v10.6.0: Litoral como bloco de fase dedicado — um dos blocos de 5 fases (Floresta/Deserto/
+    // Gelo) vira tema Litoral por inteiro, sorteado a cada Ascensão (abyssFormulas.ts), no lugar
+    // da antiga interrupção por encontro (que trocava o cenário no meio de uma fase e quebrava o
+    // ritmo do sidescroll).
+    const litoralBlockIndex = char.coastal?.unlocked ? getLitoralBlockIndexForAscension(char.ascensionCount || 0) : -1;
+    const litoralBlockActiveThisStage = stage >= 6 && stage <= 20 && litoralBlockIndex === (((stage - 6) % 5) + 1);
+    let litoralUsingFallbackBg = false;
+
     if (stage >= 31) {
       textureKey = 'pandemonium_background';
     } else if (stage >= 21 && stage <= 30) {
@@ -845,6 +914,13 @@ export class CombatScene extends Phaser.Scene {
     } else if (stage <= 5) {
       // Bosque Sussurrante (v7.0.0 "Ecos que Despertam"): bioma inicial fixo, isolado do ciclo abaixo
       textureKey = 'whispering_woods_background';
+    } else if (litoralBlockActiveThisStage) {
+      if (this.textures.exists('coastal_background')) {
+        textureKey = 'coastal_background';
+      } else {
+        textureKey = 'snow_background';
+        litoralUsingFallbackBg = true;
+      }
     } else {
       // Mapeamento de fase para background (ciclos de 1-5, agora começando na Fase 6)
       const stageTheme = ((stage - 6) % 5) + 1;
@@ -852,19 +928,6 @@ export class CombatScene extends Phaser.Scene {
       else if (stageTheme === 3) textureKey = 'snow_background';
       else if (stageTheme === 4) textureKey = 'cemetery_background';
       else if (stageTheme === 5) textureKey = 'ruins_background';
-    }
-
-    // v10.0.0: encontro aquático do Litoral — troca o cenário SÓ durante este combate.
-    // Fallback: neve com tint azul-marinho enquanto coastal_background.png não existir.
-    const isCoastalEncounter = !!(this.fsm && this.fsm.isCoastalEncounter);
-    let coastalUsingFallbackBg = false;
-    if (isCoastalEncounter) {
-      if (this.textures.exists('coastal_background')) {
-        textureKey = 'coastal_background';
-      } else {
-        textureKey = 'snow_background';
-        coastalUsingFallbackBg = true;
-      }
     }
 
     if (this.currentBgTexture !== textureKey) {
@@ -894,9 +957,10 @@ export class CombatScene extends Phaser.Scene {
     } else if (isEcoterra) {
       // Ecoterra: Tingimento azul-neon / ciano espectral
       this.background.setTint(0x00e5ff);
-    } else if (isCoastalEncounter) {
-      // v10.0.0: Litoral — a arte própria fica limpa; o fallback (neve) recebe tint azul-marinho
-      if (coastalUsingFallbackBg) {
+    } else if (litoralBlockActiveThisStage) {
+      // v10.6.0: Litoral (bloco de fase dedicado) — a arte própria fica limpa; o fallback (neve)
+      // recebe tint azul-marinho.
+      if (litoralUsingFallbackBg) {
         this.background.setTint(0x2e86ab);
       } else {
         this.background.clearTint();
@@ -1278,6 +1342,20 @@ export class CombatScene extends Phaser.Scene {
     enemy_hungry_anemone: { texture: 'enemy_gargoyle', tint: 0xf472b6 },
     boss_reef_arachnid: { texture: 'boss_sand_scorpion', tint: 0x38bdf8 },
     npc_air_pocket: { texture: 'enemy_ghost', tint: 0xbae6fd },
+    // v10.5.0: mesma rede de segurança para Zonas 2-4 e o Leviatã — na prática nunca deve disparar
+    // agora que as artes reais estão conectadas acima, mas mantém o padrão defensivo do arquivo.
+    enemy_kelp_strangler: { texture: 'enemy_gargoyle', tint: 0x365314 },
+    enemy_mirror_octopus: { texture: 'enemy_shadow_reflection', tint: 0x94a3b8 },
+    enemy_gloom_angler: { texture: 'enemy_imp', tint: 0xfde047 },
+    boss_kelp_thing: { texture: 'boss_archdemon', tint: 0x1a2e05 },
+    enemy_salt_mourner: { texture: 'enemy_ghost', tint: 0xa5f3fc },
+    enemy_barnacle_knight: { texture: 'enemy_living_armor', tint: 0x0d9488 },
+    boss_drowned_castellan: { texture: 'boss_archdemon', tint: 0x0c4a6e },
+    enemy_trench_serpent: { texture: 'enemy_sand_serpent', tint: 0x1e1b4b },
+    enemy_false_light: { texture: 'enemy_whisper_sprite', tint: 0xfde047 },
+    enemy_dark_breather: { texture: 'enemy_gargoyle', tint: 0x0f0f1a },
+    boss_leviathan_spawn: { texture: 'boss_sand_scorpion', tint: 0x0369a1 },
+    boss_leviathan: { texture: 'boss_frost_dragon', tint: 0x0c4a6e },
   };
 
   // v10.0.0: overlay de escurecimento por profundidade (Mergulhos Rasos)

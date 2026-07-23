@@ -1,8 +1,6 @@
 import type { DistrictId } from '../../core/types';
 
-// Paralelo a `citadelBuildingSprites.ts` — as artes ainda não existem (ficam para depois, por
-// conta do usuário), mas `EvolutionSprite` já cai no ícone de fallback automaticamente enquanto
-// isso, então declarar os caminhos aqui já deixa tudo pronto para quando os arquivos chegarem.
+// Paralelo a `citadelBuildingSprites.ts` — mapeia cada distrito ao seu arquivo de spritesheet.
 export const SUNKEN_BUILDING_SPRITE_SRC: Record<DistrictId, string> = {
   dock: '/assets/submersa_doca_batial.png',
   echoHall: '/assets/submersa_salao_ecos.png',

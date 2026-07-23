@@ -763,15 +763,6 @@ input, textarea, [contenteditable="true"] {
   to { stroke-dashoffset: -24; }
 }
 
-.forge-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--gold-300);
-  text-transform: uppercase;
-  font-size: 0.85rem;
-}
-
 .forge-result-label {
   font-family: var(--font-heading);
   font-size: 0.68rem;

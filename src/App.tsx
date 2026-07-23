@@ -339,7 +339,7 @@ const App: React.FC = () => {
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A maior atualização de conteúdo do jogo até hoje: um Litoral inteiro para pescar, uma descida vertical infinita nas Profundezas do mar com seu próprio ritmo de risco, uma segunda Cidadela — afundada — para restaurar distrito por distrito, uma simulação de população dos Ecos Afogados, Palavras Rúnicas e o Set Abissal, e um chefe mundial semanal com direito a cutscene de encerramento. Os sprites definitivos dos novos inimigos e cenários ainda estão a caminho — por ora, tudo roda com os ícones/fallbacks do próprio motor, sem prejuízo nenhum de jogabilidade.
+                A maior atualização de conteúdo do jogo até hoje: um Litoral inteiro para pescar, uma descida vertical infinita nas Profundezas do mar com seu próprio ritmo de risco, uma segunda Cidadela — afundada — para restaurar distrito por distrito, uma simulação de população dos Ecos Afogados, Palavras Rúnicas e o Set Abissal, e um chefe mundial semanal com direito a cutscene de encerramento.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>

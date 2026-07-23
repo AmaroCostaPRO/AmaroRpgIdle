@@ -394,6 +394,14 @@ export class StatEngine {
     return arr.slice(0, n);
   }
 
+  // v10.6.0: bônus permanente de Transcendência — cada ciclo concede +5% multiplicativo de
+  // dano/vida/mana, aplicado POR FORA do pool aditivo de damageMultiplierPct/maxHpPct/maxManaPct
+  // (mesmo motivo do alma_avatar/Ecoh: precisa ter impacto real mesmo depois de perder
+  // equipamento e Ascensões ao transcender). Consumido em CombatFSM.ts e manaFormulas.ts.
+  static getTranscendenceBoost(character: Character): number {
+    return 1 + (character.transcendenceCount || 0) * 0.05;
+  }
+
   /**
    * Calcula o valor final consolidado dos atributos de um personagem.
    */

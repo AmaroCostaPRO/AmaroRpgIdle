@@ -6,18 +6,27 @@ import { DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST } from '../../core/
 import { EvolutionSprite } from '../citadel/EvolutionSprite';
 import { SUNKEN_BUILDING_SPRITE_SRC } from '../citadel/sunkenBuildingSprites';
 
-// Grade fixa 2×3 do Anexo 3 §1.4/§2.4 — colunas 18/50/82%, linhas 32/72%. Layout:
-// [dock, echoHall, forge] em cima / [temple, archive, throne] embaixo (mesma ordem já documentada
-// em `DISTRICT_ADJACENCY`, sunkenCitadelFormulas.ts). Isoladas aqui como constantes — se
-// `submersa_background.png` for adicionada depois com um layout de clareiras diferente, só estes
-// valores mudam (mesmo princípio já usado por `CitadelSpriteStage.tsx`).
+// Background definitivo do pátio da Cidadela Submersa — mesmo padrão de `CitadelSpriteStage.tsx`
+// (imagem quadrada 1024x1024, esticada com `object-fit: fill` para preencher o container sem
+// cortes nem barras, já que os marcadores usam as mesmas porcentagens de `top`/`left` e por isso
+// acompanham o esticamento perfeitamente). Se a imagem for regerada com um layout de clareiras
+// diferente, ajuste `MARKER_POSITIONS` abaixo para acompanhar.
+const BACKGROUND_SRC = '/assets/submersa_background.png';
+
+// Grade fixa 2×3 do Anexo 3 §1.4/§2.4 — colunas 21/50/79%, linhas 28/72% (calibradas por análise
+// de pixel contra as 6 clareiras circulares reais de `submersa_background.png` após o recorte
+// centralizado que aproximou os círculos das bordas). Layout: [dock, echoHall, forge] em cima /
+// [temple, archive, throne] embaixo (mesma ordem já documentada em `DISTRICT_ADJACENCY`,
+// sunkenCitadelFormulas.ts). Isoladas aqui como constantes — se `submersa_background.png` for
+// regerada com um layout de clareiras diferente, só estes valores mudam (mesmo princípio já usado
+// por `CitadelSpriteStage.tsx`).
 const MARKER_POSITIONS: Record<DistrictId, { top: number; left: number }> = {
-  dock: { top: 32, left: 18 },
-  echoHall: { top: 32, left: 50 },
-  forge: { top: 32, left: 82 },
-  temple: { top: 72, left: 18 },
+  dock: { top: 28, left: 21 },
+  echoHall: { top: 28, left: 50 },
+  forge: { top: 28, left: 79 },
+  temple: { top: 72, left: 21 },
   archive: { top: 72, left: 50 },
-  throne: { top: 72, left: 82 },
+  throne: { top: 72, left: 79 },
 };
 
 interface DistrictMarkerProps {
@@ -111,9 +120,10 @@ interface SubmersaSpriteStageProps {
 
 /**
  * v10.2.0 "Os Ecos Afogados" (revisão de fidelidade ao Anexo 3) — pátio 2×3 da Cidadela Submersa,
- * mesmo esqueleto de `CitadelSpriteStage.tsx`. Sem `submersa_background.png` ainda: fundo em CSS
- * (gradiente aquático) até o asset chegar — `EvolutionSprite` já cai no ícone de fallback sozinho
- * quando os sprites de distrito também não existirem.
+ * mesmo esqueleto de `CitadelSpriteStage.tsx`. `submersa_background.png` já está conectado (Seção
+ * 19.D do Manual) — o gradiente CSS continua como fundo do container por baixo da imagem, servindo
+ * de fallback caso o arquivo ainda não tenha o layout definitivo de 6 clareiras (2×3).
+ * `EvolutionSprite` já cai no ícone de fallback sozinho quando os sprites de distrito não existirem.
  */
 export const SubmersaSpriteStage: React.FC<SubmersaSpriteStageProps> = ({
   districts, assignedCounts, slotsByDistrict, eligibleForAllocation, activeDistrictId, onDistrictClick,
@@ -126,6 +136,12 @@ export const SubmersaSpriteStage: React.FC<SubmersaSpriteStageProps> = ({
       background: 'radial-gradient(ellipse at 50% 30%, rgba(8,80,110,0.45), rgba(2,20,34,0.9))',
       border: '1px solid rgba(34, 211, 238, 0.2)', overflow: 'hidden',
     }}>
+      <img
+        src={BACKGROUND_SRC}
+        alt=""
+        draggable={false}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' }}
+      />
       <style>{`
         @keyframes submersa-marker-pulse {
           0% { opacity: 0.8; transform: scale(1); }

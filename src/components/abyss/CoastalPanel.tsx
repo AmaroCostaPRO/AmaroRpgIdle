@@ -218,10 +218,11 @@ export const CoastalPanel: React.FC = () => {
           A rede pausa quando enche — recolha para retomar a pesca passiva. A isca equipada é consumida 1x por captura ao recolher.
         </p>
 
+        <button onClick={handleCollect} disabled={buffer <= 0} className="btn btn-gold" style={{ alignSelf: 'center', opacity: buffer <= 0 ? 0.5 : 1 }}>
+          🕸️ Recolher a Rede ({buffer})
+        </button>
+
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button onClick={handleCollect} disabled={buffer <= 0} className="btn btn-gold" style={{ opacity: buffer <= 0 ? 0.5 : 1 }}>
-            🕸️ Recolher a Rede ({buffer})
-          </button>
           {dockUpgrade ? (
             <span style={{ fontSize: '0.75rem', alignSelf: 'center', color: '#fbbf24' }}>🔨 Obras: Nível {dockUpgrade.targetLevel} em {dockCountdown}</span>
           ) : nextDockLevel <= COASTAL_DOCK_MAX_LEVEL ? (

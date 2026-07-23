@@ -38,6 +38,7 @@ import { LoreCutscene } from './abyss/LoreCutscene';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
+import { FARO_PERFECT_CATCHES_REQUIRED } from '../core/abyssFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
@@ -3595,6 +3596,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 const GuidePanel: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
   const [guideSubTab, setGuideSubTab] = useState<'classes' | 'systems'>('classes');
+  const [guideSystemsSubTab, setGuideSystemsSubTab] = useState<'citadel' | 'equipment' | 'endgame' | 'events' | 'qol' | 'submerged'>('citadel');
   const character = useGameStore((s) => s.character);
 
   const classLevels = character.classLevels || {};
@@ -3640,365 +3642,530 @@ const GuidePanel: React.FC = () => {
             Explicações dos grandes sistemas do jogo fora do combate por-classe: gerenciamento de base, endgame pós-Pandemônio e recursos de qualidade de vida.
           </p>
 
-          {/* Cidadela Astral */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 10 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0) e o Santuário de Contratos de Caça (v9.0.0), que ficam na 2ª:
-              </p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
-                <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
-                <li><span className="text-white font-semibold">Depósito (Vault):</span> <span className="text-gray-400">armazenamento externo de equipamentos, fora do inventário normal — os itens guardados aqui sobrevivem à Ascensão.</span></li>
-                <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente, com +15% de produção por nível do Quartel. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel. Alocar (gasta Ouro) e retirar antes do prazo (perde o tempo restante) exigem confirmação.</span></li>
-                <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida, Velocidade, Dano de Toque e Dano Crítico (vale para toque, ataque básico e habilidades) globais, além da chance de drop de Chave da Torre e de Fragmento de Alma Instável.</span></li>
-                <li><span className="text-white font-semibold">Torre de Vigia Astral:</span> <span className="text-gray-400">produz passivamente Chaves da Torre, usadas para tentar subir andares na Torre Infinita.</span></li>
-                <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">automatiza a auto-venda/auto-desmonte de equipamentos comuns e raros conforme evolui de nível.</span></li>
-                <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
-                <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
-                <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
-                <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
-                <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça (v9.0.0):</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
-              </ul>
-            </div>
+          {/* Sub-abas de categorias dentro de Sistemas */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('citadel'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'citadel' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              🏰 Cidadela
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('equipment'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'equipment' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              ⚔️ Equipamento
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('endgame'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'endgame' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              🚀 Endgame
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('events'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'events' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              🌙 Eventos
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('qol'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'qol' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              ⚙️ QoL
+            </button>
+            <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('submerged'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'submerged' ? 'active' : ''}`}
+              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+            >
+              🌊 Cidadela Submersa
+            </button>
           </div>
 
-          {/* Bosque Sussurrante, Pets e Mercador (v7.0.0) */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🌲 Bosque Sussurrante, Pets e Mercador (v7.0.0)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                A jornada agora começa no <strong>Bosque Sussurrante</strong> (Fases 1-5), bioma introdutório com inimigos e chefe exclusivos; as dificuldades Pesadelo/Inferno/Apocalipse passam a valer só a partir da Fase 6.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">🐾 Companheiro/Pet Capturável</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">A cada certo número de fases iniciais, há chance de domesticar um pet passivo (Sprite Lumen: +5% XP, ou Moeda Alada: +5% Ouro) que acompanha o herói em combate.</p>
+          {/* ---- Categoria: Cidadela e Construções ---- */}
+          {guideSystemsSubTab === 'citadel' && (
+            <>
+              {/* Cidadela Astral */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 10 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0) e o Santuário de Contratos de Caça (v9.0.0), que ficam na 2ª:
+                  </p>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
+                    <li><span className="text-white font-semibold">Depósito (Vault):</span> <span className="text-gray-400">armazenamento externo de equipamentos, fora do inventário normal — os itens guardados aqui sobrevivem à Ascensão.</span></li>
+                    <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente, com +15% de produção por nível do Quartel. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel. Alocar (gasta Ouro) e retirar antes do prazo (perde o tempo restante) exigem confirmação.</span></li>
+                    <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida, Velocidade, Dano de Toque e Dano Crítico (vale para toque, ataque básico e habilidades) globais, além da chance de drop de Chave da Torre e de Fragmento de Alma Instável.</span></li>
+                    <li><span className="text-white font-semibold">Torre de Vigia Astral:</span> <span className="text-gray-400">produz passivamente Chaves da Torre, usadas para tentar subir andares na Torre Infinita.</span></li>
+                    <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">automatiza a auto-venda/auto-desmonte de equipamentos comuns e raros conforme evolui de nível.</span></li>
+                    <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
+                    <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
+                    <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
+                    <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
+                    <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça (v9.0.0):</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
+                  </ul>
+                </div>
               </div>
-              <div>
-                <strong className="text-white block font-semibold">🛒 Mercador Ambulante</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">Nas fases normais (3+), há 2% de chance de o Mercador substituir um inimigo comum, suspendendo o combate para oferecer 2 elixires aleatórios (dentre Combatente, Defensor, Acumulador, Velocista, Ilusionista) por 50.000 Ouro cada, ativados na hora por 1 a 2 minutos.</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Colar, Amuleto e Anel */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 Colar, Amuleto e Anel (6º, 7º e 8º Slots)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                Diferente dos outros 5 slots, o Colar <strong>não concede atributos primários</strong> (Força, Magia, Destreza, Constituição, Sorte). Em vez disso, ele rola aleatoriamente entre <strong>1 e 3 passivos utilitários</strong> (conforme a raridade: Comum = 1, Raro = 2, Lendário/Ancestral/Celestial = 3), sorteados de um pool fixo de 10 efeitos possíveis:
-              </p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
-                <li><span className="text-gray-400">Dano Final (até +20%), Vida Máxima (até +20%), Mana Máxima (até +20%)</span></li>
-                <li><span className="text-gray-400">Velocidade de Ataque (até +10%), Redução de Dano Recebido, Chance de Fúria (Frenzy)</span></li>
-                <li><span className="text-gray-400">Cliques extras do Robô Assistente (+1 a +3), Roubo de Vida/Lifesteal (até +4%)</span></li>
-                <li><span className="text-gray-400">Dano de Toque (até +50%), Chance de Drop de itens</span></li>
-              </ul>
-              <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
-              <div>
-                <strong className="text-white block font-semibold">🧿 Amuleto (7º slot, v7.0.0)</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">Slot "leve" de entrada, disponível desde a Fase 1: concede exatamente 1 passivo da mesma pool do Colar acima. Drop fixo de 8%, sem influência da Sorte.</p>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">💍 Anel (8º slot, v8.0.0)</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">Ao contrário do Colar/Amuleto, o Anel é um slot "pesado" — concede atributos primários de classe normais (igual a Elmo/Peito/Pernas/Mãos/Arma), participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Relíquia Ativa (9º slot, v9.0.0) */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔱 Relíquia Ativa (9º Slot, v9.0.0)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                Diferente de todos os outros slots, a Relíquia Ativa não concede atributos passivos — ela dá uma <strong>habilidade ativa com recarga própria</strong>, disparada por um botão dedicado no painel de Habilidades. Não passa por Fusão Mística: a habilidade em si é fixa, só a potência do parâmetro relevante (dano, cura, duração, etc.) varia por um roll min/máx conforme a raridade do drop.
-              </p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
-                <li><span className="text-white font-semibold">🔥 Núcleo de Fúria Ancestral:</span> <span className="text-gray-400">+dano% por 8s.</span></li>
-                <li><span className="text-white font-semibold">💗 Coração Selado:</span> <span className="text-gray-400">cura %HP máximo por segundo, por 5s (diferente da Cura padrão instantânea).</span></li>
-                <li><span className="text-white font-semibold">⏳ Fragmento do Tempo Parado:</span> <span className="text-gray-400">reduz na hora o cooldown restante de todas as habilidades de classe.</span></li>
-                <li><span className="text-white font-semibold">🎯 Selo do Caçador de Elites:</span> <span className="text-gray-400">+dano% contra Elites/Chefes por 10s.</span></li>
-                <li><span className="text-white font-semibold">🛡️ Bastião Intangível:</span> <span className="text-gray-400">invulnerabilidade total por alguns segundos.</span></li>
-                <li><span className="text-white font-semibold">💰 Bolsa sem Fundo:</span> <span className="text-gray-400">+ouro% obtido por 15s.</span></li>
-              </ul>
-              <p className="text-gray-500 text-[8px]">Drop independente e raro (2% por encontro comum, fora da Torre). A Convergência (ver abaixo) dropa versões exclusivas ainda mais fortes dessas mesmas 6 categorias.</p>
-            </div>
-          </div>
-
-          {/* Transcendência / Ecoterra / Loja Celestial */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                O <strong>Segundo Ciclo</strong>, desbloqueado após o Modo Pandemônio. Requer ter o <strong>Pandemônio ativo</strong> e ter alcançado a <strong>Fase 50</strong> para realizar o Rito de Transcendência pela primeira vez.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">Fórmula de Pontos de Transcendência (PT):</strong>
-                <code className="text-fuchsia-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                  PT Ganho = Floor((PP Vitalício Acumulado / 500) ^ 0.75)
-                </code>
-                <p className="text-gray-500 text-[8px] mt-0.5">O Rito reseta todo o progresso da Ascensão (nível, PP, ouro, equipamentos, upgrades de PP) em troca desses PT permanentes.</p>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">🌌 Espelho da Ecoterra:</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Modo opcional que substitui o combate normal nas Fases 1 a 20 por versões espelhadas e fortalecidas dos monstros (<strong>+30% Vida, +20% Velocidade</strong>). Em troca, esses monstros derrubam <strong>Essência de Transcendência (ET)</strong> ao morrer.
-                </p>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">🛒 Loja Celestial:</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Troca a Essência de Transcendência (ET) acumulada na Ecoterra por consumíveis especiais de alto poder, acelerando a progressão. Os Talentos de Transcendência (comprados com PT) também podem ser resetados por 10 ET, caso o jogador queira redistribuir os pontos.
-                </p>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">🌟 Classe Suprema: Avatar</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Desbloqueada ao atingir Nível 5 em quatro talentos específicos da árvore de Transcendência (Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar), que juntos liberam o talento final "Avatar Pleno". O Avatar escala dinamicamente com o maior atributo ativo do jogador, fundindo as cinco energias cardinais.
-                </p>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">♾️ Provações do Vácuo (v9.0.0)</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  3ª ramificação da Torre Infinita, liberada só após a <strong>1ª Transcendência</strong>. Reaproveita a mesma curva de dificuldade sem teto da Torre, mas só registra o seu recorde pessoal — sem títulos, sem semente semanal pública, sem leaderboard. A cada 40 andares batidos <strong>nesta semana</strong>, concede +1 Ponto de Transcendência, até um teto fixo de 3 PT por semana (resetado junto do relógio semanal da Torre) — como PT é a moeda mais escassa do jogo, esse modo é só uma fonte lenta e secundária, nunca uma alternativa de farm ao Rito de Transcendência.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* QoL / Opções */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">⚙️ Qualidade de Vida e Opções</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 15fps, prolongando a bateria em sessões longas.</span></li>
-                <li><span className="text-white font-semibold">Tela sempre ativa:</span> <span className="text-gray-400">enquanto você está na tela de combate, o jogo pede ao navegador para manter a tela do dispositivo ligada automaticamente, sem precisar tocar o celular a cada poucos minutos.</span></li>
-                <li><span className="text-white font-semibold">Pressionar e segurar:</span> <span className="text-gray-400">os botões de investir Pontos de Atributo e de aprimorar Habilidades podem ser mantidos pressionados para aplicar múltiplos níveis em sequência, sem precisar tocar repetidamente.</span></li>
-                <li><span className="text-white font-semibold">Nome do Personagem:</span> <span className="text-gray-400">escolhido na tela de criação de personagem, identifica seu herói no painel de Atributos e no combate, no lugar do nome genérico da classe.</span></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Mecânica de Ascensão e Prestígio */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
-                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                  <li>
-                    <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
-                  </li>
-                  <li>
-                    <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
-                  </li>
-                  <li>
-                    <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico</strong>, <strong>+1% de Dano Crítico</strong> e <strong>+0.5% de Esquiva</strong>.
-                  </li>
-                  <li>
-                    <span className="text-gray-400">Fórmula de PP obtido:</span>
-                    <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
-                    <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
-                  </li>
-                  <li>
-                    <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
-                <p className="text-gray-400 mt-0.5">
-                  Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Forja Mística */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) e do <strong>mesmo conjunto</strong> (ex: Senhor da Guerra) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong> que preserva a identidade visual do conjunto original. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+8</strong>.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">Regras de Fusão:</strong>
-                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                  <li><span className="text-gray-400">Mesmo slot e conjunto obrigatórios</span> — os dois equipamentos devem ser do mesmo tipo (ex: arma + arma) e pertencer ao mesmo set (ex: ambos "Senhor da Guerra").</li>
-                  <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
-                  <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
-                  <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+8</strong>.</li>
-                  <li><span className="text-gray-400">Todas as fusões custam Fragmentos de Forja além de Ouro</span> — inclusive a primeira fusão (Convencional → Místico +1). Fragmentos são obtidos desmontando equipamentos sobressalentes (1 por item desmontado).</li>
-                </ul>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">Fórmula Normal (95% das fusões):</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Para cada atributo presente nos dois itens, o <strong>maior valor é preservado 100%</strong> e o <strong>menor valor contribui com 50%</strong> (arredondado para cima). Atributos exclusivos de um item são copiados integralmente.
-                </p>
-                <code className="text-fuchsia-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                  Resultado = Maior + ⌈Menor × 0.5⌉
-                </code>
-                <code className="text-gray-500 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                  Ex: Força 50 + Força 5  →  50 + ⌈2.5⌉ = 53
-                </code>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold" style={{ color: '#facc15' }}>⚡ Forja Lendária (5% de chance):</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Há 5% de chance de a fusão ser uma Forja Lendária. Nesse caso, a fórmula é substituída por um bônus de +50% sobre a soma total de cada atributo.
-                </p>
-                <code className="text-yellow-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
-                  Resultado Lendário = ⌈(A + B) × 1.5⌉
-                </code>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷):</strong>
-                <div className="mt-1 space-y-0.5">
-                  {[
-                    { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '250' },
-                    { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '625' },
-                    { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '1.250' },
-                    { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '2.500' },
-                    { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '6.250' },
-                    { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '12.500' },
-                    { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '25.000' },
-                    { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '50.000' },
-                  ].map((row) => (
-                    <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
-                      <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
-                      <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.ouro} Ouro + {row.frag} 🔷</span>
+              {/* Forja Mística */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">⚒️ Sistema de Forja Mística</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A Forja permite combinar dois equipamentos do <strong>mesmo slot</strong> (ex: Luva + Luva) e do <strong>mesmo conjunto</strong> (ex: Senhor da Guerra) para criar um item de raridade <strong className="text-fuchsia-300">Mística (Lilás)</strong> que preserva a identidade visual do conjunto original. Itens Místicos podem ser fundidos entre si para atingir até o nível <strong>+8</strong>.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Regras de Fusão:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                      <li><span className="text-gray-400">Mesmo slot e conjunto obrigatórios</span> — os dois equipamentos devem ser do mesmo tipo (ex: arma + arma) e pertencer ao mesmo set (ex: ambos "Senhor da Guerra").</li>
+                      <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
+                      <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
+                      <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+8</strong>.</li>
+                      <li><span className="text-gray-400">Todas as fusões custam Fragmentos de Forja além de Ouro</span> — inclusive a primeira fusão (Convencional → Místico +1). Fragmentos são obtidos desmontando equipamentos sobressalentes (1 por item desmontado).</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Fórmula Normal (95% das fusões):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Para cada atributo presente nos dois itens, o <strong>maior valor é preservado 100%</strong> e o <strong>menor valor contribui com 50%</strong> (arredondado para cima). Atributos exclusivos de um item são copiados integralmente.
+                    </p>
+                    <code className="text-fuchsia-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                      Resultado = Maior + ⌈Menor × 0.5⌉
+                    </code>
+                    <code className="text-gray-500 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                      Ex: Força 50 + Força 5  →  50 + ⌈2.5⌉ = 53
+                    </code>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold" style={{ color: '#facc15' }}>⚡ Forja Lendária (5% de chance):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Há 5% de chance de a fusão ser uma Forja Lendária. Nesse caso, a fórmula é substituída por um bônus de +50% sobre a soma total de cada atributo.
+                    </p>
+                    <code className="text-yellow-400 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                      Resultado Lendário = ⌈(A + B) × 1.5⌉
+                    </code>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷):</strong>
+                    <div className="mt-1 space-y-0.5">
+                      {[
+                        { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '250' },
+                        { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '625' },
+                        { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '1.250' },
+                        { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '2.500' },
+                        { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '6.250' },
+                        { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '12.500' },
+                        { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '25.000' },
+                        { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '50.000' },
+                      ].map((row) => (
+                        <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
+                          <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
+                          <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.ouro} Ouro + {row.frag} 🔷</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Altar de Relíquias de Alma */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-widest block">🔮 Altar de Relíquias de Alma</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                As Relíquias são artefatos cósmicos permanentes que fortalecem todos os seus personagens, resistindo inteiramente aos resets de Ascensão. Elas podem ser forjadas e aprimoradas no **Altar de Relíquias** (Aba Ascensão) utilizando **Fragmentos de Alma Instáveis**.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
-                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                  <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
-                  <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
-                  <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 500.000 Ouro para obter instantaneamente de 1 a 3 fragmentos aleatórios ao consumi-lo.</li>
-                </ul>
-              </div>
-              <div>
-                <strong className="text-white block font-semibold">Efeitos de Capstone (Nível 5 Máximo):</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Cada uma das 8 relíquias pode atingir o nível máximo de 5. Ao atingir o ápice, um bônus passivo monumental (Capstone) é ativado permanentemente:
-                </p>
-                <div className="mt-1 space-y-1">
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">1. Luz da Alma Partida (+3% Dano Geral/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de Multiplicador de Dano Crítico global.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">2. Moeda do Ciclo Eterno (+4% Ouro Ganho/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +5% de chance de monstros comuns droparem ouro dobrado.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">3. Símbolo do Aprendizado (+3% Chance de Drop/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de chance de qualquer item dropado ser Raro ou superior.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">4. Gema da Vontade (+4 Força/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +10% de Penetração de Armadura (Aumento de Dano Final).</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">5. Núcleo do Pensamento (+4 Magia/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +15% de Regeneração de Mana ativa e passiva.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">6. Foco da Precisão (+4 Destreza/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +5% de Velocidade de Ataque global.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">7. Brasão da Devoção (+6 Constituição/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: +2% da sua Vida Máxima como escudo protetor no início do combate.</span>
-                  </div>
-                  <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
-                    <span className="text-violet-300 font-bold block">8. Olho da Sobrevivência (+4 Sorte/nvl)</span>
-                    <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* A Torre Infinita */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🏰 A Torre Infinita</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                A **Torre Infinita** é uma arena de desafios verticais onde o jogador testa seus limites contra hordas intermináveis de inimigos e chefes. Ao contrário da campanha, a Torre oferece batalhas estáticas, sem progressão lateral (sidescrolling), focando na superação rápida de andares.
-              </p>
-              <div>
-                <strong className="text-white block font-semibold">Funcionamento e Fluxo:</strong>
-                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                  <li><span className="text-gray-400">Combates Estáticos:</span> O jogador aguarda em sua posição de batalha no centro da arena enquanto o inimigo entra caminhando. O combate inicia assim que ambos estão posicionados.</li>
-                  <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
-                  <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
-                </ul>
+              {/* Altar de Relíquias de Alma */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-violet-400 uppercase tracking-widest block">🔮 Altar de Relíquias de Alma</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    As Relíquias são artefatos cósmicos permanentes que fortalecem todos os seus personagens, resistindo inteiramente aos resets de Ascensão. Elas podem ser forjadas e aprimoradas no **Altar de Relíquias** (Aba Ascensão) utilizando **Fragmentos de Alma Instáveis**.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                      <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
+                      <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
+                      <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 500.000 Ouro para obter instantaneamente de 1 a 3 fragmentos aleatórios ao consumi-lo.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Efeitos de Capstone (Nível 5 Máximo):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Cada uma das 8 relíquias pode atingir o nível máximo de 5. Ao atingir o ápice, um bônus passivo monumental (Capstone) é ativado permanentemente:
+                    </p>
+                    <div className="mt-1 space-y-1">
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">1. Luz da Alma Partida (+3% Dano Geral/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +10% de Multiplicador de Dano Crítico global.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">2. Moeda do Ciclo Eterno (+4% Ouro Ganho/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +5% de chance de monstros comuns droparem ouro dobrado.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">3. Símbolo do Aprendizado (+3% Chance de Drop/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +10% de chance de qualquer item dropado ser Raro ou superior.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">4. Gema da Vontade (+4 Força/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +10% de Penetração de Armadura (Aumento de Dano Final).</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">5. Núcleo do Pensamento (+4 Magia/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +15% de Regeneração de Mana ativa e passiva.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">6. Foco da Precisão (+4 Destreza/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +5% de Velocidade de Ataque global.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">7. Brasão da Devoção (+6 Constituição/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: +2% da sua Vida Máxima como escudo protetor no início do combate.</span>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-violet-900/30">
+                        <span className="text-violet-300 font-bold block">8. Olho da Sobrevivência (+4 Sorte/nvl)</span>
+                        <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <strong className="text-white block font-semibold">🌀 Ramificação de Maldições (v8.0.0):</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">
-                  Modo roguelike opcional, escolhido ao iniciar a subida (não exige chave própria). A cada andar vencido, uma maldição se acumula: -10% em um atributo e +20% em outro, temporária (só durante a subida, nunca altera seus itens de verdade). Em troca, +50% de Ouro e Fragmentos de Forja. Recordes semanal/histórico e a galeria de títulos honoríficos são totalmente separados da Torre Normal.
-                </p>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Expansão de Elites e Lua de Sangue (v8.0.0) */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Elites e 🌕 Lua de Sangue (v8.0.0)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <div>
-                <strong className="text-white block font-semibold">Novos Afixos de Elite:</strong>
-                <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
-                  <li><span className="text-white font-semibold">Refletor:</span> <span className="text-gray-400">devolve parte do dano recebido de volta a você.</span></li>
-                  <li><span className="text-white font-semibold">Errante:</span> <span className="text-gray-400">velocidade de ataque imprevisível a cada golpe.</span></li>
-                  <li><span className="text-white font-semibold">Replicante:</span> <span className="text-gray-400">invoca periodicamente um escudo ("réplica fantasma") que precisa ser quebrado antes de voltar a sofrer dano real.</span></li>
-                  <li><span className="text-white font-semibold">Vulnerável:</span> <span className="text-gray-400">abre janelas periódicas de dano aumentado.</span></li>
-                </ul>
+          {/* ---- Categoria: Equipamento e Itens ---- */}
+          {guideSystemsSubTab === 'equipment' && (
+            <>
+              {/* Colar, Amuleto e Anel */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 Colar, Amuleto e Anel (6º, 7º e 8º Slots)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Diferente dos outros 5 slots, o Colar <strong>não concede atributos primários</strong> (Força, Magia, Destreza, Constituição, Sorte). Em vez disso, ele rola aleatoriamente entre <strong>1 e 3 passivos utilitários</strong> (conforme a raridade: Comum = 1, Raro = 2, Lendário/Ancestral/Celestial = 3), sorteados de um pool fixo de 10 efeitos possíveis:
+                  </p>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-gray-400">Dano Final (até +20%), Vida Máxima (até +20%), Mana Máxima (até +20%)</span></li>
+                    <li><span className="text-gray-400">Velocidade de Ataque (até +10%), Redução de Dano Recebido, Chance de Fúria (Frenzy)</span></li>
+                    <li><span className="text-gray-400">Cliques extras do Robô Assistente (+1 a +3), Roubo de Vida/Lifesteal (até +4%)</span></li>
+                    <li><span className="text-gray-400">Dano de Toque (até +50%), Chance de Drop de itens</span></li>
+                  </ul>
+                  <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
+                  <div>
+                    <strong className="text-white block font-semibold">🧿 Amuleto (7º slot, v7.0.0)</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">Slot "leve" de entrada, disponível desde a Fase 1: concede exatamente 1 passivo da mesma pool do Colar acima. Drop fixo de 8%, sem influência da Sorte.</p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">💍 Anel (8º slot, v8.0.0)</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">Ao contrário do Colar/Amuleto, o Anel é um slot "pesado" — concede atributos primários de classe normais (igual a Elmo/Peito/Pernas/Mãos/Arma), participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados.</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
-                <p className="text-gray-400 text-[9px] mt-0.5">Todo fim de semana, os inimigos da fase atual ganham +50% de HP/Dano e um reskin vermelho, com chance de dropar equipamentos exclusivos do Set da Lua de Sangue. Um indicador "🌕 LUA DE SANGUE" aparece no HUD de combate enquanto ativo.</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Convergência (v9.0.0) */}
-          <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-            <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest block">☄️ Convergência — World Boss Semanal (v9.0.0)</span>
-            <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-              <p>
-                Versão endgame da Lua de Sangue. Toda <strong>quarta-feira</strong>, com o <strong>Pandemônio desbloqueado</strong>, cada encontro comum fora da Torre tem <strong>1% de chance</strong> de se transformar no world boss da semana — só <strong>uma vez por dia</strong> (a mesma seed semanal barra novos sorteios até a próxima quarta).
-              </p>
-              <p>
-                O boss da semana é escolhido automaticamente entre 4 formas rotativas — todos o mesmo jeito da coisa antiga do Pandemônio de tentar "ser vista":
-              </p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
-                <li><span className="text-white font-semibold">🕳️ O Que Ainda Sonha</span> <span className="text-gray-400">— dropa o Eco do Que Ainda Sonha (dano burst).</span></li>
-                <li><span className="text-white font-semibold">🩸 O Ceifador de Reflexos</span> <span className="text-gray-400">— dropa o Fragmento do Ceifador de Reflexos (dano vs Elites/Chefes).</span></li>
-                <li><span className="text-white font-semibold">🪱 A Fome sem Nome</span> <span className="text-gray-400">— dropa a Presa da Fome sem Nome (cura).</span></li>
-                <li><span className="text-white font-semibold">👑 O Trono Vazio</span> <span className="text-gray-400">— dropa o Selo do Trono Vazio (ouro).</span></li>
-              </ul>
-              <p className="text-gray-500 text-[8px]">Cada drop é uma Relíquia Ativa exclusiva com valor fixo, mais forte que as do catálogo normal — a única forma de obtê-las é derrotando o boss correspondente. Um indicador "☄️ CONVERGÊNCIA: [nome do boss]" aparece no HUD enquanto o dia estiver ativo.</p>
-            </div>
-          </div>
+              {/* Relíquia Ativa (9º slot, v9.0.0) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔱 Relíquia Ativa (9º Slot, v9.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Diferente de todos os outros slots, a Relíquia Ativa não concede atributos passivos — ela dá uma <strong>habilidade ativa com recarga própria</strong>, disparada por um botão dedicado no painel de Habilidades. Não passa por Fusão Mística: a habilidade em si é fixa, só a potência do parâmetro relevante (dano, cura, duração, etc.) varia por um roll min/máx conforme a raridade do drop.
+                  </p>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-white font-semibold">🔥 Núcleo de Fúria Ancestral:</span> <span className="text-gray-400">+dano% por 8s.</span></li>
+                    <li><span className="text-white font-semibold">💗 Coração Selado:</span> <span className="text-gray-400">cura %HP máximo por segundo, por 5s (diferente da Cura padrão instantânea).</span></li>
+                    <li><span className="text-white font-semibold">⏳ Fragmento do Tempo Parado:</span> <span className="text-gray-400">reduz na hora o cooldown restante de todas as habilidades de classe.</span></li>
+                    <li><span className="text-white font-semibold">🎯 Selo do Caçador de Elites:</span> <span className="text-gray-400">+dano% contra Elites/Chefes por 10s.</span></li>
+                    <li><span className="text-white font-semibold">🛡️ Bastião Intangível:</span> <span className="text-gray-400">invulnerabilidade total por alguns segundos.</span></li>
+                    <li><span className="text-white font-semibold">💰 Bolsa sem Fundo:</span> <span className="text-gray-400">+ouro% obtido por 15s.</span></li>
+                  </ul>
+                  <p className="text-gray-500 text-[8px]">Drop independente e raro (2% por encontro comum, fora da Torre). A Convergência (ver abaixo) dropa versões exclusivas ainda mais fortes dessas mesmas 6 categorias.</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ---- Categoria: Progressão e Endgame ---- */}
+          {guideSystemsSubTab === 'endgame' && (
+            <>
+              {/* Transcendência / Ecoterra / Loja Celestial */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    O <strong>Segundo Ciclo</strong>, desbloqueado após o Modo Pandemônio. Requer ter o <strong>Pandemônio ativo</strong> e ter alcançado a <strong>Fase 50</strong> para realizar o Rito de Transcendência pela primeira vez.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Fórmula de Pontos de Transcendência (PT):</strong>
+                    <code className="text-fuchsia-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">
+                      PT Ganho = Floor((PP Vitalício Acumulado / 500) ^ 0.75)
+                    </code>
+                    <p className="text-gray-500 text-[8px] mt-0.5">O Rito reseta todo o progresso da Ascensão (nível, PP, ouro, equipamentos, upgrades de PP) em troca desses PT permanentes.</p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🌌 Espelho da Ecoterra:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Modo opcional que substitui o combate normal nas Fases 1 a 20 por versões espelhadas e fortalecidas dos monstros (<strong>+30% Vida, +20% Velocidade</strong>). Em troca, esses monstros derrubam <strong>Essência de Transcendência (ET)</strong> ao morrer.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🛒 Loja Celestial:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Troca a Essência de Transcendência (ET) acumulada na Ecoterra por consumíveis especiais de alto poder, acelerando a progressão. Os Talentos de Transcendência (comprados com PT) também podem ser resetados por 10 ET, caso o jogador queira redistribuir os pontos.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🌟 Classe Suprema: Avatar</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Desbloqueada ao atingir Nível 5 em quatro talentos específicos da árvore de Transcendência (Mana Suprema, Domínio do Vazio, Foco Temporal e Alma do Avatar), que juntos liberam o talento final "Avatar Pleno". O Avatar escala dinamicamente com o maior atributo ativo do jogador, fundindo as cinco energias cardinais.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">♾️ Provações do Vácuo (v9.0.0)</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      3ª ramificação da Torre Infinita, liberada só após a <strong>1ª Transcendência</strong>. Reaproveita a mesma curva de dificuldade sem teto da Torre, mas só registra o seu recorde pessoal — sem títulos, sem semente semanal pública, sem leaderboard. A cada 40 andares batidos <strong>nesta semana</strong>, concede +1 Ponto de Transcendência, até um teto fixo de 3 PT por semana (resetado junto do relógio semanal da Torre) — como PT é a moeda mais escassa do jogo, esse modo é só uma fonte lenta e secundária, nunca uma alternativa de farm ao Rito de Transcendência.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold" style={{ color: '#67e8f9' }}>✨ Bônus Permanente de Transcendência (v10.6.0)</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Cada Transcendência realizada concede, para sempre, +5% multiplicativo de Dano, Vida Máxima e Mana Máxima — empilhando a cada ciclo (2 Transcendências = +10%, 3 = +15%...), por fora de qualquer outro bônus e nunca perdido nos ciclos seguintes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mecânica de Ascensão e Prestígio */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                      <li>
+                        <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico</strong>, <strong>+1% de Dano Crítico</strong> e <strong>+0.5% de Esquiva</strong>.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Fórmula de PP obtido:</span>
+                        <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
+                        <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
+                    <p className="text-gray-400 mt-0.5">
+                      Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* A Torre Infinita */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🏰 A Torre Infinita</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A **Torre Infinita** é uma arena de desafios verticais onde o jogador testa seus limites contra hordas intermináveis de inimigos e chefes. Ao contrário da campanha, a Torre oferece batalhas estáticas, sem progressão lateral (sidescrolling), focando na superação rápida de andares.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Funcionamento e Fluxo:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                      <li><span className="text-gray-400">Combates Estáticos:</span> O jogador aguarda em sua posição de batalha no centro da arena enquanto o inimigo entra caminhando. O combate inicia assim que ambos estão posicionados.</li>
+                      <li><span className="text-gray-400">Transição de Andar:</span> Ao derrotar o inimigo, o jogador avança correndo para frente. O cenário escurece em uma rápida transição de fade-out e fade-in, posicionando o jogador no próximo andar pronto para o próximo oponente.</li>
+                      <li><span className="text-gray-400">Escalonamento de Dificuldade:</span> Cada andar avançado aumenta a força dos oponentes de forma contínua. Caso o jogador seja derrotado, ele é automaticamente retirado da Torre e retornado ao modo de campanha.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🌀 Ramificação de Maldições (v8.0.0):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Modo roguelike opcional, escolhido ao iniciar a subida (não exige chave própria). A cada andar vencido, uma maldição se acumula: -10% em um atributo e +20% em outro, temporária (só durante a subida, nunca altera seus itens de verdade). Em troca, +50% de Ouro e Fragmentos de Forja. Recordes semanal/histórico e a galeria de títulos honoríficos são totalmente separados da Torre Normal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ---- Categoria: Eventos e Chefes Especiais ---- */}
+          {guideSystemsSubTab === 'events' && (
+            <>
+              {/* Bosque Sussurrante, Pets e Mercador (v7.0.0) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🌲 Bosque Sussurrante, Pets e Mercador (v7.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A jornada agora começa no <strong>Bosque Sussurrante</strong> (Fases 1-5), bioma introdutório com inimigos e chefe exclusivos; as dificuldades Pesadelo/Inferno/Apocalipse passam a valer só a partir da Fase 6.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">🐾 Companheiro/Pet Capturável</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">A cada certo número de fases iniciais, há chance de domesticar um pet passivo (Sprite Lumen: +5% XP, ou Moeda Alada: +5% Ouro) que acompanha o herói em combate.</p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🛒 Mercador Ambulante</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">Nas fases normais (3+), há 2% de chance de o Mercador substituir um inimigo comum, suspendendo o combate para oferecer 2 elixires aleatórios (dentre Combatente, Defensor, Acumulador, Velocista, Ilusionista) por 50.000 Ouro cada, ativados na hora por 1 a 2 minutos.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expansão de Elites e Lua de Sangue (v8.0.0) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Elites e 🌕 Lua de Sangue (v8.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <div>
+                    <strong className="text-white block font-semibold">Novos Afixos de Elite:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                      <li><span className="text-white font-semibold">Refletor:</span> <span className="text-gray-400">devolve parte do dano recebido de volta a você.</span></li>
+                      <li><span className="text-white font-semibold">Errante:</span> <span className="text-gray-400">velocidade de ataque imprevisível a cada golpe.</span></li>
+                      <li><span className="text-white font-semibold">Replicante:</span> <span className="text-gray-400">invoca periodicamente um escudo ("réplica fantasma") que precisa ser quebrado antes de voltar a sofrer dano real.</span></li>
+                      <li><span className="text-white font-semibold">Vulnerável:</span> <span className="text-gray-400">abre janelas periódicas de dano aumentado.</span></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">Todo fim de semana, os inimigos da fase atual ganham +50% de HP/Dano e um reskin vermelho, com chance de dropar equipamentos exclusivos do Set da Lua de Sangue. Um indicador "🌕 LUA DE SANGUE" aparece no HUD de combate enquanto ativo.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Convergência (v9.0.0) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest block">☄️ Convergência — World Boss Semanal (v9.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Versão endgame da Lua de Sangue. Toda <strong>quarta-feira</strong>, com o <strong>Pandemônio desbloqueado</strong>, cada encontro comum fora da Torre tem <strong>1% de chance</strong> de se transformar no world boss da semana — só <strong>uma vez por dia</strong> (a mesma seed semanal barra novos sorteios até a próxima quarta).
+                  </p>
+                  <p>
+                    O boss da semana é escolhido automaticamente entre 4 formas rotativas — todos o mesmo jeito da coisa antiga do Pandemônio de tentar "ser vista":
+                  </p>
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                    <li><span className="text-white font-semibold">🕳️ O Que Ainda Sonha</span> <span className="text-gray-400">— dropa o Eco do Que Ainda Sonha (dano burst).</span></li>
+                    <li><span className="text-white font-semibold">🩸 O Ceifador de Reflexos</span> <span className="text-gray-400">— dropa o Fragmento do Ceifador de Reflexos (dano vs Elites/Chefes).</span></li>
+                    <li><span className="text-white font-semibold">🪱 A Fome sem Nome</span> <span className="text-gray-400">— dropa a Presa da Fome sem Nome (cura).</span></li>
+                    <li><span className="text-white font-semibold">👑 O Trono Vazio</span> <span className="text-gray-400">— dropa o Selo do Trono Vazio (ouro).</span></li>
+                  </ul>
+                  <p className="text-gray-500 text-[8px]">Cada drop é uma Relíquia Ativa exclusiva com valor fixo, mais forte que as do catálogo normal — a única forma de obtê-las é derrotando o boss correspondente. Um indicador "☄️ CONVERGÊNCIA: [nome do boss]" aparece no HUD enquanto o dia estiver ativo.</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ---- Categoria: Geral e QoL ---- */}
+          {guideSystemsSubTab === 'qol' && (
+            <>
+              {/* QoL / Opções */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">⚙️ Qualidade de Vida e Opções</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 15fps, prolongando a bateria em sessões longas.</span></li>
+                    <li><span className="text-white font-semibold">Tela sempre ativa:</span> <span className="text-gray-400">enquanto você está na tela de combate, o jogo pede ao navegador para manter a tela do dispositivo ligada automaticamente, sem precisar tocar o celular a cada poucos minutos.</span></li>
+                    <li><span className="text-white font-semibold">Pressionar e segurar:</span> <span className="text-gray-400">os botões de investir Pontos de Atributo e de aprimorar Habilidades podem ser mantidos pressionados para aplicar múltiplos níveis em sequência, sem precisar tocar repetidamente.</span></li>
+                    <li><span className="text-white font-semibold">Nome do Personagem:</span> <span className="text-gray-400">escolhido na tela de criação de personagem, identifica seu herói no painel de Atributos e no combate, no lugar do nome genérico da classe.</span></li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ---- Categoria: A Cidadela Submersa (v10.0.0) ---- */}
+          {guideSystemsSubTab === 'submerged' && (
+            <>
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🎣 O Litoral Naufragado (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Nova aba de topo 🌊 <strong>Abismo</strong>, desbloqueada ao completar a <strong>Fase 2</strong>. A <strong>Doca de Pesca</strong> (5 níveis) gera capturas passivamente num buffer que pausa ao encher — colete manualmente quando quiser, igual à Torre de Vigia. Você também pode pescar ativamente: um minigame de timing onde acertar a janela verde dobra a captura, e acertar a faixa dourada central conta como <strong>acerto perfeito</strong>.
+                  </p>
+                  <p>
+                    Três iscas craftáveis com Carne mudam o peso da tabela de captura, favorecendo Coral, Pérolas ou Runas. Acertos perfeitos alimentam um contador que, a cada <strong>100 acumulados</strong>, concede a Runa Primordial <strong>Faro</strong> — o contador continua valendo depois disso, então é possível ganhar mais de uma cópia.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">🤿 As Profundezas — Mergulho Vertical (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Modo push-your-luck totalmente separado da campanha: gaste <strong>Chaves de Mergulho</strong> (montadas a cada 5 Fragmentos de Batisfera pescados) para descer o quanto conseguir. O <strong>Fôlego</strong> é o único relógio da sessão — nunca escala com a profundidade, é puramente risco de sessão.
+                  </p>
+                  <p>
+                    4 zonas temáticas (Recife Partido, Bosque de Algas Negras, Ruínas da Cidadela, Fossa do Caco) com 3 Guardiões de Zona guardando as profundidades 25/50/80 (cada 1ª morte garante uma Runa Primordial). Bolsões de Ar a cada 5 profundidades deixam você escolher entre respirar, saquear ou subir e bancar tudo.
+                  </p>
+                  <p className="text-gray-500 text-[8px]">Morte "limpa" mantém 75% do acumulado; morte por Fôlego zerado (afogamento) mantém 50%; subir num Bolsão banca 100%. Recompensas exclusivas — Pérolas, Coral e Runas — nunca XP, Ouro ou equipamento normal da campanha.</p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🔱 A Cidadela Submersa — 6 Distritos (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Zona 3</strong> das Profundezas (prof. 51+). Drene distritos com Pérolas e Coral (leva horas reais) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">🎭 Os Ecos Afogados (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Cidadãos resgatados nas Profundezas (Zona 3+) ou ao concluir drenagens de distrito. Cada Eco tem uma vocação (Pescador/Mergulhador/Escriba/Guardião) e um traço único — aloque-os no distrito certo para maximizar a produção. O traço <strong>Coração Partido</strong> pede 7 dias de descanso antes de voltar a render, e realocá-lo reinicia o prazo.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🕍 Ciclo de Marés (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Um relógio de 6 horas alterna <strong>Maré Baixa</strong> (+pesca, −custo de drenagem, −Pressão nas Profundezas) e <strong>Maré Alta</strong> (+Coral, ativa as Bênçãos do Templo — escolhas de dano/drop/produção). Acelera para um ciclo de 1 hora nas <strong>sextas-feiras</strong> (Maré Viva), completando o calendário semanal ao lado da Lua de Sangue (domingo) e da Convergência (quarta).
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🪬 Câmara de Gravação, Runas Abissais e Palavras Rúnicas (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Nova construção da Cidadela Astral: perfure soquetes em equipamento pesado (armas, peitorais e — em nível mais alto — qualquer slot pesado) e engaste Runas Abissais dropadas nas Profundezas. Existem 9 famílias base (3 tiers cada) e 9 Runas Primordiais únicas, cada uma com um efeito especial.
+                  </p>
+                  <p>
+                    A partir do Nível 5 da Câmara, gravar a sequência exata de runas certa num item forma uma <strong>Palavra Rúnica</strong> — um efeito fixo e nomeado que substitui a soma individual das runas. Desfazer devolve tudo ao cofre intacto. Uma nova aba <strong>Runas</strong> no Inventário e no Codex deixa consultar tudo o que você já possui/descobriu.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">💠 Set Abissal (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Novo teto de multiplicador de status, <strong>8.0×</strong> — acima até do Set Celestial. Só dropa na Fossa do Caco (Zona 4 das Profundezas) e é garantido em toda morte do Leviatã do Ciclo. Bônus de 3 peças libera +1 soquete acima do teto normal; 5 peças concede grande bônus de Dano Final, Vida Máxima e imunidade a [ENCHARCADO].
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-cyan-300 uppercase tracking-widest block">🐋 O Leviatã do Ciclo — Chefe Mundial Semanal (v10.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    No Trono Afundado restaurado, desafie um chefe de <strong>5 fases</strong>, cada uma com sua própria mecânica e escalando com seu recorde de profundidade nas Profundezas. Você tem algumas tentativas por semana, e o progresso persiste — perder só custa a fase atual, fases já vencidas não se refazem.
+                  </p>
+                  <p className="text-gray-500 text-[8px]">1ª morte na vida revela a cutscene "O Coro e o Caco" (rejogável a qualquer momento em "Memórias" no Codex), concede a Runa Primordial Levh e um título honorífico. Mortes seguintes garantem peça(s) do Set Abissal.</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -4614,6 +4781,9 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <p style={{ margin: 0, fontSize: '0.65rem', color: '#d1d5db', lineHeight: '1.3' }}>
                   Reseta todo o progresso da Ascensão (PP, ouro, equipamentos e upgrades de PP), mas concede Pontos de Transcendência (PT) permanentes com base nos seus PP acumulados ao longo do tempo.
+                </p>
+                <p style={{ margin: 0, fontSize: '0.65rem', color: '#67e8f9', lineHeight: '1.3' }}>
+                  ✨ Cada Transcendência também concede um bônus <strong>permanente e cumulativo</strong> de +5% de Dano, Vida Máxima e Mana Máxima — multiplicativo, por fora de qualquer outro bônus, e nunca perdido nas Transcendências seguintes.
                 </p>
                 <div style={{ fontSize: '0.6rem', color: '#fbbf24', fontWeight: 'bold' }}>
                   Requisitos: Modo Pandemônio Ativo + Alcançar Fase 50 no Loop Infinito.
@@ -5472,7 +5642,7 @@ const StatisticsPanel: React.FC = () => {
 
   // Espelha CombatFSM.calculatePlayerMaxHP para exibir a Vida atual sem depender da cena de combate
   const ascensionCount = character.ascensionCount || 0;
-  const hpBoost = 1 + (ascensionCount * 0.025);
+  const hpBoost = (1 + (ascensionCount * 0.025)) * StatEngine.getTranscendenceBoost(character);
   const hpPerCon = character.classId === 'paladin' ? 8 : 18;
   const setHpMultiplier = 1 + (finalStats.maxHpPct || 0);
   const currentMaxHP = Math.floor(finalStats.constitution * hpPerCon * hpBoost * setHpMultiplier);
@@ -5535,7 +5705,7 @@ const StatisticsPanel: React.FC = () => {
         <Row label="Coral Vivo (atual)" value={fmt(materials.coral)} />
         <Row label="Capturas na pesca (vitalício)" value={fmt(character.coastal?.lifetimeCatches)} />
         <Row label="Pérolas pescadas no Litoral (vitalício)" value={fmt(character.coastal?.lifetimePearls)} />
-        <Row label="Acertos perfeitos na Pesca Ativa" value={`${character.coastal?.faroPerfectCatches || 0}/100${character.coastal?.faroGranted ? ' — 🜠 Faro obtida' : ''}`} />
+        <Row label="Acertos perfeitos na Pesca Ativa" value={`${(character.coastal?.faroPerfectCatches || 0) % FARO_PERFECT_CATCHES_REQUIRED}/${FARO_PERFECT_CATCHES_REQUIRED}${character.coastal?.faroGrantedCount ? ` — 🜠 Faro obtida ${character.coastal.faroGrantedCount}x` : ''}`} />
         <Row label="Ecos Afogados resgatados (vitalício)" value={fmt(character.sunkenCitadel?.echoesRescuedLifetime)} />
         <Row label="Full Clear do Leviatã em 1 tentativa" value={character.leviathanFastestFullClear ? '✅ Conquistado' : '—'} />
       </div>

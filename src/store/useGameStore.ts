@@ -598,6 +598,11 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
 
 let savedStageBeforeChallenge = 1;
 let savedEnemiesDefeatedBeforeChallenge = 0;
+// v10.6.0: nível do personagem ANTES de entrar na Fase Espelho, travado — mesmo papel de
+// `savedLevelBeforeTower` (useTowerStore.ts), usado por CombatFSM.ts para tapar o ganho de XP
+// por abate ao teto de 1% (evita a mesma classe de bug de inflação de nível já corrigida na Torre).
+let savedLevelBeforeDailyChallenge = 1;
+export const getSavedLevelBeforeDailyChallenge = () => savedLevelBeforeDailyChallenge;
 // TIDE_CHANGED: última fase da Maré vista por tickSunkenCitadelProduction — não persistida, o
 // relógio em si é puro (getTidePhase/Date.now()), só a notificação de mudança precisa de memória.
 let lastKnownTidePhase: 'low' | 'high' | null = null;
@@ -4660,6 +4665,7 @@ export const useGameStore = create<GameState>((set) => ({
     // Salva o progresso normal atual do jogador na memória
     savedStageBeforeChallenge = state.character.currentStage;
     savedEnemiesDefeatedBeforeChallenge = state.character.enemiesDefeatedInStage;
+    savedLevelBeforeDailyChallenge = state.character.level;
 
     const today = useGameStore.getState().getTodayYYYYMMDD();
     const seed = parseInt(today, 10);

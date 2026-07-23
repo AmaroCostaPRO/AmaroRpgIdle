@@ -15,6 +15,42 @@
 
 import type { RuneId } from './runeFormulas';
 
+// v10.6.0: Litoral como bloco de fase dedicado — em vez de interromper fases 1-10 por encontro
+// (o que trocava o background/inimigo no meio de uma fase e quebrava o ritmo do sidescroll), um
+// dos 4 blocos de 5 fases da campanha inicial vira TEMA LITORAL POR INTEIRO, sorteado a cada
+// Ascensão (mesmo personagem/mesma Ascensão = sempre o mesmo bloco; próxima Ascensão sorteia de
+// novo). Compartilhado entre CombatFSM.ts (pool de inimigos/chefe) e CombatScene.ts (background),
+// para as duas pontas nunca divergirem.
+export interface CampaignBiomeBlock {
+  startStage: number;
+  endStage: number;
+  background: string;
+  commonEnemyIds: string[];
+  bossId: string;
+}
+
+export const CAMPAIGN_BIOME_BLOCKS: CampaignBiomeBlock[] = [
+  { startStage: 1, endStage: 5, background: 'whispering_woods_background', commonEnemyIds: ['whisper_sprite', 'thorned_treant', 'fae_rabbit'], bossId: 'boss_whispering_warden' },
+  { startStage: 6, endStage: 10, background: 'background', commonEnemyIds: ['goblin', 'shadow_wolf', 'orc_warrior'], bossId: 'boss_forest_golem' },
+  { startStage: 11, endStage: 15, background: 'desert_background', commonEnemyIds: ['sand_serpent', 'desert_bandit', 'desert_scorpion'], bossId: 'boss_sand_scorpion' },
+  { startStage: 16, endStage: 20, background: 'snow_background', commonEnemyIds: ['frost_wolf', 'ice_elemental', 'cave_yeti'], bossId: 'boss_frost_dragon' },
+];
+
+// Bosque Sussurrante (índice 0) fica de fora do sorteio: o Litoral só desbloqueia ao completar a
+// Fase 2 (`COASTAL_UNLOCK_STAGE`, useGameStore.ts) — se o Bosque fosse sorteado, a Fase 1 (e
+// metade da Fase 2) ainda apareceria com o bioma normal por causa do próprio desbloqueio, gerando
+// uma transição estranha no meio do bloco.
+export const LITORAL_ELIGIBLE_BLOCK_INDICES = [1, 2, 3];
+
+const sinHash = (seed: number): number => { const x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+
+// Sorteio determinístico por Ascensão — mesmo princípio de `randSinCampaign` (CombatFSM.ts) e do
+// sorteio semanal de chefe da Convergência (getWeeklySeed/getConvergenceBossOfWeek).
+export const getLitoralBlockIndexForAscension = (ascensionCount: number): number => {
+  const roll = sinHash(ascensionCount * 7919 + 42);
+  return LITORAL_ELIGIBLE_BLOCK_INDICES[Math.floor(roll * LITORAL_ELIGIBLE_BLOCK_INDICES.length)];
+};
+
 // ─── Fórmulas de campanha (espelho exato de CombatFSM.setupEnemyForLevel / enemyAttack) ──────────
 
 // Multiplicador de dificuldade por faixa de fase (CombatFSM.ts — hpBoost/dmgBoost):
@@ -251,19 +287,19 @@ export interface FishingTableEntry { id: FishingCatchId; weight: number }
 export const getFishingTable = (bait: BaitType | null): FishingTableEntry[] => {
   switch (bait) {
     case 'basic': return [
-      { id: 'lantern_fish', weight: 50 }, { id: 'living_coral', weight: 34 },
+      { id: 'lantern_fish', weight: 43 }, { id: 'living_coral', weight: 34 },
       { id: 'abyssal_pearl', weight: 9 }, { id: 'soaked_rune_t1', weight: 5 },
-      { id: 'bathysphere_fragment', weight: 2 },
+      { id: 'bathysphere_fragment', weight: 9 },
     ];
     case 'glow': return [
-      { id: 'lantern_fish', weight: 38 }, { id: 'living_coral', weight: 28 },
+      { id: 'lantern_fish', weight: 24 }, { id: 'living_coral', weight: 28 },
       { id: 'abyssal_pearl', weight: 18 }, { id: 'soaked_rune_t1', weight: 12 },
-      { id: 'bathysphere_fragment', weight: 4 },
+      { id: 'bathysphere_fragment', weight: 18 },
     ];
     case 'deep': return [
-      { id: 'lantern_fish', weight: 40 }, { id: 'living_coral', weight: 38 },
+      { id: 'lantern_fish', weight: 20 }, { id: 'living_coral', weight: 30 },
       { id: 'abyssal_pearl', weight: 8 }, { id: 'soaked_rune_t1', weight: 6 },
-      { id: 'bathysphere_fragment', weight: 8 },
+      { id: 'bathysphere_fragment', weight: 36 },
     ];
     default: return [
       { id: 'lantern_fish', weight: 70 }, { id: 'living_coral', weight: 30 },

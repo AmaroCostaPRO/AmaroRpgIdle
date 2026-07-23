@@ -1,6 +1,6 @@
 import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_POOL } from './types';
 import { bridge } from '../bridge/GameBridge';
-import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber, getSavedLevelBeforeDailyChallenge } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
 import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTowerStore';
 import { useDiveStore } from '../store/useDiveStore';
@@ -14,6 +14,7 @@ import {
   AIR_POCKET_INTERVAL, GUARDIAN_SHIELD_PCT, GUARDIAN_SHIELD_REBUILD_MS, DROWNING_DAMAGE_MULT,
   getEffectiveAnchorStage, isFullDepthsUnlocked, getPressureMultiplier, getZoneForDepth,
   getGuardianForDepth, isGuardianDepth, DIVE_ZONE_ENEMY_POOL, ZONE4_MINIBOSS_CHANCE, ZONE4_MINIBOSS_ID,
+  getLitoralBlockIndexForAscension,
 } from './abyssFormulas';
 import { RUNE_CATALOG, listSocketedRunes, hasActiveRunewordFlag } from './runeFormulas';
 import {
@@ -642,7 +643,7 @@ export const ENEMY_TYPES: EnemyType[] = [
   {
     id: 'leviathan_spawn',
     name: 'Prole do Leviatã',
-    texture: 'enemy_leviathan_spawn',
+    texture: 'boss_leviathan_spawn',
     hpMultiplier: 2.20, // miniboss aleatório (5% de chance no pool da Zona 4)
     damageMultiplier: 1.30,
     attackSpeedMultiplier: 0.85,
@@ -865,10 +866,6 @@ export const CONVERGENCE_BOSS_TYPES: EnemyType[] = [
 
 // Ativa só às quartas-feiras (mesmo espírito de `isBloodMoonActive`, checagem pura de `Date` local).
 export const isConvergenceActive = (): boolean => new Date().getDay() === 3;
-
-// v10.4.0 "O Leviatã do Ciclo": Maré Viva, ativa só às sextas-feiras — completa o calendário
-// (Dom = Lua de Sangue, Qua = Convergência, Sex = Maré Viva), mesmo padrão de `Date` local.
-export const isMareVivaActive = (): boolean => new Date().getDay() === 5;
 
 // Determinístico por semana (mesma seed que a Torre já usa) — todo jogador vê o mesmo boss na mesma semana.
 export const getConvergenceBossOfWeek = (): EnemyType => {
@@ -1519,6 +1516,12 @@ export class CombatFSM {
       return;
     }
 
+    // v10.6.0: Litoral como bloco de fase dedicado — bloco sorteado por Ascensão (ver
+    // abyssFormulas.ts), calculado cedo para estar disponível nos ramos de bioma abaixo.
+    const char = useGameStore.getState().character;
+    const litoralBlockIndex = char?.coastal?.unlocked ? getLitoralBlockIndexForAscension(char?.ascensionCount || 0) : -1;
+    const litoralBlockActiveThisStage = stage >= 6 && stage <= 20 && litoralBlockIndex === (((stage - 6) % 5) + 1);
+
     // Multiplicador de HP/Dano por dificuldade:
     // Normal (1-5): 1.0× | Pesadelo (6-10): 2.0× | Inferno (11-15): 3.0× | Apocalipse (16-20): 4.0× | Purgatório (21-30): 5.0× | Pandemônio (31+): 6.0×
     let hpBoost = stage >= 31 ? 6.0 : stage >= 21 ? 5.0 : stage >= 16 ? 4.0 : stage >= 11 ? 3.0 : stage >= 6 ? 2.0 : 1.0;
@@ -1589,6 +1592,11 @@ export class CombatFSM {
       else if (theme === 3) bossId = 'boss_frost_dragon';
       else if (theme === 4) bossId = 'boss_necromancer';
       else if (theme === 5) bossId = 'boss_archdemon';
+      // v10.6.0: bloco sorteado vira Litoral — Eco Afogado é o chefe do bloco.
+      if (litoralBlockActiveThisStage) {
+        bossId = 'drowned_echo';
+        bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 Um ECO AFOGADO emerge da maré — os afogados da cidadela ainda vagam...' });
+      }
 
       this.currentEnemy = ENEMY_TYPES.find(e => e.id === bossId) || ENEMY_TYPES[0];
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * this.currentEnemy.hpMultiplier * 3.0 * hpBoost);
@@ -1596,7 +1604,10 @@ export class CombatFSM {
     } else {
       const theme = ((stage - 6) % 5) + 1;
       let commonIds: string[] = [];
-      if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
+      // v10.6.0: bloco sorteado vira Litoral — pool de inimigos aquáticos por inteiro, no lugar do
+      // bioma normal daquele bloco (substitui a antiga interrupção probabilística por encontro).
+      if (litoralBlockActiveThisStage) commonIds = ['wreck_crab', 'drift_jelly', 'slime_moray'];
+      else if (theme === 1) commonIds = ['goblin', 'shadow_wolf', 'orc_warrior'];
       else if (theme === 2) commonIds = ['sand_serpent', 'desert_bandit', 'desert_scorpion'];
       else if (theme === 3) commonIds = ['frost_wolf', 'ice_elemental', 'cave_yeti'];
       else if (theme === 4) commonIds = ['skeleton_warrior', 'decaying_zombie', 'tormented_ghost'];
@@ -1620,12 +1631,19 @@ export class CombatFSM {
     this.isMerchantEncounter = false;
     this.currentMerchantOffer = [];
     this.isConvergenceEncounter = false;
-    this.isCoastalEncounter = false;
+    // v10.6.0: Litoral como bloco de fase dedicado — `isCoastalEncounter` passa a valer para o
+    // bloco de fase inteiro sorteado nesta Ascensão (não mais um roll por encontro), e continua
+    // bloqueando Mercador/Convergência abaixo para não misturar eventos dentro do bloco Litoral.
+    this.isCoastalEncounter = litoralBlockActiveThisStage;
     this.isAirPocketEncounter = false;
     this.firstAttackOfEncounterPending = true;
     this.coracaoLeviataShieldUsedThisCombat = false;
 
-    const char = useGameStore.getState().character;
+    // Primeiro inimigo COMUM do jogo com escudo — reusa o `enemyShield` do afixo Replicante
+    // (absorve dano antes do HP real; não se refaz: quebrou, acabou).
+    if (this.currentEnemy.id === 'wreck_crab') {
+      this.enemyShield = Math.floor(this.enemyMaxHP * 0.15);
+    }
 
     // Seed determinístico por encontro (Ascensão + Fase + abates na fase), para que os sorteios de
     // Elite e Mercador abaixo não mudem se o CombatFSM for reconstruído no meio do MESMO encontro
@@ -1634,37 +1652,6 @@ export class CombatFSM {
     // sem nenhum abate ter ocorrido, inflando a frequência percebida de Elites/Mercador).
     const randSinCampaign = (s: number) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
     const encounterSeed = (char?.ascensionCount || 0) * 1000000 + stage * 1000 + defeatedInStage;
-
-    // v10.0.0 "A Cidadela Submersa": spawn alternativo aquático do Litoral — 15% de chance de
-    // substituir o inimigo comum sorteado nas Fases 1–10 quando o Litoral está desbloqueado
-    // (mesmo padrão determinístico da Convergência; offsets de seed +333/+334/+335 não colidem
-    // com os já usados: +500 afixo de Elite, +777 Mercador, +999 Convergência). Tem precedência
-    // sobre Mercador/Convergência (bloqueados abaixo via isCoastalEncounter).
-    // v10.4.0: Maré Viva (sexta-feira) dobra a chance para 30% — "inimigos aquáticos invadem a
-    // campanha inteira" (Design principal §8.D).
-    const coastalSpawnChance = isMareVivaActive() ? 0.30 : 0.15;
-    if (!isTower && !isBoss && stage <= 10 && char?.coastal?.unlocked && randSinCampaign(encounterSeed + 333) < coastalSpawnChance) {
-      const isDrownedEcho = randSinCampaign(encounterSeed + 334) < 0.02;
-      const coastalPool = ['wreck_crab', 'drift_jelly', 'slime_moray'];
-      const pickedId = isDrownedEcho
-        ? 'drowned_echo'
-        : coastalPool[Math.floor(randSinCampaign(encounterSeed + 335) * coastalPool.length)];
-      const coastalEnemy = ENEMY_TYPES.find(e => e.id === pickedId);
-      if (coastalEnemy) {
-        this.currentEnemy = coastalEnemy;
-        this.isCoastalEncounter = true;
-        this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * coastalEnemy.hpMultiplier * hpBoost);
-        this.enemyHP = this.enemyMaxHP;
-        if (pickedId === 'wreck_crab') {
-          // Primeiro inimigo COMUM do jogo com escudo — reusa o `enemyShield` do afixo Replicante
-          // (absorve dano antes do HP real; não se refaz: quebrou, acabou).
-          this.enemyShield = Math.floor(this.enemyMaxHP * 0.15);
-        }
-        if (isDrownedEcho) {
-          bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 Um ECO AFOGADO emerge da maré — os afogados da cidadela ainda vagam...' });
-        }
-      }
-    }
 
     // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
     if (!isBoss && stage >= 11) {
@@ -2066,8 +2053,9 @@ export class CombatFSM {
     });
 
     const ascensionCount = char.ascensionCount || 0;
-    const hpBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
-    const manaBoost = 1 + (ascensionCount * 0.025); // +2.5% por ascensão
+    const transBoost = StatEngine.getTranscendenceBoost(char); // v10.6.0: +5%/ciclo de Transcendência
+    const hpBoost = (1 + (ascensionCount * 0.025)) * transBoost; // +2.5% por ascensão
+    const manaBoost = (1 + (ascensionCount * 0.025)) * transBoost; // +2.5% por ascensão
 
     const prevMaxHP = this.playerMaxHP;
     this.playerMaxHP = Math.floor(this.calculatePlayerMaxHP(this.playerFinalStats.constitution, hpBoost, char.classId || 'warrior') * (this.isElixirCombatenteActive ? 1.2 : 1));
@@ -3014,7 +3002,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -3166,7 +3154,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -3845,6 +3833,10 @@ export class CombatFSM {
 
     // Torre Infinita: gate reutilizado pelos blocos de XP e de drops abaixo
     const isTower = useTowerStore.getState().towerActive;
+    // v10.6.0: Desafio Diário — mesma classe de bug já corrigida na Torre (nível alto farmando a
+    // Fase Espelho, fácil demais, inflava XP/nível/pontos sem limite). Reutilizado também pelo
+    // bloco de drop da Chave da Torre mais abaixo.
+    const isDaily = char.activeDailyChallenge;
 
     let baseGainedXp: number;
     if (isTower) {
@@ -3853,6 +3845,12 @@ export class CombatFSM {
       // junto com o nível ao vivo, o que causava um loop de retroalimentação (mais níveis por
       // abate quanto mais o personagem subia dentro da própria subida da torre).
       const frozenLevel = useTowerStore.getState().savedLevelBeforeTower;
+      baseGainedXp = Math.floor(getXpNeededForLevel(frozenLevel, char.currentStage) * 0.01);
+    } else if (isDaily) {
+      // Mesmo teto do Desafio Diário: usa o nível do personagem ANTES de entrar na Fase Espelho,
+      // travado, para impedir que um personagem de fase alta infle nível/pontos farmando o mob
+      // fácil do desafio.
+      const frozenLevel = getSavedLevelBeforeDailyChallenge();
       baseGainedXp = Math.floor(getXpNeededForLevel(frozenLevel, char.currentStage) * 0.01);
     } else {
       // Escala acelerada de XP por fase para acompanhar a curva de XP necessária
@@ -4039,8 +4037,6 @@ export class CombatFSM {
     }
 
     // Lógica de drop da Chave da Torre (apenas na campanha normal, não na torre e nem no desafio diário)
-    const isDaily = char.activeDailyChallenge;
-
     if (!isTower && !isDaily) {
       const keyDropChance = isBoss ? 0.0375 : (this.isElite ? 0.01875 : 0.00625);
       const towerKeyResearchLevel = char.citadel?.academy.researchTowerKeyLevel || 0;
@@ -4986,7 +4982,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier();
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano

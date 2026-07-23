@@ -117,6 +117,9 @@ export const AbyssPanel: React.FC = () => {
 
   return (
     <div className="panel" style={{ padding: '1rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
+        <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>🌊 Abismo</h2>
+      </div>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {subTabButton('coastal', '🎣', 'Litoral', false, '')}
         {subTabButton('depths', '🤿', fullDepths ? 'Profundezas' : 'Mergulhos Rasos', !depthsUnlocked, 'Requer 1 Ascensão')}

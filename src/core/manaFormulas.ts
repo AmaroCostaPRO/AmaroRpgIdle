@@ -14,7 +14,7 @@ export const calculateMaxManaFromStats = (magic: number, manaBoost: number, clas
 
 export const calculateMaxMana = (character: Character): number => {
   const finalStats = StatEngine.calculateFinalStats(character);
-  const manaBoost = 1 + (character.ascensionCount || 0) * 0.025;
+  const manaBoost = (1 + (character.ascensionCount || 0) * 0.025) * StatEngine.getTranscendenceBoost(character);
   return calculateMaxManaFromStats(finalStats.magic, manaBoost, character.classId || 'warrior');
 };
 
