@@ -142,18 +142,32 @@ export const AbyssPanel: React.FC = () => {
             <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>
               {fullDepths ? '🤿 As Profundezas — 4 Zonas' : '🤿 Mergulhos Rasos — Recife Partido (Zona 1)'}
             </p>
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)' }}>
-              Descida vertical push-your-luck com o <strong>Fôlego</strong> como relógio da sessão. Vença cada profundidade
-              para acumular 🦪 Pérolas, 🪸 Coral e 📜 Runas — e decida nos Bolsões de Ar (a cada 5 profundidades) entre
-              respirar, saquear ou <strong>subir e bancar tudo</strong>.
-              {fullDepths
-                ? ' Você alcançou a Fase 50: a Pressão das profundezas está ativa e as Zonas 2–4 (Bosque de Algas Negras, Ruínas da Cidadela, Fossa do Caco) se abrem além do Recife.'
-                : ` Na prof. ${GUARDIAN_DEPTH}, o 👑 Guardião do Recife espera (1ª morte: Runa Primordial 🜲 Thal). Alcance a Fase 50 para destravar As Profundezas completas.`}
+            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+              Desça acumulando 🦪 Pérolas, 🪸 Coral e 📜 Runas — arrisque ou suba a cada Bolsão de Ar.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.2rem', fontSize: '0.8rem' }}>
               <span>🤿 Chaves de Mergulho: <strong>{diveKeys}</strong></span>
               <span>📊 Recorde: <strong>Prof. {historicalMaxDepth}</strong></span>
             </div>
+            {!diveActive && (
+              <button
+                onClick={handleStartDive}
+                disabled={diveKeys < keyCost}
+                className="btn btn-gold"
+                style={{ alignSelf: 'flex-start', opacity: diveKeys < keyCost ? 0.5 : 1 }}
+              >
+                🤿 INICIAR MERGULHO ({keyCost} Chave{keyCost > 1 ? 's' : ''})
+              </button>
+            )}
+            {diveActive && (
+              <button
+                onClick={handleSurfaceClick}
+                className="btn btn-gold"
+                style={{ alignSelf: 'flex-start', background: confirmSurface ? '#dc2626' : undefined }}
+              >
+                {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca o acumulado)'}
+              </button>
+            )}
 
             <EquippedTitleBox
               selectedTitle={equippedTitle}
@@ -222,30 +236,19 @@ export const AbyssPanel: React.FC = () => {
                 </div>
               </div>
             )}
-            {!diveActive && (
-              <button
-                onClick={handleStartDive}
-                disabled={diveKeys < keyCost}
-                className="btn btn-gold"
-                style={{ alignSelf: 'flex-start', opacity: diveKeys < keyCost ? 0.5 : 1 }}
-              >
-                🤿 INICIAR MERGULHO ({keyCost} Chave{keyCost > 1 ? 's' : ''})
-              </button>
-            )}
-            {diveActive && (
-              <button
-                onClick={handleSurfaceClick}
-                className="btn btn-gold"
-                style={{ alignSelf: 'flex-start', background: confirmSurface ? '#dc2626' : undefined }}
-              >
-                {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca o acumulado)'}
-              </button>
-            )}
             {diveKeys < keyCost && !diveActive && (
               <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)' }}>
                 Sem chaves suficientes: junte 5 🗝️ Fragmentos de Batisfera na pesca do Litoral para montar uma Chave de Mergulho.
               </p>
             )}
+            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.6rem' }}>
+              Descida vertical push-your-luck com o <strong>Fôlego</strong> como relógio da sessão. Vença cada profundidade
+              para acumular 🦪 Pérolas, 🪸 Coral e 📜 Runas — e decida nos Bolsões de Ar (a cada 5 profundidades) entre
+              respirar, saquear ou <strong>subir e bancar tudo</strong>.
+              {fullDepths
+                ? ' Você alcançou a Fase 50: a Pressão das profundezas está ativa e as Zonas 2–4 (Bosque de Algas Negras, Ruínas da Cidadela, Fossa do Caco) se abrem além do Recife.'
+                : ` Na prof. ${GUARDIAN_DEPTH}, o 👑 Guardião do Recife espera (1ª morte: Runa Primordial 🜲 Thal). Alcance a Fase 50 para destravar As Profundezas completas.`}
+            </p>
             <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)' }}>
               Morte "limpa": mantém 75% do acumulado · Morte afogada (Fôlego 0): mantém 50% · Subir num Bolsão: 100%.
             </p>

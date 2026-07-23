@@ -46,7 +46,7 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = ({ runeInve
         const visual = getRuneVisual(selectedRuneId);
         return (
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99 }}
             onClick={() => setSelectedRuneId(null)}
           >
             <div

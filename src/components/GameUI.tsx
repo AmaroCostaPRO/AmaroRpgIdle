@@ -1665,7 +1665,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               setInventoryTab('equipment');
             }}
             style={{
-              padding: '0.5rem 0.75rem',
+              padding: '0.5rem 0.6rem',
               fontSize: '0.7rem',
               fontWeight: 700,
               background: inventoryTab === 'equipment' ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
@@ -1679,11 +1679,12 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               transition: 'all 0.15s ease'
             }}
           >
-            ⚔️ Equipamentos
-            <span style={{ 
-              fontSize: '0.55rem', 
-              background: 'rgba(255,255,255,0.06)', 
-              padding: '0.05rem 0.25rem', 
+            <span>⚔️</span>
+            {inventoryTab === 'equipment' && <span>Equipamentos</span>}
+            <span style={{
+              fontSize: '0.55rem',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '0.05rem 0.25rem',
               borderRadius: '4px',
               color: inventoryTab === 'equipment' ? 'var(--gold-400)' : '#64748b'
             }}>
@@ -1697,7 +1698,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               setInventoryTab('consumable');
             }}
             style={{
-              padding: '0.5rem 0.75rem',
+              padding: '0.5rem 0.6rem',
               fontSize: '0.7rem',
               fontWeight: 700,
               background: inventoryTab === 'consumable' ? 'rgba(168, 85, 247, 0.08)' : 'transparent',
@@ -1711,11 +1712,12 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               transition: 'all 0.15s ease'
             }}
           >
-            🧪 Consumíveis
-            <span style={{ 
-              fontSize: '0.55rem', 
-              background: 'rgba(255,255,255,0.06)', 
-              padding: '0.05rem 0.25rem', 
+            <span>🧪</span>
+            {inventoryTab === 'consumable' && <span>Consumíveis</span>}
+            <span style={{
+              fontSize: '0.55rem',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '0.05rem 0.25rem',
               borderRadius: '4px',
               color: inventoryTab === 'consumable' ? '#c084fc' : '#64748b'
             }}>
@@ -1729,7 +1731,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               setInventoryTab('rune');
             }}
             style={{
-              padding: '0.5rem 0.75rem',
+              padding: '0.5rem 0.6rem',
               fontSize: '0.7rem',
               fontWeight: 700,
               background: inventoryTab === 'rune' ? 'rgba(192, 132, 252, 0.08)' : 'transparent',
@@ -1743,7 +1745,8 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
               transition: 'all 0.15s ease'
             }}
           >
-            🪬 Runas
+            <span>🪬</span>
+            {inventoryTab === 'rune' && <span>Runas</span>}
             <span style={{
               fontSize: '0.55rem',
               background: 'rgba(255,255,255,0.06)',
@@ -7208,9 +7211,9 @@ export default function GameUI() {
       { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
     ],
-    // v10.0.0: Câmara de Gravação consome Madeira/Pedra/Coral (construção) e Pérolas/Ouro (soquetes)
+    // v10.0.0: Câmara de Gravação consome Madeira/Pedra/Coral (construção) e Pérolas/Ouro (soquetes) —
+    // Ouro fica de fora do cabeçalho por espaço, mas continua sendo cobrado normalmente nas ações.
     engravingChamber: [
-      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
       { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
       { icon: '🪸', value: citadelMaterials.coral || 0, color: '#fb7185', label: 'Coral Vivo' },
@@ -7555,18 +7558,18 @@ export default function GameUI() {
             </>
           ) : (
             <>
-              <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
+              <div className="font-mono" title="Ouro" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(251,191,36,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(251,191,36,0.18)' }}>
                 <span>🪙</span>
-                <span>{formatNumber(character.gold || 0, abbreviateNumbers)} Ouro</span>
+                <span>{formatNumber(character.gold || 0, abbreviateNumbers)}</span>
               </div>
-              <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.18)' }}>
+              <div className="font-mono" title="Chaves" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.08)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.18)' }}>
                 <span>🔑</span>
-                <span>{towerKeyCount} Chaves</span>
+                <span>{towerKeyCount}</span>
               </div>
               {evolvedTowerKeyCount > 0 && (
-                <div className="font-mono" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.12)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.25)' }}>
+                <div className="font-mono" title="Chaves Evoluídas" style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(168,85,247,0.12)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.25)' }}>
                   <span>🗝️</span>
-                  <span>{evolvedTowerKeyCount} Evoluídas</span>
+                  <span>{evolvedTowerKeyCount}</span>
                 </div>
               )}
             </>
