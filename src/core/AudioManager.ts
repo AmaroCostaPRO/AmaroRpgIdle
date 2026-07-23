@@ -130,6 +130,10 @@ export class AudioManager {
     bridge.subscribe(GameEvent.ECHO_RESCUED, () => {
       this.playEchoRescued();
     });
+    // Convergência: aviso sonoro temático ao manifestar o world boss de quarta-feira.
+    bridge.subscribe(GameEvent.CONVERGENCE_ENCOUNTERED, () => {
+      this.playConvergenceEncounter();
+    });
     // Blip de Fôlego crítico (<25%), com debounce de 4s para não virar metrônomo
     bridge.subscribe(GameEvent.BREATH_CHANGED, (payload: any) => {
       const breath = payload?.breath;
@@ -543,6 +547,46 @@ export class AudioManager {
     gain.connect(this.ctx.destination);
     osc.start(now);
     osc.stop(now + 0.5); // + 0.5s de silêncio depois é só a ausência de novo som, não precisa de nó extra
+  }
+
+  /**
+   * Convergência — aviso de world boss: rumble grave contínuo por baixo de dois "stabs"
+   * dissonantes (trítono, G2→C#3), telegrafando perigo antes do modal de Enfrentar/Fugir.
+   */
+  public playConvergenceEncounter() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    const rumble = this.ctx.createOscillator();
+    const rumbleGain = this.ctx.createGain();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(40, now);
+    rumbleGain.gain.setValueAtTime(0, now);
+    rumbleGain.gain.linearRampToValueAtTime(this.sfxVolume * 0.35, now + 0.15);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(this.ctx.destination);
+    rumble.start(now);
+    rumble.stop(now + 1.35);
+
+    const notes = [98.0, 138.59]; // G2, trítono acima (C#3)
+    notes.forEach((freq, i) => {
+      const delay = i * 0.28;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + delay + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.6);
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.65);
+    });
   }
 
   /**

@@ -720,7 +720,10 @@ export enum CombatState {
   MERCHANT_ENCOUNTER = 'MERCHANT_ENCOUNTER',
   // v10.0.0 "A Cidadela Submersa": Bolsão de Ar dos Mergulhos Rasos — mesmo padrão do Mercador
   // (suspende o FSM, modal local de escolha, retoma ao resolver). O dreno de Fôlego PAUSA aqui.
-  AIR_POCKET = 'AIR_POCKET'
+  AIR_POCKET = 'AIR_POCKET',
+  // Convergência (v9.0.0): world boss de quarta-feira — mesmo padrão de pausa do Mercador, mas com
+  // uma decisão de Enfrentar/Fugir em vez de compra.
+  CONVERGENCE_ENCOUNTER = 'CONVERGENCE_ENCOUNTER'
 }
 
 // Elixires exclusivos do Mercador Ambulante — comprados com Ouro e ativados na hora (não viram
@@ -1053,6 +1056,8 @@ export class CombatFSM {
   private towerStoreUnsubscribe?: () => void;
   private unsubscribeStartCombat?: () => void;
   private unsubscribeMerchantDismissed?: () => void;
+  private unsubscribeConvergenceEngaged?: () => void;
+  private unsubscribeConvergenceDismissed?: () => void;
   private lastEmitHP: number = -1;
   private lastEmitMaxHP: number = -1;
   private lastEmitMana: number = -1;
@@ -1271,9 +1276,10 @@ export class CombatFSM {
         this.playerHP = devocaoLvl === 5 ? Math.floor(this.playerMaxHP * (this.isRelicOverheated('brasao_devoacao') ? 1.05 : 1.02)) : this.playerMaxHP;
         this.playerMana = this.playerMaxMana;
         this.skillCooldowns = {};
-        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante
-        // (nesse caso ele já deixou currentState em MERCHANT_ENCOUNTER, que não pode ser sobrescrito aqui).
-        if (!this.isMerchantEncounter) {
+        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante nem
+        // uma Convergência (nesses casos ele já deixou currentState em MERCHANT_ENCOUNTER/
+        // CONVERGENCE_ENCOUNTER, que não pode ser sobrescrito aqui).
+        if (!this.isMerchantEncounter && !this.isConvergenceEncounter) {
           this.currentState = CombatState.IDLE;
         }
 
@@ -1343,6 +1349,37 @@ export class CombatFSM {
         this.scene.respawnEnemyAt(900, this.currentEnemy);
       }
     });
+
+    // Convergência: "Enfrentar" — apenas retoma o combate (o boss já está posicionado/dimensionado
+    // e com HP calculado desde o momento do encontro; nada precisa ser refeito, só destravar o FSM).
+    this.unsubscribeConvergenceEngaged = bridge.subscribe(GameEvent.CONVERGENCE_ENGAGED, () => {
+      if (this.currentState !== CombatState.CONVERGENCE_ENCOUNTER) return;
+      this.currentState = CombatState.IDLE;
+    });
+
+    // Convergência: "Fugir" — mesmo padrão do Mercador dispensado: marca este encontro exato
+    // (fase:abates) como resolvido para não reproduzir o mesmo boss para sempre nesse slot, e
+    // sorteia o próximo inimigo normal da fase.
+    this.unsubscribeConvergenceDismissed = bridge.subscribe(GameEvent.CONVERGENCE_DISMISSED, () => {
+      if (this.currentState !== CombatState.CONVERGENCE_ENCOUNTER) return;
+      const activeChar = useGameStore.getState().character;
+      this.isConvergenceEncounter = false;
+      useGameStore.setState((state) => ({
+        character: {
+          ...state.character,
+          resolvedConvergenceEncounterKey: `${state.character.currentStage}:${state.character.enemiesDefeatedInStage}`
+        }
+      }));
+      this.setupEnemyForLevel(activeChar.currentStage, activeChar.enemiesDefeatedInStage);
+      // setupEnemyForLevel só escreve em currentState quando sorteia um Mercador (a Convergência
+      // não pode se repetir nesse exato encontro, já que acabamos de marcar resolvedConvergenceEncounterKey).
+      if (!this.isMerchantEncounter) {
+        this.currentState = CombatState.IDLE;
+      }
+      if (this.scene && this.scene.sys && this.scene.sys.isActive()) {
+        this.scene.respawnEnemyAt(900, this.currentEnemy);
+      }
+    });
   }
 
   public cleanup(): void {
@@ -1365,6 +1402,14 @@ export class CombatFSM {
     if (this.unsubscribeAirPocketResolved) {
       this.unsubscribeAirPocketResolved();
       this.unsubscribeAirPocketResolved = undefined;
+    }
+    if (this.unsubscribeConvergenceEngaged) {
+      this.unsubscribeConvergenceEngaged();
+      this.unsubscribeConvergenceEngaged = undefined;
+    }
+    if (this.unsubscribeConvergenceDismissed) {
+      this.unsubscribeConvergenceDismissed();
+      this.unsubscribeConvergenceDismissed = undefined;
     }
   }
 
@@ -1645,15 +1690,19 @@ export class CombatFSM {
     // depois do Pandemônio desbloqueado (mesmo gate usado pela Ecoterra/Transcendência). Chance
     // baixa (1%) por encontro elegível, SEM limite de manifestações por semana (decisão explícita:
     // a raridade natural do 1% já é suficiente, e travar 1×/semana impedia o jogador de tentar de
-    // novo no mesmo dia). Checado ANTES do Mercador abaixo e retorna cedo se disparar, para os
-    // dois nunca coincidirem no mesmo encontro.
-    if (!isBoss && !this.isElite && !this.isCoastalEncounter && stage >= 31 && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
+    // novo no mesmo dia). Igual ao Mercador abaixo, PAUSA o combate (modal de Enfrentar/Fugir) em
+    // vez de entrar direto na luta — retorna cedo, para nunca coincidir com o Mercador no mesmo encontro.
+    const convergenceEncounterKey = `${stage}:${defeatedInStage}`;
+    const convergenceAlreadyFledHere = char?.resolvedConvergenceEncounterKey === convergenceEncounterKey;
+    if (!isBoss && !this.isElite && !this.isCoastalEncounter && !convergenceAlreadyFledHere && stage >= 31 && isConvergenceActive() && char?.pandemoniumUnlocked && randSinCampaign(encounterSeed + 999) < 0.01) {
       const convergenceBoss = getConvergenceBossOfWeek();
       this.currentEnemy = convergenceBoss;
       this.isConvergenceEncounter = true;
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * convergenceBoss.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `☄️ A Convergência se abre! ${convergenceBoss.name} se manifesta diante de você!` });
+      this.currentState = CombatState.CONVERGENCE_ENCOUNTER;
+      bridge.emit(GameEvent.CONVERGENCE_ENCOUNTERED, { boss: convergenceBoss });
+      return;
     }
 
     // Mercador Ambulante (v7.0.0 "Ecos que Despertam"): substitui um inimigo comum no combate,
@@ -2061,9 +2110,10 @@ export class CombatFSM {
           this.playerHP = this.playerMaxHP;
         }
         this.playerMana = this.playerMaxMana;
-        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante
-        // (nesse caso ele já deixou currentState em MERCHANT_ENCOUNTER, que não pode ser sobrescrito aqui).
-        if (!this.isMerchantEncounter) {
+        // Só força IDLE se o setupEnemyForLevel acima não tiver sorteado um Mercador Ambulante nem
+        // uma Convergência (nesses casos ele já deixou currentState em MERCHANT_ENCOUNTER/
+        // CONVERGENCE_ENCOUNTER, que não pode ser sobrescrito aqui).
+        if (!this.isMerchantEncounter && !this.isConvergenceEncounter) {
           this.currentState = CombatState.IDLE;
         }
         this.skillCooldowns = {};
@@ -2264,7 +2314,7 @@ export class CombatFSM {
       }
     }
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
 
     // Processamento do servo ressuscitado (Necromancia)
     if (this.summonedAlly && this.summonedAllyTimer > 0) {
@@ -2888,7 +2938,7 @@ export class CombatFSM {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.CONVERGENCE_ENCOUNTER || this.enemyHP <= 0) return;
     
     // Throttling: limite de 20 cliques por segundo (50ms por clique)
     const now = Date.now();
@@ -2927,7 +2977,7 @@ export class CombatFSM {
     // Impede a execução de toques caso o jogo esteja pausado
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.enemyHP <= 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.CONVERGENCE_ENCOUNTER || this.enemyHP <= 0) return;
 
     const dpsPassivo = this.getPassiveDPS();
     const effectiveTouch = this.playerFinalStats.touch * 0.5;
@@ -3522,7 +3572,7 @@ export class CombatFSM {
   }
 
   private damageEnemy(amount: number, isDirect: boolean): void {
-    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+    if (amount <= 0 || this.enemyHP <= 0 || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
 
     // v10.3.0: Palavra Rúnica CANÇÃO DA CARPIDEIRA — todo golpe direto aplica [ENCHARCADO] no inimigo.
     if (isDirect && this.hasRunewordFlag('rw_cancao_carpideira')) {
@@ -3771,7 +3821,7 @@ export class CombatFSM {
           id: `relic-${exclusiveRelicId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           name: relicDef.name,
           slot: 'activeRelic',
-          rarity: 'legendary',
+          rarity: 'mystic',
           stats: {},
           classId: char.classId,
           spriteName: `active_relic_${exclusiveRelicId}`,
@@ -4624,7 +4674,7 @@ export class CombatFSM {
 
   public triggerActiveRelic(): void {
     if (useGameStore.getState().gameSpeed === 0) return;
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
 
     const equippedRelic = this.characterData?.equipment?.activeRelic;
     if (!equippedRelic || !equippedRelic.activeRelicId) {
@@ -4713,7 +4763,7 @@ export class CombatFSM {
     // Impede o uso de habilidades caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
 
     const skill = SKILLS_CATALOG[skillId];
     if (!skill) return;
@@ -5203,7 +5253,7 @@ export class CombatFSM {
   }
 
   private runAutoCastAI(): void {
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
     const char = this.characterData;
     const isAutoCastUnlocked = char && ((char.ascensionCount || 0) >= 1 || (char.highestStageReached || 0) > 5 || (char.currentStage || 0) > 5);
     if (!char || !isAutoCastUnlocked || !char.autoCastEnabled) return;

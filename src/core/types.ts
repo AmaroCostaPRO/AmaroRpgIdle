@@ -247,6 +247,10 @@ export interface Character {
   // mesma quarta-feira, já que a seed semanal só muda no próximo reset (mesmo espírito de
   // `resolvedMerchantEncounterKey` acima, mas por semana em vez de por encontro).
   resolvedConvergenceWeekSeed?: number;
+  // Encontro (fase:abates) em que o jogador já FUGIU do world boss da Convergência — mesmo espírito
+  // de `resolvedMerchantEncounterKey`: sem essa marca, o sorteio determinístico reproduziria o
+  // mesmo boss para sempre nesse slot exato (fugir não incrementa os abates).
+  resolvedConvergenceEncounterKey?: string;
   pandemoniumUnlocked?: boolean;
   activePandemonium?: boolean;
   testMode?: boolean;
@@ -392,6 +396,11 @@ export enum GameEvent {
   CITADEL_SUBTAB_CHANGED = 'CITADEL_SUBTAB_CHANGED',
   SHOW_WELCOME_GUIDE = 'SHOW_WELCOME_GUIDE',
   MERCHANT_ENCOUNTERED = 'MERCHANT_ENCOUNTERED',
+  // World boss da Convergência (quarta-feira): mesmo padrão do Mercador — pausa o combate e pede
+  // uma decisão explícita do jogador via modal (Enfrentar/Fugir) em vez de entrar em luta direto.
+  CONVERGENCE_ENCOUNTERED = 'CONVERGENCE_ENCOUNTERED',
+  CONVERGENCE_ENGAGED = 'CONVERGENCE_ENGAGED',
+  CONVERGENCE_DISMISSED = 'CONVERGENCE_DISMISSED',
   PET_CAPTURED = 'PET_CAPTURED',
   ELIXIR_ACTIVATED = 'ELIXIR_ACTIVATED',
   ALCHEMY_POTION_ACTIVATED = 'ALCHEMY_POTION_ACTIVATED',

@@ -7069,6 +7069,30 @@ export default function GameUI() {
     bridge.emit(GameEvent.MERCHANT_DISMISSED, {});
   };
 
+  // Convergência (world boss de quarta-feira): mesmo padrão de pausa/modal do Mercador acima, mas
+  // com uma decisão de Enfrentar/Fugir em vez de compra. O aviso sonoro toca sozinho (AudioManager
+  // escuta CONVERGENCE_ENCOUNTERED diretamente), não precisa ser disparado daqui.
+  const [convergenceEncounterBoss, setConvergenceEncounterBoss] = useState<EnemyType | null>(null);
+
+  useEffect(() => {
+    const unsubscribeConvergence = bridge.subscribe(GameEvent.CONVERGENCE_ENCOUNTERED, (payload: any) => {
+      setConvergenceEncounterBoss(payload?.boss || null);
+    });
+    return () => unsubscribeConvergence();
+  }, []);
+
+  const handleConvergenceEngage = () => {
+    AudioManager.getInstance().playClick();
+    setConvergenceEncounterBoss(null);
+    bridge.emit(GameEvent.CONVERGENCE_ENGAGED, {});
+  };
+
+  const handleConvergenceFlee = () => {
+    AudioManager.getInstance().playClick();
+    setConvergenceEncounterBoss(null);
+    bridge.emit(GameEvent.CONVERGENCE_DISMISSED, {});
+  };
+
   const { towerKeyCount, evolvedTowerKeyCount } = useMemo(() => {
     let towerKeys = 0;
     let evolvedTowerKeys = 0;
@@ -8487,6 +8511,63 @@ export default function GameUI() {
 
               <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleMerchantDismiss}>
                 {merchantPurchased ? 'Fechar' : 'Continuar Jornada'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Convergência: modal de encontro com o world boss de quarta-feira — mesmo posicionamento
+            local (absolute, confinado à UI) do painel do Mercador acima. */}
+        {convergenceEncounterBoss && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(10, 2, 6, 0.88)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.5rem'
+            }}
+            onClick={handleConvergenceFlee}
+          >
+            <div
+              className="panel"
+              style={{
+                background: 'linear-gradient(135deg, rgba(20, 4, 10, 0.99), rgba(36, 8, 18, 1))',
+                border: '2px solid rgba(244, 63, 94, 0.5)',
+                boxShadow: '0 0 30px rgba(244, 63, 94, 0.25)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.5rem',
+                width: '100%',
+                maxWidth: '420px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: '2rem' }}>☄️</span>
+                <h2 className="font-heading" style={{ fontSize: '1rem', fontWeight: 900, color: '#fb7185', margin: '0.4rem 0 0 0' }}>
+                  A Convergência se Abre
+                </h2>
+                <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--gold-400)', margin: '0.3rem 0 0 0' }}>
+                  {convergenceEncounterBoss.name}
+                </p>
+                <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: '0.3rem 0 0 0' }}>
+                  O world boss da semana se manifesta diante de você. Ele não vai esperar para sempre.
+                </p>
+              </div>
+
+              <button className="btn btn-gold" style={{ width: '100%' }} onClick={handleConvergenceEngage}>
+                ⚔️ Enfrentar
+              </button>
+              <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleConvergenceFlee}>
+                🏃 Fugir
               </button>
             </div>
           </div>

@@ -1337,7 +1337,7 @@ export class CombatScene extends Phaser.Scene {
       // (~400px de distância do jogador, o mesmo raio que dispara CombatState.ATTACKING) em vez do
       // `startX` de spawn (900px), que fica fora da área visível do canvas de 800px de largura.
       // v10.0.0: o Bolsão de Ar também pausa o combate (AIR_POCKET) — nasce na posição final, como o Mercador
-      const spawnX = (this.fsm && (this.fsm.isMerchantEncounter || this.fsm.isAirPocketEncounter)) ? (this.PLAYER_START_X + 400) : startX;
+      const spawnX = (this.fsm && (this.fsm.isMerchantEncounter || this.fsm.isAirPocketEncounter || this.fsm.isConvergenceEncounter)) ? (this.PLAYER_START_X + 400) : startX;
       this.enemyBody.setPosition(spawnX, targetY);
       this.enemyBody.setDisplaySize(size, size);
       this.enemyBody.setAlpha(1);

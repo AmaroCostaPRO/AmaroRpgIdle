@@ -171,6 +171,12 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
       border = '2px dashed #dc2626';
       shadow = '0 0 10px rgba(220, 38, 38, 0.8)';
       bg = 'rgba(220, 38, 38, 0.15)';
+    } else if (item.rarity === 'mystic' || item.rarity === 'místico' || item.rarity === 'mística') {
+      // Itens místicos (fusão de runas N4, Relíquias exclusivas da Convergência): borda tracejada
+      // + fundo rosa, para se destacarem de qualquer raridade normal do mesmo tom (fúcsia/#d946ef).
+      border = '2px dashed #e879f9';
+      shadow = '0 0 10px rgba(232, 121, 249, 0.7)';
+      bg = 'rgba(217, 70, 239, 0.2)';
     }
   }
 
