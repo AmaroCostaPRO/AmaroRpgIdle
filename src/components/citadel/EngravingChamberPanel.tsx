@@ -14,7 +14,7 @@ import {
 } from '../../core/runeFormulas';
 import type { EquipmentItem } from '../../core/types';
 import {
-  getSetVisual, slotIcons, slotLabels, statLabels, formatStatValue, getRuneVisual, getSocketDots,
+  getSetVisual, slotIcons, slotLabels, statLabels, formatStatValue, getRuneVisual, getSocketDots, RuneChip,
 } from '../shared/itemVisuals';
 
 /**
@@ -151,21 +151,7 @@ export const EngravingChamberPanel: React.FC = () => {
 
   const runeChip = (runeId: RuneId, qty?: number) => {
     const visual = getRuneVisual(runeId);
-    return (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '34px', height: '34px', borderRadius: '6px',
-        background: visual.bg, border: visual.border, boxShadow: visual.shadow,
-        fontSize: '1.05rem', position: 'relative',
-      }} title={`${visual.name} (${visual.tierLabel}) — ${describeRune(runeId)}`}>
-        {visual.glyph}
-        {qty !== undefined && qty > 1 && (
-          <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '0.6rem', background: '#0f172a', borderRadius: '4px', padding: '0 3px' }}>
-            {qty}
-          </span>
-        )}
-      </span>
-    );
+    return <RuneChip runeId={runeId} qty={qty} title={`${visual.name} (${visual.tierLabel}) — ${describeRune(runeId)}`} />;
   };
 
   return (

@@ -36,7 +36,7 @@ import { AbyssPanel } from './abyss/AbyssPanel';
 import { DiveHud } from './abyss/DiveHud';
 import { LoreCutscene } from './abyss/LoreCutscene';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
-import { getRuneVisual, getSocketDots } from './shared/itemVisuals';
+import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
@@ -7946,18 +7946,9 @@ export default function GameUI() {
                 {(selectedItem.sockets || 0) > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 600 }}>Soquetes: {getSocketDots(selectedItem)}</span>
-                    {(selectedItem.socketedRunes || []).filter(Boolean).map((runeId, i) => {
-                      const visual = getRuneVisual(runeId!);
-                      return (
-                        <span key={i} title={`${visual.name} (${visual.tierLabel})`} style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: '22px', height: '22px', borderRadius: '4px', fontSize: '0.7rem',
-                          background: visual.bg, border: visual.border,
-                        }}>
-                          {visual.glyph}
-                        </span>
-                      );
-                    })}
+                    {(selectedItem.socketedRunes || []).filter(Boolean).map((runeId, i) => (
+                      <RuneChip key={i} runeId={runeId!} size={22} />
+                    ))}
                   </div>
                 )}
 
@@ -8194,18 +8185,9 @@ export default function GameUI() {
                   {(item.sockets || 0) > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 600 }}>Soquetes: {getSocketDots(item)}</span>
-                      {(item.socketedRunes || []).filter(Boolean).map((runeId, i) => {
-                        const visual = getRuneVisual(runeId!);
-                        return (
-                          <span key={i} title={`${visual.name} (${visual.tierLabel})`} style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            width: '22px', height: '22px', borderRadius: '4px', fontSize: '0.7rem',
-                            background: visual.bg, border: visual.border,
-                          }}>
-                            {visual.glyph}
-                          </span>
-                        );
-                      })}
+                      {(item.socketedRunes || []).filter(Boolean).map((runeId, i) => (
+                        <RuneChip key={i} runeId={runeId!} size={22} />
+                      ))}
                     </div>
                   )}
 

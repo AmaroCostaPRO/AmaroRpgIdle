@@ -184,11 +184,13 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
 };
 
 // ── v10.0.0 "A Cidadela Submersa": visual das Runas Abissais e dos soquetes ──
-// Estratégia de lançamento do Anexo 3 (§1.6): glifo rúnico Unicode sobre fundo colorido pela
-// família + borda pelo tier (bronze/prata/dourado; primordiais têm borda própria) — custo ZERO
-// de arte, tudo CSS. A arte definitiva (spritesheets 3×3) chega numa fase futura.
-import { RUNE_CATALOG, RuneId } from '../../core/runeFormulas';
+// Fundo colorido pela família + borda pelo tier (bronze/prata/dourado; primordiais têm borda
+// própria), com o glifo Unicode como ícone — e, quando `runes_base.png`/`runes_primordial.png`
+// carregam com sucesso, o ícone real do spritesheet 3×3 por cima (glifo vira só o fallback).
+import React from 'react';
+import { RUNE_CATALOG, RUNE_FAMILY_IDS, RuneId, PrimordialRuneId } from '../../core/runeFormulas';
 import type { EquipmentItem } from '../../core/types';
+import { IconSprite } from './IconSprite';
 
 export interface RuneVisual {
   glyph: string;
@@ -218,6 +220,53 @@ export const getRuneVisual = (runeId: RuneId): RuneVisual => {
     shadow: tier.shadow,
     tierLabel: tier.label,
   };
+};
+
+const RUNE_SHEET_BASE = '/assets/runes_base.png';
+const RUNE_SHEET_PRIMORDIAL = '/assets/runes_primordial.png';
+
+// Ordem de leitura em linha da spritesheet `runes_primordial.png` — confirmada visualmente
+// contra a arte gerada, e igual à ordem em que os glifos alquímicos já aparecem no Anexo 3
+// (`🜲 🜄 🜚 🝆 🜃 🝮 🜠 🝓 🜏`) e em `PRIMORDIAL_RUNES` (runeFormulas.ts).
+const PRIMORDIAL_RUNE_ORDER: PrimordialRuneId[] =
+  ['thal', 'nereh', 'vrak', 'ciss', 'morvo', 'ecoh', 'faro', 'levh', 'umbra'];
+
+// Runas base usam a mesma célula (índice da família em `RUNE_FAMILY_IDS`) nos 3 tiers — o tier
+// já é diferenciado pela borda (`RUNE_TIER_BORDERS`), então a arte definitiva não precisa de
+// uma célula por tier.
+export const getRuneSpriteInfo = (runeId: RuneId): { src: string; index: number } | null => {
+  const def = RUNE_CATALOG[runeId];
+  if (!def) return null;
+  if (def.family) return { src: RUNE_SHEET_BASE, index: RUNE_FAMILY_IDS.indexOf(def.family) };
+  const idx = PRIMORDIAL_RUNE_ORDER.indexOf(runeId as PrimordialRuneId);
+  return idx >= 0 ? { src: RUNE_SHEET_PRIMORDIAL, index: idx } : null;
+};
+
+// Ícone de runa compartilhado (cofre, soquetes, picker da Câmara de Gravação, modais de item) —
+// mesmo box colorido/bordado de sempre, com o sprite real por cima do glifo quando disponível.
+export const RuneChip: React.FC<{ runeId: RuneId; qty?: number; size?: number; title?: string }> = ({ runeId, qty, size = 34, title }) => {
+  const visual = getRuneVisual(runeId);
+  const sprite = getRuneSpriteInfo(runeId);
+  return (
+    <span
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: `${size}px`, height: `${size}px`, borderRadius: '6px',
+        background: visual.bg, border: visual.border, boxShadow: visual.shadow,
+        fontSize: `${size * 0.31}rem`, position: 'relative', flexShrink: 0,
+      }}
+      title={title ?? `${visual.name} (${visual.tierLabel})`}
+    >
+      {sprite
+        ? <IconSprite src={sprite.src} index={sprite.index} fallbackIcon={visual.glyph} />
+        : visual.glyph}
+      {qty !== undefined && qty > 1 && (
+        <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '0.6rem', background: '#0f172a', borderRadius: '4px', padding: '0 3px' }}>
+          {qty}
+        </span>
+      )}
+    </span>
+  );
 };
 
 // Linha de soquetes de um item: ● engastado / ○ vazio / (nada se o item não tem soquetes).
