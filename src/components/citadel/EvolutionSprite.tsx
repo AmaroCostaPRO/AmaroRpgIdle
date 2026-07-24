@@ -40,13 +40,19 @@ const TIER_ROW: Record<EvolutionTier, number> = { 0: 1, 1: 0, 2: 1, 3: 0 };
 
 /**
  * Margem cortada de cada borda do quadrante (em % da imagem inteira, não do
- * quadrante), para remover a linha divisória preta do grid 2x2 e a faixa de
- * pixels anti-aliased entre o preto e o vermelho que `imageBackgroundStrip`
- * não consegue remover 100% (a mistura de cores na borda cai fora da
- * tolerância do chroma key). Cada quadrante ocupa 50% da imagem, então esse
+ * quadrante), para remover a linha divisória preta do grid 2x2 — essa linha
+ * é preta, então fica bem longe da cor-chave vermelha e `imageBackgroundStrip`
+ * nunca a remove (é um problema de posição/grid, não de chroma key). Medido
+ * diretamente num sprite sheet real (`citadel_watch_tower.png`, canvas +
+ * varredura de pixels): a linha + a faixa de anti-aliasing ao redor dela têm
+ * uns 10px de largura num canvas de 1024px (~1%). O valor antigo (4%, 41px)
+ * cortava bem mais que o necessário — em construções cujo desenho usa quase
+ * toda a largura do quadrante (ex: o feixe/galáxia da Torre de Vigia), esse
+ * excesso de corte, ainda ampliado pelo `scale` abaixo, aparecia como um
+ * "zoom" cortando a arte. Cada quadrante ocupa 50% da imagem, então esse
  * valor é sempre bem menor que 25 (ou o corte "come" o quadrante inteiro).
  */
-const QUADRANT_INSET_PCT = 4;
+const QUADRANT_INSET_PCT = 1.5;
 
 interface EvolutionSpriteProps {
   /** Caminho da spritesheet 1024x1024 (grid 2x2), ex: '/assets/citadel_vault.png'. */

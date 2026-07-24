@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useGameStore } from '../../store/useGameStore';
@@ -40,19 +40,23 @@ interface DistrictMarkerProps {
   slots: number;
   eligibleForAllocation: boolean;
   pendingAssignment: boolean;
+  active: boolean;
   onClick: (id: DistrictId) => void;
 }
 
 // Componente próprio por marcador: `useCountdown` só pode ser chamado no topo de um componente,
 // nunca dentro de um `.map()`.
-const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCount, slots, eligibleForAllocation, pendingAssignment, onClick }) => {
+const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCount, slots, eligibleForAllocation, pendingAssignment, active, onClick }) => {
   const flooded = !state || state.flooded;
   const draining = !!state?.drainUpgrade;
   const restorationLevel = state?.restorationLevel || 0;
   const drainCountdown = useCountdown(state?.drainUpgrade?.completesAt);
   const [hovered, setHovered] = useState(false);
   const [hasArt, setHasArt] = useState(false);
-  const highlighted = hovered || pendingAssignment || eligibleForAllocation;
+  // Mesmo efeito de "aumentar" do hover da Cidadela normal (`BuildingMarker`), mas mantido fixo
+  // enquanto essa construção for a sub-aba atualmente aberta — deixa claro qual distrito
+  // corresponde ao painel visível abaixo da barra de abas.
+  const highlighted = hovered || pendingAssignment || eligibleForAllocation || active;
 
   // Overlay de água: 100% (cobre toda a clareira) enquanto Alagado; desce em tempo real durante a
   // drenagem (proporção do tempo restante contra a duração total conhecida do distrito); 0% quando
@@ -82,40 +86,18 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      {/* Alagamento — elipse que preenche o wrap inteiro (mesma % do container que o círculo do
-          background esticado), então acompanha exatamente a clareira, com transparência para o
-          fundo continuar visível por baixo. */}
-      <div
-        className="sunken-marker-tile"
-        style={{ position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}
-      >
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: `${waterHeightPct}%`,
-          background: 'linear-gradient(180deg, rgba(6,38,58,0.72), rgba(2,14,22,0.88))',
-          transition: 'height 2s linear',
-        }} />
-      </div>
-
-      {eligibleForAllocation && (
-        <span style={{
-          position: 'absolute', inset: '-8px', borderRadius: '999px', border: '2px solid #4ade80',
-          animation: 'submersa-marker-pulse 1.1s ease-out infinite', pointerEvents: 'none', zIndex: 2,
-        }} />
-      )}
-
       {/* Quadrado (não elíptico como o wrap) baseado na menor dimensão dele — o corte de
           `EvolutionSprite` assume uma área quadrada (mesmo grid 2x2 da spritesheet); num box
           esticado, a arte fica espremida e a parte de cima de estruturas altas acaba cortada
           pelo `overflow: hidden`. `height: 78%` (do wrap) + `aspect-ratio: 1` mantém o quadrado
           mesmo com o wrap virando elipse em telas de proporções diferentes. */}
       <div className="sunken-marker-icon-box" style={{
-        position: 'relative', zIndex: 1, height: '78%', aspectRatio: '1', width: 'auto',
+        position: 'relative', zIndex: 0, height: '78%', aspectRatio: '1', width: 'auto',
         borderRadius: 'var(--radius-lg)',
         background: hasArt ? 'transparent' : 'linear-gradient(155deg, var(--surface-3), var(--surface-2))',
-        border: `2px solid ${highlighted ? '#22d3ee' : 'rgba(255,255,255,0.15)'}`,
-        boxShadow: highlighted ? '0 0 18px rgba(34,211,238,0.5)' : 'none',
+        border: hasArt ? 'none' : '2px solid rgba(255,255,255,0.15)',
         transform: highlighted ? 'scale(1.08)' : 'scale(1)',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+        transition: 'transform 0.15s ease',
         overflow: 'hidden',
       }}>
         <EvolutionSprite
@@ -135,6 +117,39 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
           </span>
         )}
       </div>
+
+      {/* Alagamento — elipse que preenche o wrap inteiro (mesma % do container que o círculo do
+          background esticado), então acompanha exatamente a clareira, com transparência para o
+          fundo continuar visível por baixo. Fica NA FRENTE do sprite (zIndex acima do
+          sunken-marker-icon-box) para cobrir visualmente a parte de baixo da estrutura quando
+          alagado — sem isso, o sprite sempre aparecia por cima da água. */}
+      <div
+        className="sunken-marker-tile"
+        style={{ position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}
+      >
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: `${waterHeightPct}%`,
+          background: 'linear-gradient(180deg, rgba(6,38,58,0.72), rgba(2,14,22,0.88))',
+          transition: 'height 2s linear',
+        }} />
+      </div>
+
+      {/* Anel suave e pulsante indicando o distrito da sub-aba atualmente aberta — mesmo papel do
+          `.citadel-marker-ring` (âmbar) da Cidadela normal, só que azul, mais discreto que o
+          contorno sólido usado antes aqui. */}
+      {active && (
+        <span style={{
+          position: 'absolute', inset: '-6px', borderRadius: '999px', border: '1px solid rgba(34,211,238,0.45)',
+          animation: 'sunken-marker-active-pulse 2.4s ease-out infinite', pointerEvents: 'none', zIndex: 2,
+        }} />
+      )}
+
+      {eligibleForAllocation && (
+        <span style={{
+          position: 'absolute', inset: '-8px', borderRadius: '999px', border: '2px solid #4ade80',
+          animation: 'submersa-marker-pulse 1.1s ease-out infinite', pointerEvents: 'none', zIndex: 2,
+        }} />
+      )}
 
       {/* Fora do fluxo do wrap (não afeta a centralização acima) e com z-index bem maior que o
           tile, para o nome nunca ficar escondido atrás do efeito de alagamento. */}
@@ -166,6 +181,17 @@ export const SunkenCitadelSpriteStage: React.FC = () => {
   const setPendingEchoDistrict = useGameStore((state) => state.setPendingEchoDistrict);
   const setSelectedEchoId = useGameStore((state) => state.setSelectedEchoId);
   const assignEcho = useGameStore((state) => state.assignEcho);
+
+  // Espelha a sub-aba ativa da Cidadela Submersa (estado vive em GameUI.tsx, fora desta árvore de
+  // componentes) para destacar visualmente o distrito correspondente ao painel aberto — mesmo
+  // padrão de `CitadelSpriteStage.tsx` com `CITADEL_SUBTAB_CHANGED`.
+  const [activeSubTab, setActiveSubTab] = useState<DistrictId | 'echoes'>('dock');
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.SUNKEN_SUBTAB_CHANGED, (payload: any) => {
+      if (payload?.subTab) setActiveSubTab(payload.subTab);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const sunken = character.sunkenCitadel;
   const districts = sunken?.districts || {};
@@ -226,6 +252,12 @@ export const SunkenCitadelSpriteStage: React.FC = () => {
           0% { opacity: 0.8; transform: scale(1); }
           100% { opacity: 0; transform: scale(1.25); }
         }
+        /* Anel do distrito ativo — mesma curva/duração do anel de prédio construído (âmbar) da
+           Cidadela normal, só que azul: mais lento e discreto que o pulso de elegibilidade acima. */
+        @keyframes sunken-marker-active-pulse {
+          0% { opacity: 0.7; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.18); }
+        }
         .sunken-marker-icon { font-size: 2.1rem; }
         .sunken-marker-label {
           display: inline-block; margin-top: 0.4rem; padding: 0.15rem 0.5rem;
@@ -247,6 +279,7 @@ export const SunkenCitadelSpriteStage: React.FC = () => {
           slots={slotsByDistrict[id] || 0}
           eligibleForAllocation={eligibleForAllocation.includes(id)}
           pendingAssignment={pendingEchoDistrict === id}
+          active={id === activeSubTab}
           onClick={handleDistrictClick}
         />
       ))}

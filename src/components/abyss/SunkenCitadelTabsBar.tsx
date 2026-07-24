@@ -33,8 +33,8 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
     if (activeIdx !== -1) {
       if (activeIdx < desktopStartIndex) {
         setDesktopStartIndex(activeIdx);
-      } else if (activeIdx >= desktopStartIndex + 5) {
-        setDesktopStartIndex(activeIdx - 4);
+      } else if (activeIdx >= desktopStartIndex + 3) {
+        setDesktopStartIndex(activeIdx - 2);
       }
     }
   }, [subTab]);
@@ -79,7 +79,7 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
         </button>
 
         <div className="tabs-container tabs-container-desktop" style={{ flex: 1, display: 'flex', gap: '2px', overflow: 'hidden' }}>
-          {SUNKEN_SUB_TABS.slice(desktopStartIndex, desktopStartIndex + 5).map((tab) => (
+          {SUNKEN_SUB_TABS.slice(desktopStartIndex, desktopStartIndex + 3).map((tab) => (
             <button
               key={tab.id}
               onClick={() => {
@@ -87,10 +87,10 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
                 setSubTab(tab.id);
               }}
               className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, minWidth: 0, overflow: 'hidden' }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
-              {tab.label}
+              <span style={{ fontSize: '0.7rem', lineHeight: 1, flexShrink: 0 }}>{tab.icon}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
             </button>
           ))}
         </div>

@@ -75,9 +75,18 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
     showToast(res.message);
   };
 
+  const statusSuffix = flooded && !draining ? '— Alagado'
+    : draining ? `— Drenando (${drainCountdown})`
+    : `— Restaurado ${restorationLevel === 1 ? 'I' : restorationLevel === 2 ? 'II' : 'III'}`;
+  const subtitle = !flooded && districtEfficacy > 0
+    ? `Eficácia acumulada: +${(districtEfficacy * 100).toFixed(1)}%`
+    : flooded && !draining ? 'A função principal ainda não opera.'
+    : draining ? 'Drenando a água acumulada.'
+    : 'Restauração aplicada com sucesso.';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', padding: '0.85rem' }}>
-      {/* Ciclo de Marés */}
+      {/* Ciclo de Marés — contexto ambiente, não específico do distrito, fica fora do card. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
         <span style={{ fontWeight: 700 }}>{tidePhase === 'low' ? '🌊⬇ MARÉ BAIXA' : '🌊⬆ MARÉ ALTA'}</span>
         <span style={{ color: 'rgba(255,255,255,0.5)' }}>vira em {tideCountdown}</span>
@@ -92,112 +101,110 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p style={{ fontWeight: 700, fontSize: '1rem' }}>{DISTRICT_ICONS[id]} {DISTRICT_NAMES[id]}</p>
-      </div>
-
-      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-        {flooded && !draining && 'Alagado — a função principal ainda não opera.'}
-        {draining && `Drenando... conclusão em ${drainCountdown}`}
-        {!flooded && `Restaurado ${restorationLevel === 1 ? 'I' : restorationLevel === 2 ? 'II' : 'III'}`}
-      </p>
-      {!flooded && districtEfficacy > 0 && (
-        <p style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>Eficácia acumulada: +{(districtEfficacy * 100).toFixed(1)}%</p>
-      )}
-
-      {flooded && !draining && (
-        <button onClick={handleDrain} className="btn" style={{ fontSize: '0.75rem', alignSelf: 'flex-start' }}>
-          Drenar — 🦪 {drainCost.pearls} + 🪸 {drainCost.coral} ({drainCost.durationHours}h)
-        </button>
-      )}
-      {restoreCost && (
-        <button onClick={handleRestore} className="btn btn-gold" style={{ fontSize: '0.75rem', alignSelf: 'flex-start' }}>
-          Restaurar {restorationLevel === 1 ? 'II' : 'III'} — 🦪 {restoreCost.pearls} + 🪸 {restoreCost.coral}
-        </button>
-      )}
-      {!flooded && restorationLevel >= 3 && (
-        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Restauração máxima.</span>
-      )}
-
-      {/* Slots de Eco como soquetes circulares — vazio = tracejado, ocupado = retrato/glifo. */}
-      {!flooded && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>Slots de Eco ({assignedEchoes.length}/{slots}) — aloque pela aba 🎭 Ecos:</p>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {sockets.map((echo, i) => (
-              <div
-                key={i}
-                title={echo ? `${echo.name} (${ECHO_VOCATION_NAMES[echo.vocation]})` : 'Slot vazio'}
-                style={{
-                  width: '48px', height: '48px', borderRadius: '999px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem',
-                  border: echo ? '2px solid #22d3ee' : '2px dashed rgba(255,255,255,0.25)',
-                  background: echo ? 'rgba(14, 116, 144, 0.35)' : 'transparent',
-                }}
-              >
-                {echo ? ECHO_VOCATION_ICONS[echo.vocation] : '·'}
-              </div>
-            ))}
+      <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
+              {DISTRICT_ICONS[id]} {DISTRICT_NAMES[id]} {statusSuffix}
+            </h2>
+            <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>{subtitle}</p>
           </div>
-          {assignedEchoes.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-              {assignedEchoes.map((e) => (
-                <span key={e.id} style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.6)' }}>
-                  {ECHO_VOCATION_ICONS[e.vocation]} {e.name}
-                </span>
+        </div>
+
+        {flooded && !draining && (
+          <button onClick={handleDrain} className="btn btn-ocean" style={{ alignSelf: 'flex-start' }}>
+            Drenar — 🦪 {drainCost.pearls} + 🪸 {drainCost.coral} ({drainCost.durationHours}h)
+          </button>
+        )}
+        {restoreCost && (
+          <button onClick={handleRestore} className="btn btn-ocean" style={{ alignSelf: 'flex-start' }}>
+            Restaurar {restorationLevel === 1 ? 'II' : 'III'} — 🦪 {restoreCost.pearls} + 🪸 {restoreCost.coral}
+          </button>
+        )}
+        {!flooded && restorationLevel >= 3 && (
+          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Restauração máxima.</span>
+        )}
+
+        {/* Slots de Eco como soquetes circulares — vazio = tracejado, ocupado = retrato/glifo. */}
+        {!flooded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>Slots de Eco ({assignedEchoes.length}/{slots}) — aloque pela aba 🎭 Ecos:</p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {sockets.map((echo, i) => (
+                <div
+                  key={i}
+                  title={echo ? `${echo.name} (${ECHO_VOCATION_NAMES[echo.vocation]})` : 'Slot vazio'}
+                  style={{
+                    width: '48px', height: '48px', borderRadius: '999px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem',
+                    border: echo ? '2px solid #22d3ee' : '2px dashed rgba(255,255,255,0.25)',
+                    background: echo ? 'rgba(14, 116, 144, 0.35)' : 'transparent',
+                  }}
+                >
+                  {echo ? ECHO_VOCATION_ICONS[echo.vocation] : '·'}
+                </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {id === 'throne' && restorationLevel >= 1 && <LeviathanPanel />}
-
-      {id === 'temple' && restorationLevel >= 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
-          {!ownsNereh && (
-            <button onClick={handlePurchaseNereh} className="btn btn-xs" style={{ fontSize: '0.68rem', alignSelf: 'flex-start' }}>
-              🜄 Comprar Nereh, a Maré Primeira — 200 🦪
-            </button>
-          )}
-          {activeBlessing ? (
-            <span style={{ fontSize: '0.7rem', color: '#fde047' }}>
-              🕍 Bênção ativa: {TIDE_BLESSINGS.find(b => b.id === activeBlessing.id)?.name}
-            </span>
-          ) : tidePhase === 'high' ? (
-            <>
-              <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)' }}>Escolha a Bênção da Maré Alta:</span>
-              <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                {TIDE_BLESSINGS.map(b => (
-                  <button key={b.id} onClick={() => handleBlessing(b.id)} className="btn btn-xs" title={b.desc} style={{ fontSize: '0.65rem' }}>
-                    {b.name}
-                  </button>
+            {assignedEchoes.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                {assignedEchoes.map((e) => (
+                  <span key={e.id} style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.6)' }}>
+                    {ECHO_VOCATION_ICONS[e.vocation]} {e.name}
+                  </span>
                 ))}
               </div>
-            </>
-          ) : (
-            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>Bênçãos só podem ser escolhidas na Maré Alta.</span>
-          )}
-          {restorationLevel >= 3 && tidePhase === 'high' && (
-            secondActiveBlessing ? (
-              <span style={{ fontSize: '0.68rem', color: '#fde047' }}>
-                🕍 2ª Bênção (50%): {TIDE_BLESSINGS.find(b => b.id === secondActiveBlessing.id)?.name}
+            )}
+          </div>
+        )}
+
+        {id === 'throne' && restorationLevel >= 1 && <LeviathanPanel />}
+
+        {id === 'temple' && restorationLevel >= 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
+            {!ownsNereh && (
+              <button onClick={handlePurchaseNereh} className="btn btn-ocean btn-xs" style={{ fontSize: '0.68rem', alignSelf: 'flex-start' }}>
+                🜄 Comprar Nereh, a Maré Primeira — 200 🦪
+              </button>
+            )}
+            {activeBlessing ? (
+              <span style={{ fontSize: '0.7rem', color: '#fde047' }}>
+                🕍 Bênção ativa: {TIDE_BLESSINGS.find(b => b.id === activeBlessing.id)?.name}
               </span>
-            ) : (
+            ) : tidePhase === 'high' ? (
               <>
-                <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Restauração III: escolha uma 2ª Bênção (50% de força):</span>
+                <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)' }}>Escolha a Bênção da Maré Alta:</span>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                   {TIDE_BLESSINGS.map(b => (
-                    <button key={b.id} onClick={() => handleSecondBlessing(b.id)} className="btn btn-xs" title={b.desc} style={{ fontSize: '0.65rem' }}>
+                    <button key={b.id} onClick={() => handleBlessing(b.id)} className="btn btn-ocean btn-xs" title={b.desc} style={{ fontSize: '0.65rem' }}>
                       {b.name}
                     </button>
                   ))}
                 </div>
               </>
-            )
-          )}
-        </div>
-      )}
+            ) : (
+              <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>Bênçãos só podem ser escolhidas na Maré Alta.</span>
+            )}
+            {restorationLevel >= 3 && tidePhase === 'high' && (
+              secondActiveBlessing ? (
+                <span style={{ fontSize: '0.68rem', color: '#fde047' }}>
+                  🕍 2ª Bênção (50%): {TIDE_BLESSINGS.find(b => b.id === secondActiveBlessing.id)?.name}
+                </span>
+              ) : (
+                <>
+                  <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>Restauração III: escolha uma 2ª Bênção (50% de força):</span>
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                    {TIDE_BLESSINGS.map(b => (
+                      <button key={b.id} onClick={() => handleSecondBlessing(b.id)} className="btn btn-ocean btn-xs" title={b.desc} style={{ fontSize: '0.65rem' }}>
+                        {b.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

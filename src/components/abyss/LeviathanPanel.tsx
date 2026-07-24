@@ -75,7 +75,7 @@ export const LeviathanPanel: React.FC = () => {
       <button
         onClick={handleChallenge}
         disabled={leviathanActive || progress.attemptsUsed >= maxAttempts || progress.phasesCleared >= LEVIATHAN_PHASE_COUNT}
-        className="btn btn-gold"
+        className="btn btn-ocean"
         style={{ alignSelf: 'flex-start', fontSize: '0.72rem', opacity: (leviathanActive || progress.attemptsUsed >= maxAttempts || progress.phasesCleared >= LEVIATHAN_PHASE_COUNT) ? 0.5 : 1 }}
       >
         {leviathanActive ? '🐋 Luta em andamento...' : '⚔️ DESAFIAR O LEVIATÃ'}

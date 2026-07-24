@@ -3,7 +3,8 @@ import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { EquipmentItem } from '../../core/types';
 import { VAULT_MAX_LEVEL, VAULT_UPGRADE_COST } from '../../core/citadelFormulas';
-import { getRarityColor, slotLabels as SLOT_LABELS, slotIcons as SLOT_ICONS, statLabels as STAT_LABELS, formatStatValue, getSetVisual, getSetPrefixAndColor } from '../shared/itemVisuals';
+import { getRarityColor, slotLabels as SLOT_LABELS, slotIcons as SLOT_ICONS, statLabels as STAT_LABELS, formatStatValue, getSetVisual, getSetPrefixAndColor, getSocketDots, RuneChip } from '../shared/itemVisuals';
+import { getActiveRelicDefinition } from '../../core/CombatFSM';
 import { useCountdown } from '../../hooks/useCountdown';
 
 interface SelectedVaultItem {
@@ -283,14 +284,30 @@ export const VaultPanel: React.FC = () => {
               </div>
 
               <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                  {Object.entries(item.stats).map(([stat, val]) => (
-                    <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
-                      {formatStatValue(stat, val as number)} {STAT_LABELS[stat] || stat}
-                    </span>
-                  ))}
-                </div>
+                {item.slot === 'activeRelic' ? (
+                  <>
+                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Habilidade Ativa</span>
+                    <div style={{ fontSize: '0.65rem', color: '#c084fc', marginTop: '0.2rem', lineHeight: 1.4, fontWeight: 700 }}>
+                      {(() => {
+                        const relicDef = item.activeRelicId ? getActiveRelicDefinition(item.activeRelicId) : undefined;
+                        if (!relicDef) return 'Relíquia desconhecida.';
+                        const rolled = item.activeRelicRolledValue ?? 0;
+                        return `${relicDef.icon} ${relicDef.description.replace('{value}', String(rolled))} (Recarga: ${Math.round(relicDef.cooldownMs / 1000)}s)`;
+                      })()}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Atributos do Item</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                      {Object.entries(item.stats).map(([stat, val]) => (
+                        <span key={stat} className="font-mono" style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700 }}>
+                          {formatStatValue(stat, val as number)} {STAT_LABELS[stat] || stat}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {item.setName && (() => {
@@ -301,6 +318,17 @@ export const VaultPanel: React.FC = () => {
                   </div>
                 );
               })()}
+
+              {/* v10.0.0: linha de soquetes/runas do item (engaste na Câmara de Gravação) — mesmo
+                  padrão do tooltip principal do inventário (GameUI.tsx), que faltava aqui. */}
+              {(item.sockets || 0) > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.6rem', color: '#c084fc', fontWeight: 600 }}>Soquetes: {getSocketDots(item)}</span>
+                  {(item.socketedRunes || []).filter(Boolean).map((runeId, i) => (
+                    <RuneChip key={i} runeId={runeId!} size={22} />
+                  ))}
+                </div>
+              )}
 
               {actionError && (
                 <div style={{ fontSize: '0.65rem', color: '#f87171', background: 'rgba(127,29,29,0.25)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-sm)', padding: '0.5rem' }}>

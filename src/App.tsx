@@ -14,6 +14,7 @@ import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
 import { SunkenCitadelSpriteStage } from './components/abyss/SunkenCitadelSpriteStage';
 import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites';
+import { SUNKEN_BUILDING_SPRITE_SRC } from './components/citadel/sunkenBuildingSprites';
 import { getTransparentImageUrl } from './core/imageBackgroundStrip';
 import { RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL } from './components/shared/itemVisuals';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
@@ -119,6 +120,15 @@ const App: React.FC = () => {
   // da arte real (processamento assíncrono) ficar pronta.
   useEffect(() => {
     Object.values(BUILDING_SPRITE_SRC).forEach((src) => {
+      getTransparentImageUrl(src).catch(() => {});
+    });
+  }, []);
+
+  // Mesmo pré-processamento acima, para os sprites dos distritos da Cidadela Submersa — sem
+  // isso, o primeiro acesso a ela no início da sessão mostrava rapidamente o placeholder escuro
+  // (fallback) antes da arte real ficar pronta, igual ao problema já corrigido na Cidadela normal.
+  useEffect(() => {
+    Object.values(SUNKEN_BUILDING_SPRITE_SRC).forEach((src) => {
       getTransparentImageUrl(src).catch(() => {});
     });
   }, []);
