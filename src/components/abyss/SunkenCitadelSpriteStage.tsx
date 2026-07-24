@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
 import { useCountdown } from '../../hooks/useCountdown';
+import { useGameStore } from '../../store/useGameStore';
+import { bridge } from '../../bridge/GameBridge';
+import { GameEvent } from '../../core/types';
 import type { DistrictId, SunkenDistrictState } from '../../core/types';
-import { DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST } from '../../core/sunkenCitadelFormulas';
+import { DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, DISTRICT_IDS, getDistrictSlotCount } from '../../core/sunkenCitadelFormulas';
 import { EvolutionSprite } from '../citadel/EvolutionSprite';
 import { SUNKEN_BUILDING_SPRITE_SRC } from '../citadel/sunkenBuildingSprites';
 
@@ -35,19 +38,19 @@ interface DistrictMarkerProps {
   assignedCount: number;
   slots: number;
   eligibleForAllocation: boolean;
-  isModalOpen: boolean;
+  pendingAssignment: boolean;
   onClick: (id: DistrictId) => void;
 }
 
 // Componente próprio por marcador: `useCountdown` só pode ser chamado no topo de um componente,
 // nunca dentro de um `.map()`.
-const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCount, slots, eligibleForAllocation, isModalOpen, onClick }) => {
+const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCount, slots, eligibleForAllocation, pendingAssignment, onClick }) => {
   const flooded = !state || state.flooded;
   const draining = !!state?.drainUpgrade;
   const restorationLevel = state?.restorationLevel || 0;
   const drainCountdown = useCountdown(state?.drainUpgrade?.completesAt);
   const [hovered, setHovered] = useState(false);
-  const highlighted = hovered || isModalOpen || eligibleForAllocation;
+  const highlighted = hovered || pendingAssignment || eligibleForAllocation;
 
   // Overlay de água: 100% (cobre tudo) enquanto Alagado; desce em tempo real durante a drenagem
   // (proporção do tempo restante contra a duração total conhecida do distrito); 0% quando Restaurado.
@@ -109,33 +112,73 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
   );
 };
 
-interface SubmersaSpriteStageProps {
-  districts: Partial<Record<DistrictId, SunkenDistrictState>>;
-  assignedCounts: Record<DistrictId, number>;
-  slotsByDistrict: Record<DistrictId, number>;
-  eligibleForAllocation: DistrictId[];
-  activeDistrictId: DistrictId | null;
-  onDistrictClick: (id: DistrictId) => void;
-}
-
 /**
- * v10.2.0 "Os Ecos Afogados" (revisão de fidelidade ao Anexo 3) — pátio 2×3 da Cidadela Submersa,
- * mesmo esqueleto de `CitadelSpriteStage.tsx`. `submersa_background.png` já está conectado (Seção
- * 19.D do Manual) — o gradiente CSS continua como fundo do container por baixo da imagem, servindo
- * de fallback caso o arquivo ainda não tenha o layout definitivo de 6 clareiras (2×3).
- * `EvolutionSprite` já cai no ícone de fallback sozinho quando os sprites de distrito não existirem.
+ * Overlay da Cidadela Submersa — mesmo esqueleto de `CitadelSpriteStage.tsx`: montado em `App.tsx`
+ * dentro de `#game-container`, cobrindo o combate, numa árvore React separada de `GameUI.tsx`. Por
+ * isso lê `character.sunkenCitadel` direto da store em vez de receber props do painel de conteúdo.
+ *
+ * Clicar num distrito sem Eco selecionado só navega (emite `SUNKEN_SUBTAB_REQUESTED`, espelhando o
+ * `CITADEL_SUBTAB_REQUESTED` dos marcadores de prédio da Cidadela normal). Com um Eco selecionado
+ * (`selectedEchoId` na store, escolhido no painel "Ecos"), tocar um distrito elegível arma a
+ * alocação (contorno pulsante) e um 2º toque no mesmo distrito em ~4s confirma — fluxo que só faz
+ * sentido tocando o mapa, por isso continua aqui em vez de mover para o painel de conteúdo.
  */
-export const SubmersaSpriteStage: React.FC<SubmersaSpriteStageProps> = ({
-  districts, assignedCounts, slotsByDistrict, eligibleForAllocation, activeDistrictId, onDistrictClick,
-}) => {
+export const SunkenCitadelSpriteStage: React.FC = () => {
+  const character = useGameStore((state) => state.character);
+  const selectedEchoId = useGameStore((state) => state.selectedEchoId);
+  const pendingEchoDistrict = useGameStore((state) => state.pendingEchoDistrict);
+  const setPendingEchoDistrict = useGameStore((state) => state.setPendingEchoDistrict);
+  const setSelectedEchoId = useGameStore((state) => state.setSelectedEchoId);
+  const assignEcho = useGameStore((state) => state.assignEcho);
+
+  const sunken = character.sunkenCitadel;
+  const districts = sunken?.districts || {};
+  const echoes = sunken?.echoes || [];
+  const selectedEcho = selectedEchoId ? echoes.find((e) => e.id === selectedEchoId) : undefined;
+  const restoredDistrictIds = DISTRICT_IDS.filter((id) => (districts[id]?.restorationLevel || 0) >= 1);
+  const eligibleForAllocation = selectedEcho ? restoredDistrictIds : [];
+
+  const assignedCounts = DISTRICT_IDS.reduce((acc, id) => {
+    acc[id] = echoes.filter((e) => e.assignedDistrict === id).length;
+    return acc;
+  }, {} as Record<DistrictId, number>);
+  const slotsByDistrict = DISTRICT_IDS.reduce((acc, id) => {
+    acc[id] = getDistrictSlotCount(districts[id]?.restorationLevel || 0);
+    return acc;
+  }, {} as Record<DistrictId, number>);
+
+  const pendingTimer = React.useRef<number | undefined>(undefined);
+
+  const handleDistrictClick = (id: DistrictId) => {
+    const isEligible = selectedEcho && restoredDistrictIds.includes(id);
+    if (!isEligible) {
+      bridge.emit(GameEvent.SUNKEN_SUBTAB_REQUESTED, { subTab: id });
+      return;
+    }
+    if (pendingEchoDistrict === id) {
+      // 2º toque no mesmo distrito — confirma a alocação.
+      if (pendingTimer.current) window.clearTimeout(pendingTimer.current);
+      setPendingEchoDistrict(null);
+      const res = assignEcho(selectedEcho!.id, id);
+      if (res.success) {
+        AudioManager.getInstance().playUpgrade();
+        setSelectedEchoId(null);
+      }
+    } else {
+      // 1º toque — arma a confirmação (some sozinha em 4s se não for confirmada).
+      setPendingEchoDistrict(id);
+      if (pendingTimer.current) window.clearTimeout(pendingTimer.current);
+      pendingTimer.current = window.setTimeout(() => setPendingEchoDistrict(null), 4000);
+    }
+  };
+
   const districtIds = Object.keys(MARKER_POSITIONS) as DistrictId[];
 
   return (
-    <div style={{
-      position: 'relative', width: '100%', minHeight: '340px', borderRadius: 'var(--radius-md, 8px)',
-      background: 'radial-gradient(ellipse at 50% 30%, rgba(8,80,110,0.45), rgba(2,20,34,0.9))',
-      border: '1px solid rgba(34, 211, 238, 0.2)', overflow: 'hidden',
-    }}>
+    <div
+      className="citadel-sprite-stage"
+      style={{ position: 'absolute', inset: 0, zIndex: 25, overflow: 'hidden' }}
+    >
       <img
         src={BACKGROUND_SRC}
         alt=""
@@ -160,8 +203,8 @@ export const SubmersaSpriteStage: React.FC<SubmersaSpriteStageProps> = ({
           assignedCount={assignedCounts[id] || 0}
           slots={slotsByDistrict[id] || 0}
           eligibleForAllocation={eligibleForAllocation.includes(id)}
-          isModalOpen={activeDistrictId === id}
-          onClick={onDistrictClick}
+          pendingAssignment={pendingEchoDistrict === id}
+          onClick={handleDistrictClick}
         />
       ))}
     </div>

@@ -35,6 +35,9 @@ import { CodexPanel } from './CodexPanel';
 import { AbyssPanel } from './abyss/AbyssPanel';
 import { DiveHud } from './abyss/DiveHud';
 import { LoreCutscene } from './abyss/LoreCutscene';
+import { SunkenCitadelTabsBar, SUNKEN_SUB_TABS, SunkenSubTab } from './abyss/SunkenCitadelTabsBar';
+import { DistrictPanel } from './abyss/DistrictPanel';
+import { EchoRosterPanel } from './abyss/EchoRosterPanel';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
@@ -7452,6 +7455,15 @@ export default function GameUI() {
     ],
   }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments, character.pearls]);
 
+  // Recursos do cabeçalho enquanto a Cidadela Submersa está aberta — mesmos em qualquer distrito
+  // (Pérolas/Coral movem quase toda economia dela), sem precisar de um mapa por sub-aba como a
+  // Cidadela normal.
+  const SUNKEN_HEADER_RESOURCES = useMemo(() => [
+    { icon: '🦪', value: character.pearls || 0, color: '#a5f3fc', label: 'Pérolas Abissais' },
+    { icon: '🪸', value: citadelMaterials.coral || 0, color: '#fb7185', label: 'Coral Vivo' },
+    { icon: '🎭', value: character.sunkenCitadel?.echoes.length || 0, color: '#c4b5fd', label: 'Ecos Afogados' },
+  ], [character.pearls, citadelMaterials.coral, character.sunkenCitadel?.echoes.length]);
+
   const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel' | 'abyss'>('combat');
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
@@ -7478,9 +7490,36 @@ export default function GameUI() {
     }
   }, [activeTab]);
 
+  // Cidadela Submersa: mesmo padrão de overlay da Cidadela normal, mas acessada por um botão
+  // dentro da própria aba Abismo (não por uma aba de topo própria) — por isso não tem portão de
+  // confirmação separado, um clique já cobre o combate com o sprite stage (App.tsx).
+  const [sunkenEntered, setSunkenEntered] = useState(false);
+  const [sunkenSubTab, setSunkenSubTab] = useState<SunkenSubTab>('dock');
+
   useEffect(() => {
-    bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab, citadelEntered });
-  }, [activeTab, citadelEntered]);
+    if (activeTab !== 'abyss') {
+      setSunkenEntered(false);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    bridge.emit(GameEvent.TAB_CHANGED, { tab: activeTab, citadelEntered, sunkenEntered });
+  }, [activeTab, citadelEntered, sunkenEntered]);
+
+  // Permite que os marcadores de distrito clicáveis na área de sprites da Cidadela Submersa
+  // (renderizada em App.tsx) naveguem para a sub-aba correspondente.
+  useEffect(() => {
+    const unsubscribe = bridge.subscribe(GameEvent.SUNKEN_SUBTAB_REQUESTED, (payload: any) => {
+      if (payload?.subTab) {
+        setSunkenSubTab(payload.subTab);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    bridge.emit(GameEvent.SUNKEN_SUBTAB_CHANGED, { subTab: sunkenSubTab });
+  }, [sunkenSubTab]);
 
   // v10.0.0: ao iniciar um mergulho, leva o jogador para a aba de combate assistir à descida
   // (padrão da Torre, que troca de conteúdo ao iniciar a subida).
@@ -7725,6 +7764,16 @@ export default function GameUI() {
         });
         return;
       }
+      if (activeTab === 'abyss' && sunkenEntered) {
+        // Dentro da Cidadela Submersa, o swipe navega pelos distritos + Ecos, não pelas abas principais
+        AudioManager.getInstance().playClick();
+        setSunkenSubTab((prev) => {
+          const idx = SUNKEN_SUB_TABS.findIndex((t) => t.id === prev);
+          const nextIdx = diffX < 0 ? (idx + 1) % SUNKEN_SUB_TABS.length : (idx - 1 + SUNKEN_SUB_TABS.length) % SUNKEN_SUB_TABS.length;
+          return SUNKEN_SUB_TABS[nextIdx].id;
+        });
+        return;
+      }
       if (diffX < 0) {
         // Swipe para a esquerda (próxima aba à direita)
         AudioManager.getInstance().playClick();
@@ -7756,9 +7805,9 @@ export default function GameUI() {
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
-          {activeTab === 'citadel' && citadelEntered ? (
+          {(activeTab === 'citadel' && citadelEntered) || (activeTab === 'abyss' && sunkenEntered) ? (
             <>
-              {CITADEL_HEADER_RESOURCES[citadelSubTab].map((res, idx) => (
+              {(activeTab === 'citadel' ? CITADEL_HEADER_RESOURCES[citadelSubTab] : SUNKEN_HEADER_RESOURCES).map((res, idx) => (
                 <div
                   key={idx}
                   className="font-mono"
@@ -7812,6 +7861,17 @@ export default function GameUI() {
               onClick={() => {
                 AudioManager.getInstance().playClick();
                 setActiveTab('combat');
+              }}
+              className="btn btn-danger btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              VOLTAR
+            </button>
+          ) : activeTab === 'abyss' && sunkenEntered ? (
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                setSunkenEntered(false);
               }}
               className="btn btn-danger btn-sm"
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
@@ -7873,9 +7933,12 @@ export default function GameUI() {
         document.body
       )}
 
-      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela após o jogador confirmar a entrada */}
+      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela (ou da
+          Cidadela Submersa) após o jogador confirmar a entrada */}
       {activeTab === 'citadel' && citadelEntered ? (
         <CitadelTabsBar subTab={citadelSubTab} setSubTab={setCitadelSubTab} />
+      ) : activeTab === 'abyss' && sunkenEntered ? (
+        <SunkenCitadelTabsBar subTab={sunkenSubTab} setSubTab={setSunkenSubTab} />
       ) : (
       <>
       <div className="tabs-container-desktop-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', pointerEvents: 'auto' }}>
@@ -8035,7 +8098,14 @@ export default function GameUI() {
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}
-          {activeTab === 'abyss' && <AbyssPanel />}
+          {activeTab === 'abyss' && !sunkenEntered && (
+            <AbyssPanel onEnterCitadel={() => setSunkenEntered(true)} />
+          )}
+          {activeTab === 'abyss' && sunkenEntered && (
+            <>
+              {sunkenSubTab === 'echoes' ? <EchoRosterPanel /> : <DistrictPanel id={sunkenSubTab} />}
+            </>
+          )}
           {activeTab === 'attributes' && <AttributePanel />}
           {activeTab === 'skills' && <SkillsTreePanel />}
           {activeTab === 'equipment' && (

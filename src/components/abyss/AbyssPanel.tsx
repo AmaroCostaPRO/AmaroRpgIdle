@@ -9,7 +9,6 @@ import {
 } from '../../core/abyssFormulas';
 import { DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost } from '../../core/sunkenCitadelFormulas';
 import { CoastalPanel } from './CoastalPanel';
-import { SubmersaPanel } from './SubmersaPanel';
 import { EquippedTitleBox } from '../tower/EquippedTitleBox';
 
 /**
@@ -24,13 +23,17 @@ import { EquippedTitleBox } from '../tower/EquippedTitleBox';
  *   🤿 Mergulhos    — requer 1ª Ascensão + 1 Chave de Mergulho (conteúdo na Etapa 6)
  *   🔱 Cidadela     — chega na 10.2.0
  */
-export const AbyssPanel: React.FC = () => {
+interface AbyssPanelProps {
+  onEnterCitadel: () => void;
+}
+
+export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
   const character = useGameStore((state) => state.character);
   const diveActive = useDiveStore((state) => state.diveActive);
   const lastDiveSummary = useDiveStore((state) => state.lastDiveSummary);
   const startDive = useDiveStore((state) => state.startDive);
   const surface = useDiveStore((state) => state.surface);
-  const [subTab, setSubTab] = useState<'coastal' | 'depths' | 'citadel'>('coastal');
+  const [subTab, setSubTab] = useState<'coastal' | 'depths'>('coastal');
   const upgradeDivingSuit = useGameStore((state) => state.upgradeDivingSuit);
   const equippedTitle = useTowerStore((state) => state.equippedTitle);
   const unlockedTitles = useTowerStore((state) => state.unlockedTitles);
@@ -84,7 +87,7 @@ export const AbyssPanel: React.FC = () => {
   const keyCost = getDiveKeyCost(startDepth);
 
   const subTabButton = (
-    id: 'coastal' | 'depths' | 'citadel',
+    id: 'coastal' | 'depths',
     icon: string,
     label: string,
     locked: boolean,
@@ -115,6 +118,12 @@ export const AbyssPanel: React.FC = () => {
     </button>
   );
 
+  const handleCitadelButtonClick = () => {
+    if (!citadelUnlocked) return;
+    AudioManager.getInstance().playClick();
+    onEnterCitadel();
+  };
+
   return (
     <div className="panel" style={{ padding: '1rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
@@ -123,21 +132,31 @@ export const AbyssPanel: React.FC = () => {
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {subTabButton('coastal', '🎣', 'Litoral', false, '')}
         {subTabButton('depths', '🤿', fullDepths ? 'Profundezas' : 'Mergulhos Rasos', !depthsUnlocked, 'Requer 1 Ascensão')}
-        {subTabButton('citadel', '🔱', 'Cidadela', !citadelUnlocked, 'Requer Fase 50')}
+        <button
+          onClick={handleCitadelButtonClick}
+          className="btn"
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.5rem',
+            background: 'var(--surface-2, rgba(255,255,255,0.05))',
+            border: '1px solid var(--border-dim, rgba(255,255,255,0.1))',
+            borderRadius: 'var(--radius-md, 8px)',
+            color: '#fff',
+            opacity: citadelUnlocked ? 1 : 0.6,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.15rem',
+          }}
+          title={citadelUnlocked ? undefined : 'Requer Fase 50'}
+        >
+          <span style={{ fontSize: '1.1rem' }}>{citadelUnlocked ? '🔱' : '🔒'}</span>
+          <span style={{ fontSize: '0.62rem', fontWeight: 600 }}>Cidadela</span>
+          {!citadelUnlocked && <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)' }}>Requer Fase 50</span>}
+        </button>
       </div>
 
       {subTab === 'coastal' && <CoastalPanel />}
-
-      {subTab === 'citadel' && (
-        citadelUnlocked ? <SubmersaPanel /> : (
-          <div style={{ padding: '1.25rem', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 'var(--radius-md, 8px)', textAlign: 'center' }}>
-            <p style={{ fontSize: '1.5rem' }}>🔒</p>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
-              A Cidadela Submersa só emerge após alcançar a <strong>Fase 50</strong> (destrava As Profundezas completas).
-            </p>
-          </div>
-        )
-      )}
 
       {subTab === 'depths' && (
         depthsUnlocked ? (
@@ -209,7 +228,7 @@ export const AbyssPanel: React.FC = () => {
                   )
                 ) : (
                   <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
-                    Requer ⚓ Doca Batial drenada e restaurada — veja a sub-aba 🔱 Cidadela.
+                    Requer ⚓ Doca Batial drenada e restaurada — veja o botão 🔱 Cidadela.
                   </span>
                 )}
                 {suitToast && <span style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>{suitToast}</span>}

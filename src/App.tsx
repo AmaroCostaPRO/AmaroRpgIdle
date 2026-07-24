@@ -12,6 +12,7 @@ import { AudioManager } from './core/AudioManager';
 import { bridge } from './bridge/GameBridge';
 import { GameEvent } from './core/types';
 import { CitadelSpriteStage } from './components/citadel/CitadelSpriteStage';
+import { SunkenCitadelSpriteStage } from './components/abyss/SunkenCitadelSpriteStage';
 import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites';
 import { getTransparentImageUrl } from './core/imageBackgroundStrip';
 import { RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL } from './components/shared/itemVisuals';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [isGameReady, setIsGameReady] = useState(false);
   const [activeTab, setActiveTab] = useState('combat');
   const [citadelEntered, setCitadelEntered] = useState(false);
+  const [sunkenEntered, setSunkenEntered] = useState(false);
 
   useWakeLock(screen === 'playing');
 
@@ -41,6 +43,7 @@ const App: React.FC = () => {
     const unsubscribeTab = bridge.subscribe(GameEvent.TAB_CHANGED, (payload: any) => {
       setActiveTab(payload?.tab ?? 'combat');
       setCitadelEntered(!!payload?.citadelEntered);
+      setSunkenEntered(!!payload?.sunkenEntered);
     });
     return () => {
       unsubscribeTab();
@@ -290,6 +293,8 @@ const App: React.FC = () => {
 
               {/* Sobrepõe a tela de combate com a visualização da Cidadela enquanto essa aba está ativa */}
               {activeTab === 'citadel' && citadelEntered && <CitadelSpriteStage />}
+              {/* Mesmo padrão para a Cidadela Submersa, aberta por um botão dentro da aba Abismo */}
+              {activeTab === 'abyss' && sunkenEntered && <SunkenCitadelSpriteStage />}
             </div>
 
             {/* UI Component Container */}

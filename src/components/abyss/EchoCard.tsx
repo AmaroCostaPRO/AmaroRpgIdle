@@ -14,7 +14,7 @@ interface EchoCardProps {
  * v10.2.0 "Os Ecos Afogados" (revisão de fidelidade ao Anexo 3 §1.9/§2.4) — substitui o
  * `<select>` do antigo `EchoRow`: mostra a decomposição COMPLETA da fórmula de eficácia
  * (`Base × Afinidade × Traço × Vizinhos × Salão = Final`), não só o percentual final. Tocar o
- * card seleciona o Eco para o fluxo de alocação por toque (ver `SubmersaPanel`).
+ * card seleciona o Eco para o fluxo de alocação por toque (ver `EchoRosterPanel`).
  */
 export const EchoCard: React.FC<EchoCardProps> = ({ echo, efficacy, selected, onSelect }) => {
   const healCountdown = useCountdown(echo.trait === 'brokenHeart' ? echo.brokenHeartHealsAt : undefined);

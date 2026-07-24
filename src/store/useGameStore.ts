@@ -703,6 +703,12 @@ interface GameState {
   character: Character;
   screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves';
   zoomLevel: number;
+  // Estado de RUNTIME (não persistido) do fluxo "selecionar Eco → tocar distrito para alocar" da
+  // Cidadela Submersa. Fica na store (em vez de useState local) porque o mapa de distritos
+  // (SunkenCitadelSpriteStage, montado em App.tsx) e o painel de Ecos (GameUI.tsx) são duas árvores
+  // React separadas que precisam ler/escrever o mesmo valor.
+  selectedEchoId: string | null;
+  pendingEchoDistrict: DistrictId | null;
   sfxEnabled: boolean;
   bgmEnabled: boolean;
   sfxVolume: number;
@@ -727,6 +733,8 @@ interface GameState {
   setCharacter(character: Character): void;
   setScreen(screen: 'menu' | 'character_select' | 'playing' | 'options' | 'saves'): void;
   setZoomLevel(zoomLevel: number): void;
+  setSelectedEchoId(echoId: string | null): void;
+  setPendingEchoDistrict(districtId: DistrictId | null): void;
   addGold(amount: number): void;
   addForgeFragments(amount: number): void;
   addTranscendencePoints(amount: number): void;
@@ -1549,6 +1557,11 @@ export const useGameStore = create<GameState>((set) => ({
     } catch (e) {}
     return { zoomLevel };
   }),
+
+  selectedEchoId: null,
+  pendingEchoDistrict: null,
+  setSelectedEchoId: (echoId) => set({ selectedEchoId: echoId, pendingEchoDistrict: null }),
+  setPendingEchoDistrict: (districtId) => set({ pendingEchoDistrict: districtId }),
 
   gameSpeed: 1,
   setGameSpeed: (speed) => set((state) => {
