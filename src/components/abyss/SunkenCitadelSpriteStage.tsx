@@ -13,23 +13,24 @@ import { SUNKEN_BUILDING_SPRITE_SRC } from '../citadel/sunkenBuildingSprites';
 // (imagem quadrada 1024x1024, esticada com `object-fit: fill` para preencher o container sem
 // cortes nem barras, já que os marcadores usam as mesmas porcentagens de `top`/`left` e por isso
 // acompanham o esticamento perfeitamente). Se a imagem for regerada com um layout de clareiras
-// diferente, ajuste `MARKER_POSITIONS` abaixo para acompanhar.
+// diferente, ajuste `MARKER_POSITIONS`/`DISTRICT_TILE_SIZE` abaixo para acompanhar.
 const BACKGROUND_SRC = '/assets/submersa_background.png';
 
-// Grade fixa 2×3 do Anexo 3 §1.4/§2.4 — colunas 21/50/79%, linhas 28/72% (calibradas por análise
-// de pixel contra as 6 clareiras circulares reais de `submersa_background.png` após o recorte
-// centralizado que aproximou os círculos das bordas). Layout: [dock, echoHall, forge] em cima /
-// [temple, archive, throne] embaixo (mesma ordem já documentada em `DISTRICT_ADJACENCY`,
-// sunkenCitadelFormulas.ts). Isoladas aqui como constantes — se `submersa_background.png` for
-// regerada com um layout de clareiras diferente, só estes valores mudam (mesmo princípio já usado
-// por `CitadelSpriteStage.tsx`).
+// Centro e tamanho de cada clareira circular medidos diretamente em `submersa_background.png`
+// (1024×1024) via flood-fill em canvas a partir das posições aproximadas anteriores — as 6
+// clareiras são praticamente idênticas (~19% de largura × ~19% de altura do canvas), por isso um
+// único tamanho compartilhado (`DISTRICT_TILE_SIZE`) é suficiente. Como o background é esticado com
+// `object-fit: fill`, dimensionar o marcador em % (em vez de px fixo) faz com que ele acompanhe
+// exatamente o mesmo esticamento do círculo, virando elipse quando o container não é quadrado.
+const DISTRICT_TILE_SIZE = { width: 19, height: 19 };
+
 const MARKER_POSITIONS: Record<DistrictId, { top: number; left: number }> = {
-  dock: { top: 28, left: 21 },
-  echoHall: { top: 28, left: 50 },
-  forge: { top: 28, left: 79 },
-  temple: { top: 72, left: 21 },
-  archive: { top: 72, left: 50 },
-  throne: { top: 72, left: 79 },
+  dock: { top: 28.17, left: 21.39 },
+  echoHall: { top: 27.98, left: 49.90 },
+  forge: { top: 28.13, left: 78.52 },
+  temple: { top: 72.22, left: 21.39 },
+  archive: { top: 72.22, left: 50.15 },
+  throne: { top: 72.27, left: 78.71 },
 };
 
 interface DistrictMarkerProps {
@@ -50,10 +51,13 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
   const restorationLevel = state?.restorationLevel || 0;
   const drainCountdown = useCountdown(state?.drainUpgrade?.completesAt);
   const [hovered, setHovered] = useState(false);
+  const [hasArt, setHasArt] = useState(false);
   const highlighted = hovered || pendingAssignment || eligibleForAllocation;
 
-  // Overlay de água: 100% (cobre tudo) enquanto Alagado; desce em tempo real durante a drenagem
-  // (proporção do tempo restante contra a duração total conhecida do distrito); 0% quando Restaurado.
+  // Overlay de água: 100% (cobre toda a clareira) enquanto Alagado; desce em tempo real durante a
+  // drenagem (proporção do tempo restante contra a duração total conhecida do distrito); 0% quando
+  // Restaurado. Aplicado ao `sunken-marker-tile` — a elipse que ocupa exatamente o círculo do
+  // background, por trás do sprite da construção — em vez de tingir o próprio sprite.
   let waterHeightPct = 0;
   if (flooded && !draining) waterHeightPct = 100;
   else if (draining && state?.drainUpgrade) {
@@ -62,37 +66,66 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
     waterHeightPct = Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
   }
 
+  const pos = MARKER_POSITIONS[id];
+
   return (
     <div
       onClick={() => { AudioManager.getInstance().playClick(); onClick(id); }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       title={`${DISTRICT_NAMES[id]} — ${flooded && !draining ? 'Alagado' : draining ? `Drenando (${drainCountdown})` : `Restaurado ${restorationLevel === 1 ? 'I' : restorationLevel === 2 ? 'II' : 'III'}`}`}
-      style={{ position: 'absolute', top: `${MARKER_POSITIONS[id].top}%`, left: `${MARKER_POSITIONS[id].left}%`, transform: 'translate(-50%, -50%)', textAlign: 'center', cursor: 'pointer' }}
+      className="sunken-marker-wrap"
+      style={{
+        position: 'absolute', top: `${pos.top}%`, left: `${pos.left}%`,
+        width: `${DISTRICT_TILE_SIZE.width}%`, height: `${DISTRICT_TILE_SIZE.height}%`,
+        transform: 'translate(-50%, -50%)', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
     >
+      {/* Alagamento — elipse que preenche o wrap inteiro (mesma % do container que o círculo do
+          background esticado), então acompanha exatamente a clareira, com transparência para o
+          fundo continuar visível por baixo. */}
+      <div
+        className="sunken-marker-tile"
+        style={{ position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}
+      >
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: `${waterHeightPct}%`,
+          background: 'linear-gradient(180deg, rgba(6,38,58,0.72), rgba(2,14,22,0.88))',
+          transition: 'height 2s linear',
+        }} />
+      </div>
+
       {eligibleForAllocation && (
         <span style={{
           position: 'absolute', inset: '-8px', borderRadius: '999px', border: '2px solid #4ade80',
-          animation: 'submersa-marker-pulse 1.1s ease-out infinite', pointerEvents: 'none',
+          animation: 'submersa-marker-pulse 1.1s ease-out infinite', pointerEvents: 'none', zIndex: 2,
         }} />
       )}
-      <div style={{
-        position: 'relative', width: '84px', height: '84px', margin: '0 auto',
+
+      {/* Quadrado (não elíptico como o wrap) baseado na menor dimensão dele — o corte de
+          `EvolutionSprite` assume uma área quadrada (mesmo grid 2x2 da spritesheet); num box
+          esticado, a arte fica espremida e a parte de cima de estruturas altas acaba cortada
+          pelo `overflow: hidden`. `height: 78%` (do wrap) + `aspect-ratio: 1` mantém o quadrado
+          mesmo com o wrap virando elipse em telas de proporções diferentes. */}
+      <div className="sunken-marker-icon-box" style={{
+        position: 'relative', zIndex: 1, height: '78%', aspectRatio: '1', width: 'auto',
         borderRadius: 'var(--radius-lg)',
-        background: flooded ? 'linear-gradient(160deg, #0c4a6e, #082f49)' : 'linear-gradient(155deg, var(--surface-3), var(--surface-2))',
+        background: hasArt ? 'transparent' : 'linear-gradient(155deg, var(--surface-3), var(--surface-2))',
         border: `2px solid ${highlighted ? '#22d3ee' : 'rgba(255,255,255,0.15)'}`,
         boxShadow: highlighted ? '0 0 18px rgba(34,211,238,0.5)' : 'none',
         transform: highlighted ? 'scale(1.08)' : 'scale(1)',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
         overflow: 'hidden',
       }}>
-        <EvolutionSprite src={SUNKEN_BUILDING_SPRITE_SRC[id]} level={restorationLevel} maxLevel={3} fallbackIcon={DISTRICT_ICONS[id]} fallbackClassName="submersa-marker-icon" />
-        {/* Overlay de água CSS — altura animada, sobre o marcador */}
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: `${waterHeightPct}%`,
-          background: 'linear-gradient(180deg, rgba(34,211,238,0.15), rgba(8,47,73,0.75))',
-          transition: 'height 2s linear', pointerEvents: 'none',
-        }} />
+        <EvolutionSprite
+          src={SUNKEN_BUILDING_SPRITE_SRC[id]}
+          level={restorationLevel}
+          maxLevel={3}
+          fallbackIcon={DISTRICT_ICONS[id]}
+          fallbackClassName="sunken-marker-icon"
+          onResolvedChange={setHasArt}
+        />
         {!flooded && (
           <span style={{
             position: 'absolute', bottom: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#a5f3fc',
@@ -102,10 +135,13 @@ const DistrictMarker: React.FC<DistrictMarkerProps> = ({ id, state, assignedCoun
           </span>
         )}
       </div>
-      <span style={{
-        display: 'block', marginTop: '0.3rem', fontSize: '0.62rem', fontWeight: 700,
-        color: flooded ? 'rgba(255,255,255,0.5)' : '#fff', whiteSpace: 'nowrap',
-      }}>
+
+      {/* Fora do fluxo do wrap (não afeta a centralização acima) e com z-index bem maior que o
+          tile, para o nome nunca ficar escondido atrás do efeito de alagamento. */}
+      <span
+        className="sunken-marker-label"
+        style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 5, color: flooded ? 'rgba(255,255,255,0.7)' : '#fff' }}
+      >
         {DISTRICT_ICONS[id]} {DISTRICT_NAMES[id]}
       </span>
     </div>
@@ -190,9 +226,16 @@ export const SunkenCitadelSpriteStage: React.FC = () => {
           0% { opacity: 0.8; transform: scale(1); }
           100% { opacity: 0; transform: scale(1.25); }
         }
-        .submersa-marker-icon { font-size: 2.1rem; }
+        .sunken-marker-icon { font-size: 2.1rem; }
+        .sunken-marker-label {
+          display: inline-block; margin-top: 0.4rem; padding: 0.15rem 0.5rem;
+          border-radius: var(--radius-pill, 999px); background: rgba(0,0,0,0.6);
+          border: 1px solid var(--border-subtle, rgba(255,255,255,0.15));
+          font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; white-space: nowrap;
+        }
         @media (max-width: 840px) {
-          .submersa-marker-icon { font-size: 1.4rem; }
+          .sunken-marker-icon { font-size: 1.3rem; }
+          .sunken-marker-label { font-size: 0.5rem; padding: 0.08rem 0.35rem; margin-top: 0.25rem; }
         }
       `}</style>
       {districtIds.map((id) => (
