@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { RuneId, RUNE_CATALOG, isPrimordialRune } from '../../core/runeFormulas';
 import { RuneChip, describeRuneEffect, getRuneVisual } from './itemVisuals';
 
@@ -6,12 +6,37 @@ interface RuneInventoryPanelProps {
   runeInventory: Partial<Record<RuneId, number>> | undefined;
 }
 
+// Botão de cada runa, memoizado por runeId/qty: evita recriar o RuneChip e o handler
+// de clique para runas que não mudaram quando o painel pai re-renderiza (ex.: ticks
+// de combate que não afetam o cofre de runas).
+const RuneSlotButton: React.FC<{ runeId: RuneId; qty: number; onSelect: (runeId: RuneId) => void }> = React.memo(({ runeId, qty, onSelect }) => (
+  <button
+    onClick={() => onSelect(runeId)}
+    title={RUNE_CATALOG[runeId]?.name}
+    style={{
+      aspectRatio: '1',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      padding: 0,
+    }}
+  >
+    <RuneChip runeId={runeId} qty={qty} size={40} />
+  </button>
+));
+
 // Mostruário de runas do Inventário — somente leitura (sem vender/usar/equipar).
 // Reaproveita RuneChip/describeRuneEffect, os mesmos usados na Câmara de Gravação, para
 // nunca divergir visualmente do resto do jogo.
-export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = ({ runeInventory }) => {
+export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = React.memo(({ runeInventory }) => {
   const [selectedRuneId, setSelectedRuneId] = useState<RuneId | null>(null);
-  const runeEntries = Object.entries(runeInventory || {}).filter(([, qty]) => (qty || 0) > 0) as [RuneId, number][];
+  const runeEntries = useMemo(
+    () => Object.entries(runeInventory || {}).filter(([, qty]) => (qty || 0) > 0) as [RuneId, number][],
+    [runeInventory]
+  );
 
   return (
     <>
@@ -21,23 +46,7 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = ({ runeInve
         </div>
       ) : (
         runeEntries.map(([runeId, qty]) => (
-          <button
-            key={runeId}
-            onClick={() => setSelectedRuneId(runeId)}
-            title={RUNE_CATALOG[runeId]?.name}
-            style={{
-              aspectRatio: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
-            <RuneChip runeId={runeId} qty={qty} size={40} />
-          </button>
+          <RuneSlotButton key={runeId} runeId={runeId} qty={qty} onSelect={setSelectedRuneId} />
         ))
       )}
 
@@ -76,4 +85,4 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = ({ runeInve
       })()}
     </>
   );
-};
+});

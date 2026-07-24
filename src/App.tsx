@@ -369,7 +369,7 @@ const App: React.FC = () => {
                         🔱 A Cidadela Submersa (6 distritos)
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        A cidade-irmã afundada da Cidadela Astral, restaurada distrito por distrito (Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré, Trono Afundado) num pátio 2×3 clicável — drenar custa Pérolas/Coral e leva horas reais; cada distrito Restaurado abre slots de Eco e sua própria função. Desbloqueada ao alcançar a Zona 3 das Profundezas (prof. 51+).
+                        A cidade-irmã afundada da Cidadela Astral, restaurada distrito por distrito (Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré, Trono Afundado) num pátio 2×3 clicável — drenar custa Pérolas/Coral e leva horas reais; cada distrito Restaurado abre slots de Eco e sua própria função. Desbloqueada ao alcançar a Fase 50.
                       </div>
                     </div>
                     <div>

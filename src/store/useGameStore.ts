@@ -32,7 +32,7 @@ import {
   getCoastalDockUpgradeCost, getCoastalDockUpgradeDurationMs,
   LANTERN_FISH_MEAT_YIELD, BATHYSPHERE_FRAGMENTS_PER_KEY,
   getActiveFishingCooldownMs, FARO_PERFECT_CATCHES_REQUIRED,
-  rollTier1Rune,
+  rollTier1Rune, isFullDepthsUnlocked,
 } from '../core/abyssFormulas';
 import {
   RuneId, RUNE_CATALOG, isPrimordialRune, isHeavySlot, getMaxSocketsForSlot,
@@ -2985,7 +2985,7 @@ export const useGameStore = create<GameState>((set) => ({
   },
 
   // ── v10.2.0 "Os Ecos Afogados": Cidadela Submersa (6 distritos) + Ecos Afogados ───────────
-  // Visível após a 1ª descida que alcança a Zona 3 (historicalMaxDepth >= 51). Sobrevive a
+  // Visível ao alcançar a Fase 50 (isFullDepthsUnlocked). Sobrevive a
   // Ascensão E Transcendência (construção de conta, como `citadel`) — ver reset de Transcendência.
 
   tickSunkenCitadelProduction: () => {
@@ -3088,8 +3088,8 @@ export const useGameStore = create<GameState>((set) => ({
     useGameStore.getState().tickSunkenCitadelProduction();
     set((state) => {
       const char = state.character;
-      if ((char.abyss?.historicalMaxDepth || 0) < 51) {
-        result = { success: false, message: 'A Cidadela Submersa exige alcançar a Zona 3 das Profundezas (prof. 51+).' };
+      if (!isFullDepthsUnlocked(char.highestStageReached || 1)) {
+        result = { success: false, message: 'A Cidadela Submersa exige alcançar a Fase 50 (destrava As Profundezas completas).' };
         return state;
       }
       const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
@@ -4093,22 +4093,22 @@ export const useGameStore = create<GameState>((set) => ({
       ascensionNotified: false,
       citadel: { ...(state.character.citadel || DEFAULT_CITADEL()), unlocked: true },
       // Ascensão retém apenas 2% dos materiais farmados na run, evitando acúmulo exagerado entre runs.
-      // Coral é exceção: drop raro nas Profundezas/Litoral, sobrevive 100% intacto à Ascensão.
+      // Coral é drop raro das Profundezas/Litoral, então retém 50% (bem mais que os materiais comuns,
+      // mas ainda cortado pela metade para não acumular sem limite entre runs).
       materials: {
         wood: Math.floor((state.character.materials?.wood || 0) * 0.02),
         stone: Math.floor((state.character.materials?.stone || 0) * 0.02),
         meat: Math.floor((state.character.materials?.meat || 0) * 0.02),
         studyInsignias: Math.floor((state.character.materials?.studyInsignias || 0) * 0.02),
-        coral: state.character.materials?.coral || 0,
+        coral: Math.floor((state.character.materials?.coral || 0) * 0.5),
       },
-      // v10.0.0: Pérolas, assim como o Coral, são exceção à regra dos 2% — drop raro nas
-      // Profundezas/Litoral, sobrevivem 100% intactas à Ascensão. runeInventory, Chaves de
-      // Mergulho, Fragmentos de Batisfera e os desbloqueios/recordes do Litoral/Abismo também
-      // SOBREVIVEM à Ascensão (são infraestrutura de conta, como os Fragmentos de Forja... que
-      // zeram, mas runas engastadas seguem o item — e itens equipados já seguem a regra do
-      // Pandemônio acima). O spread de `...state.character` preserva
-      // runeInventory/diveKeys/batisphereFragments/coastal/abyss.
-      pearls: state.character.pearls || 0,
+      // v10.0.0: Pérolas são drop raro das Profundezas/Litoral, como o Coral — retêm 50% na
+      // Ascensão (mesma lógica do Coral acima). runeInventory, Chaves de Mergulho, Fragmentos de
+      // Batisfera e os desbloqueios/recordes do Litoral/Abismo continuam SOBREVIVENDO 100% à
+      // Ascensão (são infraestrutura de conta, como os Fragmentos de Forja... que zeram, mas runas
+      // engastadas seguem o item — e itens equipados já seguem a regra do Pandemônio acima). O
+      // spread de `...state.character` preserva runeInventory/diveKeys/batisphereFragments/coastal/abyss.
+      pearls: Math.floor((state.character.pearls || 0) * 0.5),
     };
 
     // Processa os recordes pessoais

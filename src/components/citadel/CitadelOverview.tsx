@@ -39,6 +39,7 @@ export const CitadelOverview: React.FC = () => {
     { id: 'relicLab', icon: '🧪', label: 'Laboratório de Relíquias', level: citadel?.relicLab.level || 0 },
     { id: 'alchemyLab', icon: '⚗️', label: 'Laboratório de Alquimia', level: citadel?.alchemyLab.level || 0 },
     { id: 'huntSanctuary', icon: '📜', label: 'Santuário de Contratos de Caça', level: citadel?.huntSanctuary.level || 0 },
+    { id: 'engravingChamber', icon: '🪬', label: 'Câmara de Gravação', level: citadel?.engravingChamber?.level || 0 },
   ];
 
   return (

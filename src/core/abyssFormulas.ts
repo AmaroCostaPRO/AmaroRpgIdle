@@ -72,8 +72,8 @@ export const getCampaignCommonEnemyDamage = (stage: number): number =>
 export const SHALLOW_DIVE_MAX_DEPTH = 25;   // teto PRÉ-F50 (Mergulhos Rasos, âncora dinâmica)
 export const AIR_POCKET_INTERVAL = 5;       // a cada 5 profundidades, um Bolsão de Ar (sem combate)
 export const GUARDIAN_DEPTH = 25;           // Aracnídeo do Recife (legado — usar ZONE_GUARDIANS)
-export const GUARDIAN_HP_MULT = 6.0;
-export const GUARDIAN_DMG_MULT = 1.8;
+export const GUARDIAN_HP_MULT = 3.0;
+export const GUARDIAN_DMG_MULT = 1.5;
 export const GUARDIAN_SHIELD_PCT = 0.20;    // escudo de 20% do HP máx...
 export const GUARDIAN_SHIELD_REBUILD_MS = 15000; // ...que se refaz a cada 15s
 export const GUARDIAN_PEARL_REWARD = 25;
@@ -120,7 +120,7 @@ export const ZONE_FACTORS: Record<DiveZone, { hp: number; dmg: number }> = {
 
 export const getDiveEnemyHP = (depth: number, anchorStage: number, enemyHpMult: number = 1.0): number =>
   Math.floor(
-    getCampaignCommonEnemyHP(anchorStage) * 0.5 * Math.pow(1.14, depth - 1) *
+    getCampaignCommonEnemyHP(anchorStage) * 0.5 * Math.pow(1.09, depth - 1) *
     ZONE_FACTORS[getZoneForDepth(depth)].hp * enemyHpMult
   );
 
@@ -152,7 +152,7 @@ export interface ZoneGuardianDef {
 }
 
 export const ZONE_GUARDIANS: ZoneGuardianDef[] = [
-  { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 6.0, dmgMult: 1.8, pearlReward: 25, primordialRuneId: 'thal' },
+  { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 3.0, dmgMult: 1.5, pearlReward: 25, primordialRuneId: 'thal' },
   { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 6.0, dmgMult: 1.8, pearlReward: 50, primordialRuneId: 'vrak' },
   { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 6.0, dmgMult: 1.8, pearlReward: 100, primordialRuneId: 'morvo' },
 ];

@@ -275,8 +275,9 @@ export interface Character {
 
   // ── v10.0.0 "A Cidadela Submersa" ──────────────────────────────────────────
   // Todos os campos abaixo são opcionais (saves antigos carregam sem migração; defaults injetados
-  // por mergeLoadedCharacter). Regras de reset: Ascensão reduz Pérolas/Coral a 2% (regra dos
-  // materiais) e PRESERVA runeInventory/chaves/fragmentos/desbloqueios; Transcendência zera
+  // por mergeLoadedCharacter). Regras de reset: Ascensão reduz Pérolas/Coral a 50% (retêm mais que
+  // os materiais comuns, que caem a 2%, mas ainda cortados pela metade para não acumular sem limite)
+  // e PRESERVA runeInventory/chaves/fragmentos/desbloqueios; Transcendência zera
   // runeInventory/Pérolas/Coral/chaves/fragmentos mas PRESERVA desbloqueios, recordes e o
   // contador vitalício de acertos perfeitos (construção de conta).
   pearls?: number;               // Pérola Abissal — a única moeda nova de gasto do update
@@ -319,7 +320,7 @@ export interface Character {
   };
 
   // v10.2.0 "Os Ecos Afogados": restauração da Cidadela Submersa (6 distritos) + simulação de
-  // população (Ecos Afogados). Visível após a 1ª descida que alcança a Zona 3 (prof. 51+).
+  // população (Ecos Afogados). Visível ao alcançar a Fase 50 (isFullDepthsUnlocked).
   // Sobrevive a Ascensão E Transcendência (construção de conta, como `citadel`) — só `tideBlessing`
   // zera na Transcendência (é "poder do ciclo", não infraestrutura).
   sunkenCitadel?: {

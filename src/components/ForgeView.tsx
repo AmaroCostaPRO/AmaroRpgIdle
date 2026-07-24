@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '../store/useGameStore';
 import { EquipmentItem, BaseStats } from '../core/types';
 import { getMysticFusionCost } from '../core/citadelFormulas';
@@ -89,7 +89,9 @@ const ForgeInputSocket: React.FC<{
 };
 
 export const ForgeView: React.FC = () => {
-  const { character, reforgeItems, abbreviateNumbers } = useGameStore();
+  const character = useGameStore((state) => state.character);
+  const reforgeItems = useGameStore((state) => state.reforgeItems);
+  const abbreviateNumbers = useGameStore((state) => state.abbreviateNumbers);
   const [slot1, setSlot1] = useState<EquipmentItem | null>(null);
   const [slot2, setSlot2] = useState<EquipmentItem | null>(null);
   const [activeSelectionSlot, setActiveSelectionSlot] = useState<1 | 2 | null>(null);
@@ -150,11 +152,13 @@ export const ForgeView: React.FC = () => {
     }, isLegendary ? 6000 : 4000);
   };
 
-  // Filtra itens do inventário elegíveis para o slot ativo
-  const getEligibleItems = (): EquipmentItem[] => {
+  // Filtra itens do inventário elegíveis para o slot ativo. Memoizado porque este cálculo
+  // faz .filter() sobre o inventário inteiro (até ~100 itens) e antes rodava a cada render
+  // do ForgeView enquanto o modal de seleção estava aberto, mesmo sem o inventário mudar.
+  const eligibleItems = useMemo((): EquipmentItem[] => {
     // Exclui consumíveis e Relíquias Ativas da lista de itens elegíveis para a forja
     const inv = (character.inventory || []).filter(item => item.slot !== 'consumable' && item.slot !== 'activeRelic');
-    
+
     // Se for o slot 1, permite selecionar qualquer item
     if (activeSelectionSlot === 1) {
       // Se o slot 2 já tiver item, só permite itens do mesmo tipo (slot) e mesma classe/compatibilidade de místico
@@ -162,7 +166,7 @@ export const ForgeView: React.FC = () => {
         return inv.filter(item => {
           if (item.id === slot2.id) return false;
           if (item.slot !== slot2.slot) return false;
-          
+
           // Regra de compatibilidade mística e conjunto:
           const isBothMystic = item.rarity === 'mystic' && slot2.rarity === 'mystic';
           const isBothNormal = item.rarity !== 'mystic' && slot2.rarity !== 'mystic';
@@ -179,7 +183,7 @@ export const ForgeView: React.FC = () => {
         return inv.filter(item => {
           if (item.id === slot1.id) return false;
           if (item.slot !== slot1.slot) return false;
-          
+
           const isBothMystic = item.rarity === 'mystic' && slot1.rarity === 'mystic';
           const isBothNormal = item.rarity !== 'mystic' && slot1.rarity !== 'mystic';
           const isSameSet = item.setName === slot1.setName;
@@ -190,7 +194,7 @@ export const ForgeView: React.FC = () => {
     }
 
     return [];
-  };
+  }, [character.inventory, activeSelectionSlot, slot1, slot2]);
 
   // Verifica se a fusão é possível e calcula custos
   const checkReforgeValidity = () => {
@@ -713,7 +717,6 @@ export const ForgeView: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {(() => {
-                const eligibleItems = getEligibleItems();
                 return eligibleItems.length > 0 ? (
                 eligibleItems.map((item) => {
                   const visual = getSetVisual(item);

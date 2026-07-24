@@ -49,7 +49,7 @@ export const EchoRosterDrawer: React.FC<EchoRosterDrawerProps> = ({
 
         {echoes.length === 0 && (
           <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
-            Nenhum Eco resgatado ainda — mergulhe até a Zona 3 das Profundezas (prof. 51+) ou conclua uma drenagem de distrito.
+            Nenhum Eco resgatado ainda — mergulhe até a Zona 3 das Profundezas (prof. 51+) ou conclua uma drenagem de distrito na Cidadela Submersa (Fase 50+).
           </p>
         )}
 

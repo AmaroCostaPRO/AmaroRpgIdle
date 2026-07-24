@@ -1072,6 +1072,147 @@ interface InventoryItemGridProps {
   onSelectItem: (item: EquipmentItem) => void;
 }
 
+// Slot vazio: puramente estático por posição, memoizado para nunca re-renderizar
+// quando outros slots do grid mudam.
+const EmptyInventorySlot: React.FC<{ idx: number }> = React.memo(({ idx }) => (
+  <div
+    style={{
+      aspectRatio: '1',
+      background: 'rgba(0,0,0,0.3)',
+      border: '1px dashed rgba(255,255,255,0.06)',
+      borderRadius: 'var(--radius-md)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.55rem',
+      color: '#334155',
+      userSelect: 'none'
+    }}
+  >
+    {idx + 1}
+  </div>
+));
+
+// Slot preenchido, extraído e memoizado por item: `.filter()` preserva a referência
+// dos itens que não mudaram, então o React.memo abaixo evita recomputar `getSetVisual`
+// e recriar a JSX/estilos deste slot quando o inventário muda por causa de OUTRO item
+// (ex.: um drop novo em combate). Sem isso, cada mudança no inventário forçava um
+// recomputo O(n) sobre todos os slots, mesmo os inalterados — daí o custo escalar com
+// o total de itens acumulados.
+const FilledInventorySlot: React.FC<{ item: EquipmentItem; onSelect: (item: EquipmentItem) => void }> = React.memo(({ item, onSelect }) => {
+  const { isAncestral, isPandemonium, border: itemBorder, shadow: itemShadow, bg: itemBg } = getSetVisual(item);
+
+  const handleClick = () => {
+    AudioManager.getInstance().playClick();
+    onSelect(item);
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="inventory-item-slot"
+      style={{
+        aspectRatio: '1',
+        background: itemBg,
+        border: itemBorder,
+        boxShadow: itemShadow,
+        borderRadius: 'var(--radius-md)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        position: 'relative',
+        padding: 0,
+        transition: 'all 0.15s ease'
+      }}
+    >
+      <span style={{ fontSize: '1.2rem' }}>
+        {item.slot === 'consumable' ? (
+          item.consumableType === 'boost_touch' ? '⚡' :
+          item.consumableType === 'boost_touch_x3' ? '⚡3' :
+          item.consumableType === 'chest_ancestral' ? '🔮' :
+          item.consumableType === 'relic_chest' ? '💜' :
+          item.consumableType === 'unstable_soul_fragment' ? '🔮' :
+          item.consumableType === 'tower_key' ? '🔑' :
+          item.consumableType === 'tower_key_evolved' ? '🗝️' :
+          item.consumableType === 'potion_damage' ? '🔥' :
+          item.consumableType === 'potion_regen' ? '💧' : '🎁'
+        ) : (
+          slotIcons[item.slot]
+        )}
+      </span>
+      {isAncestral && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '2px',
+          width: '5px',
+          height: '5px',
+          borderRadius: '50%',
+          background: '#c084fc',
+          boxShadow: '0 0 6px #c084fc',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
+      {isPandemonium && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '2px',
+          width: '5px',
+          height: '5px',
+          borderRadius: '50%',
+          background: '#10b981',
+          boxShadow: '0 0 6px #10b981',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
+      {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '2px',
+          width: '4px',
+          height: '4px',
+          borderRadius: '50%',
+          background: '#f59e0b',
+          boxShadow: '0 0 4px #f59e0b'
+        }} />
+      )}
+      {!isPandemonium && item.rarity === 'mystic' && (
+        <div style={{
+          position: 'absolute',
+          top: '2px',
+          right: '2px',
+          width: '5px',
+          height: '5px',
+          borderRadius: '50%',
+          background: '#d946ef',
+          boxShadow: '0 0 6px #d946ef',
+          animation: 'glow-pulse 1.5s infinite'
+        }} />
+      )}
+      {item.rarity === 'mystic' && item.mysticLevel && (
+        <div style={{
+          position: 'absolute',
+          top: '1px',
+          left: '1px',
+          fontSize: '10px',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#e879f9',
+          textShadow: '0 0 4px #a21caf',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          +{item.mysticLevel}
+        </div>
+      )}
+    </button>
+  );
+});
+
 const InventoryItemGrid: React.FC<InventoryItemGridProps> = React.memo(({ inventoryTab, inventoryGrid, onSelectItem }) => {
   if (inventoryTab === 'consumable' && inventoryGrid.length === 0) {
     return (
@@ -1090,140 +1231,11 @@ const InventoryItemGrid: React.FC<InventoryItemGridProps> = React.memo(({ invent
 
   return (
     <>
-      {inventoryGrid.map((item, idx) => {
-        if (!item) {
-          return (
-            <div
-              key={`empty-${idx}`}
-              style={{
-                aspectRatio: '1',
-                background: 'rgba(0,0,0,0.3)',
-                border: '1px dashed rgba(255,255,255,0.06)',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.55rem',
-                color: '#334155',
-                userSelect: 'none'
-              }}
-            >
-              {idx + 1}
-            </div>
-          );
-        }
-
-        const { isAncestral, isPandemonium, border: itemBorder, shadow: itemShadow, bg: itemBg } = getSetVisual(item);
-
-        return (
-          <button
-            key={item.id}
-            onClick={() => {
-              AudioManager.getInstance().playClick();
-              onSelectItem(item);
-            }}
-            className="inventory-item-slot"
-            style={{
-              aspectRatio: '1',
-              background: itemBg,
-              border: itemBorder,
-              boxShadow: itemShadow,
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              position: 'relative',
-              padding: 0,
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>
-              {item.slot === 'consumable' ? (
-                item.consumableType === 'boost_touch' ? '⚡' :
-                item.consumableType === 'boost_touch_x3' ? '⚡3' :
-                item.consumableType === 'chest_ancestral' ? '🔮' :
-                item.consumableType === 'relic_chest' ? '💜' :
-                item.consumableType === 'unstable_soul_fragment' ? '🔮' :
-                item.consumableType === 'tower_key' ? '🔑' :
-                item.consumableType === 'tower_key_evolved' ? '🗝️' :
-                item.consumableType === 'potion_damage' ? '🔥' :
-                item.consumableType === 'potion_regen' ? '💧' : '🎁'
-              ) : (
-                slotIcons[item.slot]
-              )}
-            </span>
-            {isAncestral && (
-              <div style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: '#c084fc',
-                boxShadow: '0 0 6px #c084fc',
-                animation: 'glow-pulse 1.5s infinite'
-              }} />
-            )}
-            {isPandemonium && (
-              <div style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: '#10b981',
-                boxShadow: '0 0 6px #10b981',
-                animation: 'glow-pulse 1.5s infinite'
-              }} />
-            )}
-            {!isAncestral && !isPandemonium && item.rarity === 'legendary' && (
-              <div style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '4px',
-                height: '4px',
-                borderRadius: '50%',
-                background: '#f59e0b',
-                boxShadow: '0 0 4px #f59e0b'
-              }} />
-            )}
-            {!isPandemonium && item.rarity === 'mystic' && (
-              <div style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                background: '#d946ef',
-                boxShadow: '0 0 6px #d946ef',
-                animation: 'glow-pulse 1.5s infinite'
-              }} />
-            )}
-            {item.rarity === 'mystic' && item.mysticLevel && (
-              <div style={{
-                position: 'absolute',
-                top: '1px',
-                left: '1px',
-                fontSize: '10px',
-                fontWeight: 800,
-                lineHeight: 1,
-                color: '#e879f9',
-                textShadow: '0 0 4px #a21caf',
-                pointerEvents: 'none',
-                userSelect: 'none'
-              }}>
-                +{item.mysticLevel}
-              </div>
-            )}
-          </button>
-        );
-      })}
+      {inventoryGrid.map((item, idx) => (
+        item
+          ? <FilledInventorySlot key={item.id} item={item} onSelect={onSelectItem} />
+          : <EmptyInventorySlot key={`empty-${idx}`} idx={idx} />
+      ))}
     </>
   );
 });
@@ -3596,7 +3608,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
 const GuidePanel: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>('warrior');
   const [guideSubTab, setGuideSubTab] = useState<'classes' | 'systems'>('classes');
-  const [guideSystemsSubTab, setGuideSystemsSubTab] = useState<'citadel' | 'equipment' | 'endgame' | 'events' | 'qol' | 'submerged'>('citadel');
+  const [guideSystemsSubTab, setGuideSystemsSubTab] = useState<'citadel' | 'equipment' | 'endgame' | 'events' | 'qol' | 'elites' | 'submerged'>('citadel');
   const character = useGameStore((s) => s.character);
 
   const classLevels = character.classLevels || {};
@@ -3643,46 +3655,53 @@ const GuidePanel: React.FC = () => {
           </p>
 
           {/* Sub-abas de categorias dentro de Sistemas */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
             <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('citadel'); }}
               className={`tab-btn ${guideSystemsSubTab === 'citadel' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               🏰 Cidadela
             </button>
             <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('equipment'); }}
               className={`tab-btn ${guideSystemsSubTab === 'equipment' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               ⚔️ Equipamento
             </button>
             <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('endgame'); }}
               className={`tab-btn ${guideSystemsSubTab === 'endgame' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               🚀 Endgame
             </button>
             <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('events'); }}
               className={`tab-btn ${guideSystemsSubTab === 'events' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               🌙 Eventos
             </button>
             <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('qol'); }}
               className={`tab-btn ${guideSystemsSubTab === 'qol' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               ⚙️ QoL
             </button>
             <button
+              onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('elites'); }}
+              className={`tab-btn ${guideSystemsSubTab === 'elites' ? 'active' : ''}`}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
+            >
+              👑 Elites
+            </button>
+            <button
               onClick={() => { AudioManager.getInstance().playClick(); setGuideSystemsSubTab('submerged'); }}
               className={`tab-btn ${guideSystemsSubTab === 'submerged' ? 'active' : ''}`}
-              style={{ padding: '0.4rem', fontSize: '0.6rem' }}
+              style={{ flex: '1 1 30%', minWidth: '80px', padding: '0.4rem', fontSize: '0.58rem', whiteSpace: 'normal', lineHeight: 1.15 }}
             >
               🌊 Cidadela Submersa
             </button>
@@ -3710,6 +3729,7 @@ const GuidePanel: React.FC = () => {
                     <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
                     <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
                     <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça (v9.0.0):</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
+                    <li><span className="text-white font-semibold">🪬 Câmara de Gravação (v10.0.0):</span> <span className="text-gray-400">12ª construção — perfura soquetes em equipamento pesado e engasta Runas Abissais/Palavras Rúnicas dropadas nas Profundezas (veja o detalhamento completo na categoria 🌊 Cidadela Submersa).</span></li>
                   </ul>
                 </div>
               </div>
@@ -4019,19 +4039,10 @@ const GuidePanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* Expansão de Elites e Lua de Sangue (v8.0.0) */}
+              {/* Lua de Sangue (v8.0.0) */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Elites e 🌕 Lua de Sangue (v8.0.0)</span>
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">🌕 Lua de Sangue (v8.0.0)</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-                  <div>
-                    <strong className="text-white block font-semibold">Novos Afixos de Elite:</strong>
-                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
-                      <li><span className="text-white font-semibold">Refletor:</span> <span className="text-gray-400">devolve parte do dano recebido de volta a você.</span></li>
-                      <li><span className="text-white font-semibold">Errante:</span> <span className="text-gray-400">velocidade de ataque imprevisível a cada golpe.</span></li>
-                      <li><span className="text-white font-semibold">Replicante:</span> <span className="text-gray-400">invoca periodicamente um escudo ("réplica fantasma") que precisa ser quebrado antes de voltar a sofrer dano real.</span></li>
-                      <li><span className="text-white font-semibold">Vulnerável:</span> <span className="text-gray-400">abre janelas periódicas de dano aumentado.</span></li>
-                    </ul>
-                  </div>
                   <div>
                     <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">Todo fim de semana, os inimigos da fase atual ganham +50% de HP/Dano e um reskin vermelho, com chance de dropar equipamentos exclusivos do Set da Lua de Sangue. Um indicador "🌕 LUA DE SANGUE" aparece no HUD de combate enquanto ativo.</p>
@@ -4079,6 +4090,52 @@ const GuidePanel: React.FC = () => {
             </>
           )}
 
+          {/* ---- Categoria: Inimigos de Elite ---- */}
+          {guideSystemsSubTab === 'elites' && (
+            <>
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Inimigos de Elite — Mecânicas Gerais</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Qualquer inimigo comum pode nascer como <strong>Elite</strong> — a chance varia por modo: ~8% na Torre Infinita (subindo +1%/andar acima do 5º, até 35%), até 20% nas Profundezas (subindo por zona, com o HP do Elite já triplicado nesse modo) e crescendo a partir da Fase 20 na campanha. Um Elite sorteia exatamente <strong>1 dos 12 afixos</strong> abaixo ao nascer.
+                  </p>
+                  <p>
+                    Todo Elite causa <strong className="text-rose-300">3x de dano</strong> em seus ataques e dropa <strong className="text-rose-300">2x de materiais</strong>, além de ter chance maior de garantir itens raros/Chaves da Torre. Vale a pena identificar o afixo logo no início do combate (aparece como "ELITE [nome]" no log) para ajustar a tática.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">🎲 Os 12 Afixos de Elite</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <li><span className="text-white font-semibold">Enfurecido:</span> <span className="text-gray-400">+40% de velocidade de ataque.</span></li>
+                    <li><span className="text-white font-semibold">Blindado:</span> <span className="text-gray-400">reduz em 25% o dano que você causa nele.</span></li>
+                    <li><span className="text-white font-semibold">Vampírico:</span> <span className="text-gray-400">cura 10% do dano que causa em você.</span></li>
+                    <li><span className="text-white font-semibold">Volátil:</span> <span className="text-gray-400">explode ao morrer, causando dano igual a 20% da sua Vida Máxima (mitigado por Constituição).</span></li>
+                    <li><span className="text-white font-semibold">Regenerador:</span> <span className="text-gray-400">regenera 2% da própria Vida Máxima por segundo enquanto estiver vivo e abaixo do máximo.</span></li>
+                    <li><span className="text-white font-semibold">Refletor:</span> <span className="text-gray-400">reflete 20% do dano direto recebido de volta a você (limitado a 5% da sua Vida Máxima por golpe).</span></li>
+                    <li><span className="text-white font-semibold">Errante:</span> <span className="text-gray-400">velocidade de ataque imprevisível a cada golpe (entre 0.5x e 2.2x).</span></li>
+                    <li><span className="text-white font-semibold">Replicante:</span> <span className="text-gray-400">a cada 10s sem escudo ativo, invoca uma réplica-fantasma (escudo de 15% da Vida Máxima dele) que precisa ser quebrada antes de voltar a sofrer dano real.</span></li>
+                    <li><span className="text-white font-semibold">Vulnerável:</span> <span className="text-gray-400">a cada 8s, abre uma janela de 3s com +50% de dano recebido — bom momento para usar seu maior burst.</span></li>
+                    <li><span className="text-white font-semibold">Abissal:</span> <span className="text-gray-400">aura permanente de +15% de dano recebido por você enquanto ele estiver vivo.</span></li>
+                    <li><span className="text-white font-semibold">Sifonador:</span> <span className="text-gray-400">drena 3% da sua Mana Máxima a cada golpe, convertendo em cura para si mesmo.</span></li>
+                    <li><span className="text-white font-semibold">Bioluminescente:</span> <span className="text-gray-400">alterna a cada 6s entre "aceso" (+40% de dano recebido) e "apagado" (−40%) — cronometre seus golpes mais fortes para a fase acesa.</span></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">⚔️ Contra-jogo contra Elites</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    O <strong>Selo do Caçador de Elites</strong> (Relíquia Ativa) concede um bônus temporário de Dano contra Elites e Chefes por 10s a cada proc, com cooldown de 40s. As <strong>Runas Nix</strong> (Câmara de Gravação) concedem <code className="text-fuchsia-400">eliteDamagePct</code> permanente contra Elites e Chefes, até um teto de 25%.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ---- Categoria: A Cidadela Submersa (v10.0.0) ---- */}
           {guideSystemsSubTab === 'submerged' && (
             <>
@@ -4111,7 +4168,7 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🔱 A Cidadela Submersa — 6 Distritos (v10.0.0)</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Zona 3</strong> das Profundezas (prof. 51+). Drene distritos com Pérolas e Coral (leva horas reais) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
+                    A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Fase 50</strong>. Drene distritos com Pérolas e Coral (leva horas reais) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
                   </p>
                 </div>
               </div>
@@ -4800,7 +4857,11 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                 <span>Transcendências Realizadas:</span>
                 <span className="font-semibold text-white font-mono">{transcendenceCount}</span>
               </div>
-              
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
+                <span>Bônus Atual (Dano/Vida/Mana):</span>
+                <span className="font-semibold text-cyan-300 font-mono">+{Math.round((StatEngine.getTranscendenceBoost(character) - 1) * 100)}%</span>
+              </div>
+
               {canTranscend ? (
                 <button
                   onClick={() => {

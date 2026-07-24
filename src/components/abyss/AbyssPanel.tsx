@@ -59,7 +59,7 @@ export const AbyssPanel: React.FC = () => {
   const historicalMaxDepth = character.abyss?.historicalMaxDepth || 0;
   const fullDepths = isFullDepthsUnlocked(character.highestStageReached || 1);
   const guardiansDefeated = character.abyss?.guardiansDefeated || {};
-  const citadelUnlocked = historicalMaxDepth >= 51;
+  const citadelUnlocked = fullDepths;
   const divingSuitLevel = character.abyss?.divingSuitLevel || 0;
   const dockRestored = (character.sunkenCitadel?.districts.dock?.restorationLevel || 0) >= 1;
 
@@ -110,7 +110,7 @@ export const AbyssPanel: React.FC = () => {
       title={locked ? lockedHint : undefined}
     >
       <span style={{ fontSize: '1.1rem' }}>{locked ? '🔒' : icon}</span>
-      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: '0.62rem', fontWeight: 600 }}>{label}</span>
       {locked && <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)' }}>{lockedHint}</span>}
     </button>
   );
@@ -123,7 +123,7 @@ export const AbyssPanel: React.FC = () => {
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {subTabButton('coastal', '🎣', 'Litoral', false, '')}
         {subTabButton('depths', '🤿', fullDepths ? 'Profundezas' : 'Mergulhos Rasos', !depthsUnlocked, 'Requer 1 Ascensão')}
-        {subTabButton('citadel', '🔱', 'Cidadela', !citadelUnlocked, 'Requer Zona 3 (prof. 51+)')}
+        {subTabButton('citadel', '🔱', 'Cidadela', !citadelUnlocked, 'Requer Fase 50')}
       </div>
 
       {subTab === 'coastal' && <CoastalPanel />}
@@ -133,7 +133,7 @@ export const AbyssPanel: React.FC = () => {
           <div style={{ padding: '1.25rem', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 'var(--radius-md, 8px)', textAlign: 'center' }}>
             <p style={{ fontSize: '1.5rem' }}>🔒</p>
             <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
-              A Cidadela Submersa só emerge após alcançar a <strong>Zona 3</strong> das Profundezas (prof. 51+).
+              A Cidadela Submersa só emerge após alcançar a <strong>Fase 50</strong> (destrava As Profundezas completas).
             </p>
           </div>
         )

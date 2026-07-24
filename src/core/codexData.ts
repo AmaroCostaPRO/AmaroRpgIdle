@@ -1,5 +1,6 @@
 import type { Character } from './types';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_IDS, RuneId, RuneFamilyId, PrimordialRuneId } from './runeFormulas';
+import { isFullDepthsUnlocked } from './abyssFormulas';
 
 // ============================================================================
 // CODEX — Enciclopédia de Lore do Ciclo da Alma Partida
@@ -1610,8 +1611,8 @@ const eventEntries: CodexEntry[] = [
     color: '#0ea5e9',
     tags: ['historia', 'mare-viva', 'cidadela-submersa'],
     alwaysVisible: false,
-    unlockHint: 'Desbloqueie a Cidadela Submersa (Zona 3 das Profundezas, prof. 51+).',
-    isUnlocked: (ctx) => (ctx.character.abyss?.historicalMaxDepth || 0) >= 51,
+    unlockHint: 'Desbloqueie a Cidadela Submersa (alcance a Fase 50).',
+    isUnlocked: (ctx) => isFullDepthsUnlocked(ctx.character.highestStageReached || 1),
   },
   {
     id: 'event_coro_e_o_caco',
