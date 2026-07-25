@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { useLeviathanStore } from '../../store/useLeviathanStore';
 import { useTowerStore, getWeeklySeed } from '../../store/useTowerStore';
@@ -28,7 +28,14 @@ export const LeviathanPanel: React.FC = () => {
   const salonLevel = character.sunkenCitadel?.districts.echoHall?.restorationLevel || 0;
   const throneEfficacy = sumDistrictEfficacy(calculateEchoEfficacies(echoes, getTidePhase(), Date.now(), salonLevel), 'throne');
 
+  const [confirmChallenge, setConfirmChallenge] = useState(false);
   const handleChallenge = () => {
+    if (!confirmChallenge) {
+      setConfirmChallenge(true);
+      setTimeout(() => setConfirmChallenge(false), 3000);
+      return;
+    }
+    setConfirmChallenge(false);
     AudioManager.getInstance().playClick();
     startLeviathanFight();
   };
@@ -76,9 +83,16 @@ export const LeviathanPanel: React.FC = () => {
         onClick={handleChallenge}
         disabled={leviathanActive || progress.attemptsUsed >= maxAttempts || progress.phasesCleared >= LEVIATHAN_PHASE_COUNT}
         className="btn btn-ocean"
-        style={{ alignSelf: 'flex-start', fontSize: '0.72rem', opacity: (leviathanActive || progress.attemptsUsed >= maxAttempts || progress.phasesCleared >= LEVIATHAN_PHASE_COUNT) ? 0.5 : 1 }}
+        style={{
+          alignSelf: 'flex-start',
+          fontSize: '0.72rem',
+          opacity: (leviathanActive || progress.attemptsUsed >= maxAttempts || progress.phasesCleared >= LEVIATHAN_PHASE_COUNT) ? 0.5 : 1,
+          background: confirmChallenge ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+          borderColor: confirmChallenge ? '#10b981' : undefined,
+          color: confirmChallenge ? '#fff' : undefined,
+        }}
       >
-        {leviathanActive ? '🐋 Luta em andamento...' : '⚔️ DESAFIAR O LEVIATÃ'}
+        {leviathanActive ? '🐋 Luta em andamento...' : confirmChallenge ? 'Confirmar?' : '⚔️ DESAFIAR O LEVIATÃ'}
       </button>
     </div>
   );

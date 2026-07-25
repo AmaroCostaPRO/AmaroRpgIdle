@@ -494,14 +494,14 @@ export class CombatScene extends Phaser.Scene {
       this.fsm.activateAlchemyPotion(payload.potionType);
     });
 
-    // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela em tela cheia,
-    // sem pausar a lógica de combate (o herói continua lutando/dropando em background)
+    // Reduz o custo gráfico quando o jogador está gerenciando a Cidadela (Astral ou Submersa) em
+    // tela cheia, sem pausar a lógica de combate (o herói continua lutando/dropando em background)
     const applyTargetFps = () => {
       const economyModeEnabled = useGameStore.getState().economyModeEnabled;
-      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 15 : 60);
+      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 2 : 60);
     };
     this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
-      this.citadelActive = payload.tab === 'citadel' && !!payload.citadelEntered;
+      this.citadelActive = (payload.tab === 'citadel' && !!payload.citadelEntered) || (payload.tab === 'abyss' && !!payload.sunkenEntered);
       applyTargetFps();
     });
     this.unsubscribeEconomyMode = useGameStore.subscribe((state) => {

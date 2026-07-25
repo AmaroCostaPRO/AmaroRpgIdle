@@ -596,6 +596,17 @@ export const isClassUnlocked = (classId: string, classLevels: Record<string, num
   return false;
 };
 
+// Trilha da Ascensão (Desafio Diário / Fase Espelho): sorteia a fase dentro de uma janela de 10
+// fases terminando 1 fase abaixo da maior fase já alcançada pelo jogador (highestStageReached),
+// em vez do intervalo fixo antigo (10-19). Recalculado a cada dia; naturalmente volta ao começo
+// após a Transcendência, já que highestStageReached zera lá (performTranscendence).
+export const computeDailyChallengeStage = (character: Character, seed: number): number => {
+  const highestEligible = Math.max(1, (character.highestStageReached || 1) - 1);
+  const minStage = Math.max(1, highestEligible - 10);
+  const range = highestEligible - minStage + 1;
+  return minStage + (seed % range);
+};
+
 let savedStageBeforeChallenge = 1;
 let savedEnemiesDefeatedBeforeChallenge = 0;
 // v10.6.0: nível do personagem ANTES de entrar na Fase Espelho, travado — mesmo papel de
@@ -4682,8 +4693,8 @@ export const useGameStore = create<GameState>((set) => ({
 
     const today = useGameStore.getState().getTodayYYYYMMDD();
     const seed = parseInt(today, 10);
-    // Fase Espelho baseada no dia (entre 10 e 19)
-    const challengeStage = (seed % 10) + 10;
+    // Fase Espelho baseada no dia e na maior fase já alcançada pelo jogador
+    const challengeStage = computeDailyChallengeStage(state.character, seed);
 
     const updated = {
       ...state.character,
@@ -4703,40 +4714,14 @@ export const useGameStore = create<GameState>((set) => ({
   completeDailyChallenge: () => set((state) => {
     const today = useGameStore.getState().getTodayYYYYMMDD();
     const seed = parseInt(today, 10);
-    const challengeStage = (seed % 10) + 10;
+    const challengeStage = computeDailyChallengeStage(state.character, seed);
 
-    const rewardGold = 1000 * challengeStage;
-    
-    // Adiciona até 2 itens de Fragmento de Alma Instável ao inventário
-    const inventory = [...state.character.inventory];
-    let addedCount = 0;
-    
-    for (let i = 0; i < 2; i++) {
-      if (inventory.length < state.character.inventorySlots) {
-        const soulFragmentItem: EquipmentItem = {
-          id: `soul_fragment-${Date.now()}-${i}-${Math.floor(Math.random() * 1000)}`,
-          name: 'Fragmento de Alma Instável',
-          slot: 'consumable',
-          rarity: 'epic',
-          classId: state.character.classId,
-          spriteName: 'unstable_soul_fragment',
-          consumableType: 'unstable_soul_fragment',
-          stage: challengeStage,
-          stats: {}
-        };
-        inventory.push(soulFragmentItem);
-        addedCount++;
-      }
-    }
+    const rewardGold = 10000 * challengeStage;
 
-    let addedMsg = '';
-    if (addedCount === 2) {
-      addedMsg = ` e recebeu [2x Fragmento de Alma Instável] em seu inventário!`;
-    } else if (addedCount === 1) {
-      addedMsg = ` e recebeu [1x Fragmento de Alma Instável] em seu inventário (o outro foi perdido pois o inventário encheu)!`;
-    } else {
-      addedMsg = `, mas seu inventário estava cheio para receber os fragmentos!`;
-    }
+    // Fragmentos de Alma Instável vão direto para o contador do Altar de Relíquias,
+    // em vez de itens de inventário.
+    useRelicStore.getState().addFragments(2);
+    const addedMsg = ` e enviou [2x Fragmento de Alma Instável] direto ao Altar de Relíquias!`;
 
     const updated = {
       ...state.character,
@@ -4744,8 +4729,7 @@ export const useGameStore = create<GameState>((set) => ({
       lastCompletedDailyChallenge: today,
       activeDailyChallenge: false,
       currentStage: savedStageBeforeChallenge,
-      enemiesDefeatedInStage: savedEnemiesDefeatedBeforeChallenge,
-      inventory
+      enemiesDefeatedInStage: savedEnemiesDefeatedBeforeChallenge
     };
 
     saveToLocalStorage(updated);

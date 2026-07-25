@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface UpgradeInProgress {
   targetLevel: number;
@@ -48,6 +48,18 @@ export const CitadelBuildingPanel: React.FC<CitadelBuildingPanelProps> = ({
   onUpgrade,
   children,
 }) => {
+  const [confirmUpgrade, setConfirmUpgrade] = useState(false);
+
+  const handleUpgradeClick = () => {
+    if (confirmUpgrade) {
+      setConfirmUpgrade(false);
+      onUpgrade();
+    } else {
+      setConfirmUpgrade(true);
+      setTimeout(() => setConfirmUpgrade(false), 3000);
+    }
+  };
+
   return (
     <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -69,12 +81,17 @@ export const CitadelBuildingPanel: React.FC<CitadelBuildingPanelProps> = ({
             </button>
           ) : (
             <button
-              onClick={onUpgrade}
+              onClick={handleUpgradeClick}
               disabled={!canAffordUpgrade || lockedByCommandCenter}
               className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
+              style={{
+                alignSelf: 'flex-start',
+                background: confirmUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                borderColor: confirmUpgrade ? '#10b981' : undefined,
+                color: confirmUpgrade ? '#fff' : undefined,
+              }}
             >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : buildLabel} — {costDisplay}
+              {confirmUpgrade ? 'Confirmar?' : (isBuilt ? `Melhorar para Nível ${nextLevel}` : buildLabel)} — {costDisplay}
             </button>
           )}
           {lockedByCommandCenter && (

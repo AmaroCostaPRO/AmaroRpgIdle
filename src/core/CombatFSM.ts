@@ -1501,14 +1501,15 @@ export class CombatFSM {
       this.coracaoLeviataShieldUsedThisCombat = false;
 
       if (!isTowerBoss && floor >= 5) {
-        const eliteChance = Math.min(0.35, 0.08 + (floor - 5) * 0.01);
+        // Teto reduzido para manter Elites raros (~1-3 a cada 10 andares) em vez de dominar o endgame.
+        const eliteChance = Math.min(0.20, 0.08 + (floor - 5) * 0.003);
         const lcgEliteVal = randSin(lookupSeed + 999);
         if (lcgEliteVal < eliteChance) {
           this.isElite = true;
           const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
           const afixIdx = Math.floor(randSin(lookupSeed + 888) * afixos.length);
           this.eliteAfix = afixos[afixIdx];
-          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.5);
           this.enemyHP = this.enemyMaxHP;
         }
       }
@@ -1655,18 +1656,15 @@ export class CombatFSM {
 
     // Aplicar lógica de Elite se não for chefe e a dificuldade for Inferno ou superior (stage >= 11)
     if (!isBoss && stage >= 11) {
-      let eliteChance = 0.08;
-      if (stage >= 21) {
-        // Pandemônio: +0.5% chance por fase adicional
-        eliteChance += (stage - 20) * 0.005;
-      }
+      // Teto reduzido para manter Elites raros (~1-3 por fase) em vez de crescer sem limite no Pandemônio.
+      const eliteChance = Math.min(0.15, 0.08 + Math.max(0, stage - 20) * 0.002);
       if (randSinCampaign(encounterSeed) < eliteChance) {
         this.isElite = true;
         const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
         this.eliteAfix = afixos[Math.floor(randSinCampaign(encounterSeed + 500) * afixos.length)];
 
-        // HP do Elite é multiplicado por 3.0x
-        this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+        // HP do Elite é multiplicado por 1.5x
+        this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.5);
         this.enemyHP = this.enemyMaxHP;
       }
     }
@@ -1781,12 +1779,13 @@ export class CombatFSM {
       // disparavam no modo para o qual foram desenhados. Chance cresce por zona (não há régua no
       // Anexo para isso — escolha de design desta correção); nunca no miniboss da Z4.
       if (!isMiniboss) {
-        const eliteChance = Math.min(0.20, 0.08 + (zone - 1) * 0.02);
+        // Teto reduzido para manter Elites raros (~1-3 a cada 10 profundidades).
+        const eliteChance = Math.min(0.15, 0.08 + (zone - 1) * 0.015);
         if (Math.random() < eliteChance) {
           this.isElite = true;
           const afixos = ['enfurecido', 'blindado', 'vampirico', 'volatil', 'regenerador', 'refletor', 'errante', 'replicante', 'vulneravel', 'abissal', 'sifonador', 'bioluminescente'] as const;
           this.eliteAfix = afixos[Math.floor(Math.random() * afixos.length)];
-          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 3.0);
+          this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.5);
         }
       }
     }
@@ -3300,9 +3299,9 @@ export class CombatFSM {
       damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
     }
     
-    // Inimigos Elite causam 3.0x de dano base
+    // Inimigos Elite causam 1.5x de dano base (reduzido de 3.0x para evitar hitkills)
     if (this.isElite) {
-      damage = Math.floor(damage * 3.0);
+      damage = Math.floor(damage * 1.5);
     }
 
     if (this.currentEnemy.id === 'boss_crystal_guardian' && this.crystalGuardianSecondPhase) {

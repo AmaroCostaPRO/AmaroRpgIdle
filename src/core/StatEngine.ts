@@ -548,6 +548,15 @@ export class StatEngine {
       finalStats.dexterity += getRelicLvl('foco_precisao') * 4;
       finalStats.constitution += getRelicLvl('brasao_devoacao') * 6;
       finalStats.luck += getRelicLvl('olho_sobrevivencia') * 4;
+
+      // Bônus Final do Altar: recompensa por maximizar as 8 relíquias (nível 5 em todas).
+      const allRelicsMaxed = Object.values(relicsState.relics).every(r => r.level >= r.maxLevel);
+      if (allRelicsMaxed) {
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.25;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.10;
+        finalStats.maxManaPct = (finalStats.maxManaPct || 0) + 0.10;
+        finalStats.touchDamageMult = (finalStats.touchDamageMult || 1) * 1.20;
+      }
     } catch (e) {
       console.error('Erro ao somar atributos das relíquias:', e);
     }

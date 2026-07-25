@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
+import { useGameStore, SKILLS_CATALOG, PRESTIGE_UPGRADES_CATALOG, TRANSCENDENCE_UPGRADES_CATALOG, CLASS_CONFIGS, SKILL_BASE_MULTIPLIERS, getSkillMaxLevel, calculateItemSellValue, getPersonalRecords, formatNumber, getGlobalClassLevels, isClassUnlocked, computeDailyChallengeStage } from '../store/useGameStore';
 import { getXpNeededForLevel, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 import { useTowerStore } from '../store/useTowerStore';
 import { useRelicStore } from '../store/useRelicStore';
@@ -2642,7 +2642,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
         (() => {
           const today = getTodayYYYYMMDD();
           const seed = parseInt(today, 10);
-          const challengeStage = (seed % 10) + 10;
+          const challengeStage = computeDailyChallengeStage(character, seed);
           const activeModifierIndex = seed % 5;
           const modifier = DAILY_MODIFIERS[activeModifierIndex] || DAILY_MODIFIERS[0];
           const isCompleted = character.lastCompletedDailyChallenge === today;
@@ -2678,7 +2678,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                 </div>
 
                 <p style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: '1.4', margin: 0 }}>
-                  Enfrente a Fase Espelho com modificadores únicos que mudam diariamente à meia-noite (horário local).
+                  Enfrente a Fase Espelho com modificadores únicos que mudam diariamente à meia-noite (horário local). A fase sorteada acompanha a maior fase que você já alcançou (até 10 fases abaixo dela).
                 </p>
 
                 {/* Fase Espelho & Modificador */}
@@ -2706,13 +2706,13 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                       <span style={{ fontSize: '0.8rem' }}>🪙</span>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Ouro</span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: 'var(--gold-400)' }}>+{1000 * challengeStage}</span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: 'var(--gold-400)' }}>+{10000 * challengeStage}</span>
                       </div>
                     </div>
                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.4rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-dim)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <span style={{ fontSize: '0.8rem' }}>🌀</span>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Fragmento de Alma</span>
+                        <span style={{ fontSize: '0.62rem', color: '#a1a1aa' }}>Fragmento de Alma (direto no Altar)</span>
                         <span style={{ fontSize: '0.68rem', fontWeight: 'bold', color: '#c084fc' }}>+2 Instáveis</span>
                       </div>
                     </div>
@@ -2881,6 +2881,39 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Bônus Final do Altar (conjunto completo) */}
+              <div style={{
+                background: isAllMaxed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.25)',
+                border: isAllMaxed ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(167, 139, 250, 0.2)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 0.9rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isAllMaxed ? '#10b981' : '#c4b5fd' }}>
+                    ✨ Bônus Final do Altar
+                  </span>
+                  {isAllMaxed && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      color: '#10b981',
+                      background: 'rgba(16,185,129,0.15)',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '10px'
+                    }}>
+                      ✅ Desbloqueado!
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+                  Ao maximizar as <strong>8 relíquias</strong> (Nível 5 em todas), você ganha permanentemente <strong>+25% de Dano Geral</strong>, <strong>+10% de HP/Mana Máximo</strong> e <strong>+20% de Dano de Toque</strong>.
+                </p>
               </div>
 
               {/* Lista de Relíquias */}
@@ -3809,7 +3842,7 @@ const GuidePanel: React.FC = () => {
                     <strong className="text-white block font-semibold">Como obter Fragmentos:</strong>
                     <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
                       <li><span className="text-gray-400">Chefes de Campanha</span> — Derrotar qualquer chefe de fase (múltiplos de 5) tem 5% de chance de dropar um fragmento diretamente no inventário.</li>
-                      <li><span className="text-gray-400">Desafio Diário</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma de recompensa.</li>
+                      <li><span className="text-gray-400">Desafio Diário (Trilha da Ascensão)</span> — Complete a fase espelho diária para receber 2x Fragmentos de Alma, creditados diretamente no contador deste Altar (não ocupam espaço no inventário).</li>
                       <li><span className="text-gray-400">Baú de Relíquias na Loja</span> — Compre o baú na Loja por 500.000 Ouro para obter instantaneamente de 1 a 3 fragmentos aleatórios ao consumi-lo.</li>
                     </ul>
                   </div>
@@ -3852,6 +3885,12 @@ const GuidePanel: React.FC = () => {
                         <span className="text-gray-400 block text-[9px]">Capstone: Reduz em 1.5s o tempo de recarga da sua habilidade de Cura.</span>
                       </div>
                     </div>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">✨ Bônus Final do Altar (Conjunto Completo):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Ao maximizar simultaneamente as 8 relíquias (Nível 5 em todas), você recebe permanentemente <strong className="text-emerald-400">+25% de Dano Geral</strong>, <strong className="text-emerald-400">+10% de HP/Mana Máximo</strong> e <strong className="text-emerald-400">+20% de Dano de Toque</strong>. Um indicador "✅ Desbloqueado!" aparece no painel do Altar assim que o bônus entra em vigor.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -4100,10 +4139,10 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">👑 Inimigos de Elite — Mecânicas Gerais</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    Qualquer inimigo comum pode nascer como <strong>Elite</strong> — a chance varia por modo: ~8% na Torre Infinita (subindo +1%/andar acima do 5º, até 35%), até 20% nas Profundezas (subindo por zona, com o HP do Elite já triplicado nesse modo) e crescendo a partir da Fase 20 na campanha. Um Elite sorteia exatamente <strong>1 dos 12 afixos</strong> abaixo ao nascer.
+                    Qualquer inimigo comum pode nascer como <strong>Elite</strong> — a chance foi recalibrada para ficar rara (média de ~1 a 3 por fase/andar/bloco de profundidade, em vez de dominar o endgame): 8% a 15% na Torre Infinita (por bloco de 10 andares, a partir do 5º), 8% a 15% nas Profundezas (por bloco de 10 profundidades, subindo por zona) e 8% a 15% na campanha (a partir da Fase 11, com teto atingido no fundo do Pandemônio). Um Elite sorteia exatamente <strong>1 dos 12 afixos</strong> abaixo ao nascer.
                   </p>
                   <p>
-                    Todo Elite causa <strong className="text-rose-300">3x de dano</strong> em seus ataques e dropa <strong className="text-rose-300">2x de materiais</strong>, além de ter chance maior de garantir itens raros/Chaves da Torre. Vale a pena identificar o afixo logo no início do combate (aparece como "ELITE [nome]" no log) para ajustar a tática.
+                    Todo Elite causa <strong className="text-rose-300">1.5x de dano</strong> e tem <strong className="text-rose-300">1.5x de HP</strong> (reduzido de 3x/3x para evitar hitkills), além de dropar <strong className="text-rose-300">2x de materiais</strong> e ter chance maior de garantir itens raros/Chaves da Torre. Vale a pena identificar o afixo logo no início do combate (aparece como "ELITE [nome]" no log) para ajustar a tática.
                   </p>
                 </div>
               </div>
@@ -4685,6 +4724,8 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
   const buyTranscendenceConsumable = useGameStore((state) => state.buyTranscendenceConsumable);
 
   const [subTab, setSubTab] = useState<'talents' | 'shop'>('talents');
+  const [confirmBuyId, setConfirmBuyId] = useState<string | null>(null);
+  const [shopFeedback, setShopFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const currentPP = character.prestigePoints || 0;
   const spentPP = Object.entries(character.prestigeUpgrades || {}).reduce((sum, [id, lvl]) => {
@@ -5130,6 +5171,22 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
             </p>
           </div>
 
+          {shopFeedback && (
+            <div style={{
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.65rem',
+              textAlign: 'center',
+              fontWeight: 600,
+              background: shopFeedback.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              border: shopFeedback.type === 'success' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+              color: shopFeedback.type === 'success' ? '#34d399' : '#f87171',
+              animation: 'fadeIn 0.2s ease'
+            }}>
+              {shopFeedback.message}
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {shopItems.map((item) => {
               const currentEssence = character.transcendenceEssence || 0;
@@ -5143,6 +5200,8 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                 buttonText = 'Inventário Cheio';
               } else if (!canAfford) {
                 buttonText = `Requer ${item.cost} ET`;
+              } else if (confirmBuyId === item.id) {
+                buttonText = 'Confirmar?';
               }
 
               return (
@@ -5201,9 +5260,19 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                   <button
                     onClick={() => {
                       if (isBtnDisabled) return;
-                      AudioManager.getInstance().playClick();
-                      const res = buyTranscendenceConsumable(item.id);
-                      alert(res.message);
+                      if (confirmBuyId === item.id) {
+                        AudioManager.getInstance().playClick();
+                        const res = buyTranscendenceConsumable(item.id);
+                        setConfirmBuyId(null);
+                        setShopFeedback({ type: res.success ? 'success' : 'error', message: res.message });
+                        setTimeout(() => setShopFeedback(null), 3000);
+                      } else {
+                        AudioManager.getInstance().playClick();
+                        setConfirmBuyId(item.id);
+                        setTimeout(() => {
+                          setConfirmBuyId(current => current === item.id ? null : current);
+                        }, 3000);
+                      }
                     }}
                     className={`btn btn-sm ${!isBtnDisabled ? 'btn-purple' : 'btn-ghost'}`}
                     style={{
@@ -5212,11 +5281,13 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                       fontWeight: 'bold',
                       padding: '0.45rem',
                       cursor: !isBtnDisabled ? 'pointer' : 'not-allowed',
-                      border: !isBtnDisabled ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.06)',
-                      background: !isBtnDisabled 
-                        ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(76, 29, 149, 0.15) 100%)' 
-                        : 'rgba(255,255,255,0.02)',
-                      color: !isBtnDisabled ? '#e9d5ff' : '#6b7280',
+                      border: confirmBuyId === item.id ? '1px solid #10b981' : !isBtnDisabled ? '1px solid #c084fc' : '1px solid rgba(255,255,255,0.06)',
+                      background: confirmBuyId === item.id
+                        ? 'linear-gradient(to right, #10b981, #059669)'
+                        : !isBtnDisabled
+                          ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(76, 29, 149, 0.15) 100%)'
+                          : 'rgba(255,255,255,0.02)',
+                      color: confirmBuyId === item.id ? '#fff' : !isBtnDisabled ? '#e9d5ff' : '#6b7280',
                       boxShadow: !isBtnDisabled ? '0 0 12px rgba(124, 58, 237, 0.2)' : 'none',
                       transition: 'all 0.2s'
                     }}

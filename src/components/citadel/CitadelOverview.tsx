@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { CitadelSubTab } from './CitadelTabsBar';
@@ -23,9 +23,17 @@ export const CitadelOverview: React.FC = () => {
   const ccBonusNow = Math.round(COMMAND_CENTER_MATERIAL_DROP_BONUS(commandCenter.level) * 100);
   const ccBonusNext = Math.round(COMMAND_CENTER_MATERIAL_DROP_BONUS(ccNextLevel) * 100);
 
+  const [confirmCcUpgrade, setConfirmCcUpgrade] = useState(false);
+
   const handleUpgradeCommandCenter = () => {
-    AudioManager.getInstance().playClick();
-    buildOrUpgradeCommandCenter();
+    if (confirmCcUpgrade) {
+      setConfirmCcUpgrade(false);
+      AudioManager.getInstance().playClick();
+      buildOrUpgradeCommandCenter();
+    } else {
+      setConfirmCcUpgrade(true);
+      setTimeout(() => setConfirmCcUpgrade(false), 3000);
+    }
   };
 
   const buildings: { id: CitadelSubTab; icon: string; label: string; level: number }[] = [
@@ -95,9 +103,14 @@ export const CitadelOverview: React.FC = () => {
                 onClick={handleUpgradeCommandCenter}
                 disabled={!ccCanAfford}
                 className="btn btn-gold"
-                style={{ alignSelf: 'flex-start' }}
+                style={{
+                  alignSelf: 'flex-start',
+                  background: confirmCcUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                  borderColor: confirmCcUpgrade ? '#10b981' : undefined,
+                  color: confirmCcUpgrade ? '#fff' : undefined,
+                }}
               >
-                Melhorar para Nível {ccNextLevel} (+{ccBonusNext}% materiais) — 🪵 {ccCost.wood} / 🪨 {ccCost.stone} / 🥩 {ccCost.meat}
+                {confirmCcUpgrade ? 'Confirmar?' : `Melhorar para Nível ${ccNextLevel} (+${ccBonusNext}% materiais) — 🪵 ${ccCost.wood} / 🪨 ${ccCost.stone} / 🥩 ${ccCost.meat}`}
               </button>
             )}
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>

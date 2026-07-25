@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, ALCHEMY_BREW_DURATION_MS, AlchemyPotionType } from '../../core/citadelFormulas';
@@ -46,7 +46,14 @@ export const AlchemyLabPanel: React.FC = () => {
     buildOrUpgradeAlchemyLab();
   };
 
+  const [confirmBrewType, setConfirmBrewType] = useState<AlchemyPotionType | null>(null);
   const handleBrew = (potionType: AlchemyPotionType) => {
+    if (confirmBrewType !== potionType) {
+      setConfirmBrewType(potionType);
+      setTimeout(() => setConfirmBrewType(current => current === potionType ? null : current), 3000);
+      return;
+    }
+    setConfirmBrewType(null);
     AudioManager.getInstance().playClick();
     brewAlchemyPotion(potionType);
   };
@@ -90,9 +97,14 @@ export const AlchemyLabPanel: React.FC = () => {
                 onClick={() => handleBrew(potionType)}
                 disabled={!canAffordBrew}
                 className="btn btn-gold"
-                style={{ alignSelf: 'flex-start' }}
+                style={{
+                  alignSelf: 'flex-start',
+                  background: confirmBrewType === potionType ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                  borderColor: confirmBrewType === potionType ? '#10b981' : undefined,
+                  color: confirmBrewType === potionType ? '#fff' : undefined,
+                }}
               >
-                Preparar — 🪵 {recipe.wood} / 🪨 {recipe.stone} / 🥩 {recipe.meat}
+                {confirmBrewType === potionType ? 'Confirmar?' : `Preparar — 🪵 ${recipe.wood} / 🪨 ${recipe.stone} / 🥩 ${recipe.meat}`}
               </button>
             </div>
           );

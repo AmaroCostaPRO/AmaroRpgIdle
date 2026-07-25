@@ -51,6 +51,10 @@ export const EngravingChamberPanel: React.FC = () => {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [pickerSocketIndex, setPickerSocketIndex] = useState<number | null>(null);
   const [confirmDestroyIndex, setConfirmDestroyIndex] = useState<number | null>(null);
+  const [confirmExtractIndex, setConfirmExtractIndex] = useState<number | null>(null);
+  const [confirmSocketRuneId, setConfirmSocketRuneId] = useState<RuneId | null>(null);
+  const [confirmFuseRuneId, setConfirmFuseRuneId] = useState<RuneId | null>(null);
+  const [confirmEngraveId, setConfirmEngraveId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (message: string) => {
     setToast(message);
@@ -84,6 +88,12 @@ export const EngravingChamberPanel: React.FC = () => {
 
   const handleSocket = (runeId: RuneId) => {
     if (!selectedItemId || pickerSocketIndex === null) return;
+    if (confirmSocketRuneId !== runeId) {
+      setConfirmSocketRuneId(runeId);
+      window.setTimeout(() => setConfirmSocketRuneId(current => current === runeId ? null : current), 3000);
+      return;
+    }
+    setConfirmSocketRuneId(null);
     AudioManager.getInstance().playClick();
     const res = socketRune(selectedItemId, pickerSocketIndex, runeId);
     if (res.success) {
@@ -95,6 +105,12 @@ export const EngravingChamberPanel: React.FC = () => {
 
   const handleExtract = (socketIndex: number) => {
     if (!selectedItemId) return;
+    if (confirmExtractIndex !== socketIndex) {
+      setConfirmExtractIndex(socketIndex);
+      window.setTimeout(() => setConfirmExtractIndex(current => current === socketIndex ? null : current), 3000);
+      return;
+    }
+    setConfirmExtractIndex(null);
     AudioManager.getInstance().playClick();
     showToast(extractRune(selectedItemId, socketIndex).message);
   };
@@ -112,6 +128,12 @@ export const EngravingChamberPanel: React.FC = () => {
   };
 
   const handleFuse = (runeId: RuneId) => {
+    if (confirmFuseRuneId !== runeId) {
+      setConfirmFuseRuneId(runeId);
+      window.setTimeout(() => setConfirmFuseRuneId(current => current === runeId ? null : current), 3000);
+      return;
+    }
+    setConfirmFuseRuneId(null);
     AudioManager.getInstance().playClick();
     const res = fuseRunes(runeId);
     if (res.success) AudioManager.getInstance().playUpgrade();
@@ -120,6 +142,12 @@ export const EngravingChamberPanel: React.FC = () => {
 
   const handleEngrave = (runewordId: string) => {
     if (!selectedItemId) return;
+    if (confirmEngraveId !== runewordId) {
+      setConfirmEngraveId(runewordId);
+      window.setTimeout(() => setConfirmEngraveId(current => current === runewordId ? null : current), 3000);
+      return;
+    }
+    setConfirmEngraveId(null);
     AudioManager.getInstance().playClick();
     const res = engraveRuneword(selectedItemId, runewordId);
     if (res.success) AudioManager.getInstance().playRunewordComplete();
@@ -245,8 +273,13 @@ export const EngravingChamberPanel: React.FC = () => {
                     </div>
                     {runeId ? (
                       <div style={{ display: 'flex', gap: '0.3rem' }}>
-                        <button className="btn btn-xs" onClick={() => handleExtract(i)} title={`Extrai a runa intacta (${isPrimordialRune(runeId) ? EXTRACT_PRIMORDIAL_COST_PEARLS : EXTRACT_RUNE_COST_PEARLS} Pérolas, Câmara N${isPrimordialRune(runeId) ? 2 : 4})`}>
-                          ⚗️ Extrair
+                        <button
+                          className="btn btn-xs"
+                          onClick={() => handleExtract(i)}
+                          style={{ color: confirmExtractIndex === i ? '#10b981' : undefined }}
+                          title={`Extrai a runa intacta (${isPrimordialRune(runeId) ? EXTRACT_PRIMORDIAL_COST_PEARLS : EXTRACT_RUNE_COST_PEARLS} Pérolas, Câmara N${isPrimordialRune(runeId) ? 2 : 4})`}
+                        >
+                          {confirmExtractIndex === i ? 'Confirmar?' : '⚗️ Extrair'}
                         </button>
                         {!isPrimordialRune(runeId) && (
                           <button className="btn btn-xs" onClick={() => handleDestroy(i)} style={{ color: confirmDestroyIndex === i ? '#f87171' : undefined }} title="Remove a runa DESTRUINDO-a (grátis, Câmara N2)">
@@ -284,10 +317,19 @@ export const EngravingChamberPanel: React.FC = () => {
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {runeEntries.map(([runeId, qty]) => (
-                <button key={runeId} onClick={() => handleSocket(runeId)} className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textAlign: 'left', fontSize: '0.72rem', padding: '0.4rem 0.6rem' }}>
+                <button
+                  key={runeId}
+                  onClick={() => handleSocket(runeId)}
+                  className="btn"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem', textAlign: 'left', fontSize: '0.72rem', padding: '0.4rem 0.6rem',
+                    background: confirmSocketRuneId === runeId ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                    borderColor: confirmSocketRuneId === runeId ? '#10b981' : undefined,
+                  }}
+                >
                   {runeChip(runeId, qty)}
                   <span style={{ minWidth: 0 }}>
-                    <strong>{RUNE_CATALOG[runeId]?.name}</strong> × {qty}
+                    <strong>{confirmSocketRuneId === runeId ? 'Confirmar?' : RUNE_CATALOG[runeId]?.name}</strong> × {qty}
                     <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{describeRuneEffect(runeId)}</span>
                   </span>
                 </button>
@@ -305,8 +347,18 @@ export const EngravingChamberPanel: React.FC = () => {
                 const def = RUNE_CATALOG[runeId];
                 const fuseCost = RUNE_FUSE_COST_PEARLS[def.tier as 1 | 2];
                 return (
-                  <button key={runeId} className="btn btn-xs" onClick={() => handleFuse(runeId)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {runeChip(runeId, qty)} 3x {def.name} → {RUNE_CATALOG[getFusedRuneId(runeId)!]?.name} (🦪 {fuseCost})
+                  <button
+                    key={runeId}
+                    className="btn btn-xs"
+                    onClick={() => handleFuse(runeId)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      background: confirmFuseRuneId === runeId ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                      borderColor: confirmFuseRuneId === runeId ? '#10b981' : undefined,
+                      color: confirmFuseRuneId === runeId ? '#fff' : undefined,
+                    }}
+                  >
+                    {runeChip(runeId, qty)} {confirmFuseRuneId === runeId ? 'Confirmar?' : `3x ${def.name} → ${RUNE_CATALOG[getFusedRuneId(runeId)!]?.name} (🦪 ${fuseCost})`}
                   </button>
                 );
               })}
@@ -345,8 +397,18 @@ export const EngravingChamberPanel: React.FC = () => {
                       <br /><span style={{ color: 'rgba(255,255,255,0.55)' }}>{rw.effectDesc}</span>
                     </span>
                     {selected && (
-                      <button className="btn btn-xs btn-gold" disabled={!canEngraveHere} onClick={() => handleEngrave(rw.id)} title={canEngraveHere ? `Gravar — 🦪 ${getRunewordEngraveCost(rw)} Pérolas` : 'Este item não atende aos requisitos'}>
-                        Gravar (🦪 {getRunewordEngraveCost(rw)})
+                      <button
+                        className="btn btn-xs btn-gold"
+                        disabled={!canEngraveHere}
+                        onClick={() => handleEngrave(rw.id)}
+                        style={{
+                          background: confirmEngraveId === rw.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                          borderColor: confirmEngraveId === rw.id ? '#10b981' : undefined,
+                          color: confirmEngraveId === rw.id ? '#fff' : undefined,
+                        }}
+                        title={canEngraveHere ? `Gravar — 🦪 ${getRunewordEngraveCost(rw)} Pérolas` : 'Este item não atende aos requisitos'}
+                      >
+                        {confirmEngraveId === rw.id ? 'Confirmar?' : `Gravar (🦪 ${getRunewordEngraveCost(rw)})`}
                       </button>
                     )}
                   </div>

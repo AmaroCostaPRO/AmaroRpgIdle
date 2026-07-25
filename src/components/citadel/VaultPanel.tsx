@@ -84,6 +84,7 @@ export const VaultPanel: React.FC = () => {
 
   const [selected, setSelected] = useState<SelectedVaultItem | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmUpgrade, setConfirmUpgrade] = useState(false);
 
   const openItem = (item: EquipmentItem, source: 'vault' | 'inventory') => {
     setActionError(null);
@@ -103,8 +104,14 @@ export const VaultPanel: React.FC = () => {
   const depositableItems = character.inventory.filter((item) => item.slot !== 'consumable');
 
   const handleUpgrade = () => {
-    AudioManager.getInstance().playClick();
-    buildOrUpgradeVault();
+    if (confirmUpgrade) {
+      setConfirmUpgrade(false);
+      AudioManager.getInstance().playClick();
+      buildOrUpgradeVault();
+    } else {
+      setConfirmUpgrade(true);
+      setTimeout(() => setConfirmUpgrade(false), 3000);
+    }
   };
 
   const handleWithdraw = (itemId: string) => {
@@ -156,9 +163,14 @@ export const VaultPanel: React.FC = () => {
               onClick={handleUpgrade}
               disabled={materials.wood < cost.wood || materials.stone < cost.stone || lockedByCommandCenter}
               className="btn btn-gold"
-              style={{ alignSelf: 'flex-start' }}
+              style={{
+                alignSelf: 'flex-start',
+                background: confirmUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                borderColor: confirmUpgrade ? '#10b981' : undefined,
+                color: confirmUpgrade ? '#fff' : undefined,
+              }}
             >
-              {isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito'} — 🪵 {cost.wood} / 🪨 {cost.stone}
+              {confirmUpgrade ? 'Confirmar?' : (isBuilt ? `Melhorar para Nível ${nextLevel}` : 'Construir Depósito')} — 🪵 {cost.wood} / 🪨 {cost.stone}
             </button>
           )}
           {lockedByCommandCenter && (

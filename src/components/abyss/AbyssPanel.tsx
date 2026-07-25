@@ -67,7 +67,14 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
   const dockRestored = (character.sunkenCitadel?.districts.dock?.restorationLevel || 0) >= 1;
 
   const [suitToast, setSuitToast] = useState<string | null>(null);
+  const [confirmSuitUpgrade, setConfirmSuitUpgrade] = useState(false);
   const handleUpgradeSuit = () => {
+    if (!confirmSuitUpgrade) {
+      setConfirmSuitUpgrade(true);
+      window.setTimeout(() => setConfirmSuitUpgrade(false), 3000);
+      return;
+    }
+    setConfirmSuitUpgrade(false);
     AudioManager.getInstance().playClick();
     const res = upgradeDivingSuit();
     if (res.success) AudioManager.getInstance().playUpgrade();
@@ -220,8 +227,18 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
                 <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
                 {dockRestored ? (
                   divingSuitLevel < DIVE_SUIT_MAX_LEVEL ? (
-                    <button onClick={handleUpgradeSuit} className="btn" style={{ fontSize: '0.72rem', alignSelf: 'flex-start' }}>
-                      Melhorar — 🦪 {getDiveSuitUpgradeCost(divingSuitLevel + 1).pearls} + 🪸 {getDiveSuitUpgradeCost(divingSuitLevel + 1).coral}
+                    <button
+                      onClick={handleUpgradeSuit}
+                      className="btn"
+                      style={{
+                        fontSize: '0.72rem',
+                        alignSelf: 'flex-start',
+                        background: confirmSuitUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                        borderColor: confirmSuitUpgrade ? '#10b981' : undefined,
+                        color: confirmSuitUpgrade ? '#fff' : undefined,
+                      }}
+                    >
+                      {confirmSuitUpgrade ? 'Confirmar?' : `Melhorar — 🦪 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).pearls} + 🪸 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).coral}`}
                     </button>
                   ) : (
                     <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>Traje no nível máximo.</span>

@@ -48,6 +48,8 @@ export const CoastalPanel: React.FC = () => {
   const tideCountdown = useCountdown(getTidePhaseEndsAt());
 
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmDockUpgrade, setConfirmDockUpgrade] = useState(false);
+  const [confirmCraftId, setConfirmCraftId] = useState<BaitType | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const showToast = (message: string) => {
     setToast(message);
@@ -128,6 +130,12 @@ export const CoastalPanel: React.FC = () => {
   };
 
   const handleCraft = (type: BaitType) => {
+    if (confirmCraftId !== type) {
+      setConfirmCraftId(type);
+      setTimeout(() => setConfirmCraftId(current => current === type ? null : current), 3000);
+      return;
+    }
+    setConfirmCraftId(null);
     AudioManager.getInstance().playClick();
     showToast(craftBait(type).message);
   };
@@ -138,6 +146,12 @@ export const CoastalPanel: React.FC = () => {
   };
 
   const handleDockUpgrade = () => {
+    if (!confirmDockUpgrade) {
+      setConfirmDockUpgrade(true);
+      setTimeout(() => setConfirmDockUpgrade(false), 3000);
+      return;
+    }
+    setConfirmDockUpgrade(false);
     AudioManager.getInstance().playClick();
     const res = buildOrUpgradeCoastalDock();
     if (res.success) AudioManager.getInstance().playUpgrade();
@@ -226,8 +240,17 @@ export const CoastalPanel: React.FC = () => {
           {dockUpgrade ? (
             <span style={{ fontSize: '0.75rem', alignSelf: 'center', color: '#fbbf24' }}>🔨 Obras: Nível {dockUpgrade.targetLevel} em {dockCountdown}</span>
           ) : nextDockLevel <= COASTAL_DOCK_MAX_LEVEL ? (
-            <button onClick={handleDockUpgrade} className="btn" style={{ fontSize: '0.75rem' }}>
-              {dockLevel === 0 ? 'Construir Doca' : `Melhorar Doca (Nv ${nextDockLevel})`} — 💰 {formatNumber(dockCost.gold)} + 🥩 {dockCost.meat}
+            <button
+              onClick={handleDockUpgrade}
+              className="btn"
+              style={{
+                fontSize: '0.75rem',
+                background: confirmDockUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                borderColor: confirmDockUpgrade ? '#10b981' : undefined,
+                color: confirmDockUpgrade ? '#fff' : undefined,
+              }}
+            >
+              {confirmDockUpgrade ? 'Confirmar?' : `${dockLevel === 0 ? 'Construir Doca' : `Melhorar Doca (Nv ${nextDockLevel})`} — 💰 ${formatNumber(dockCost.gold)} + 🥩 ${dockCost.meat}`}
             </button>
           ) : (
             <span style={{ fontSize: '0.75rem', alignSelf: 'center', color: 'rgba(255,255,255,0.45)' }}>Doca no nível máximo.</span>
@@ -323,8 +346,17 @@ export const CoastalPanel: React.FC = () => {
                 <span style={{ fontWeight: 700 }}>{def.icon} {def.name} × {stock}</span>
                 <span style={{ color: 'rgba(255,255,255,0.5)' }}>{def.bias}</span>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                  <button onClick={() => handleCraft(def.id)} className="btn btn-xs" style={{ fontSize: '0.65rem' }}>
-                    +{BAIT_BATCH_SIZE} por 🥩 {def.meatCost}
+                  <button
+                    onClick={() => handleCraft(def.id)}
+                    className="btn btn-xs"
+                    style={{
+                      fontSize: '0.65rem',
+                      background: confirmCraftId === def.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                      borderColor: confirmCraftId === def.id ? '#10b981' : undefined,
+                      color: confirmCraftId === def.id ? '#fff' : undefined,
+                    }}
+                  >
+                    {confirmCraftId === def.id ? 'Confirmar?' : `+${BAIT_BATCH_SIZE} por 🥩 ${def.meatCost}`}
                   </button>
                   {!equipped && stock > 0 && (
                     <button onClick={() => handleEquip(def.id)} className="btn btn-xs btn-gold" style={{ fontSize: '0.65rem' }}>Equipar</button>

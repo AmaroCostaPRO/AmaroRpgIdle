@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { ACADEMY_MAX_LEVEL, ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST, ResearchKey, getResearchTotalBonusLabel } from '../../core/citadelFormulas';
@@ -46,6 +46,18 @@ export const AcademyPanel: React.FC = () => {
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
     buildOrUpgradeAcademy();
+  };
+
+  const [confirmResearchKey, setConfirmResearchKey] = useState<ResearchKey | null>(null);
+  const handleResearch = (key: ResearchKey) => {
+    if (confirmResearchKey !== key) {
+      setConfirmResearchKey(key);
+      setTimeout(() => setConfirmResearchKey(current => current === key ? null : current), 3000);
+      return;
+    }
+    setConfirmResearchKey(null);
+    AudioManager.getInstance().playClick();
+    upgradeAcademyResearch(key);
   };
 
   return (
@@ -102,12 +114,17 @@ export const AcademyPanel: React.FC = () => {
                   )}
                 </div>
                 <button
-                  onClick={() => { AudioManager.getInstance().playClick(); upgradeAcademyResearch(key); }}
+                  onClick={() => handleResearch(key)}
                   disabled={atCap || !canAfford}
                   className="btn btn-sm btn-gold"
-                  style={{ whiteSpace: 'nowrap' }}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    background: confirmResearchKey === key ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                    borderColor: confirmResearchKey === key ? '#10b981' : undefined,
+                    color: confirmResearchKey === key ? '#fff' : undefined,
+                  }}
                 >
-                  {atCap ? 'Limite da Academia' : `Pesquisar — 📜 ${researchCost}`}
+                  {atCap ? 'Limite da Academia' : confirmResearchKey === key ? 'Confirmar?' : `Pesquisar — 📜 ${researchCost}`}
                 </button>
               </div>
             );

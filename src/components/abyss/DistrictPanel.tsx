@@ -39,6 +39,9 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const secondActiveBlessing = sunken?.secondTideBlessing && sunken.secondTideBlessing.expiresAt > Date.now() ? sunken.secondTideBlessing : undefined;
   const ownsNereh = (character.runeInventory?.['nereh'] || 0) > 0;
 
+  const [confirmDrain, setConfirmDrain] = React.useState(false);
+  const [confirmRestore, setConfirmRestore] = React.useState(false);
+  const [confirmNereh, setConfirmNereh] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
   const toastTimer = React.useRef<number | undefined>(undefined);
   const showToast = (message: string) => {
@@ -59,8 +62,23 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const restoreCost = !flooded && restorationLevel < 3 ? getRestorationCost(id, (restorationLevel + 1) as 2 | 3) : null;
   const sockets = Array.from({ length: slots }, (_, i) => assignedEchoes[i]);
 
-  const handleDrain = () => { AudioManager.getInstance().playClick(); showToast(startDistrictDrain(id).message); };
+  const handleDrain = () => {
+    if (!confirmDrain) {
+      setConfirmDrain(true);
+      setTimeout(() => setConfirmDrain(false), 3000);
+      return;
+    }
+    setConfirmDrain(false);
+    AudioManager.getInstance().playClick();
+    showToast(startDistrictDrain(id).message);
+  };
   const handleRestore = () => {
+    if (!confirmRestore) {
+      setConfirmRestore(true);
+      setTimeout(() => setConfirmRestore(false), 3000);
+      return;
+    }
+    setConfirmRestore(false);
     AudioManager.getInstance().playClick();
     const res = upgradeDistrictRestoration(id);
     if (res.success) AudioManager.getInstance().playUpgrade();
@@ -69,6 +87,12 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const handleBlessing = (blessingId: string) => { AudioManager.getInstance().playClick(); showToast(chooseTideBlessing(blessingId).message); };
   const handleSecondBlessing = (blessingId: string) => { AudioManager.getInstance().playClick(); showToast(chooseSecondTideBlessing(blessingId).message); };
   const handlePurchaseNereh = () => {
+    if (!confirmNereh) {
+      setConfirmNereh(true);
+      setTimeout(() => setConfirmNereh(false), 3000);
+      return;
+    }
+    setConfirmNereh(false);
     AudioManager.getInstance().playClick();
     const res = purchaseNerehRune();
     if (res.success) AudioManager.getInstance().playUpgrade();
@@ -112,13 +136,31 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
         </div>
 
         {flooded && !draining && (
-          <button onClick={handleDrain} className="btn btn-ocean" style={{ alignSelf: 'flex-start' }}>
-            Drenar — 🦪 {drainCost.pearls} + 🪸 {drainCost.coral} ({drainCost.durationHours}h)
+          <button
+            onClick={handleDrain}
+            className="btn btn-ocean"
+            style={{
+              alignSelf: 'flex-start',
+              background: confirmDrain ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+              borderColor: confirmDrain ? '#10b981' : undefined,
+              color: confirmDrain ? '#fff' : undefined,
+            }}
+          >
+            {confirmDrain ? 'Confirmar?' : `Drenar — 🦪 ${drainCost.pearls} + 🪸 ${drainCost.coral} (${drainCost.durationHours}h)`}
           </button>
         )}
         {restoreCost && (
-          <button onClick={handleRestore} className="btn btn-ocean" style={{ alignSelf: 'flex-start' }}>
-            Restaurar {restorationLevel === 1 ? 'II' : 'III'} — 🦪 {restoreCost.pearls} + 🪸 {restoreCost.coral}
+          <button
+            onClick={handleRestore}
+            className="btn btn-ocean"
+            style={{
+              alignSelf: 'flex-start',
+              background: confirmRestore ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+              borderColor: confirmRestore ? '#10b981' : undefined,
+              color: confirmRestore ? '#fff' : undefined,
+            }}
+          >
+            {confirmRestore ? 'Confirmar?' : `Restaurar ${restorationLevel === 1 ? 'II' : 'III'} — 🦪 ${restoreCost.pearls} + 🪸 ${restoreCost.coral}`}
           </button>
         )}
         {!flooded && restorationLevel >= 3 && (
@@ -162,8 +204,18 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
         {id === 'temple' && restorationLevel >= 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
             {!ownsNereh && (
-              <button onClick={handlePurchaseNereh} className="btn btn-ocean btn-xs" style={{ fontSize: '0.68rem', alignSelf: 'flex-start' }}>
-                🜄 Comprar Nereh, a Maré Primeira — 200 🦪
+              <button
+                onClick={handlePurchaseNereh}
+                className="btn btn-ocean btn-xs"
+                style={{
+                  fontSize: '0.68rem',
+                  alignSelf: 'flex-start',
+                  background: confirmNereh ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                  borderColor: confirmNereh ? '#10b981' : undefined,
+                  color: confirmNereh ? '#fff' : undefined,
+                }}
+              >
+                {confirmNereh ? 'Confirmar?' : '🜄 Comprar Nereh, a Maré Primeira — 200 🦪'}
               </button>
             )}
             {activeBlessing ? (

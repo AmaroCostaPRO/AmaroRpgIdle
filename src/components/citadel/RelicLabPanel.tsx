@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { useRelicStore } from '../../store/useRelicStore';
 import { AudioManager } from '../../core/AudioManager';
@@ -29,6 +29,18 @@ export const RelicLabPanel: React.FC = () => {
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
     buildOrUpgradeRelicLab();
+  };
+
+  const [confirmOverheatId, setConfirmOverheatId] = useState<string | null>(null);
+  const handleOverheat = (relicId: string) => {
+    if (confirmOverheatId !== relicId) {
+      setConfirmOverheatId(relicId);
+      setTimeout(() => setConfirmOverheatId(current => current === relicId ? null : current), 3000);
+      return;
+    }
+    setConfirmOverheatId(null);
+    AudioManager.getInstance().playClick();
+    overheatRelic(relicId);
   };
 
   return (
@@ -82,12 +94,17 @@ export const RelicLabPanel: React.FC = () => {
                     <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>{relic.description}</div>
                   </div>
                   <button
-                    onClick={() => { AudioManager.getInstance().playClick(); overheatRelic(relic.id); }}
+                    onClick={() => handleOverheat(relic.id)}
                     disabled={disabled}
                     className="btn btn-sm btn-gold"
-                    style={{ whiteSpace: 'nowrap' }}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      background: confirmOverheatId === relic.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                      borderColor: confirmOverheatId === relic.id ? '#10b981' : undefined,
+                      color: confirmOverheatId === relic.id ? '#fff' : undefined,
+                    }}
                   >
-                    {isOverheated ? 'Superaquecida' : !isMaxed ? 'Requer Nível 5' : 'Superaquecer 🔥'}
+                    {isOverheated ? 'Superaquecida' : !isMaxed ? 'Requer Nível 5' : confirmOverheatId === relic.id ? 'Confirmar?' : 'Superaquecer 🔥'}
                   </button>
                 </div>
               );
