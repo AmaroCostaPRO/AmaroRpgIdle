@@ -3,11 +3,12 @@ import { useGameStore } from '../../store/useGameStore';
 import { useDiveStore } from '../../store/useDiveStore';
 import { useTowerStore } from '../../store/useTowerStore';
 import { AudioManager } from '../../core/AudioManager';
+import { useCountdown } from '../../hooks/useCountdown';
 import {
   GUARDIAN_DEPTH, isFullDepthsUnlocked, getDiveKeyCost,
   CHECKPOINT_START_DEPTHS, ZONE_INFO, getZoneForDepth, PROFUNDEZAS_TITLE_MILESTONES,
 } from '../../core/abyssFormulas';
-import { DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost } from '../../core/sunkenCitadelFormulas';
+import { DIVE_SUIT_MAX_LEVEL } from '../../core/sunkenCitadelFormulas';
 import { CoastalPanel } from './CoastalPanel';
 import { EquippedTitleBox } from '../tower/EquippedTitleBox';
 
@@ -34,7 +35,6 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
   const startDive = useDiveStore((state) => state.startDive);
   const surface = useDiveStore((state) => state.surface);
   const [subTab, setSubTab] = useState<'coastal' | 'depths'>('coastal');
-  const upgradeDivingSuit = useGameStore((state) => state.upgradeDivingSuit);
   const equippedTitle = useTowerStore((state) => state.equippedTitle);
   const unlockedTitles = useTowerStore((state) => state.unlockedTitles);
   const selectTitle = useTowerStore((state) => state.selectTitle);
@@ -64,23 +64,9 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
   const guardiansDefeated = character.abyss?.guardiansDefeated || {};
   const citadelUnlocked = fullDepths;
   const divingSuitLevel = character.abyss?.divingSuitLevel || 0;
+  const divingSuitUpgrading = !!character.abyss?.divingSuitUpgrade;
+  const suitUpgradeCountdown = useCountdown(character.abyss?.divingSuitUpgrade?.completesAt);
   const dockRestored = (character.sunkenCitadel?.districts.dock?.restorationLevel || 0) >= 1;
-
-  const [suitToast, setSuitToast] = useState<string | null>(null);
-  const [confirmSuitUpgrade, setConfirmSuitUpgrade] = useState(false);
-  const handleUpgradeSuit = () => {
-    if (!confirmSuitUpgrade) {
-      setConfirmSuitUpgrade(true);
-      window.setTimeout(() => setConfirmSuitUpgrade(false), 3000);
-      return;
-    }
-    setConfirmSuitUpgrade(false);
-    AudioManager.getInstance().playClick();
-    const res = upgradeDivingSuit();
-    if (res.success) AudioManager.getInstance().playUpgrade();
-    setSuitToast(res.message);
-    window.setTimeout(() => setSuitToast(null), 3500);
-  };
 
   // Checkpoints liberados (26/51/81) — sempre inclui a profundidade 1.
   const [startDepth, setStartDepth] = useState(1);
@@ -225,30 +211,17 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
             {fullDepths && (
               <div style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
-                {dockRestored ? (
-                  divingSuitLevel < DIVE_SUIT_MAX_LEVEL ? (
-                    <button
-                      onClick={handleUpgradeSuit}
-                      className="btn"
-                      style={{
-                        fontSize: '0.72rem',
-                        alignSelf: 'flex-start',
-                        background: confirmSuitUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
-                        borderColor: confirmSuitUpgrade ? '#10b981' : undefined,
-                        color: confirmSuitUpgrade ? '#fff' : undefined,
-                      }}
-                    >
-                      {confirmSuitUpgrade ? 'Confirmar?' : `Melhorar — 🦪 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).pearls} + 🪸 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).coral}`}
-                    </button>
-                  ) : (
-                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>Traje no nível máximo.</span>
-                  )
+                {divingSuitUpgrading ? (
+                  <span style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>Melhorando... conclusão em {suitUpgradeCountdown}.</span>
+                ) : dockRestored ? (
+                  <button onClick={onEnterCitadel} className="btn btn-xs" style={{ fontSize: '0.72rem', alignSelf: 'flex-start' }}>
+                    Melhorar na ⚓ Doca Batial →
+                  </button>
                 ) : (
                   <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
                     Requer ⚓ Doca Batial drenada e restaurada — veja o botão 🔱 Cidadela.
                   </span>
                 )}
-                {suitToast && <span style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>{suitToast}</span>}
               </div>
             )}
             {lastDiveSummary && (

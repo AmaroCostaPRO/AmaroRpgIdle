@@ -349,7 +349,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v10.0.0 — A Cidadela Submersa!
+              🔔 Atualização v10.10.0 — Cidadela Submersa: Refinamentos e Endgame!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -359,9 +359,80 @@ const App: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v10.1.0 a v10.10.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.10.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
+                        🪬 Runas: Ajustes de Interface e Novas Regras
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Layout mobile da Câmara de Gravação corrigido, fim do flash de ícone de fallback ao abrir itens com runa socketada, e novas abas de consulta de Runas no Codex e no Inventário. As Runas Primordiais deixam de ser limitadas a 1 cópia por conta (exceto Nereh): Faro passa a ser determinística (uma cópia a cada 100 acertos perfeitos na pesca), e as demais mantêm a 1ª cópia garantida com uma pequena chance de repetição depois disso.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        🌌 Bônus Permanente de Transcendência
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada Transcendência passa a conceder +5% multiplicativo permanente de Dano/Vida/Mana, empilhando por ciclo. Corrigido também um bug de inflação de XP no Desafio Diário, o Guia foi reorganizado em categorias navegáveis, e os sprites das Zonas 2-4, do Leviatã e dos backgrounds do Abismo (antes só a Zona 1 tinha arte real) foram conectados.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#5eead4', fontSize: '0.72rem' }}>
+                        🏖️ Litoral como Bloco de Fase Dedicado
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Em vez de interromper combates da campanha aleatoriamente, um dos blocos de 5 fases vira tema Litoral por inteiro a cada Ascensão, com o Eco Afogado como chefe garantido do bloco. A chance de pescar Fragmentos de Batisfera também foi aumentada, tornando o viés de cada isca mais perceptível.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0e7490', fontSize: '0.72rem' }}>
+                        🔱 Acesso à Cidadela Revisado e Profundezas Rebalanceadas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O desbloqueio da Cidadela Submersa passa a ser pela Fase 50 em vez de exigir profundidade nas Profundezas, eliminando um ciclo vicioso de progressão. O Guardião da Zona 1 e a curva de HP por profundidade foram suavizados, e a retenção de Pérolas/Coral na Ascensão foi reduzida para 50% (evitando acúmulo excessivo entre runs).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        📖 Guia Completo e Indicadores de Progresso
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Nova categoria "Elites" completa no Guia (todos os 12 afixos), indicador numérico do bônus atual de Transcendência no painel dedicado, e a Câmara de Gravação corrigida na Visão Geral da Cidadela (faltava na lista de construções).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0c4a6e', fontSize: '0.72rem' }}>
+                        👑 Bônus Final do Altar e Elites Rebalanceados
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Maximizar as 8 relíquias do Altar simultaneamente agora concede um bônus permanente extra (+25% Dano Geral, entre outros). O dano e HP dos inimigos Elite foram reduzidos de 3.0× para 1.5× (estavam causando hitkills no endgame), e as recompensas da Trilha da Ascensão (Desafio Diário) foram aumentadas.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#22d3ee', fontSize: '0.72rem' }}>
+                        ✅ Confirmação em Compras e Economia de Bateria
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Todos os botões de upgrade/compra/criação das duas Cidadelas e do Litoral/Profundezas agora exigem um segundo clique de confirmação, evitando gastos acidentais. O Modo de Economia também ficou mais econômico, reduzido de 15fps para 2fps em sessões idle longas.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fde047', fontSize: '0.72rem' }}>
+                        🤿 Traje de Mergulho na Doca e Timers Reais
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O upgrade do Traje de Mergulho foi realocado para o painel da Doca Batial (corrigindo um bug em que ela aparecia vazia após restaurada). A Restauração II/III dos distritos e o próprio Traje passam a levar tempo real para concluir, em vez de serem instantâneos.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v10.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 10.0.0 (Atual) — A Cidadela Submersa:</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Versão 10.0.0 — A Cidadela Submersa:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0891b2', fontSize: '0.72rem' }}>
@@ -440,7 +511,7 @@ const App: React.FC = () => {
                         🐛 Correções Pós-Lançamento
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        Corrigido o Coral sendo zerado ao pescar com Expedições da Cidadela alocadas; o Bestiário só mostrava 2 das 6 novas zonas do Abismo (agrupamento por ID substituiu o recorte fixo antigo, e o bônus de dano do Bestiário passou a contar os abates do Abismo); inimigos exclusivos do Abismo vazando para os sorteios da Torre Infinita e do Pandemônio; layout dos cartões de isca no Litoral desalinhado no mobile. Além disso, foram feitos diversos ajustes de interface e algumas mudanças no sistema de Runas (layout, ícones, novas abas de consulta e regras de obtenção das Runas Primordiais).
+                        Corrigido o Coral sendo zerado ao pescar com Expedições da Cidadela alocadas; o Bestiário só mostrava 2 das 6 novas zonas do Abismo (agrupamento por ID substituiu o recorte fixo antigo, e o bônus de dano do Bestiário passou a contar os abates do Abismo); inimigos exclusivos do Abismo vazando para os sorteios da Torre Infinita e do Pandemônio; layout dos cartões de isca no Litoral desalinhado no mobile.
                       </div>
                     </div>
                   </div>

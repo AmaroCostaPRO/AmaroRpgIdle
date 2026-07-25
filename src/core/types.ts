@@ -100,13 +100,16 @@ export interface CitadelBuildingState {
 // v10.2.0 "Os Ecos Afogados": os 6 distritos da Cidadela Submersa (grade fixa 2×3, Anexo 2 §1.2).
 export type DistrictId = 'dock' | 'echoHall' | 'forge' | 'archive' | 'temple' | 'throne';
 
-// Cada distrito: Alagado (flooded=true) → Drenando (drainCompletesAt definido) → Drenado
-// (flooded=false, restorationLevel 0) → Restaurado I/II/III (restorationLevel 1-3, compras
-// instantâneas em Pérolas+Coral — só a drenagem em si tem timer, ver Anexo 2 §1.3).
+// Cada distrito: Alagado (flooded=true) → Drenando (drainUpgrade definido) → Drenado
+// (flooded=false, restorationLevel 0) → Restaurado I/II/III (restorationLevel 1-3, compradas em
+// Pérolas+Coral e com timer próprio desde a v10.5.0, ver restoreUpgrade/getRestorationDurationMs).
 export interface SunkenDistrictState {
   flooded: boolean;
   drainUpgrade?: { completesAt: number };
   restorationLevel: 0 | 1 | 2 | 3;
+  // v10.5.0: Restauração II/III deixou de ser instantânea — 1h (II) / 1h30 (III), uniforme entre
+  // distritos (ver getRestorationDurationMs em sunkenCitadelFormulas.ts).
+  restoreUpgrade?: { targetLevel: 2 | 3; completesAt: number };
 }
 
 export type EchoVocation = 'fisher' | 'diver' | 'scribe' | 'warden';
@@ -310,6 +313,8 @@ export interface Character {
     historicalMaxDepth: number;
     breath: number;              // 0–100 (snapshot)
     divingSuitLevel: number;     // 0–10 (sem uso na 10.0.0 — Doca Batial chega na 10.2.0)
+    // v10.5.0: cada nível do Traje leva 30min fixos para concluir (ver DIVE_SUIT_UPGRADE_DURATION_MS).
+    divingSuitUpgrade?: { targetLevel: number; completesAt: number };
     bankedRewards: { pearls: number; coral: number; runes: Partial<Record<RuneId, number>> };
     firstGuardianKillDone?: boolean; // legado — alias de leitura de guardiansDefeated[1] (Thal)
     // v10.1.0 "As Profundezas": 1ª morte de cada Guardião de Zona (25/50/80) — garante a runa

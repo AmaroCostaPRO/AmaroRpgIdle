@@ -125,8 +125,11 @@ Multiplica o dano que você RECEBE, e é a única fonte de dano do jogo que **at
 `Pressão = 1 + 0.04 × profundidade × (1 − 0.06 × nível do Traje)`. Só se aplica pós-Fase 50.
 
 ### Traje de Mergulho
-Melhorado na **Doca Batial** (1º distrito da Cidadela, veja seção 4), até 10 níveis. Reduz
-Pressão e dreno de Fôlego. Custo: `60 × 1.6^(nível−1)` Pérolas + `50 × nível` Coral.
+Melhorado direto no painel da **Doca Batial** restaurada (1º distrito da Cidadela, veja seção 4),
+até 10 níveis. Reduz Pressão e dreno de Fôlego. Custo: `60 × 1.6^(nível−1)` Pérolas + `50 × nível`
+Coral. Desde a v10.10.0, cada nível leva **30 minutos fixos** para concluir (funciona offline —
+volte depois e o nível já estará pronto). A aba Profundezas mostra um atalho de status até a Doca,
+mas o botão de upgrade em si só existe lá.
 
 ### Guardiões de Zona
 Chefes fixos, sempre na profundidade exata — não aparecem no pool aleatório.
@@ -176,8 +179,10 @@ sem tempo extra).
 | 🕍 Templo da Maré | 900 / 450 | 48h | Escolha de Bênção durante a Maré Alta (veja seção 6); vende a runa Nereh |
 | 👑 Trono Afundado | 1500 / 750 | 72h | Libera o Leviatã do Ciclo (precisa nível 1) |
 
-**Restauração II/III:** custa ~50%/100% do valor original de drenagem (sem timer extra), e cada
-distrito ganha **1 slot de Eco por Restauração alcançada** (até 2 slots no nível II+).
+**Restauração II/III:** custa ~50%/100% do valor original de drenagem e, desde a v10.10.0, leva
+**1h (nível II) / 1h30 (nível III)** para concluir — igual nos 6 distritos, funciona offline como
+a drenagem. Cada distrito ganha **1 slot de Eco por Restauração alcançada** (até 2 slots no
+nível II+), mas só depois que o timer termina.
 
 Ao clicar em um marcador de distrito, abre-se um **modal** com o estado atual, o timer se estiver
 drenando, o botão de restauração, e os soquetes de Eco daquele distrito (círculos: vazio =

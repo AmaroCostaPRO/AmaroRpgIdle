@@ -6,7 +6,7 @@ import type { DistrictId } from '../../core/types';
 import {
   DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
   ECHO_VOCATION_NAMES, ECHO_VOCATION_ICONS, TIDE_BLESSINGS, getTidePhase, getTidePhaseEndsAt,
-  calculateEchoEfficacies, sumDistrictEfficacy,
+  calculateEchoEfficacies, sumDistrictEfficacy, DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost,
 } from '../../core/sunkenCitadelFormulas';
 import { LeviathanPanel } from './LeviathanPanel';
 
@@ -27,6 +27,10 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const chooseTideBlessing = useGameStore((state) => state.chooseTideBlessing);
   const chooseSecondTideBlessing = useGameStore((state) => state.chooseSecondTideBlessing);
   const purchaseNerehRune = useGameStore((state) => state.purchaseNerehRune);
+  const upgradeDivingSuit = useGameStore((state) => state.upgradeDivingSuit);
+  const divingSuitLevel = character.abyss?.divingSuitLevel || 0;
+  const divingSuitUpgrading = !!character.abyss?.divingSuitUpgrade;
+  const suitUpgradeCountdown = useCountdown(character.abyss?.divingSuitUpgrade?.completesAt);
 
   const sunken = character.sunkenCitadel;
   const districts = sunken?.districts || {};
@@ -42,6 +46,7 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const [confirmDrain, setConfirmDrain] = React.useState(false);
   const [confirmRestore, setConfirmRestore] = React.useState(false);
   const [confirmNereh, setConfirmNereh] = React.useState(false);
+  const [confirmSuitUpgrade, setConfirmSuitUpgrade] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
   const toastTimer = React.useRef<number | undefined>(undefined);
   const showToast = (message: string) => {
@@ -57,9 +62,11 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
   const assignedEchoes = echoes.filter((e) => e.assignedDistrict === id);
   const districtEfficacy = sumDistrictEfficacy(efficacies, id);
   const drainCountdown = useCountdown(state?.drainUpgrade?.completesAt);
+  const restoring = !!state?.restoreUpgrade;
+  const restoreCountdown = useCountdown(state?.restoreUpgrade?.completesAt);
   const slots = getDistrictSlotCount(restorationLevel);
   const drainCost = DISTRICT_DRAIN_COST[id];
-  const restoreCost = !flooded && restorationLevel < 3 ? getRestorationCost(id, (restorationLevel + 1) as 2 | 3) : null;
+  const restoreCost = !flooded && !restoring && restorationLevel < 3 ? getRestorationCost(id, (restorationLevel + 1) as 2 | 3) : null;
   const sockets = Array.from({ length: slots }, (_, i) => assignedEchoes[i]);
 
   const handleDrain = () => {
@@ -80,9 +87,7 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
     }
     setConfirmRestore(false);
     AudioManager.getInstance().playClick();
-    const res = upgradeDistrictRestoration(id);
-    if (res.success) AudioManager.getInstance().playUpgrade();
-    showToast(res.message);
+    showToast(upgradeDistrictRestoration(id).message);
   };
   const handleBlessing = (blessingId: string) => { AudioManager.getInstance().playClick(); showToast(chooseTideBlessing(blessingId).message); };
   const handleSecondBlessing = (blessingId: string) => { AudioManager.getInstance().playClick(); showToast(chooseSecondTideBlessing(blessingId).message); };
@@ -98,11 +103,24 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
     if (res.success) AudioManager.getInstance().playUpgrade();
     showToast(res.message);
   };
+  const handleUpgradeSuit = () => {
+    if (!confirmSuitUpgrade) {
+      setConfirmSuitUpgrade(true);
+      setTimeout(() => setConfirmSuitUpgrade(false), 3000);
+      return;
+    }
+    setConfirmSuitUpgrade(false);
+    AudioManager.getInstance().playClick();
+    showToast(upgradeDivingSuit().message);
+  };
 
   const statusSuffix = flooded && !draining ? '— Alagado'
     : draining ? `— Drenando (${drainCountdown})`
+    : restoring ? `— Restaurando (${restoreCountdown})`
     : `— Restaurado ${restorationLevel === 1 ? 'I' : restorationLevel === 2 ? 'II' : 'III'}`;
-  const subtitle = !flooded && districtEfficacy > 0
+  const subtitle = restoring
+    ? `Evoluindo para Restauração ${state?.restoreUpgrade?.targetLevel === 2 ? 'II' : 'III'}.`
+    : !flooded && districtEfficacy > 0
     ? `Eficácia acumulada: +${(districtEfficacy * 100).toFixed(1)}%`
     : flooded && !draining ? 'A função principal ainda não opera.'
     : draining ? 'Drenando a água acumulada.'
@@ -160,10 +178,15 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
               color: confirmRestore ? '#fff' : undefined,
             }}
           >
-            {confirmRestore ? 'Confirmar?' : `Restaurar ${restorationLevel === 1 ? 'II' : 'III'} — 🦪 ${restoreCost.pearls} + 🪸 ${restoreCost.coral}`}
+            {confirmRestore ? 'Confirmar?' : `Restaurar ${restorationLevel === 1 ? 'II' : 'III'} — 🦪 ${restoreCost.pearls} + 🪸 ${restoreCost.coral} (${restorationLevel === 1 ? '1h' : '1h30'})`}
           </button>
         )}
-        {!flooded && restorationLevel >= 3 && (
+        {restoring && (
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
+            Restaurando para {state?.restoreUpgrade?.targetLevel === 2 ? 'II' : 'III'}... conclusão em {restoreCountdown}.
+          </span>
+        )}
+        {!flooded && !restoring && restorationLevel >= 3 && (
           <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>Restauração máxima.</span>
         )}
 
@@ -195,6 +218,33 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
                   </span>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {id === 'dock' && restorationLevel >= 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
+            {divingSuitUpgrading ? (
+              <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                Melhorando para o Nível {character.abyss?.divingSuitUpgrade?.targetLevel}... conclusão em {suitUpgradeCountdown}.
+              </span>
+            ) : divingSuitLevel < DIVE_SUIT_MAX_LEVEL ? (
+              <button
+                onClick={handleUpgradeSuit}
+                className="btn btn-ocean btn-xs"
+                style={{
+                  fontSize: '0.72rem',
+                  alignSelf: 'flex-start',
+                  background: confirmSuitUpgrade ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                  borderColor: confirmSuitUpgrade ? '#10b981' : undefined,
+                  color: confirmSuitUpgrade ? '#fff' : undefined,
+                }}
+              >
+                {confirmSuitUpgrade ? 'Confirmar?' : `Melhorar — 🦪 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).pearls} + 🪸 ${getDiveSuitUpgradeCost(divingSuitLevel + 1).coral} (30min)`}
+              </button>
+            ) : (
+              <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>Traje no nível máximo.</span>
             )}
           </div>
         )}

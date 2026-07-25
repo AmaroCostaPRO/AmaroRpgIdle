@@ -4210,7 +4210,13 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🔱 A Cidadela Submersa — 6 Distritos (v10.0.0)</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Fase 50</strong>. Drene distritos com Pérolas e Coral (leva horas reais) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
+                    A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Fase 50</strong>. Drene distritos com Pérolas e Coral (leva horas reais, 8h a 72h dependendo do distrito) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
+                  </p>
+                  <p>
+                    Evoluir um distrito drenado para <strong>Restauração II/III</strong> também leva tempo: 1h para o nível II e 1h30 para o nível III, igual em todos os distritos (funciona offline, como a drenagem).
+                  </p>
+                  <p className="text-gray-500 text-[8px]">
+                    A <strong>Doca Batial</strong> restaurada também hospeda o upgrade do <strong>🤿 Traje de Mergulho</strong> (10 níveis, custa Pérolas + Coral), que reduz Pressão e dreno de Fôlego nas Profundezas — cada nível leva 30 minutos fixos para concluir.
                   </p>
                 </div>
               </div>

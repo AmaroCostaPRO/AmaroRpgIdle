@@ -43,8 +43,9 @@ import {
 } from '../core/runeFormulas';
 import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST } from '../core/citadelFormulas';
 import {
-  DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
-  DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost, getTidePhase, getTidePhaseEndsAt,
+  DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
+  getRestorationDurationMs, DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost, DIVE_SUIT_UPGRADE_DURATION_MS,
+  getTidePhase, getTidePhaseEndsAt,
   TIDE_BLESSINGS, generateEcho, EchoRescueSource, getEchoRosterCap,
   BROKEN_HEART_HEAL_MS, ECHO_VOCATION_NAMES, ECHO_TRAIT_NAMES,
   getVocationPerkTotal, sumDistrictEfficacy, calculateEchoEfficacies,
@@ -3017,6 +3018,7 @@ export const useGameStore = create<GameState>((set) => ({
     // chance, Design §6.B) DEPOIS do set() abaixo terminar (nunca chamar outra action baseada em
     // `set` de dentro do próprio updater — mesmo cuidado já seguido em buildOrUpgradeCoastalDock).
     const justCompletedDrains: DistrictId[] = [];
+    const justCompletedRestorations: { id: DistrictId; targetLevel: 2 | 3 }[] = [];
 
     // TIDE_CHANGED: comparação preguiçosa contra a última fase vista (variável de módulo, não
     // persistida — o relógio da Maré já é puro/determinístico via Date.now(), só falta notificar
@@ -3045,6 +3047,18 @@ export const useGameStore = create<GameState>((set) => ({
         bridge.emit(GameEvent.LOG_EMITTED, { message: `⚓ ${DISTRICT_NAMES[id]} drenado! Restaurado I: função principal ativa + 1 slot de Eco.` });
       }
     }
+    // v10.5.0: resolve Restauração II/III concluída (inclusive offline) — timer próprio desde a
+    // compra em upgradeDistrictRestoration, ver getRestorationDurationMs.
+    for (const id of DISTRICT_IDS) {
+      const d = districts[id];
+      if (d?.restoreUpgrade && now >= d.restoreUpgrade.completesAt) {
+        const targetLevel = d.restoreUpgrade.targetLevel;
+        districts[id] = { ...d, restorationLevel: targetLevel, restoreUpgrade: undefined };
+        changed = true;
+        justCompletedRestorations.push({ id, targetLevel });
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `${DISTRICT_ICONS[id]} ${DISTRICT_NAMES[id]} restaurado ao nível ${targetLevel === 2 ? 'II' : 'III'}!` });
+      }
+    }
     if (changed) sunken = { ...sunken, districts };
 
     // Produção periódica FLAT (por Eco alocado): Doca gera Fragmentos de Batisfera diariamente
@@ -3053,6 +3067,8 @@ export const useGameStore = create<GameState>((set) => ({
     // Eco, sem produção.
     const lastTick = sunken.lastProductionTick || now;
     const elapsedHours = (now - lastTick) / 3600000;
+    let tickFragments = 0;
+    let tickPearlsFromArchive = 0;
     if (elapsedHours >= 1) {
       const dockEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'dock').length;
       const archiveEchoCount = sunken.echoes.filter(e => e.assignedDistrict === 'archive').length;
@@ -3083,19 +3099,29 @@ export const useGameStore = create<GameState>((set) => ({
         if (pearlsFromArchive > 0) {
           bridge.emit(GameEvent.LOG_EMITTED, { message: `📚 O Arquivo Submerso gerou +${pearlsFromArchive} Pérola(s)!` });
         }
-        const updated: Character = {
-          ...char,
-          sunkenCitadel: sunken,
-          batisphereFragments: (char.batisphereFragments || 0) + fragments,
-          pearls: (char.pearls || 0) + pearlsFromArchive,
-        };
-        saveToLocalStorage(updated);
-        return { character: updated };
       }
+      tickFragments = fragments;
+      tickPearlsFromArchive = pearlsFromArchive;
+    }
+
+    // v10.5.0: resolve upgrade do Traje de Mergulho concluído (inclusive offline) — timer próprio
+    // desde a compra em upgradeDivingSuit, 30min fixos por nível (DIVE_SUIT_UPGRADE_DURATION_MS).
+    let abyss = char.abyss;
+    if (abyss?.divingSuitUpgrade && now >= abyss.divingSuitUpgrade.completesAt) {
+      const targetLevel = abyss.divingSuitUpgrade.targetLevel;
+      abyss = { ...abyss, divingSuitLevel: targetLevel, divingSuitUpgrade: undefined };
+      changed = true;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🤿 Traje de Mergulho melhorado para o Nível ${targetLevel}!` });
     }
 
     if (!changed) return state;
-    const updated = { ...char, sunkenCitadel: sunken };
+    const updated: Character = {
+      ...char,
+      sunkenCitadel: sunken,
+      abyss,
+      batisphereFragments: (char.batisphereFragments || 0) + (tickFragments || 0),
+      pearls: (char.pearls || 0) + (tickPearlsFromArchive || 0),
+    };
     saveToLocalStorage(updated);
     return { character: updated };
     });
@@ -3104,6 +3130,10 @@ export const useGameStore = create<GameState>((set) => ({
       useGameStore.getState().rescueEcho('districtDrain');
       // v10.3.0: Arquivo Submerso drenado (Restauração I automática) revela PULMÃO DE FERRO.
       if (districtId === 'archive') useGameStore.getState().revealRuneword('pulmao_ferro');
+    }
+    for (const { id, targetLevel } of justCompletedRestorations) {
+      // v10.3.0: Arquivo Submerso Restauração II revela CORO SUBMERSO.
+      if (id === 'archive' && targetLevel === 2) useGameStore.getState().revealRuneword('coro_submerso');
     }
   },
 
@@ -3151,14 +3181,20 @@ export const useGameStore = create<GameState>((set) => ({
   },
 
   upgradeDistrictRestoration: (districtId) => {
+    // v10.5.0: Restauração II/III deixou de ser instantânea — inicia um timer (1h/1h30, ver
+    // getRestorationDurationMs) resolvido depois por tickSunkenCitadelProduction, mesmo padrão de
+    // startDistrictDrain/drainUpgrade.
     let result: { success: boolean; message: string } = { success: false, message: '' };
-    let justReachedLevel2Archive = false;
     set((state) => {
       const char = state.character;
       const sunken = char.sunkenCitadel || DEFAULT_SUNKEN_CITADEL();
       const d = sunken.districts[districtId];
       if (!d || d.flooded) {
         result = { success: false, message: `${DISTRICT_NAMES[districtId]} ainda não foi drenado.` };
+        return state;
+      }
+      if (d.restoreUpgrade) {
+        result = { success: false, message: `${DISTRICT_NAMES[districtId]} já está sendo restaurado.` };
         return state;
       }
       if (d.restorationLevel >= 3) {
@@ -3174,22 +3210,21 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: `Recursos insuficientes: requer ${cost.pearls} 🦪 Pérolas e ${cost.coral} 🪸 Coral.` };
         return state;
       }
+      const completesAt = Date.now() + getRestorationDurationMs(targetLevel);
       const updated: Character = {
         ...char,
         pearls: (char.pearls || 0) - cost.pearls,
         materials: { ...materials, coral: (materials.coral || 0) - cost.coral },
         sunkenCitadel: {
           ...sunken,
-          districts: { ...sunken.districts, [districtId]: { ...d, restorationLevel: targetLevel } },
+          districts: { ...sunken.districts, [districtId]: { ...d, restoreUpgrade: { targetLevel, completesAt } } },
         },
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: `${DISTRICT_NAMES[districtId]} restaurado ao nível ${targetLevel === 2 ? 'II' : 'III'}!` };
-      if (districtId === 'archive' && targetLevel === 2) justReachedLevel2Archive = true;
+      const durationLabel = targetLevel === 2 ? '1h' : '1h30';
+      result = { success: true, message: `Restauração ${targetLevel === 2 ? 'II' : 'III'} de ${DISTRICT_NAMES[districtId]} iniciada! Conclusão em ${durationLabel}.` };
       return { character: updated };
     });
-    // v10.3.0: Arquivo Submerso Restauração II revela CORO SUBMERSO (fora do set() acima).
-    if (justReachedLevel2Archive) useGameStore.getState().revealRuneword('coro_submerso');
     return result;
   },
 
@@ -3203,6 +3238,10 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
       const abyss = char.abyss || { unlocked: true, currentDepth: 0, historicalMaxDepth: 0, breath: 100, divingSuitLevel: 0, bankedRewards: { pearls: 0, coral: 0, runes: {} } };
+      if (abyss.divingSuitUpgrade) {
+        result = { success: false, message: 'O Traje de Mergulho já está sendo melhorado.' };
+        return state;
+      }
       const nextLevel = (abyss.divingSuitLevel || 0) + 1;
       if (nextLevel > DIVE_SUIT_MAX_LEVEL) {
         result = { success: false, message: 'O Traje de Mergulho já está no nível máximo.' };
@@ -3214,14 +3253,16 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: `Recursos insuficientes: requer ${cost.pearls} 🦪 Pérolas e ${cost.coral} 🪸 Coral.` };
         return state;
       }
+      // v10.5.0: cada nível leva 30min fixos, resolvido depois por tickSunkenCitadelProduction.
+      const completesAt = Date.now() + DIVE_SUIT_UPGRADE_DURATION_MS;
       const updated: Character = {
         ...char,
         pearls: (char.pearls || 0) - cost.pearls,
         materials: { ...materials, coral: (materials.coral || 0) - cost.coral },
-        abyss: { ...abyss, divingSuitLevel: nextLevel },
+        abyss: { ...abyss, divingSuitUpgrade: { targetLevel: nextLevel, completesAt } },
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: `🤿 Traje de Mergulho melhorado para o Nível ${nextLevel}! Pressão e dreno de Fôlego reduzidos.` };
+      result = { success: true, message: `🤿 Melhoria do Traje de Mergulho iniciada! Nível ${nextLevel} em 30min.` };
       return { character: updated };
     });
     return result;

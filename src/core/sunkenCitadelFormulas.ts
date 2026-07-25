@@ -52,13 +52,18 @@ export const DISTRICT_DRAIN_COST: Record<DistrictId, { pearls: number; coral: nu
   throne: { pearls: 1500, coral: 750, durationHours: 72 },
 };
 
-// Restauração II/III (Anexo 2 §1.3): ≈50%/100% do custo de drenagem original, SEM timer adicional
-// (só a drenagem em si tem tempo real — decisão de escopo desta versão).
+// Restauração II/III (Anexo 2 §1.3): ≈50%/100% do custo de drenagem original.
 export const getRestorationCost = (districtId: DistrictId, targetLevel: 2 | 3): { pearls: number; coral: number } => {
   const base = DISTRICT_DRAIN_COST[districtId];
   const frac = targetLevel === 2 ? 0.5 : 1.0;
   return { pearls: Math.round(base.pearls * frac), coral: Math.round(base.coral * frac) };
 };
+
+// v10.5.0: Restauração II/III passou a ter timer — 1h de base, +30min por nível acima (Restauração
+// II = 1h, Restauração III = 1h30), uniforme entre os 6 distritos (não escala com o custo/duração
+// da drenagem, que é por distrito).
+export const getRestorationDurationMs = (targetLevel: 2 | 3): number =>
+  (60 + (targetLevel - 2) * 30) * 60 * 1000;
 
 export const getDistrictSlotCount = (restorationLevel: 0 | 1 | 2 | 3): number =>
   restorationLevel >= 2 ? 2 : restorationLevel >= 1 ? 1 : 0;
@@ -73,6 +78,9 @@ export const getDiveSuitUpgradeCost = (nextLevel: number): { pearls: number; cor
   pearls: Math.round(60 * Math.pow(1.6, nextLevel - 1)),
   coral: 50 * nextLevel,
 });
+// v10.5.0: cada nível do Traje leva 30min fixos (não escala com o nível, diferente da Restauração
+// de distrito).
+export const DIVE_SUIT_UPGRADE_DURATION_MS = 30 * 60 * 1000;
 
 // ─── Ciclo de Marés (relógio determinístico de 6h reais, sem backend) ────────
 
