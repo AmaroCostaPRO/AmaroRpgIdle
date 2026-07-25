@@ -128,6 +128,7 @@ export interface SetVisual {
   isPandemonium: boolean;
   isCelestial: boolean;
   isBloodMoon: boolean;
+  isAbyssal: boolean;
   isPandemoniumMystic: boolean;
   isPandemoniumBase: boolean;
   border: string;
@@ -144,6 +145,7 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
   const isPandemonium = !!(setName && setName.startsWith('Set Pandemoníaco'));
   const isCelestial = !!(setName && setName.startsWith('Set Celestial'));
   const isBloodMoon = !!(setName && setName.startsWith('Set da Lua de Sangue'));
+  const isAbyssal = !!(setName && setName.startsWith('Set Abissal'));
   const isPandemoniumMystic = isPandemonium && item?.rarity === 'mystic';
   const isPandemoniumBase = isPandemonium && item?.rarity !== 'mystic';
 
@@ -171,6 +173,10 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
       border = '2px dashed #dc2626';
       shadow = '0 0 10px rgba(220, 38, 38, 0.8)';
       bg = 'rgba(220, 38, 38, 0.15)';
+    } else if (isAbyssal) {
+      border = '2px dashed #22d3ee';
+      shadow = '0 0 10px rgba(34, 211, 238, 0.8)';
+      bg = 'rgba(34, 211, 238, 0.15)';
     } else if (item.rarity === 'mystic' || item.rarity === 'místico' || item.rarity === 'mística') {
       // Itens místicos (fusão de runas N4, Relíquias exclusivas da Convergência): borda tracejada
       // + fundo rosa, para se destacarem de qualquer raridade normal do mesmo tom (fúcsia/#d946ef).
@@ -180,7 +186,7 @@ export const getSetVisual = (item: { setName?: string; rarity: string } | null |
     }
   }
 
-  return { isAncestral, isPandemonium, isCelestial, isBloodMoon, isPandemoniumMystic, isPandemoniumBase, border, shadow, bg };
+  return { isAncestral, isPandemonium, isCelestial, isBloodMoon, isAbyssal, isPandemoniumMystic, isPandemoniumBase, border, shadow, bg };
 };
 
 // ── v10.0.0 "A Cidadela Submersa": visual das Runas Abissais e dos soquetes ──
@@ -301,8 +307,9 @@ export const getSetPrefixAndColor = (setName: string) => {
   const setPandemonium = setName.startsWith('Set Pandemoníaco');
   const setCelestial = setName.startsWith('Set Celestial');
   const setBloodMoon = setName.startsWith('Set da Lua de Sangue');
-  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : (setBloodMoon ? '#f87171' : 'var(--gold-400)')));
-  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : (setBloodMoon ? '0 0 4px rgba(220, 38, 38, 0.4)' : 'none')));
-  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : (setBloodMoon ? '🌕 Conjunto da Lua de Sangue: ' : 'Conjunto: ')));
+  const setAbyssal = setName.startsWith('Set Abissal');
+  const setTextColor = setPandemonium ? '#10b981' : (setAncestral ? '#c084fc' : (setCelestial ? '#38bdf8' : (setBloodMoon ? '#f87171' : (setAbyssal ? '#22d3ee' : 'var(--gold-400)'))));
+  const setShadow = setPandemonium ? '0 0 4px rgba(16, 185, 129, 0.4)' : (setAncestral ? '0 0 4px rgba(192, 132, 252, 0.4)' : (setCelestial ? '0 0 4px rgba(56, 189, 248, 0.4)' : (setBloodMoon ? '0 0 4px rgba(220, 38, 38, 0.4)' : (setAbyssal ? '0 0 4px rgba(34, 211, 238, 0.4)' : 'none'))));
+  const prefix = setPandemonium ? '🔥 Conjunto Pandemoníaco: ' : (setAncestral ? '✨ Conjunto Ancestral: ' : (setCelestial ? '🌌 Conjunto Celestial: ' : (setBloodMoon ? '🌕 Conjunto da Lua de Sangue: ' : (setAbyssal ? '💠 Conjunto Abissal: ' : 'Conjunto: '))));
   return { setTextColor, setShadow, prefix };
 };

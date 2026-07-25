@@ -121,6 +121,78 @@ export const SET_BONUSES: Record<string, {
       5: { dexterity: 200 }
     }
   },
+  'Set da Lua de Sangue do Carrasco': {
+    name: 'Set da Lua de Sangue do Carrasco',
+    classId: 'warrior',
+    bonuses: {
+      2: { strength: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { strength: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Arauto Rubro': {
+    name: 'Set da Lua de Sangue do Arauto Rubro',
+    classId: 'mage',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Predador Noturno': {
+    name: 'Set da Lua de Sangue do Predador Noturno',
+    classId: 'ranger',
+    bonuses: {
+      2: { dexterity: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { dexterity: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Vingador Escarlate': {
+    name: 'Set da Lua de Sangue do Vingador Escarlate',
+    classId: 'paladin',
+    bonuses: {
+      2: { constitution: 133 },
+      3: { strength: 167, luck: 83 },
+      5: { constitution: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Profeta Sangrento': {
+    name: 'Set da Lua de Sangue do Profeta Sangrento',
+    classId: 'cleric',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Ceifeiro Vermelho': {
+    name: 'Set da Lua de Sangue do Ceifeiro Vermelho',
+    classId: 'rogue',
+    bonuses: {
+      2: { dexterity: 133 },
+      3: { strength: 167, luck: 83 },
+      5: { dexterity: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Devorador Rubro': {
+    name: 'Set da Lua de Sangue do Devorador Rubro',
+    classId: 'necromancer',
+    bonuses: {
+      2: { magic: 133 },
+      3: { constitution: 167, luck: 83 },
+      5: { magic: 333 }
+    }
+  },
+  'Set da Lua de Sangue do Eco Escarlate': {
+    name: 'Set da Lua de Sangue do Eco Escarlate',
+    classId: 'avatar',
+    bonuses: {
+      2: { strength: 83, magic: 83, dexterity: 83 },
+      3: { constitution: 127, luck: 127 },
+      5: { strength: 207, magic: 207, dexterity: 207, constitution: 207, luck: 207 }
+    }
+  },
   'Set Pandemoníaco do Destruidor': {
     name: 'Set Pandemoníaco do Destruidor',
     classId: 'warrior',
@@ -301,78 +373,20 @@ export const SET_BONUSES: Record<string, {
       5: { strength: 350, magic: 350, dexterity: 350, constitution: 350, luck: 350 }
     }
   },
-  'Set da Lua de Sangue do Carrasco': {
-    name: 'Set da Lua de Sangue do Carrasco',
-    classId: 'warrior',
-    bonuses: {
-      2: { strength: 133 },
-      3: { constitution: 167, luck: 83 },
-      5: { strength: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Arauto Rubro': {
-    name: 'Set da Lua de Sangue do Arauto Rubro',
-    classId: 'mage',
-    bonuses: {
-      2: { magic: 133 },
-      3: { constitution: 167, luck: 83 },
-      5: { magic: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Predador Noturno': {
-    name: 'Set da Lua de Sangue do Predador Noturno',
-    classId: 'ranger',
-    bonuses: {
-      2: { dexterity: 133 },
-      3: { constitution: 167, luck: 83 },
-      5: { dexterity: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Vingador Escarlate': {
-    name: 'Set da Lua de Sangue do Vingador Escarlate',
-    classId: 'paladin',
-    bonuses: {
-      2: { constitution: 133 },
-      3: { strength: 167, luck: 83 },
-      5: { constitution: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Profeta Sangrento': {
-    name: 'Set da Lua de Sangue do Profeta Sangrento',
-    classId: 'cleric',
-    bonuses: {
-      2: { magic: 133 },
-      3: { constitution: 167, luck: 83 },
-      5: { magic: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Ceifeiro Vermelho': {
-    name: 'Set da Lua de Sangue do Ceifeiro Vermelho',
-    classId: 'rogue',
-    bonuses: {
-      2: { dexterity: 133 },
-      3: { strength: 167, luck: 83 },
-      5: { dexterity: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Devorador Rubro': {
-    name: 'Set da Lua de Sangue do Devorador Rubro',
-    classId: 'necromancer',
-    bonuses: {
-      2: { magic: 133 },
-      3: { constitution: 167, luck: 83 },
-      5: { magic: 333 }
-    }
-  },
-  'Set da Lua de Sangue do Eco Escarlate': {
-    name: 'Set da Lua de Sangue do Eco Escarlate',
-    classId: 'avatar',
-    bonuses: {
-      2: { strength: 83, magic: 83, dexterity: 83 },
-      3: { constitution: 127, luck: 127 },
-      5: { strength: 207, magic: 207, dexterity: 207, constitution: 207, luck: 207 }
-    }
-  }
+  // v10.3.0 "O Coração do Abismo": Set Abissal — sem bônus fixo de 2/3/5 peças aqui de propósito.
+  // O poder real do set vem dos atributos altíssimos já gerados nos itens (multiplicador 8.0×,
+  // ver `ABYSSAL_SET_MULT`/`rollAbyssalSetDrop` em `sunkenCitadelFormulas.ts`), e o bônus especial
+  // de 5 peças (+30% Dano, +12% HP, imunidade a Encharcado) já é aplicado separadamente logo acima
+  // neste arquivo (`abyssalCount >= 5`) — bônus vazios aqui servem só para o set aparecer listado
+  // em "Conjuntos Ativos" (GameUI.tsx itera `Object.keys(SET_BONUSES)`), sem duplicar o efeito.
+  'Set Abissal do Afogador': { name: 'Set Abissal do Afogador', classId: 'warrior', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Arauto das Profundezas': { name: 'Set Abissal do Arauto das Profundezas', classId: 'mage', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Batedor do Caco': { name: 'Set Abissal do Batedor do Caco', classId: 'ranger', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Guardião Submerso': { name: 'Set Abissal do Guardião Submerso', classId: 'paladin', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Sacerdote Afogado': { name: 'Set Abissal do Sacerdote Afogado', classId: 'cleric', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Ladrão de Marés': { name: 'Set Abissal do Ladrão de Marés', classId: 'rogue', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Arauto Abissal': { name: 'Set Abissal do Arauto Abissal', classId: 'necromancer', bonuses: { 2: {}, 3: {}, 5: {} } },
+  'Set Abissal do Avatar Submerso': { name: 'Set Abissal do Avatar Submerso', classId: 'avatar', bonuses: { 2: {}, 3: {}, 5: {} } }
 };
 
 /**

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RuneId, RUNE_CATALOG, isPrimordialRune } from '../../core/runeFormulas';
 import { RuneChip, describeRuneEffect, getRuneVisual } from './itemVisuals';
 
@@ -53,9 +54,14 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = React.memo(
       {selectedRuneId && (() => {
         const def = RUNE_CATALOG[selectedRuneId];
         const visual = getRuneVisual(selectedRuneId);
-        return (
+        // `position: fixed` + portal para `document.body` — mesmo padrão do tooltip de recurso em
+        // GameUI.tsx ("renderizado via portal para não ser cortado pelo overflow:hidden do painel").
+        // Sem isso, este modal herdava `position: absolute` relativo ao `.panel` da aba (que tem
+        // `overflow: hidden`), então rolava junto com o conteúdo em vez de ficar fixo na tela como
+        // os outros modais de equipamento e o do Mercador Ambulante.
+        return createPortal(
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
             onClick={() => setSelectedRuneId(null)}
           >
             <div
@@ -80,7 +86,8 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = React.memo(
                 Fechar
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </>

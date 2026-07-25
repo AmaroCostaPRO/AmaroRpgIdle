@@ -7,7 +7,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { useLeviathanStore } from '../store/useLeviathanStore';
 import { getLeviathanPhase, LEVIATHAN_VAGALHAO_CHANNEL_MS, LEVIATHAN_CANTO_CHANNEL_MS } from '../core/leviathanFormulas';
 import { bridge } from '../bridge/GameBridge';
-import { GameEvent, BaseStats, EquipmentItem, EnemyType } from '../core/types';
+import { GameEvent, BaseStats, EquipmentItem, EnemyType, PET_POOL } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
@@ -1595,6 +1595,7 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                   const isPandemonium = setName.startsWith('Set Pandemoníaco');
                   const isCelestial = setName.startsWith('Set Celestial');
                   const isBloodMoon = setName.startsWith('Set da Lua de Sangue');
+                  const isAbyssal = setName.startsWith('Set Abissal');
 
                   let bonusText2 = '(2) +15 Atrib.';
                   let bonusText3 = '(3) +20 Con/For';
@@ -1616,13 +1617,17 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     bonusText2 = '(2) +133 Atrib.';
                     bonusText3 = '(3) +167 Con/For +83 Sorte e +4.5% Roubo de Vida';
                     bonusText5 = '(5) +333 Atrib., +22% Dano e +7% HP';
+                  } else if (isAbyssal) {
+                    bonusText2 = '(2) Itens já são 8.0× mais fortes';
+                    bonusText3 = '(3) +1 Soquete na arma acima do teto';
+                    bonusText5 = '(5) +30% Dano, +12% HP e imunidade a Encharcado';
                   }
 
-                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : (isBloodMoon ? '🌕 ' : '')));
-                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : 'var(--gold-400)')));
-                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : (isCelestial ? 'rgba(56,189,248,0.15)' : (isBloodMoon ? 'rgba(220,38,38,0.15)' : 'rgba(245,158,11,0.1)')));
-                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : 'var(--gold-400)')));
-                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : (isCelestial ? '1px solid rgba(56,189,248,0.3)' : (isBloodMoon ? '1px solid rgba(220,38,38,0.3)' : '1px solid rgba(245,158,11,0.2)')));
+                  const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : (isBloodMoon ? '🌕 ' : (isAbyssal ? '💠 ' : ''))));
+                  const activeColor = isPandemonium ? '#10b981' : (isAncestral ? '#c084fc' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : (isAbyssal ? '#22d3ee' : 'var(--gold-400)'))));
+                  const badgeBg = isPandemonium ? 'rgba(16,185,129,0.15)' : (isAncestral ? 'rgba(139,92,246,0.15)' : (isCelestial ? 'rgba(56,189,248,0.15)' : (isBloodMoon ? 'rgba(220,38,38,0.15)' : (isAbyssal ? 'rgba(34,211,238,0.15)' : 'rgba(245,158,11,0.1)'))));
+                  const badgeColor = isPandemonium ? '#34d399' : (isAncestral ? '#c4b5fd' : (isCelestial ? '#38bdf8' : (isBloodMoon ? '#f87171' : (isAbyssal ? '#22d3ee' : 'var(--gold-400)'))));
+                  const badgeBorder = isPandemonium ? '1px solid rgba(16,185,129,0.3)' : (isAncestral ? '1px solid rgba(139,92,246,0.3)' : (isCelestial ? '1px solid rgba(56,189,248,0.3)' : (isBloodMoon ? '1px solid rgba(220,38,38,0.3)' : (isAbyssal ? '1px solid rgba(34,211,238,0.3)' : '1px solid rgba(245,158,11,0.2)'))));
 
                   return (
                     <div key={setName} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', opacity: isAnyBonusActive ? 1 : 0.4 }}>
@@ -1666,6 +1671,34 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                 {Object.values(setCounts).length === 0 && (
                   <span style={{ fontSize: '0.6rem', color: '#64748b', fontStyle: 'italic' }}>Nenhum conjunto ativo equipado.</span>
                 )}
+              </div>
+
+              {/* Mascote capturado — hoje sem nenhum outro lugar na UI que mostre isso pro jogador */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.4rem',
+                background: 'rgba(0,0,0,0.15)',
+                padding: '0.6rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(255, 255, 255, 0.04)'
+              }}>
+                <span className="font-heading" style={{ fontSize: '0.55rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Mascote
+                </span>
+                {(() => {
+                  const activePetDef = character.activePet ? PET_POOL.find((p) => p.id === character.activePet!.id) : undefined;
+                  if (!activePetDef) {
+                    return <span style={{ fontSize: '0.6rem', color: '#64748b', fontStyle: 'italic' }}>Nenhum mascote capturado.</span>;
+                  }
+                  const bonusLabel = activePetDef.bonusType === 'xp' ? 'XP' : 'Ouro';
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--gold-400)' }}>🐾 {activePetDef.name}</span>
+                      <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--gold-400)' }}>+{Math.round(activePetDef.bonusPct * 100)}% {bonusLabel}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
