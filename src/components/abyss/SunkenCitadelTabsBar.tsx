@@ -3,9 +3,10 @@ import { AudioManager } from '../../core/AudioManager';
 import type { DistrictId } from '../../core/types';
 import { DISTRICT_NAMES, DISTRICT_ICONS } from '../../core/sunkenCitadelFormulas';
 
-export type SunkenSubTab = DistrictId | 'echoes';
+export type SunkenSubTab = DistrictId | 'echoes' | 'overview';
 
 export const SUNKEN_SUB_TABS: { id: SunkenSubTab; label: string; icon: string }[] = [
+  { id: 'overview', label: 'Visão Geral', icon: '🌊' },
   { id: 'dock', label: DISTRICT_NAMES.dock, icon: DISTRICT_ICONS.dock },
   { id: 'echoHall', label: DISTRICT_NAMES.echoHall, icon: DISTRICT_ICONS.echoHall },
   { id: 'forge', label: DISTRICT_NAMES.forge, icon: DISTRICT_ICONS.forge },

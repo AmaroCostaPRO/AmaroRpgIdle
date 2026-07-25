@@ -38,6 +38,7 @@ import { LoreCutscene } from './abyss/LoreCutscene';
 import { SunkenCitadelTabsBar, SUNKEN_SUB_TABS, SunkenSubTab } from './abyss/SunkenCitadelTabsBar';
 import { DistrictPanel } from './abyss/DistrictPanel';
 import { EchoRosterPanel } from './abyss/EchoRosterPanel';
+import { SunkenCitadelOverview } from './abyss/SunkenCitadelOverview';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
@@ -7571,7 +7572,7 @@ export default function GameUI() {
   // dentro da própria aba Abismo (não por uma aba de topo própria) — por isso não tem portão de
   // confirmação separado, um clique já cobre o combate com o sprite stage (App.tsx).
   const [sunkenEntered, setSunkenEntered] = useState(false);
-  const [sunkenSubTab, setSunkenSubTab] = useState<SunkenSubTab>('dock');
+  const [sunkenSubTab, setSunkenSubTab] = useState<SunkenSubTab>('overview');
 
   useEffect(() => {
     if (activeTab !== 'abyss') {
@@ -8180,7 +8181,7 @@ export default function GameUI() {
           )}
           {activeTab === 'abyss' && sunkenEntered && (
             <>
-              {sunkenSubTab === 'echoes' ? <EchoRosterPanel /> : <DistrictPanel id={sunkenSubTab} />}
+              {sunkenSubTab === 'overview' ? <SunkenCitadelOverview /> : sunkenSubTab === 'echoes' ? <EchoRosterPanel /> : <DistrictPanel id={sunkenSubTab} />}
             </>
           )}
           {activeTab === 'attributes' && <AttributePanel />}

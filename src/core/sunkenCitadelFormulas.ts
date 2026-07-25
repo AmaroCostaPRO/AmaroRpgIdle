@@ -29,6 +29,18 @@ export const DISTRICT_ICONS: Record<DistrictId, string> = {
   dock: '⚓', echoHall: '🏛️', forge: '⚒️', archive: '📚', temple: '🕍', throne: '👑',
 };
 
+// Descrição da função mecânica de cada distrito — o que a Eficácia acumulada (soma de
+// `finalEfficacy` dos Ecos alocados) realmente faz no jogo. Referência cruzada com os pontos de
+// consumo em `useGameStore.ts`/`CombatFSM.ts` (buscar por `sumDistrictEfficacy`).
+export const DISTRICT_DESCRIPTIONS: Record<DistrictId, string> = {
+  dock: 'Cada Eco alocado aumenta a Pesca Passiva do Litoral (Eficácia = % extra de capturas/hora) e gera 1 Fragmento de Batisfera por dia, por Eco alocado, desde a Restauração I.',
+  echoHall: 'Não produz recursos por si só: cada Eco alocado aqui soma ao Bônus do Salão, um multiplicador que fortalece a Eficácia de TODOS os Ecos alocados nos outros 5 distritos (dobra se o Eco tiver o traço Voz do Coro).',
+  forge: 'A Eficácia acumulada reduz o custo em Pérolas de fundir runas (até −50%) e dá uma chance de devolver 1 das runas consumidas na fusão (3%→8%, escalando com a Eficácia).',
+  archive: 'Gera 2 Pérolas por dia por Eco alocado (4/dia com Restauração III), e a Eficácia acumulada dá uma chance de revelar uma 2ª Palavra Rúnica bônus ao desbloquear uma nova.',
+  temple: 'Permite escolher Bênçãos da Maré Alta (dano, drop ou produção submersa); a Eficácia acumulada estende a duração da Bênção ativa em até +20%.',
+  throne: 'A Eficácia acumulada dos Ecos Guardiões alocados aqui aumenta o dano causado durante o combate contra o Leviatã do Ciclo.',
+};
+
 // Grade fixa 2×3 (Anexo 2 §1.2) — layout: [dock, echoHall, forge] / [temple, archive, throne].
 // Adjacência ORTOGONAL (o que o jogador vê na tela é literalmente a vizinhança).
 export const DISTRICT_ADJACENCY: Record<DistrictId, DistrictId[]> = {

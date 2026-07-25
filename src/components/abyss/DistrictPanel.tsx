@@ -4,7 +4,8 @@ import { AudioManager } from '../../core/AudioManager';
 import { useCountdown } from '../../hooks/useCountdown';
 import type { DistrictId } from '../../core/types';
 import {
-  DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
+  DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DESCRIPTIONS, DISTRICT_ADJACENCY, DISTRICT_BASE_EFFECT,
+  DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
   ECHO_VOCATION_NAMES, ECHO_VOCATION_ICONS, TIDE_BLESSINGS, getTidePhase, getTidePhaseEndsAt,
   calculateEchoEfficacies, sumDistrictEfficacy, DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost,
 } from '../../core/sunkenCitadelFormulas';
@@ -150,6 +151,15 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
               {DISTRICT_ICONS[id]} {DISTRICT_NAMES[id]} {statusSuffix}
             </h2>
             <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>{subtitle}</p>
+            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)', margin: '0.4rem 0 0 0', lineHeight: 1.4 }}>
+              {DISTRICT_DESCRIPTIONS[id]}
+            </p>
+            {!flooded && (
+              <p style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.45)', margin: '0.35rem 0 0 0' }}>
+                Base por Eco alocado: +{(DISTRICT_BASE_EFFECT[id] * 100).toFixed(0)}% · Vizinhos: {DISTRICT_ADJACENCY[id].map((n) => `${DISTRICT_ICONS[n]} ${DISTRICT_NAMES[n]}`).join(', ')}
+                {id !== 'echoHall' && ' · traços como Contador de Histórias/Farol Humano em Ecos vizinhos também alteram a Eficácia aqui'}
+              </p>
+            )}
           </div>
         </div>
 
@@ -212,11 +222,17 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
             </div>
             {assignedEchoes.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                {assignedEchoes.map((e) => (
-                  <span key={e.id} style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.6)' }}>
-                    {ECHO_VOCATION_ICONS[e.vocation]} {e.name}
-                  </span>
-                ))}
+                {assignedEchoes.map((e) => {
+                  const eff = efficacies.find((b) => b.echoId === e.id);
+                  return (
+                    <span key={e.id} style={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.6)' }}>
+                      {ECHO_VOCATION_ICONS[e.vocation]} {e.name}
+                      {eff && (
+                        <> — Base {(eff.base * 100).toFixed(0)}% × Afin. {eff.affinity.toFixed(2)} × Traço {eff.selfMult.toFixed(2)} × Viz. {eff.neighborMult.toFixed(2)} × Salão {eff.salonMult.toFixed(2)} = <strong style={{ color: '#a5f3fc' }}>{(eff.finalEfficacy * 100).toFixed(1)}%</strong></>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
