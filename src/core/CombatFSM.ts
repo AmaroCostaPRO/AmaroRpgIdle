@@ -3039,6 +3039,7 @@ export class CombatFSM {
 
     const distance = this.getDistanceToTarget();
     if (distance <= 400) {
+      this.scene.clampEnemyToCombatDistance(400);
       this.currentState = CombatState.ATTACKING;
       this.scene.resetPlayerPosition();
     }

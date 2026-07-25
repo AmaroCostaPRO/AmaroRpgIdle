@@ -111,6 +111,18 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
     </button>
   );
 
+  const DEPTHS_BUTTON_WIDTH = '280px';
+
+  const depthsSectionStyle: React.CSSProperties = {
+    background: 'rgba(8, 47, 73, 0.35)',
+    border: '1px solid rgba(34, 211, 238, 0.2)',
+    borderRadius: 'var(--radius-md, 8px)',
+    padding: '0.9rem',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.6rem',
+  };
+
   const handleCitadelButtonClick = () => {
     if (!citadelUnlocked) return;
     AudioManager.getInstance().playClick();
@@ -153,84 +165,65 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
 
       {subTab === 'depths' && (
         depthsUnlocked ? (
-          <div style={{ padding: '1.25rem', border: '1px solid rgba(34, 211, 238, 0.35)', borderRadius: 'var(--radius-md, 8px)', display: 'flex', flexDirection: 'column', gap: '0.7rem', background: 'rgba(2, 20, 34, 0.5)' }}>
-            <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-              {fullDepths ? '🤿 As Profundezas — 4 Zonas' : '🤿 Mergulhos Rasos — Recife Partido (Zona 1)'}
-            </p>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-              Desça acumulando 🦪 Pérolas, 🪸 Coral e 📜 Runas — arrisque ou suba a cada Bolsão de Ar.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.2rem', fontSize: '0.8rem' }}>
-              <span>🤿 Chaves de Mergulho: <strong>{diveKeys}</strong></span>
-              <span>📊 Recorde: <strong>Prof. {historicalMaxDepth}</strong></span>
+          <div
+            style={{
+              display: 'flex', flexDirection: 'column', gap: '0.85rem',
+              backgroundImage: `linear-gradient(rgba(2, 20, 34, 0.82), rgba(2, 20, 34, 0.92)), url(/assets/abyss_z${getZoneForDepth(startDepth)}_background.png)`,
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              borderRadius: 'var(--radius-md, 8px)', padding: '0.85rem',
+            }}
+          >
+            {/* Cabeçalho da zona */}
+            <div>
+              <p style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                {fullDepths ? '🤿 As Profundezas — 4 Zonas' : '🤿 Mergulhos Rasos — Recife Partido (Zona 1)'}
+              </p>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                Desça acumulando 🦪 Pérolas, 🪸 Coral e 📜 Runas — arrisque ou suba a cada Bolsão de Ar.
+              </p>
             </div>
-            {!diveActive && (
-              <button
-                onClick={handleStartDive}
-                disabled={diveKeys < keyCost}
-                className="btn btn-gold"
-                style={{ alignSelf: 'flex-start', opacity: diveKeys < keyCost ? 0.5 : 1 }}
-              >
-                🤿 INICIAR MERGULHO ({keyCost} Chave{keyCost > 1 ? 's' : ''})
-              </button>
-            )}
-            {diveActive && (
-              <button
-                onClick={handleSurfaceClick}
-                className="btn btn-gold"
-                style={{ alignSelf: 'flex-start', background: confirmSurface ? '#dc2626' : undefined }}
-              >
-                {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca o acumulado)'}
-              </button>
-            )}
 
-            <EquippedTitleBox
-              selectedTitle={equippedTitle}
-              onRemove={() => selectTitle('')}
-              accentColor="#22d3ee"
-              borderColor="rgba(34, 211, 238, 0.35)"
-            />
-            {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>Títulos das Profundezas conquistados:</p>
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                  {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).map(([depth, name]) => (
-                    <button
-                      key={depth}
-                      onClick={() => { AudioManager.getInstance().playClick(); selectTitle(equippedTitle === name ? '' : name); }}
-                      className="btn btn-xs"
-                      style={{ fontSize: '0.65rem', border: equippedTitle === name ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)' }}
-                    >
-                      👑 {name}
-                    </button>
-                  ))}
-                </div>
+            {/* Controle da Descida */}
+            <div style={depthsSectionStyle}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.2rem', fontSize: '0.8rem' }}>
+                <span>🤿 Chaves de Mergulho: <strong>{diveKeys}</strong></span>
+                <span>📊 Recorde: <strong>Prof. {historicalMaxDepth}</strong></span>
               </div>
-            )}
+              {!diveActive && (
+                <button
+                  onClick={handleStartDive}
+                  disabled={diveKeys < keyCost}
+                  className="btn btn-ocean"
+                  style={{ alignSelf: 'center', width: DEPTHS_BUTTON_WIDTH, maxWidth: '100%', opacity: diveKeys < keyCost ? 0.5 : 1 }}
+                >
+                  🤿 INICIAR MERGULHO ({keyCost} Chave{keyCost > 1 ? 's' : ''})
+                </button>
+              )}
+              {diveActive && (
+                <button
+                  onClick={handleSurfaceClick}
+                  className="btn btn-ocean"
+                  style={{ alignSelf: 'center', width: DEPTHS_BUTTON_WIDTH, maxWidth: '100%', background: confirmSurface ? '#dc2626' : undefined }}
+                >
+                  {confirmSurface ? '⚠️ Toque de novo para confirmar!' : '⬆ SUBIR À SUPERFÍCIE (banca o acumulado)'}
+                </button>
+              )}
+              {lastDiveSummary && (
+                <p style={{ fontSize: '0.72rem', color: '#a5f3fc', margin: 0 }}>Última descida: {lastDiveSummary}</p>
+              )}
+              {diveKeys < keyCost && !diveActive && (
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', margin: 0 }}>
+                  Sem chaves suficientes: junte 5 🗝️ Fragmentos de Batisfera na pesca do Litoral para montar uma Chave de Mergulho.
+                </p>
+              )}
+            </div>
 
-            {fullDepths && (
-              <div style={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
-                {divingSuitUpgrading ? (
-                  <span style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>Melhorando... conclusão em {suitUpgradeCountdown}.</span>
-                ) : dockRestored ? (
-                  <button onClick={onEnterCitadel} className="btn btn-xs" style={{ fontSize: '0.72rem', alignSelf: 'flex-start' }}>
-                    Melhorar na ⚓ Doca Batial →
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
-                    Requer ⚓ Doca Batial drenada e restaurada — veja o botão 🔱 Cidadela.
-                  </span>
-                )}
-              </div>
-            )}
-            {lastDiveSummary && (
-              <p style={{ fontSize: '0.72rem', color: '#a5f3fc' }}>Última descida: {lastDiveSummary}</p>
-            )}
+            {/* Ponto de Partida */}
             {availableStartDepths.length > 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Ponto de partida (checkpoints liberados pelos Guardiões vencidos):</p>
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <div style={depthsSectionStyle}>
+                <p style={{ fontWeight: 700, fontSize: '0.8rem', margin: 0 }}>📍 Ponto de Partida</p>
+                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>Checkpoints liberados pelos Guardiões vencidos:</p>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                   {availableStartDepths.map((d) => (
                     <button
                       key={d}
@@ -238,6 +231,8 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
                       className="btn"
                       style={{
                         fontSize: '0.7rem', padding: '0.35rem 0.6rem',
+                        width: DEPTHS_BUTTON_WIDTH, maxWidth: '100%', minHeight: '2.7rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', lineHeight: 1.3,
                         border: startDepth === d ? `1px solid ${ZONE_INFO[getZoneForDepth(d)].color}` : '1px solid rgba(255,255,255,0.15)',
                         background: startDepth === d ? 'rgba(14, 116, 144, 0.35)' : 'transparent',
                       }}
@@ -248,22 +243,68 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
                 </div>
               </div>
             )}
-            {diveKeys < keyCost && !diveActive && (
-              <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)' }}>
-                Sem chaves suficientes: junte 5 🗝️ Fragmentos de Batisfera na pesca do Litoral para montar uma Chave de Mergulho.
-              </p>
+
+            {/* Traje de Mergulho */}
+            {fullDepths && (
+              <div style={depthsSectionStyle}>
+                <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
+                {divingSuitUpgrading ? (
+                  <span style={{ fontSize: '0.7rem', color: '#a5f3fc' }}>Melhorando... conclusão em {suitUpgradeCountdown}.</span>
+                ) : dockRestored ? (
+                  <button onClick={onEnterCitadel} className="btn btn-xs" style={{ fontSize: '0.72rem', alignSelf: 'center' }}>
+                    Melhorar na ⚓ Doca Batial →
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
+                    Requer ⚓ Doca Batial drenada e restaurada — veja o botão 🔱 Cidadela.
+                  </span>
+                )}
+              </div>
             )}
-            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.6rem' }}>
-              Descida vertical push-your-luck com o <strong>Fôlego</strong> como relógio da sessão. Vença cada profundidade
-              para acumular 🦪 Pérolas, 🪸 Coral e 📜 Runas — e decida nos Bolsões de Ar (a cada 5 profundidades) entre
-              respirar, saquear ou <strong>subir e bancar tudo</strong>.
-              {fullDepths
-                ? ' Você alcançou a Fase 50: a Pressão das profundezas está ativa e as Zonas 2–4 (Bosque de Algas Negras, Ruínas da Cidadela, Fossa do Caco) se abrem além do Recife.'
-                : ` Na prof. ${GUARDIAN_DEPTH}, o 👑 Guardião do Recife espera (1ª morte: Runa Primordial 🜲 Thal). Alcance a Fase 50 para destravar As Profundezas completas.`}
-            </p>
-            <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)' }}>
-              Morte "limpa": mantém 75% do acumulado · Morte afogada (Fôlego 0): mantém 50% · Subir num Bolsão: 100%.
-            </p>
+
+            {/* Títulos das Profundezas */}
+            <div style={depthsSectionStyle}>
+              <p style={{ fontWeight: 700, fontSize: '0.8rem', margin: 0 }}>👑 Títulos das Profundezas</p>
+              <EquippedTitleBox
+                selectedTitle={equippedTitle}
+                onRemove={() => selectTitle('')}
+                accentColor="#22d3ee"
+                borderColor="rgba(34, 211, 238, 0.35)"
+              />
+              {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Conquistados:</p>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).map(([depth, name]) => (
+                      <button
+                        key={depth}
+                        onClick={() => { AudioManager.getInstance().playClick(); selectTitle(equippedTitle === name ? '' : name); }}
+                        className="btn btn-xs"
+                        style={{ fontSize: '0.65rem', border: equippedTitle === name ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)' }}
+                      >
+                        👑 {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Como Funciona — rodapé informativo */}
+            <div style={depthsSectionStyle}>
+              <p style={{ fontWeight: 700, fontSize: '0.8rem', margin: 0 }}>ℹ️ Como Funciona</p>
+              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                Descida vertical push-your-luck com o <strong>Fôlego</strong> como relógio da sessão. Vença cada profundidade
+                para acumular 🦪 Pérolas, 🪸 Coral e 📜 Runas — e decida nos Bolsões de Ar (a cada 5 profundidades) entre
+                respirar, saquear ou <strong>subir e bancar tudo</strong>.
+                {fullDepths
+                  ? ' Você alcançou a Fase 50: a Pressão das profundezas está ativa e as Zonas 2–4 (Bosque de Algas Negras, Ruínas da Cidadela, Fossa do Caco) se abrem além do Recife.'
+                  : ` Na prof. ${GUARDIAN_DEPTH}, o 👑 Guardião do Recife espera (1ª morte: Runa Primordial 🜲 Thal). Alcance a Fase 50 para destravar As Profundezas completas.`}
+              </p>
+              <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.35)', margin: 0 }}>
+                Morte "limpa": mantém 75% do acumulado · Morte afogada (Fôlego 0): mantém 50% · Subir num Bolsão: 100%.
+              </p>
+            </div>
           </div>
         ) : (
           <div style={{ padding: '1.25rem', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 'var(--radius-md, 8px)', textAlign: 'center' }}>

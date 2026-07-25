@@ -28,6 +28,8 @@ export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter, locked = fals
       padding: '2.5rem 1.5rem',
       textAlign: 'center',
       minHeight: '320px',
+      height: '100%',
+      boxSizing: 'border-box',
       background:
         'radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.10), transparent 55%), ' +
         'linear-gradient(160deg, rgba(88,28,135,0.16), rgba(15,10,25,0.5))',

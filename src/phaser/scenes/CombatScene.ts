@@ -24,6 +24,9 @@ export class CombatScene extends Phaser.Scene {
   private background!: Phaser.GameObjects.TileSprite;
   private playerBody!: Phaser.GameObjects.Image;
   private enemyBody!: Phaser.GameObjects.Image;
+  // Âncora da posição "de repouso" do inimigo durante CombatState.ATTACKING, capturada de forma
+  // preguiçosa (1x por sessão de ataque) — ver `animateEnemyAttack()` para o motivo.
+  private enemyHomeX: number | null = null;
   private playerNameText!: Phaser.GameObjects.Text;
   private playerTitleText!: Phaser.GameObjects.Text;
   private enemyLevelText!: Phaser.GameObjects.Text;
@@ -498,7 +501,26 @@ export class CombatScene extends Phaser.Scene {
     // tela cheia, sem pausar a lógica de combate (o herói continua lutando/dropando em background)
     const applyTargetFps = () => {
       const economyModeEnabled = useGameStore.getState().economyModeEnabled;
-      this.game.loop.targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 2 : 60);
+      const targetFps = this.citadelActive ? 15 : (economyModeEnabled ? 5 : 60);
+      const targetMs = 1000 / targetFps;
+      this.game.loop.targetFps = targetFps;
+      // `targetFps` sozinho é só informativo (doc do Phaser: "will not actually change the speed at
+      // which the browser runs") — o `_target` (ms/frame usado nos cálculos de delta) e o `raf.delay`
+      // (intervalo real do setTimeout, só existe porque o Game é criado com `fps.forceSetTimeOut: true`
+      // em App.tsx) são calculados 1x na criação do loop e nunca recalculados depois. Sem atualizar os
+      // dois aqui manualmente, o Modo Economia mudava o número mas a animação continuava a 60fps.
+      (this.game.loop as unknown as { _target: number })._target = targetMs;
+      this.game.loop.raf.delay = targetMs;
+      // Proteção "spiral of death" do Phaser: se o delta entre steps passa de `_min` (padrão
+      // 1000/minFps=5 → 200ms), ele assume que foi travamento de aba/aba em segundo plano e
+      // DESCARTA o delta real, substituindo por um valor histórico já limitado a `_min` — isso é o
+      // que causava câmera lenta no Modo Economia (delta real ~500ms a 2fps sempre excedia os 200ms
+      // padrão e era cortado, então a lógica só avançava ~200ms de jogo por callback em vez de 500ms
+      // reais). Recalculamos `minFps`/`_min` para dar folga acima do intervalo alvo em qualquer fps.
+      const minFps = Math.max(1, Math.floor(targetFps / 2));
+      this.game.loop.minFps = minFps;
+      (this.game.loop as unknown as { _min: number })._min = 1000 / minFps;
+      this.game.loop.resetDelta();
     };
     this.unsubscribeTabChanged = bridge.subscribe(GameEvent.TAB_CHANGED, (payload) => {
       this.citadelActive = (payload.tab === 'citadel' && !!payload.citadelEntered) || (payload.tab === 'abyss' && !!payload.sunkenEntered);
@@ -1106,6 +1128,21 @@ export class CombatScene extends Phaser.Scene {
     const isEcoterra = char && !isTower && char.activeEcoterra && (char.currentStage || 1) <= 20;
     const approachSpeed = isEcoterra ? 0.18 * 1.20 : 0.18;
     this.enemyBody.x -= approachSpeed * delta;
+    // O inimigo ainda está se movendo — invalida a âncora de repouso do ataque, recapturada na
+    // próxima `animateEnemyAttack()` já com a posição final de aproximação.
+    this.enemyHomeX = null;
+  }
+
+  // Trava o inimigo exatamente na distância de combate desejada em vez de deixá-lo onde o último
+  // passo de `scrollWorld` o deixou. Com fps baixo (Modo Economia = 2fps), cada passo de aproximação
+  // avança até ~90px de uma vez (vs. ~3px a 60fps) — sem essa correção, o "gatilho" de distância
+  // (`distance <= 400`) só é conferido DEPOIS do passo, deixando o inimigo (e a cena toda) visivelmente
+  // ultrapassar o ponto de parada correto antes de travar.
+  public clampEnemyToCombatDistance(distance: number): void {
+    const dy = this.playerBody.y - this.enemyBody.y;
+    const dxSq = distance * distance - dy * dy;
+    const dx = dxSq > 0 ? Math.sqrt(dxSq) : 0;
+    this.enemyBody.x = this.playerBody.x + dx;
   }
 
   public resetPlayerPosition(): void {
@@ -1114,6 +1151,11 @@ export class CombatScene extends Phaser.Scene {
 
   public animatePlayerAttack(): void {
     AudioManager.getInstance().playSlash();
+    // Mesma proteção do `animateEnemyAttack()`: sem matar a tween anterior, ataques disparados em
+    // sequência rápida sob fps baixo (Modo Economia) podem se sobrepor — a nova tween herda como
+    // "origem" a posição em que a anterior foi interrompida (não `PLAYER_START_X`), e a cada
+    // sobreposição um pouco desse deslocamento persiste, fazendo o herói derivar para frente.
+    this.tweens.killTweensOf(this.playerBody);
     this.tweens.add({
       targets: this.playerBody,
       x: this.PLAYER_START_X + 45 * ZOOM_FACTOR,
@@ -1127,12 +1169,27 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public animateEnemyAttack(): void {
+    // Âncora capturada 1x por sessão de ataque (não a cada chamada) e propositalmente NUNCA lida de
+    // `this.enemyBody.x` no meio de uma animação em andamento: sob fps baixo (Modo Economia = 2fps),
+    // múltiplos ataques podem disparar antes do render seguinte processar a tween anterior, e ler
+    // `enemyBody.x` nesse meio-tempo capturaria uma posição parcialmente deslocada como se fosse a
+    // "casa" — cada interrupção then acumulava um pouco do deslocamento permanentemente, fazendo o
+    // inimigo derivar para a esquerda a cada ataque. Com a âncora fixa + reforço no onComplete, o
+    // pior caso de uma tween interrompida é um "pulo" visual pontual, nunca um deslocamento permanente.
+    if (this.enemyHomeX === null) {
+      this.enemyHomeX = this.enemyBody.x;
+    }
+    const homeX = this.enemyHomeX;
+    this.tweens.killTweensOf(this.enemyBody);
     this.tweens.add({
       targets: this.enemyBody,
-      x: this.enemyBody.x - 45 * ZOOM_FACTOR,
+      x: homeX - 45 * ZOOM_FACTOR,
       duration: 100,
       yoyo: true,
-      ease: 'Quad.easeOut'
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.enemyBody.x = homeX;
+      }
     });
   }
 
@@ -1376,6 +1433,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   public respawnEnemyAt(startX: number, enemyType: any): void {
+    this.enemyHomeX = null;
     if (this.enemyBody) {
       this.tweens.killTweensOf(this.enemyBody);
       let flipX = !!enemyType.flipX;

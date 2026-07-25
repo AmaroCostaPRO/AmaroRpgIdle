@@ -4123,7 +4123,7 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">⚙️ Qualidade de Vida e Opções</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 15fps, prolongando a bateria em sessões longas.</span></li>
+                    <li><span className="text-white font-semibold">Modo de Economia (aba Opções):</span> <span className="text-gray-400">oculta os números de dano flutuantes na tela de combate e limita a animação a 5fps, prolongando a bateria em sessões longas.</span></li>
                     <li><span className="text-white font-semibold">Tela sempre ativa:</span> <span className="text-gray-400">enquanto você está na tela de combate, o jogo pede ao navegador para manter a tela do dispositivo ligada automaticamente, sem precisar tocar o celular a cada poucos minutos.</span></li>
                     <li><span className="text-white font-semibold">Pressionar e segurar:</span> <span className="text-gray-400">os botões de investir Pontos de Atributo e de aprimorar Habilidades podem ser mantidos pressionados para aplicar múltiplos níveis em sequência, sem precisar tocar repetidamente.</span></li>
                     <li><span className="text-white font-semibold">Nome do Personagem:</span> <span className="text-gray-400">escolhido na tela de criação de personagem, identifica seu herói no painel de Atributos e no combate, no lugar do nome genérico da classe.</span></li>
@@ -6347,7 +6347,7 @@ const OptionsPanel: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
             <div>
               <div style={{ fontWeight: 'bold' }}>Modo de Economia</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Oculta os números de dano na tela e reduz a animação para 15fps, economizando bateria.</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.55rem' }}>Oculta os números de dano na tela e reduz a animação para 5fps, economizando bateria.</div>
             </div>
             <button
               onClick={() => {

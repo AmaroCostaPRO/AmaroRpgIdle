@@ -232,7 +232,7 @@ export const CoastalPanel: React.FC = () => {
           A rede pausa quando enche — recolha para retomar a pesca passiva. A isca equipada é consumida 1x por captura ao recolher.
         </p>
 
-        <button onClick={handleCollect} disabled={buffer <= 0} className="btn btn-gold" style={{ alignSelf: 'center', opacity: buffer <= 0 ? 0.5 : 1 }}>
+        <button onClick={handleCollect} disabled={buffer <= 0} className="btn btn-ocean" style={{ alignSelf: 'center', opacity: buffer <= 0 ? 0.5 : 1 }}>
           🕸️ Recolher a Rede ({buffer})
         </button>
 
@@ -265,7 +265,7 @@ export const CoastalPanel: React.FC = () => {
           <button
             onClick={handleCastLine}
             disabled={cooldownLeft > 0}
-            className="btn btn-gold"
+            className="btn btn-ocean"
             style={{ alignSelf: 'center', opacity: cooldownLeft > 0 ? 0.5 : 1 }}
           >
             {cooldownLeft > 0 ? `Recolhendo a linha... (${cooldownLeft}s)` : '🎣 JOGAR A LINHA'}
@@ -289,7 +289,7 @@ export const CoastalPanel: React.FC = () => {
                 background: '#fff', boxShadow: '0 0 6px #22d3ee', transform: 'translateX(-50%)',
               }} />
             </div>
-            <button onClick={handleHook} className="btn btn-gold" style={{ alignSelf: 'center' }}>
+            <button onClick={handleHook} className="btn btn-ocean" style={{ alignSelf: 'center' }}>
               ⚡ Fisgar!
             </button>
           </>
@@ -359,7 +359,7 @@ export const CoastalPanel: React.FC = () => {
                     {confirmCraftId === def.id ? 'Confirmar?' : `+${BAIT_BATCH_SIZE} por 🥩 ${def.meatCost}`}
                   </button>
                   {!equipped && stock > 0 && (
-                    <button onClick={() => handleEquip(def.id)} className="btn btn-xs btn-gold" style={{ fontSize: '0.65rem' }}>Equipar</button>
+                    <button onClick={() => handleEquip(def.id)} className="btn btn-xs btn-ocean" style={{ fontSize: '0.65rem' }}>Equipar</button>
                   )}
                 </div>
               </div>

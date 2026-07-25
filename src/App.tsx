@@ -184,6 +184,11 @@ const App: React.FC = () => {
         scene: [CombatScene],
         backgroundColor: '#2c3e50',
         roundPixels: true,
+        // `forceSetTimeOut` troca o loop de requestAnimationFrame (sempre no refresh rate do monitor,
+        // ignora `game.loop.targetFps`) para setTimeout(1000/targetFps) — só assim o ajuste dinâmico de
+        // `targetFps` em CombatScene.ts (Modo Economia = 2fps, Cidadela em tela cheia = 15fps) tem efeito
+        // visual real. Não pode ser alternado em runtime, por isso fica fixo aqui desde a criação do Game.
+        fps: { forceSetTimeOut: true },
       };
 
       try {
