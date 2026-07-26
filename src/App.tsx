@@ -354,7 +354,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v10.12.0 — Cidadela Submersa: Refinamentos e Endgame!
+              🔔 Atualização v10.13.0 — Cidadela Submersa: Refinamentos e Endgame!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -366,7 +366,7 @@ const App: React.FC = () => {
 
                 {/* v10.1.0 a v10.10.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.12.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.13.0 (Atual):</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
@@ -446,6 +446,22 @@ const App: React.FC = () => {
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         O +18% de Dano Geral da Vrak só valia no Ataque Básico (Toque, Robô e Habilidades ficavam de fora); corrigido para valer nos 3. O recuo de 2% do dano causado não tinha teto algum e podia quase zerar sua Vida a cada golpe em dano de endgame — agora limitado a 2% da sua Vida Máxima por golpe, mesmo padrão já usado pelo afixo Elite "Refletor".
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        🐛 Fim do Set Inicial Inundando o Loot do Pandemônio
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O set inicial de cada classe (ex: "Set do Senhor da Guerra") era atribuído como fallback a qualquer item Lendário sem nenhuma restrição de fase — como a chance de Lendário cresce com a Sorte, esse set fraco acabava dominando os drops em fases altas, à custa dos sets de topo (Pandemoníaco, Ancestral, Celestial). A partir da Fase 31 (Pandemônio), o set inicial não é mais atribuído, e itens Comuns/Raros deixam de dropar por completo — só Lendários (ou superiores) aparecem no loot.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#d946ef', fontSize: '0.72rem' }}>
+                        💠 Drops Pré-Fundidos (Místico +N) a partir da Fase 40
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Para aliviar o custo cada vez mais alto de evoluir a Forja Mística no endgame, itens Lendários da campanha agora têm 10% de chance de vir já pré-fundidos a partir da Fase 40: +1 na Fase 40+, +2 na 50+, +3 na 60+ (a cada 10 fases, até o teto de +8), simulando N fusões do item consigo mesmo com as mesmas regras do Altar — incluindo a chance de Forja Lendária.
                       </div>
                     </div>
                   </div>

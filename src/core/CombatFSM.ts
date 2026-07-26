@@ -4200,7 +4200,13 @@ export class CombatFSM {
       const stage = char.currentStage;
       const classId = char.classId;
       const ascensionCount = char.ascensionCount || 0;
-      
+
+      // v10.x: a partir da fase 31 (Pandemônio), itens comuns e raros não dropam mais — só lendários
+      // (relíquias seguem loop próprio, mais abaixo, e não são afetadas)
+      if (stage >= 31 && rarity !== 'legendary') {
+        continue;
+      }
+
       // Verificação de desbloqueio celestial (derrotar o Guardião dos Cacos / boss_crystal_guardian pela segunda vez em diante)
       const crystalGuardianKills = char.killCount?.['boss_crystal_guardian'] || 0;
       const isCelestialUnlocked = crystalGuardianKills >= 2;
@@ -4402,26 +4408,65 @@ export class CombatFSM {
         name = `${baseName} Ancestral ${prep} ${cleanSetName}`;
         rarity = 'legendary';
       } else if (rarity === 'legendary') {
-        setName = setNames[classId];
-        let cleanSetName = setName;
-        if (cleanSetName.startsWith('Set do ')) {
-          cleanSetName = cleanSetName.replace('Set do ', '');
-        } else if (cleanSetName.startsWith('Set de ')) {
-          cleanSetName = cleanSetName.replace('Set de ', '');
-        } else if (cleanSetName.startsWith('Set da ')) {
-          cleanSetName = cleanSetName.replace('Set da ', '');
+        if (stage < 31) {
+          setName = setNames[classId];
+          let cleanSetName = setName;
+          if (cleanSetName.startsWith('Set do ')) {
+            cleanSetName = cleanSetName.replace('Set do ', '');
+          } else if (cleanSetName.startsWith('Set de ')) {
+            cleanSetName = cleanSetName.replace('Set de ', '');
+          } else if (cleanSetName.startsWith('Set da ')) {
+            cleanSetName = cleanSetName.replace('Set da ', '');
+          }
+          let prep = 'do';
+          if (setName.includes(' da ')) {
+            prep = 'da';
+          } else if (setName.includes(' de ')) {
+            prep = 'de';
+          }
+          name = `${baseName} ${prep} ${cleanSetName}`;
+        } else {
+          // v10.x: a partir da fase 31, o set inicial (fraco demais para esse nível) não é mais atribuído
+          name = `${baseName} Lendário`;
         }
-        let prep = 'do';
-        if (setName.includes(' da ')) {
-          prep = 'da';
-        } else if (setName.includes(' de ')) {
-          prep = 'de';
-        }
-        name = `${baseName} ${prep} ${cleanSetName}`;
       } else {
         name = `${baseName} Rústico`;
       }
-      
+
+      // v10.x: a partir da fase 40, chance de o item já vir pré-fundido (Místico +N),
+      // simulando N fusões consecutivas do item consigo mesmo (mesmas regras do Altar,
+      // incluindo a chance de 5% de Forja Lendária por nível)
+      const canPreFuse = stage >= 40 && rarity === 'legendary';
+      const isPreFused = canPreFuse && Math.random() < 0.10;
+      let mysticLevel: number | undefined;
+      if (isPreFused) {
+        mysticLevel = Math.min(8, Math.floor((stage - 40) / 10) + 1);
+        rarity = 'mystic';
+        name = `${name} +${mysticLevel}`;
+
+        const decimalStatKeys = new Set([
+          'damageMultiplierPct', 'maxHpPct', 'maxManaPct', 'attackSpeedPct',
+          'lifesteal', 'touchDamageMult', 'dropChancePct', 'damageReductionPct', 'frenzyChancePct'
+        ]);
+        let fusedStats: Partial<BaseStats> = { ...itemStats };
+        for (let i = 0; i < mysticLevel; i++) {
+          const isLegendaryForge = Math.random() < 0.05;
+          const nextStats: Partial<BaseStats> = {};
+          (Object.entries(fusedStats) as [keyof BaseStats, number][]).forEach(([key, v]) => {
+            const isDecimal = decimalStatKeys.has(key);
+            if (isLegendaryForge) {
+              const raw = v * 3; // (v + v) * 1.5
+              nextStats[key] = isDecimal ? Math.round(raw * 1000) / 1000 : Math.ceil(raw);
+            } else {
+              const bonus = isDecimal ? v * 0.5 : Math.ceil(v * 0.5);
+              nextStats[key] = v + bonus;
+            }
+          });
+          fusedStats = nextStats;
+        }
+        itemStats = fusedStats;
+      }
+
       const newItem: EquipmentItem = {
         id: `${classId}-${slot}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         name,
@@ -4431,7 +4476,8 @@ export class CombatFSM {
         setName,
         classId,
         spriteName: `${classId}-${slot}`,
-        stage
+        stage,
+        ...(mysticLevel ? { mysticLevel } : {})
       };
       
       // Desmonte Automatizado (Oficina de Automação da Forja Nível 5): itens Comuns/Raros "puros" (sem set especial)

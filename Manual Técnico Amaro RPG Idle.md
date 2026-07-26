@@ -269,6 +269,9 @@ O valor final de cada atributo concedido pelo item é calculado com base na Fase
 $$\text{Atributo do Item} = \max\left(1, \text{round}\left( \text{Fase} \times \text{Multiplicador Raridade} \times \text{Random}(0.8, 1.2) \right)\right)$$
 *Onde o $\text{Multiplicador Raridade}$ é $1.0$ para Comum, $1.5$ para Raro, $2.5$ para Lendário, $4.5$ para Ancestral e $6.0$ para Celestial.*
 
+*   **Fase 31+ (Pandemônio) — Apenas Itens Lendários (ou superiores)**: A partir da Fase 31, itens de raridade Comum e Raro deixam de dropar por completo — todo drop de equipamento é obrigatoriamente Lendário (ou uma de suas variantes de conjunto: Ancestral, Pandemoníaco, Lua de Sangue, Celestial). Reflete o fato de que peças fracas deixam de ser relevantes no Pandemônio.
+*   **Fim do Set do Senhor da Guerra (e equivalentes) no Pandemônio**: até a Fase 30, todo item Lendário sem outra condição especial recebe o set inicial da classe (ex.: *Set do Senhor da Guerra*). A partir da Fase 31, esse set inicial deixa de ser atribuído — o item passa a ser um "Lendário solto" (nome com o sufixo "Lendário", sem conjunto), abrindo espaço para os Sets Pandemoníaco/Ancestral/Celestial/Lua de Sangue dominarem o loot do endgame em vez de competirem com um conjunto obsoleto.
+
 ### B. Bônus de Conjunto (Sets)
 Equipar múltiplos itens raros, lendários ou ancestrais pertencentes ao mesmo conjunto de classe ativa libera bônus adicionais de atributos acumulativos a partir de 2, 3 e 5 peças:
 
@@ -1277,6 +1280,14 @@ $$\text{Atributo Resultante}(K) = \lceil (\text{Item A}(K) + \text{Item B}(K)) \
 - **Identidade do Item Místico:** A identidade visual, raridade Mística lilás, `classId` e `spriteName` são herdadas do Item A (primeiro slot). Para evitar a perda de distinção visual das peças de uma classe, o nome do item místico resultante incorpora dinamicamente a identidade do conjunto original (ex: *Luva Mística do Senhor da Guerra +1* ou *Armadura Mística Ancestral do Conquistador +1*).
 - **Pertinência ao Conjunto (Set):** O campo `setName` do Item A é copiado integralmente para o item Místico resultante. Isso garante que a nova peça continue contando nos bônus de conjunto do `StatEngine` — um item *Luva Mística do Senhor da Guerra +1*, por exemplo, ainda ativa os bônus de 2, 3 e 5 peças normalmente.
 - **Indicação Visual de Nível:** Um número em fuchsia (`+1` a `+5`) é renderizado no canto superior esquerdo do ícone do item tanto na grade do inventário quanto nos slots de equipamento ativo, permitindo identificar o nível místico sem precisar abrir o painel de detalhes.
+
+### D. Drops Pré-Fundidos na Campanha (Fase 40+)
+Para aliviar a dificuldade de progressão manual no Altar em fases altas (custo de Ouro/Fragmentos cresce exponencialmente — Seção 14.B), a partir da **Fase 40** os drops de equipamento da campanha (já garantidamente Lendários, Seção 5.A) têm **10% de chance** de vir **já pré-fundidos** em Místico +N, sem passar pelo Altar:
+
+*   **Nível de fusão por fase**: $\text{Nível Místico} = \min\left(8,\ \left\lfloor \frac{\text{Fase} - 40}{10} \right\rfloor + 1\right)$ — ou seja, +1 na Fase 40+, +2 na Fase 50+, +3 na Fase 60+, e assim sucessivamente a cada 10 fases, até o teto de **+8** (mesmo limite máximo do Altar, Seção 14.A).
+*   **Simulação de N fusões consecutivas**: os atributos do item são recalculados aplicando, uma vez por nível de fusão, a mesma rolagem probabilística do Altar (Seção 14.C) — 95% de chance da Fórmula Normal, 5% de chance de Forja Lendária — como se o item tivesse sido fundido manualmente N vezes com uma cópia idêntica de si mesmo.
+*   **Set preservado**: o `setName` do item (Senhor da Guerra, Pandemoníaco, Ancestral, Celestial ou Lua de Sangue, conforme o que já teria dropado) é mantido integralmente, e o nome final recebe o sufixo ` +N`, no mesmo padrão visual do Altar.
+*   **Restrito a equipamentos de fases padrão**: a mecânica só se aplica aos 8 slots de equipamento normais (Cabeça, Peito, Pernas, Luvas, Arma, Colar, Amuleto, Anel) dropados na campanha (Purgatório/Pandemônio) — não afeta Relíquias Ativas, Runas ou Consumíveis, nem os drops de outros modos (Torre Infinita, Profundezas/Abismo, Leviatã), que têm economia de recompensa própria e nunca passam por esse trecho do gerador de loot.
 
 ---
 
