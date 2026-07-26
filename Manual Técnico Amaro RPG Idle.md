@@ -1412,7 +1412,7 @@ Diferente das outras 8 construções, o Centro de Comando **nunca fica "não con
 ### D. Depósito / Almoxarifado
 *   **Custo**: 50 Madeira + 50 Pedra (construção); custos subsequentes escalam em `50 × 1.8^(nível-1)`.
 *   **Função**: Protege equipamentos Comuns, Raros, Épicos e Lendários do reset de inventário causado pela Ascensão. Itens Místicos (refinados na Forja) são bloqueados do depósito.
-*   **Capacidade**: `min(10, nível × 2)` slots — de 2 (Nível 1) a 10 (Nível 5).
+*   **Capacidade**: `nível × 5` slots (`VAULT_SLOTS`, `citadelFormulas.ts`) — de 5 (Nível 1, ao desbloquear) a 25 (Nível 5), ganhando +5 slots a cada melhoria.
 *   Os itens guardados residem em `citadel.vault.storedItems` (array independente do `inventory`), portanto **sobrevivem** ao reset de `performPrestige` (Ascensão), que zera apenas `inventory` e `equipment`. **Não sobrevivem**, porém, ao Rito de Transcendência (`performTranscendence`, Seção 11.B): por ser um reset mais profundo, `storedItems` é esvaziado nesse momento, mesmo com as demais construções da Cidadela permanecendo intactas.
 
 ### E. Quartel de Expedições e Academia Militar (v5.2.0)

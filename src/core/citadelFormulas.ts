@@ -20,6 +20,8 @@ export const VAULT_UPGRADE_COST = (nextLevel: number): { wood: number; stone: nu
   wood: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
   stone: Math.round(50 * Math.pow(1.8, nextLevel - 1)),
 });
+// Nível 1 (desbloqueio) já vem com 5 espaços; cada melhoria subsequente soma mais 5.
+export const VAULT_SLOTS = (level: number): number => level * 5;
 
 export const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | 'magic'> = {
   warrior: 'strength',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { EquipmentItem } from '../../core/types';
-import { VAULT_MAX_LEVEL, VAULT_UPGRADE_COST } from '../../core/citadelFormulas';
+import { VAULT_MAX_LEVEL, VAULT_UPGRADE_COST, VAULT_SLOTS } from '../../core/citadelFormulas';
 import { getRarityColor, slotLabels as SLOT_LABELS, slotIcons as SLOT_ICONS, statLabels as STAT_LABELS, formatStatValue, getSetVisual, getSetPrefixAndColor, getSocketDots, RuneChip } from '../shared/itemVisuals';
 import { getActiveRelicDefinition } from '../../core/CombatFSM';
 import { useCountdown } from '../../hooks/useCountdown';
@@ -96,7 +96,7 @@ export const VaultPanel: React.FC = () => {
   const vault = citadel?.vault || { level: 0, lastTick: 0, storedItems: [] };
   const isBuilt = vault.level > 0;
   const nextLevel = vault.level + 1;
-  const maxSlots = Math.min(10, vault.level * 2);
+  const maxSlots = VAULT_SLOTS(vault.level);
   const cost = VAULT_UPGRADE_COST(nextLevel);
   const commandCenterLevel = citadel?.commandCenter.level || 1;
   const lockedByCommandCenter = nextLevel > commandCenterLevel;

@@ -8,7 +8,7 @@ import { getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
 import {
   COMMAND_CENTER_MAX_LEVEL, COMMAND_CENTER_UPGRADE_COST,
-  VAULT_MAX_LEVEL, VAULT_UPGRADE_COST,
+  VAULT_MAX_LEVEL, VAULT_UPGRADE_COST, VAULT_SLOTS,
   EXPEDITIONS_MAX_LEVEL, ACADEMY_MAX_LEVEL,
   EXPEDITION_ALLOCATION_GOLD_COST, EXPEDITION_ALLOCATION_DURATION_MS,
   EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
@@ -1807,7 +1807,7 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Apenas peças de equipamento podem ser guardadas no Depósito.' };
         return state;
       }
-      const maxSlots = Math.min(10, citadel.vault.level * 2);
+      const maxSlots = VAULT_SLOTS(citadel.vault.level);
       if (citadel.vault.storedItems.length >= maxSlots) {
         result = { success: false, message: 'O Depósito está cheio.' };
         return state;
