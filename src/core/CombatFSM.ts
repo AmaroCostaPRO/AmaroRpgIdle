@@ -2008,6 +2008,12 @@ export class CombatFSM {
     if (this.hasRuneSecondaryFlag('kar_high_hp_bonus') && this.playerHP > this.playerMaxHP * 0.8) {
       mult *= 1.03;
     }
+    // v-next: Vrak (vrak_recoil) — +18% de Dano Geral, corrigido para valer nos 3 tipos de dano do
+    // jogador (Toque/Robô, Ataque Básico, Habilidade), não só no Ataque Básico como antes. O recuo
+    // correspondente vive em damageEnemy(), aplicado igualmente aos 3 (ver comentário lá).
+    if (this.hasRuneSecondaryFlag('vrak_recoil')) {
+      mult *= 1.18;
+    }
     const damageBlessingPower = this.getTideBlessingPower('blessing_damage');
     if (damageBlessingPower > 0) {
       mult *= 1 + 0.10 * damageBlessingPower;
@@ -3208,11 +3214,6 @@ export class CombatFSM {
     if (this.isElite && this.eliteAfix === 'blindado') {
       damage = Math.floor(damage * 0.75);
     }
-    // Vrak (vrak_recoil): +18% de dano no ataque básico; você sofre recuo de 2% do dano causado.
-    const hasVrak = this.hasRuneSecondaryFlag('vrak_recoil');
-    if (hasVrak) {
-      damage = Math.floor(damage * 1.18);
-    }
 
     this.scene.animatePlayerAttack();
     this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 30, `${isCrit ? '⚡' : ''}-${damage}`, isCrit ? '#ef4444' : '#f59e0b');
@@ -3222,11 +3223,6 @@ export class CombatFSM {
     this.lastHitWasCrit = isCrit;
     this.damageEnemy(damage, true);
     useGameStore.getState().updateBestCombatStats({ damageDealt: damage });
-    if (hasVrak) {
-      const recoil = Math.max(1, Math.floor(damage * 0.02));
-      this.playerHP = Math.max(1, this.playerHP - recoil);
-      this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${recoil} (recuo)`, '#f59e0b');
-    }
 
     // Palavra Rúnica CORO SUBMERSO: a cada 5 ataques básicos, o próximo ecoa 2× (50% do dano extra).
     if (this.hasRunewordFlag('rw_coro_submerso') && this.enemyHP > 0) {
@@ -3734,6 +3730,20 @@ export class CombatFSM {
         if (this.scene && typeof this.scene.spawnDamageText === 'function') {
           this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `+${drainAmount}`, '#10b981');
         }
+      }
+    }
+
+    // v-next: Vrak (vrak_recoil) — recuo de 2% do dano causado, agora centralizado aqui (hook
+    // compartilhado pelos 3 tipos de dano do jogador) em vez de só no Ataque Básico, e limitado a
+    // 2% da Vida Máxima do jogador por golpe (mesmo padrão de teto do afixo Elite "Refletor" e do
+    // Escudo de Espinhos, abaixo) — antes não tinha teto algum, podendo quase zerar a Vida em dano
+    // de endgame.
+    if (isDirect && this.playerHP > 0 && this.hasRuneSecondaryFlag('vrak_recoil')) {
+      const recoilLimit = Math.floor(this.playerMaxHP * 0.02);
+      const recoil = Math.max(1, Math.min(Math.floor(amount * 0.02), recoilLimit));
+      this.playerHP = Math.max(1, this.playerHP - recoil);
+      if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+        this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${recoil} (recuo)`, '#f59e0b');
       }
     }
 
