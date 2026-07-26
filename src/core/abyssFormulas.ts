@@ -151,13 +151,14 @@ export interface ZoneGuardianDef {
   hpMult: number;
   dmgMult: number;
   pearlReward: number;
+  coralReward: number;
   primordialRuneId: RuneId; // garantida na 1ª morte (10%+ depois, ver Balanceamento §2.2)
 }
 
 export const ZONE_GUARDIANS: ZoneGuardianDef[] = [
-  { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 3.0, dmgMult: 1.5, pearlReward: 25, primordialRuneId: 'thal' },
-  { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 5.0, dmgMult: 1.5, pearlReward: 50, primordialRuneId: 'vrak' },
-  { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 5.0, dmgMult: 1.5, pearlReward: 100, primordialRuneId: 'morvo' },
+  { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 3.0, dmgMult: 1.5, pearlReward: 25, coralReward: 30, primordialRuneId: 'thal' },
+  { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 5.0, dmgMult: 1.5, pearlReward: 50, coralReward: 60, primordialRuneId: 'vrak' },
+  { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 5.0, dmgMult: 1.5, pearlReward: 100, coralReward: 120, primordialRuneId: 'morvo' },
 ];
 
 export const getGuardianForDepth = (depth: number): ZoneGuardianDef | undefined =>
@@ -218,8 +219,8 @@ export const PROFUNDEZAS_TITLE_MILESTONES: Record<number, string> = {
 // Runas: 8% fixo por abate, SEM influência de Sorte (padrão da rolagem separada do Colar).
 export const DIVE_RUNE_DROP_CHANCE = 0.08;
 
-// Coral por abate: 1 em Z1–Z2, 2 em Z3–Z4 (Balanceamento §1.7).
-export const getCoralPerKill = (zone: DiveZone): number => (zone <= 2 ? 1 : 2);
+// Coral por abate: 4 em Z1–Z2, 8 em Z3–Z4 (era 1/2 — reforço de farm pedido pelo usuário).
+export const getCoralPerKill = (zone: DiveZone): number => (zone <= 2 ? 4 : 8);
 export const DIVE_CORAL_PER_KILL = 1; // legado (Zona 1) — preferir getCoralPerKill(zone)
 
 // Frações mantidas das recompensas não-bancadas ao encerrar a descida.
@@ -313,9 +314,9 @@ export const getFishingTable = (bait: BaitType | null): FishingTableEntry[] => {
 export const LANTERN_FISH_MEAT_YIELD = 3;      // Peixe-Lanterna → Carne (conversão 1:3)
 export const BATHYSPHERE_FRAGMENTS_PER_KEY = 5; // 5 Fragmentos = 1 Chave de Mergulho
 
-// Rendimento passivo: Capturas/hora = (2 + ⌊FaseMáx × 0.1⌋) × (1 + NívelDoca × 0.15)
+// Rendimento passivo: Capturas/hora = (3 + ⌊FaseMáx × 0.15⌋) × (1 + NívelDoca × 0.20)
 export const getPassiveCatchesPerHour = (highestStageReached: number, dockLevel: number): number =>
-  (2 + Math.floor((highestStageReached || 1) * 0.1)) * (1 + (dockLevel || 0) * 0.15);
+  (3 + Math.floor((highestStageReached || 1) * 0.15)) * (1 + (dockLevel || 0) * 0.20);
 
 // Buffer da rede (padrão da Torre de Vigia: produção pausa com o buffer cheio; coleta manual).
 export const getFishingBufferCap = (dockLevel: number): number => 10 + (dockLevel || 0) * 8;

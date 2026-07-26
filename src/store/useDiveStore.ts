@@ -235,6 +235,7 @@ export const useDiveStore = create<DiveStoreState>((set, get) => ({
     if (opts.killedGuardian && opts.guardianZone) {
       const guardian = getGuardianForDepth(depth);
       pearls += guardian?.pearlReward ?? GUARDIAN_PEARL_REWARD;
+      coral += guardian?.coralReward ?? 0;
       const runeId = rollRuneForZone(zone, Math.random(), Math.random());
       runes[runeId] = (runes[runeId] || 0) + 1; // runa garantida do Guardião
       const abyss = useGameStore.getState().character.abyss;
