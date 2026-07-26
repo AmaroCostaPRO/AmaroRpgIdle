@@ -8,14 +8,29 @@ export const getManaPerMagic = (classId: string): number => {
   return (classId === 'mage' || classId === 'cleric') ? 6 : 18;
 };
 
-export const calculateMaxManaFromStats = (magic: number, manaBoost: number, classId: string): number => {
-  return Math.floor(magic * getManaPerMagic(classId) * manaBoost);
+// v-next: `maxManaPct` (pool aditivo de Sets/Academia/etc.) e `runeManaMultiplierPct` (camada
+// multiplicativa separada das runas Mar) nunca eram lidos aqui — bug pré-existente que fazia a
+// pesquisa/runas de Mana Máxima não terem efeito real algum. Corrigido para respeitar ambos.
+export const calculateMaxManaFromStats = (
+  magic: number,
+  manaBoost: number,
+  classId: string,
+  maxManaPct: number = 0,
+  runeManaMultiplierPct: number = 0
+): number => {
+  return Math.floor(magic * getManaPerMagic(classId) * manaBoost * (1 + maxManaPct) * (1 + runeManaMultiplierPct));
 };
 
 export const calculateMaxMana = (character: Character): number => {
   const finalStats = StatEngine.calculateFinalStats(character);
   const manaBoost = (1 + (character.ascensionCount || 0) * 0.025) * StatEngine.getTranscendenceBoost(character);
-  return calculateMaxManaFromStats(finalStats.magic, manaBoost, character.classId || 'warrior');
+  return calculateMaxManaFromStats(
+    finalStats.magic,
+    manaBoost,
+    character.classId || 'warrior',
+    finalStats.maxManaPct || 0,
+    finalStats.runeMultiplierPct?.maxManaPct || 0
+  );
 };
 
 // Custo de mana de uma habilidade como PORCENTAGEM da mana máxima do jogador, em vez de um valor

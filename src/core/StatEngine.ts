@@ -1,7 +1,8 @@
-import { BaseStats, Character, EquipmentItem } from '../core/types';
+import { BaseStats, Character, EquipmentItem, FinalStats } from '../core/types';
 import { useRelicStore } from '../store/useRelicStore';
 import { SKILLS_CATALOG } from '../store/useGameStore';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
+import type { RuneMultiplierStatKey } from '../core/types';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from './bestiaryFormulas';
 
 export const SET_BONUSES: Record<string, {
@@ -419,8 +420,8 @@ export class StatEngine {
   /**
    * Calcula o valor final consolidado dos atributos de um personagem.
    */
-  static calculateFinalStats(character: Character): BaseStats {
-    const finalStats: BaseStats = {
+  static calculateFinalStats(character: Character): FinalStats {
+    const finalStats: FinalStats = {
       strength: character.baseStats.strength || 0,
       magic: character.baseStats.magic || 0,
       dexterity: character.baseStats.dexterity || 0,
@@ -438,7 +439,8 @@ export class StatEngine {
       maxManaPct: 0,
       dropChancePct: 0,
       damageReductionPct: 0,
-      frenzyChancePct: 0
+      frenzyChancePct: 0,
+      runeMultiplierPct: {}
     };
 
     // 1. Somar atributos diretos dos equipamentos equipados
@@ -650,18 +652,29 @@ export class StatEngine {
       finalStats.critDamage = (finalStats.critDamage || 0) + (academy.researchCritDmgLevel || 0) * 2;
     }
 
-    // 4.7. Runas Abissais engastadas (v10.0.0 "A Cidadela Submersa"): soma os efeitos das runas
-    // em `equipment[*].socketedRunes` nas MESMAS variáveis percentuais que Colar/Academia já
-    // alimentam. Caps POR FAMÍLIA (runeFormulas.RUNE_FAMILY_CAPS) aplicados aqui, ANTES dos caps
-    // globais do jogo (95% red. de dano, 75% esquiva etc., no CombatFSM), que seguem sendo a
-    // última palavra. Efeitos secundários de T3 e flags condicionais das primordiais NÃO são
-    // consumidos nesta versão (cadastrados em runeFormulas.ts para a 10.1.0+). Primordiais com
-    // parte numérica direta já ativas: Thal (extraStats), Ecoh (+4% atributos primários) e
-    // Morvo (+1% dano a cada 10 profundidades do recorde, cap +40%).
+    // 4.7. Runas Abissais engastadas (v10.0.0 "A Cidadela Submersa"; v-next "camada multiplicativa"):
+    // os efeitos de FAMÍLIA das runas em `equipment[*].socketedRunes` NÃO somam mais no pool aditivo
+    // que Colar/Academia/Sets/Relíquias alimentam — vão para `finalStats.runeMultiplierPct`, um
+    // multiplicador separado (mesmo espírito de getTranscendenceBoost()/hpBoost da Ascensão),
+    // consumido no CombatFSM como `(1 + poolPct) * (1 + runeMultiplierPct[stat])`. Isso evita que o
+    // bônus de uma runa seja diluído por Sets/Relíquias/Academia já acumulados — runas são conteúdo
+    // de endgame e devem manter impacto real. Caps POR FAMÍLIA (runeFormulas.RUNE_FAMILY_CAPS)
+    // continuam aplicados aqui, antes de virar multiplicador. Efeitos secundários de T3 e flags
+    // condicionais das primordiais NÃO são consumidos nesta versão (cadastrados em runeFormulas.ts
+    // para a 10.1.0+). Primordiais com parte numérica direta já ativas: Thal (extraStats), Ecoh
+    // (+4% atributos primários) e Morvo (+1% dano a cada 10 profundidades do recorde, cap +40%) —
+    // essas continuam aditivas, fora do escopo desta mudança.
     if (character.equipment) {
       const familyTotals: Partial<Record<RuneFamilyId, number>> = {};
       let hasEcoh = false;
       const primordialExtras: Partial<BaseStats> = {};
+      // Palavras Rúnicas cujo statBonus é do MESMO tipo de uma família de runa base — essas também
+      // viram multiplicativas (as demais Palavras não têm statBonuses ou dão stats sem família
+      // equivalente, ex.: reflectDamagePct de ÂNCORA DO MUNDO, que continua aditivo).
+      const RUNEWORD_MULTIPLICATIVE_KEYS: Record<string, Array<keyof BaseStats>> = {
+        fome_abismo: ['lifesteal'],
+        coracao_leviata: ['maxHpPct'],
+      };
       Object.values(character.equipment).forEach((item) => {
         if (!item || !item.socketedRunes) return;
         // v10.3.0: Palavra Rúnica ativa — os bônus fixos da Palavra SUBSTITUEM a soma individual
@@ -669,11 +682,15 @@ export class StatEngine {
         const activeRuneword = getActiveRuneword(item);
         if (activeRuneword) {
           if (activeRuneword.statBonuses) {
+            const multiplicativeKeys = RUNEWORD_MULTIPLICATIVE_KEYS[activeRuneword.id] || [];
             (Object.keys(activeRuneword.statBonuses) as Array<keyof BaseStats>).forEach((key) => {
               const bonus = activeRuneword.statBonuses![key] as number;
               if (key === 'reflectDamagePct') {
                 // Cap conjunto de 55% com a Retribuição Aura do Paladino (Anexo §2.3).
                 finalStats.reflectDamagePct = Math.min(55, (finalStats.reflectDamagePct || 0) + bonus);
+              } else if (multiplicativeKeys.includes(key)) {
+                const runeKey = key as RuneMultiplierStatKey;
+                finalStats.runeMultiplierPct![runeKey] = (finalStats.runeMultiplierPct![runeKey] || 0) + bonus;
               } else {
                 (finalStats[key] as number) = ((finalStats[key] as number) || 0) + bonus;
               }
@@ -703,8 +720,8 @@ export class StatEngine {
       });
       (Object.keys(familyTotals) as RuneFamilyId[]).forEach((family) => {
         const capped = Math.min(familyTotals[family] || 0, RUNE_FAMILY_CAPS[family]);
-        const statKey = RUNE_FAMILIES[family].statKey;
-        finalStats[statKey] = ((finalStats[statKey] as number) || 0) + capped;
+        const statKey = RUNE_FAMILIES[family].statKey as RuneMultiplierStatKey;
+        finalStats.runeMultiplierPct![statKey] = (finalStats.runeMultiplierPct![statKey] || 0) + capped;
       });
       (Object.keys(primordialExtras) as Array<keyof BaseStats>).forEach((key) => {
         finalStats[key] = ((finalStats[key] as number) || 0) + (primordialExtras[key] as number);

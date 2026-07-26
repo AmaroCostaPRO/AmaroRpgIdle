@@ -208,6 +208,7 @@ A Vida Máxima, a Regeneração de HP e a resistência a danos escalam a partir 
     *   Regeneração de HP ganha por ponto de Constituição: $0.08\text{ HP/s}$
 *   **Redução de Dano Recebido (Todas as Classes)**:
     *   Cada ponto de Constituição reduz em $0.05\%$ todo o dano recebido por ataques de monstros, com um limite máximo de $95\%$ de redução total para fins de equilíbrio de jogabilidade.
+    *   $\text{HP Máximo} = \text{Constituição} \times \text{HP por ponto} \times \text{hpBoost}_{\text{Ascensão/Transcendência}} \times (1 + \text{maxHpPct}) \times (1 + \text{Bônus Multiplicativo de Runas})$ — `CombatFSM.calculatePlayerMaxHP`. `maxHpPct` é o pool aditivo de Equipamento/Sets/Relíquias/Pesquisa da Academia; o **Bônus Multiplicativo de Runas** (v-next, Seção 18.L) é uma camada **separada e por fora** desse pool, alimentada pelas runas da família Vin e pela Palavra Rúnica CORAÇÃO DO LEVIATÃ — o mesmo padrão da redução de dano (`damage *= (1 - damageReductionPct)` seguido de `damage *= (1 - Bônus Multiplicativo de Runas Dol)`, ambos aplicados nos 4 pontos de dano recebido pelo jogador em `CombatFSM.ts`).
 
 #### 2. Mana Máxima e Regeneração
 A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
@@ -217,12 +218,14 @@ A Mana Máxima e a Regeneração de Mana escalam a partir do atributo **Magia**:
 *   **Outras Classes (Guerreiro, Arqueiro, Paladino, Ladrão)**:
     *   Mana Máxima ganha por ponto de Magia: $18\text{ Mana}$ (torna viável conjurar habilidades táticas com poucos pontos investidos)
     *   Regeneração de Mana ganha por ponto de Magia: $0.20\text{ Mana/s}$ *(ajuste pós-lançamento da v9.0.0 — antes $0.05\text{ Mana/s}$; ver Histórico de Updates e Otimizações de Engenharia.md)*
+*   **Mana Máxima (fórmula completa)**: $\text{Mana Máxima} = \text{Magia} \times \text{Mana por ponto} \times \text{manaBoost}_{\text{Ascensão/Transcendência}} \times (1 + \text{maxManaPct}) \times (1 + \text{Bônus Multiplicativo de Runas Mar})$ (`manaFormulas.calculateMaxManaFromStats`). **Correção de bug (v-next)**: até então, `maxManaPct` (pool aditivo de Sets/Academia/Colar) e o bônus de runas Mar eram calculados em `StatEngine.ts` mas nunca lidos pela fórmula de Mana Máxima — pesquisas e runas de Mana não tinham nenhum efeito real no jogo. Corrigido para os dois fatores entrarem de fato no cálculo.
 
 #### 3. Velocidade de Ataque (Attack Speed) e Esquiva (Dodge)
 A velocidade com que o herói realiza ataques básicos e sua chance de se esquivar de ataques inimigos escalam a partir do atributo **Destreza**, através de uma **raiz quadrada** (para evitar crescimento linear descontrolado em fases avançadas):
-$$\text{Velocidade de Ataque} = \left(1 + \sqrt{\text{Destreza}} \times \text{Fator de Destreza}\right) \times \text{Bônus de Velocidade de Habilidades} \times \left(1 + \text{Bônus de Set/Colar/Academia}\right)$$
+$$\text{Velocidade de Ataque} = \left(1 + \sqrt{\text{Destreza}} \times \text{Fator de Destreza}\right) \times \text{Bônus de Velocidade de Habilidades} \times \left(1 + \text{Bônus de Set/Colar/Academia}\right) \times \left(1 + \text{Bônus Multiplicativo de Runas Lum}\right)$$
 *   **Classes Primárias de Destreza (Arqueiro, Ladrão)**: $\text{Fator de Destreza} = 0.15$
 *   **Outras Classes (Guerreiro, Mago, Paladino, Clérigo)**: $\text{Fator de Destreza} = 0.40$ (compensa a menor Destreza base dessas classes)
+*   O bônus de runas Lum (v-next, Seção 18.L) é uma camada multiplicativa separada do pool `attackSpeedPct`, mas continua sujeita ao mesmo teto final de velocidade abaixo.
 *   O multiplicador final de velocidade é limitado a um teto de **$15\times$**.
 *   **Esquiva (Todas as Classes)**:
     $$\text{Chance de Esquiva} = \min\left(75\%,\ \text{Destreza} \times 0.1\% + \text{Ascensões} \times 0.5\%\right)$$
@@ -231,9 +234,11 @@ $$\text{Velocidade de Ataque} = \left(1 + \sqrt{\text{Destreza}} \times \text{Fa
 #### 4. Drop, Ouro e Crítico (Sorte)
 O atributo **Sorte** influencia a probabilidade e qualidade dos itens derrubados, o ouro ganho e também o desempenho em combate ativamente através do clique:
 *   **Chance de Drop (Monstros Normais)**:
-    $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\% + \text{Bônus de Relíquia} + \text{Bônus de Colar (}dropChancePct\text{)}\right)$$
+    $$\text{Chance} = \min\left(50\%, 5\% + \text{Sorte} \times 0.2\% + \text{Bônus de Relíquia} + \text{Bônus de Colar (}dropChancePct\text{)}\right) \times \left(1 + \text{Bônus Multiplicativo de Runas Fen}\right)$$
+    O bônus de runas Fen (v-next, Seção 18.L) é aplicado **depois** do teto de $50\%$ acima — mesmo padrão já usado pelo Elixir do Acumulador (`CombatFSM.ts`) — podendo levar a chance final além de $50\%$ em builds de runas de endgame (limitado apenas ao teto absoluto de $100\%$).
 *   **Multiplicador de Ouro** (escala por raiz quadrada, ver também Seção 13.B):
-    $$\text{Bônus} = 1 + \frac{\sqrt{\text{Sorte Final}}}{10}$$
+    $$\text{Bônus} = \left(1 + \frac{\sqrt{\text{Sorte Final}}}{10}\right) \times (1 + \text{Bônus de Relíquia}) \times \left(1 + \text{Bônus Multiplicativo de Runas Sol}\right)$$
+    Runas Sol (família "Fortuna") são a única fonte de `goldBonusPct` do jogo — desde a v-next, esse bônus passou a ser uma camada multiplicativa isolada (Seção 18.L) em vez de somar num pool aditivo compartilhado, sem outra fonte no jogo hoje.
 *   **Chance de Crítico**:
     Cada ponto de Sorte adiciona $+0.05\%$ de Chance de Crítico (cumulativo com itens e upgrades de prestígio).
 *   **Dano Crítico**:
@@ -1582,6 +1587,16 @@ Resgate (`rescueEcho`): 10%/profundidade concluída na Zona 3+ (máx. 2/descida,
 
 ### L. Câmara de Gravação, Runas Abissais e Palavras Rúnicas (`runeFormulas.ts`)
 12ª construção da Cidadela Astral (`EngravingChamberPanel.tsx`, 5 níveis) — perfuração de soquetes em equipamento pesado (`getMaxSocketsForSlot`, cabeça atinge 3 soquetes no Nível 5) e engaste de runas dropadas nas Profundezas (8% flat por abate, sem influência de Sorte, `DIVE_RUNE_DROP_CHANCE`). **9 famílias base** (`RUNE_FAMILIES`, 3 tiers cada — Ur/Kar/Sol/Vin/Mar/Nix/Lum/Dol/Fen, cada uma com um efeito secundário exclusivo de Tier III consumido em `CombatFSM.ts` via `hasRuneSecondaryFlag`). **Palavras Rúnicas** (`RUNEWORD_CATALOG`, 9 receitas, só na Câmara Nível 5): gravar a sequência exata de runas certa (`engraveRuneword`) num item com soquetes suficientes sobrescreve `item.socketedRunes` e ativa `activeRuneword` — `StatEngine.ts` passo 4.7 checa `getActiveRuneword(item)` antes de somar runas individuais, substituindo pelo efeito fixo. `undoRuneword` devolve as runas ao cofre intactas. O custo de fusão/gravação e a chance de retorno de runa são reduzidos pela Forja Encharcada (Seção 18.G); a revelação antecipada de receitas ainda bloqueadas é influenciada pelo Arquivo Submerso (Seção 18.H).
+
+**Camada Multiplicativa de Runas (v-next, `runeMultiplierPct`)**: até esta revisão, o bônus percentual de família de runa somava direto nos mesmos pools aditivos (`maxHpPct`, `damageMultiplierPct` etc.) que Equipamento/Sets/Relíquias/Pesquisa da Academia já alimentavam — como esses pools já acumulam valores grandes no endgame (Sets de topo chegam a +40% Dano/+20% Vida, Relíquias +25%/+10%), o ganho relativo de cada nova runa ficava cada vez menor, apesar do custo crescente de perfuração/fusão. Corrigido isolando o bônus de família em um campo separado (`FinalStats.runeMultiplierPct`, `src/core/types.ts`), aplicado como um **multiplicador independente por fora do pool** — mesmo espírito do bônus permanente de Transcendência (Seção 11.B) e do `alma_avatar`:
+
+$$\text{Stat Final} = \text{Base} \times (1 + \text{Pool Aditivo}_{\text{Sets/Relíquias/Academia/Equip.}}) \times (1 + \text{Bônus Multiplicativo de Runas})$$
+
+Aplicado às **9 famílias base**, cada uma com seu próprio cap de família (`RUNE_FAMILY_CAPS`, calculado antes de virar multiplicador) e ponto de consumo em `CombatFSM.ts`: Vin (Vida, `calculatePlayerMaxHP`), Kar (Dano Geral, dentro de `getRuneConditionalDamageMultiplier()`, chamado nos 3 pontos de cálculo de dano), Mar (Mana Máxima, `calculatePlayerMaxMana`/`manaFormulas.ts`), Lum (Velocidade de Ataque, `getSpeedMultiplier`), Dol (Redução de Dano, novo helper `getRuneDamageReductionMultiplier()`, chamado nos 4 pontos de dano recebido pelo jogador), Fen (Chance de Drop, aplicado **após** o teto de 50%, podendo superá-lo), Sol (Bônus de Ouro) e Nix (Dano vs. Elite/Chefe) — essas duas últimas já eram as únicas fontes de suas respectivas stats no jogo, então a mudança nelas é só organizacional. **Ur (Lifesteal)** segue uma variante: como o roubo de vida é uma taxa aplicada direto sobre o dano causado (não um "(1+x) sobre uma base"), o bônus de Ur amplifica multiplicativamente o lifesteal já acumulado de Sets (`Pandemônio`/`Celestial`/`Lua de Sangue`): $\text{Lifesteal Efetivo} = \text{lifesteal (pool de Sets)} \times (1 + \text{Bônus Multiplicativo de Runas Ur})$.
+
+**Palavras Rúnicas também migradas seletivamente**: das 9 receitas, só as 2 cujo `statBonuses` corresponde ao mesmo tipo de uma família de runa base entraram na camada multiplicativa — **FOME DO ABISMO** (Lifesteal +8%, mesmo tipo que Ur) e **CORAÇÃO DO LEVIATÃ** (+20% Vida Máx., mesmo tipo que Vin). **ÂNCORA DO MUNDO** (`reflectDamagePct`, mesmo stat da Retribuição do Paladino) permanece aditiva por não ter família de runa equivalente; as demais 6 Palavras não têm `statBonuses` numéricos e não são afetadas. As **Runas Primordiais** (Thal/Ecoh/Morvo e as demais) permanecem 100% aditivas, fora do escopo desta mudança.
+
+**Correção de bug acoplada — Mana Máxima nunca respeitava `maxManaPct`**: durante esta revisão, identificou-se que `manaFormulas.calculateMaxManaFromStats` nunca lia o pool `maxManaPct` nem o novo bônus de runas Mar — pesquisas/runas/sets de Mana Máxima nunca tiveram efeito real na Mana do personagem desde sua introdução. Corrigido junto (Seção 4.C.2).
 
 **9 Runas Primordiais** (`PRIMORDIAL_RUNES`, tier único, no máximo 1 copiada equipada por vez no personagem inteiro — a regra de soquete não muda, mas o cofre `runeInventory` aceita múltiplas cópias de todas exceto Nereh): Thal (Guardião 1), Nereh (compra única no Templo da Maré, Seção 18.I, 200 Pérolas), Vrak (Guardião 2), Ciss (Carpideira do Sal, drop raro repetível ~0.5%/abate), Morvo (Guardião 3), Ecoh (12º Eco resgatado, garantida; resgates seguintes ~0.4% de repetição), Faro (pesca ativa — determinística, uma cópia a cada 100 acertos perfeitos acumulados, `Math.floor(faroPerfectCatches / FARO_PERFECT_CATCHES_REQUIRED)`), Levh (1ª morte do Leviatã garantida; mortes seguintes ~0.5% de repetição), Umbra (Fossa Z4, drop raro repetível ~0.3%/abate). Thal/Vrak/Morvo têm a 1ª cópia garantida na respectiva 1ª morte de Guardião, com ~0.5% de chance de repetição em mortes seguintes do mesmo Guardião.
 

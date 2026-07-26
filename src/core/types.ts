@@ -30,6 +30,22 @@ export interface BaseStats {
   eliteDamagePct?: number; // Nix — dano vs. Elite/Chefe, consumido em damageEnemy
 }
 
+// Chaves de BaseStats que a camada multiplicativa separada de Runas pode amplificar.
+export type RuneMultiplierStatKey =
+  'damageMultiplierPct' | 'maxHpPct' | 'maxManaPct' | 'attackSpeedPct' |
+  'damageReductionPct' | 'dropChancePct' | 'goldBonusPct' | 'eliteDamagePct' | 'lifesteal';
+
+// v-next: retorno de `StatEngine.calculateFinalStats` — estende `BaseStats` (usada genericamente
+// para bônus de equipamento/sets/skills, sempre numéricos) com o bucket `runeMultiplierPct`, que
+// fica FORA do pool aditivo (mesmo espírito de getTranscendenceBoost()/hpBoost da Ascensão), para
+// que o bônus de Runas (famílias base + Palavras Rúnicas Fome do Abismo/Coração do Leviatã) não
+// seja diluído por Sets/Academia/Relíquias já acumulados. Mantido como interface separada (em vez
+// de campo direto em BaseStats) para não quebrar os vários loops genéricos `keyof BaseStats` que
+// assumem todo stat como `number`.
+export interface FinalStats extends BaseStats {
+  runeMultiplierPct?: Partial<Record<RuneMultiplierStatKey, number>>;
+}
+
 export interface EquipmentItem {
   id: string;
   name: string;

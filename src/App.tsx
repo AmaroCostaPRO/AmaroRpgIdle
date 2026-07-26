@@ -354,7 +354,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v10.10.0 — Cidadela Submersa: Refinamentos e Endgame!
+              🔔 Atualização v10.11.0 — Cidadela Submersa: Refinamentos e Endgame!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -366,7 +366,7 @@ const App: React.FC = () => {
 
                 {/* v10.1.0 a v10.10.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.10.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.11.0 (Atual):</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
@@ -430,6 +430,14 @@ const App: React.FC = () => {
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
                         O upgrade do Traje de Mergulho foi realocado para o painel da Doca Batial (corrigindo um bug em que ela aparecia vazia após restaurada). A Restauração II/III dos distritos e o próprio Traje passam a levar tempo real para concluir, em vez de serem instantâneos.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#eab308', fontSize: '0.72rem' }}>
+                        🪬 Runas Viram Camada Multiplicativa Separada
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O bônus das 9 famílias de Runas (e das Palavras Rúnicas Fome do Abismo/Coração do Leviatã) deixa de somar no mesmo pool de Sets/Relíquias/Academia e vira um multiplicador próprio por fora — Runas de endgame agora dão um ganho real, em vez de ficarem diluídas conforme seus outros bônus crescem. Corrigido de brinde um bug em que a Mana Máxima nunca respeitava pesquisas/sets/runas de Mana.
                       </div>
                     </div>
                   </div>

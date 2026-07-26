@@ -1,4 +1,4 @@
-import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_POOL } from './types';
+import { GameEvent, EnemyType, ENEMIES_PER_STAGE, BaseStats, EquipmentItem, PET_POOL, FinalStats } from './types';
 import { bridge } from '../bridge/GameBridge';
 import { useGameStore, SKILLS_CATALOG, SKILL_BASE_MULTIPLIERS, formatNumber, getSavedLevelBeforeDailyChallenge } from '../store/useGameStore';
 import { useRelicStore } from '../store/useRelicStore';
@@ -954,7 +954,7 @@ export interface StatusEffect {
 export class CombatFSM {
   private currentState: CombatState = CombatState.IDLE;
   public characterData: any;
-  private playerFinalStats!: BaseStats;
+  private playerFinalStats!: FinalStats;
   private target?: any;
 
   public playerHP: number = 100;
@@ -1137,13 +1137,20 @@ export class CombatFSM {
     // Se NÃO é o atributo primário (outras classes), escala mais: 18 HP por ponto
     const hpPerCon = (classId === 'paladin') ? 8 : 18;
     const setHpMultiplier = 1 + (this.playerFinalStats?.maxHpPct || 0);
-    return Math.floor(constitution * hpPerCon * hpBoost * setHpMultiplier);
+    const runeHpMultiplier = 1 + (this.playerFinalStats?.runeMultiplierPct?.maxHpPct || 0);
+    return Math.floor(constitution * hpPerCon * hpBoost * setHpMultiplier * runeHpMultiplier);
   }
 
   private calculatePlayerMaxMana(magic: number, manaBoost: number, classId: string): number {
     // Se magia é o atributo primário (Mago, Clérigo), escala menos: 6 Mana por ponto
     // Se NÃO é o atributo primário (outras classes), escala mais: 18 Mana por ponto
-    return calculateMaxManaFromStats(magic, manaBoost, classId);
+    return calculateMaxManaFromStats(
+      magic,
+      manaBoost,
+      classId,
+      this.playerFinalStats?.maxManaPct || 0,
+      this.playerFinalStats?.runeMultiplierPct?.maxManaPct || 0
+    );
   }
 
   private getHpRegen(constitution: number, classId: string): number {
@@ -1165,9 +1172,10 @@ export class CombatFSM {
     // Se NÃO é o atributo primário (outras classes), o multiplicador de raiz quadrada é maior para compensar a falta de destreza base
     const factor = (classId === 'ranger' || classId === 'rogue') ? 0.15 : 0.40;
     const setSpeedMultiplier = 1 + (this.playerFinalStats?.attackSpeedPct || 0);
+    const runeSpeedMultiplier = 1 + (this.playerFinalStats?.runeMultiplierPct?.attackSpeedPct || 0);
     // v10.0.0: [ENCHARCADO] no herói — −15% de Velocidade de Ataque enquanto durar
     const soakedMultiplier = this.playerEffects?.some(e => e.id === 'soaked') ? 0.85 : 1.0;
-    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier * soakedMultiplier;
+    return (1 + Math.sqrt(dexterity) * factor) * attackSpeedBoost * setSpeedMultiplier * runeSpeedMultiplier * soakedMultiplier;
   }
 
   // Verifica se uma relíquia foi submetida ao Superaquecimento de Alma no Laboratório de Relíquias Místicas da Cidadela
@@ -1862,6 +1870,7 @@ export class CombatFSM {
       if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
         explosion = Math.floor(explosion * (1 - this.playerFinalStats.damageReductionPct));
       }
+      explosion = Math.floor(explosion * this.getRuneDamageReductionMultiplier());
       if (this.diveBreath <= 0) {
         explosion = Math.floor(explosion * DROWNING_DAMAGE_MULT);
       }
@@ -1993,6 +2002,9 @@ export class CombatFSM {
   // de gelo/raio) e OLHAR DO VAZIO (+100% "execute" contra inimigos abaixo de 15% de HP).
   private getRuneConditionalDamageMultiplier(): number {
     let mult = 1;
+    // v-next: bônus de Dano das runas Kar (família), agora camada multiplicativa separada do pool
+    // aditivo de damageMultiplierPct — chamado nos 3 pontos de cálculo de dano que já usam este método.
+    mult *= 1 + (this.playerFinalStats?.runeMultiplierPct?.damageMultiplierPct || 0);
     if (this.hasRuneSecondaryFlag('kar_high_hp_bonus') && this.playerHP > this.playerMaxHP * 0.8) {
       mult *= 1.03;
     }
@@ -2014,6 +2026,13 @@ export class CombatFSM {
       if (throneEfficacy > 0) mult *= 1 + throneEfficacy;
     }
     return mult;
+  }
+
+  // v-next: bônus de Redução de Dano das runas Dol (família), camada multiplicativa separada do
+  // pool aditivo de damageReductionPct (que agora só reflete fontes não-runa, ex.: Thal). Chamado
+  // nos 4 pontos que já aplicam `damage *= (1 - damageReductionPct)`.
+  private getRuneDamageReductionMultiplier(): number {
+    return 1 - (this.playerFinalStats?.runeMultiplierPct?.damageReductionPct || 0);
   }
 
   // Retorna a "força" acumulada de uma Bênção da Maré (0 = inativa, 1.0 = 1 slot ativo, até 1.5 se
@@ -2066,10 +2085,15 @@ export class CombatFSM {
       this.playerFinalStats = applyCursesToStats(this.playerFinalStats, towerState.activeCurses);
     }
 
+    // v-next: os "recordes" de drop/redução de dano precisam refletir a camada multiplicativa de
+    // runas (Fen/Dol), senão o registro fica sub-representado assim que o bônus de runa deixa de
+    // estar somado no pool aditivo.
+    const runeDropMultForRecord = this.playerFinalStats.runeMultiplierPct?.dropChancePct || 0;
+    const runeReductionMultForRecord = this.playerFinalStats.runeMultiplierPct?.damageReductionPct || 0;
     useGameStore.getState().updateBestCombatStats({
       critChance: this.playerFinalStats.critChance,
-      dropChancePct: this.playerFinalStats.dropChancePct,
-      damageReductionPct: this.playerFinalStats.damageReductionPct,
+      dropChancePct: Math.min(1, (this.playerFinalStats.dropChancePct || 0) * (1 + runeDropMultForRecord)),
+      damageReductionPct: 1 - (1 - (this.playerFinalStats.damageReductionPct || 0)) * (1 - runeReductionMultForRecord),
     });
 
     const ascensionCount = char.ascensionCount || 0;
@@ -2290,6 +2314,7 @@ export class CombatFSM {
                 if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
                   vagalhaoDamage = Math.floor(vagalhaoDamage * (1 - this.playerFinalStats.damageReductionPct));
                 }
+                vagalhaoDamage = Math.floor(vagalhaoDamage * this.getRuneDamageReductionMultiplier());
                 this.playerHP = Math.max(0, this.playerHP - vagalhaoDamage);
                 if (this.scene && typeof this.scene.spawnDamageText === 'function') {
                   this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, `-${vagalhaoDamage} (VAGALHÃO!)`, '#0ea5e9');
@@ -3340,6 +3365,8 @@ export class CombatFSM {
     if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
       damage = Math.floor(damage * (1 - this.playerFinalStats.damageReductionPct));
     }
+    // Redução de dano das runas Dol (família) — camada multiplicativa separada.
+    damage = Math.floor(damage * this.getRuneDamageReductionMultiplier());
 
     // Palavra Rúnica PULMÃO DE FERRO: FORA das Profundezas, +8% de Redução de Dano (dentro delas,
     // o bônus vira −30% de dreno de Fôlego — ver update()).
@@ -3609,8 +3636,9 @@ export class CombatFSM {
 
     // v10.0.0: Runas Nix — dano adicional vs. Elite/Chefe (eliteDamagePct, somado no passo 4.7
     // do StatEngine com cap de família de 25%).
-    if ((this.isElite || this.currentEnemy.id.startsWith('boss_')) && this.playerFinalStats?.eliteDamagePct && this.playerFinalStats.eliteDamagePct > 0) {
-      finalAmount = Math.floor(finalAmount * (1 + this.playerFinalStats.eliteDamagePct));
+    const runeEliteDamagePct = this.playerFinalStats?.runeMultiplierPct?.eliteDamagePct || 0;
+    if ((this.isElite || this.currentEnemy.id.startsWith('boss_')) && runeEliteDamagePct > 0) {
+      finalAmount = Math.floor(finalAmount * (1 + runeEliteDamagePct));
     }
 
     // v8.0.0: Elite 'replicante' — a réplica fantasma (escudo) absorve dano antes do HP real.
@@ -3682,14 +3710,16 @@ export class CombatFSM {
       }
     }
 
-    // Roubo de Vida (Lifesteal) dos Sets Pandemônio/Celestial (3 peças)
-    if (isDirect && this.playerFinalStats && this.playerFinalStats.lifesteal && this.playerFinalStats.lifesteal > 0 && this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
+    // Roubo de Vida (Lifesteal) dos Sets Pandemônio/Celestial (3 peças), amplificado pela camada
+    // multiplicativa de runas (Ur + Palavra FOME DO ABISMO).
+    const effectiveLifesteal = (this.playerFinalStats?.lifesteal || 0) * (1 + (this.playerFinalStats?.runeMultiplierPct?.lifesteal || 0));
+    if (isDirect && effectiveLifesteal > 0 && this.playerHP > 0 && this.playerHP < this.playerMaxHP) {
       // Cura = lifesteal% do MENOR entre o dano causado e a vida máxima do jogador.
       // Sem isso, dano de fim de jogo (ordens de magnitude maior que o HP do
       // próprio jogador) faria o roubo de vida curar milhões por acerto — aqui
       // ele fica preso a, no máximo, lifesteal% da vida máxima por acerto.
-      const rawDrain = amount * this.playerFinalStats.lifesteal;
-      const hpBasedCap = this.playerMaxHP * this.playerFinalStats.lifesteal;
+      const rawDrain = amount * effectiveLifesteal;
+      const hpBasedCap = this.playerMaxHP * effectiveLifesteal;
       let drainAmount = Math.floor(Math.min(rawDrain, hpBasedCap));
       // Ur T3 (ur_crit_lifesteal): curas de Lifesteal podem criticar (usa o crit do golpe atual).
       if (drainAmount > 0 && this.lastHitWasCrit && this.hasRuneSecondaryFlag('ur_crit_lifesteal')) {
@@ -3779,6 +3809,7 @@ export class CombatFSM {
       if (this.playerFinalStats.damageReductionPct && this.playerFinalStats.damageReductionPct > 0) {
         volatileDamage = Math.floor(volatileDamage * (1 - this.playerFinalStats.damageReductionPct));
       }
+      volatileDamage = Math.floor(volatileDamage * this.getRuneDamageReductionMultiplier());
       this.playerHP = Math.max(0, this.playerHP - volatileDamage);
     }
 
@@ -3911,8 +3942,8 @@ export class CombatFSM {
 
     const luckBonus = 1 + Math.sqrt(this.playerFinalStats.luck || 0) * 0.1;
     const relicGoldBonus = useRelicStore.getState().getRelicEffectBonus('moeda_ciclo');
-    // v10.0.0: Runas Sol — bônus de ouro (goldBonusPct, somado no passo 4.7 do StatEngine com cap de família de 30%)
-    const runeGoldBonus = this.playerFinalStats.goldBonusPct || 0;
+    // v10.0.0: Runas Sol — bônus de ouro, camada multiplicativa separada (cap de família de 30% aplicado no StatEngine)
+    const runeGoldBonus = this.playerFinalStats.runeMultiplierPct?.goldBonusPct || 0;
     gainedGold = Math.floor(gainedGold * luckBonus * (1 + relicGoldBonus) * (1 + runeGoldBonus));
 
     // Capstone da Moeda do Ciclo Eterno (Lvl 5): +5% de chance de monstros normais droparem ouro em dobro
@@ -4093,6 +4124,12 @@ export class CombatFSM {
     const relicDropBonus = useRelicStore.getState().getRelicEffectBonus('simbolo_aprendizado');
     const dropPctBonus = this.playerFinalStats.dropChancePct || 0;
     let dropChance = (isBoss || this.isElite) ? 1.0 : Math.min(0.50, baseDropChance + luck * 0.002 + relicDropBonus + dropPctBonus);
+    // v-next: Runas Fen — camada multiplicativa separada, aplicada DEPOIS do teto de 50% (mesmo
+    // padrão do Elixir do Acumulador abaixo), permitindo passar do teto em builds de endgame.
+    const runeDropMult = this.playerFinalStats.runeMultiplierPct?.dropChancePct || 0;
+    if (runeDropMult > 0) {
+      dropChance = Math.min(1.0, dropChance * (1 + runeDropMult));
+    }
     // Elixir do Acumulador (v7.0.0): +50% de Chance de Drop, aplicado após o teto normal de 50%
     if (this.isElixirAcumuladorActive) {
       dropChance = Math.min(1.0, dropChance * 1.5);

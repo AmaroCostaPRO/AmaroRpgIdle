@@ -5820,7 +5820,8 @@ const StatisticsPanel: React.FC = () => {
   const hpBoost = (1 + (ascensionCount * 0.025)) * StatEngine.getTranscendenceBoost(character);
   const hpPerCon = character.classId === 'paladin' ? 8 : 18;
   const setHpMultiplier = 1 + (finalStats.maxHpPct || 0);
-  const currentMaxHP = Math.floor(finalStats.constitution * hpPerCon * hpBoost * setHpMultiplier);
+  const runeHpMultiplier = 1 + (finalStats.runeMultiplierPct?.maxHpPct || 0);
+  const currentMaxHP = Math.floor(finalStats.constitution * hpPerCon * hpBoost * setHpMultiplier * runeHpMultiplier);
 
   const sectionStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'rgba(0,0,0,0.25)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-dim)' };
   const labelStyle: React.CSSProperties = { fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--gold-400)', textTransform: 'uppercase', letterSpacing: '0.05em' };
@@ -5839,8 +5840,8 @@ const StatisticsPanel: React.FC = () => {
         <Row label="Maior dano em um golpe" value={fmt(character.bestDamageDealt)} />
         <Row label="Vida (atual / recorde)" value={`${fmt(currentMaxHP)} / ${fmt(character.bestMaxHP)}`} />
         <Row label="Crítico (atual / recorde)" value={`${fmtPct(finalStats.critChance / 100)} / ${fmtPct((character.bestCritChance || 0) / 100)}`} />
-        <Row label="Chance de drop (atual / recorde)" value={`${fmtPct(finalStats.dropChancePct)} / ${fmtPct(character.bestDropChancePct)}`} />
-        <Row label="Redução de dano (atual / recorde)" value={`${fmtPct(finalStats.damageReductionPct)} / ${fmtPct(character.bestDamageReductionPct)}`} />
+        <Row label="Chance de drop (atual / recorde)" value={`${fmtPct(Math.min(1, (finalStats.dropChancePct || 0) * (1 + (finalStats.runeMultiplierPct?.dropChancePct || 0))))} / ${fmtPct(character.bestDropChancePct)}`} />
+        <Row label="Redução de dano (atual / recorde)" value={`${fmtPct(1 - (1 - (finalStats.damageReductionPct || 0)) * (1 - (finalStats.runeMultiplierPct?.damageReductionPct || 0)))} / ${fmtPct(character.bestDamageReductionPct)}`} />
         <Row label="Maior velocidade de ataque" value={`x${(character.bestAttackSpeedMultiplier || 0).toFixed(2)}`} />
         <Row label="Maior chance de esquiva" value={`${(character.bestDodgeChance || 0).toFixed(1)}%`} />
       </div>
