@@ -4222,6 +4222,12 @@ export class CombatFSM {
       // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial, Lua de Sangue nem Pandemônio)
       const isAncestralDrop = !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
 
+      // v10.x: a partir da fase 31, o "Lendário solto" (sem set especial) também deixa de dropar —
+      // só os sets especiais (Celestial, Lua de Sangue, Pandemoníaco, Ancestral) aparecem a partir daqui
+      if (stage >= 31 && !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && !isAncestralDrop) {
+        continue;
+      }
+
       // Se for drop Celestial o multiplicador é 7.0; Lua de Sangue é 5.5; Pandemônio é 6.0; Ancestral é 4.5; senão segue o padrão
       const mult = isCelestialDrop ? 7.0 : (isBloodMoonDrop ? 5.5 : (isPandemoniumDrop ? 6.0 : (isAncestralDrop ? 4.5 : (rarity === 'legendary' ? 2.5 : (rarity === 'rare' ? 1.5 : 1.0)))));
       
