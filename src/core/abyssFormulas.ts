@@ -113,20 +113,23 @@ export const ZONE_INFO: Record<DiveZone, { name: string; color: string }> = {
 // Fatores de Zona — análogo direto do Fator Tier da campanha (Balanceamento §1.2).
 export const ZONE_FACTORS: Record<DiveZone, { hp: number; dmg: number }> = {
   1: { hp: 1.00, dmg: 1.00 },
-  2: { hp: 1.25, dmg: 1.15 },
-  3: { hp: 1.60, dmg: 1.35 },
-  4: { hp: 2.00, dmg: 1.60 },
+  2: { hp: 1.20, dmg: 1.10 },
+  3: { hp: 1.40, dmg: 1.25 },
+  4: { hp: 1.70, dmg: 1.45 },
 };
 
+// v10.7.0: curva suavizada (coeficiente e expoente reduzidos) — a curva original deixava os
+// Guardiões de Zona 2/3 praticamente intransponíveis mesmo no cap de 95% de redução por
+// Constituição, muito antes da Zona 4 profunda pretendida como "parede letal" do modo.
 export const getDiveEnemyHP = (depth: number, anchorStage: number, enemyHpMult: number = 1.0): number =>
   Math.floor(
-    getCampaignCommonEnemyHP(anchorStage) * 0.5 * Math.pow(1.09, depth - 1) *
+    getCampaignCommonEnemyHP(anchorStage) * 0.42 * Math.pow(1.09, depth - 1) *
     ZONE_FACTORS[getZoneForDepth(depth)].hp * enemyHpMult
   );
 
 export const getDiveEnemyDamage = (depth: number, anchorStage: number, enemyDmgMult: number = 1.0): number =>
   Math.floor(
-    getCampaignCommonEnemyDamage(anchorStage) * 0.6 * Math.pow(1.085, depth - 1) *
+    getCampaignCommonEnemyDamage(anchorStage) * 0.45 * Math.pow(1.055, depth - 1) *
     ZONE_FACTORS[getZoneForDepth(depth)].dmg * enemyDmgMult
   );
 
@@ -136,7 +139,7 @@ export const getDiveEnemyDamage = (depth: number, anchorStage: number, enemyDmgM
 // (isFullDepthsUnlocked) — os Mergulhos Rasos pré-F50 continuam sem Pressão.
 // `divingSuitLevel` fica em 0 nesta versão (upgrade chega na 10.2.0 com a Doca Batial).
 export const getPressureMultiplier = (depth: number, divingSuitLevel: number = 0): number =>
-  1 + 0.04 * depth * (1 - 0.06 * divingSuitLevel);
+  1 + 0.02 * depth * (1 - 0.06 * divingSuitLevel);
 
 // ─── Guardiões de Zona (25 / 50 / 80) ────────────────────────────────────────
 
@@ -153,8 +156,8 @@ export interface ZoneGuardianDef {
 
 export const ZONE_GUARDIANS: ZoneGuardianDef[] = [
   { zone: 1, depth: 25, enemyId: 'boss_reef_arachnid', name: 'Aracnídeo do Recife', hpMult: 3.0, dmgMult: 1.5, pearlReward: 25, primordialRuneId: 'thal' },
-  { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 6.0, dmgMult: 1.8, pearlReward: 50, primordialRuneId: 'vrak' },
-  { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 6.0, dmgMult: 1.8, pearlReward: 100, primordialRuneId: 'morvo' },
+  { zone: 2, depth: 50, enemyId: 'boss_kelp_thing', name: 'A Coisa Entre as Algas', hpMult: 5.0, dmgMult: 1.5, pearlReward: 50, primordialRuneId: 'vrak' },
+  { zone: 3, depth: 80, enemyId: 'boss_drowned_castellan', name: 'O Castelão Afundado', hpMult: 5.0, dmgMult: 1.5, pearlReward: 100, primordialRuneId: 'morvo' },
 ];
 
 export const getGuardianForDepth = (depth: number): ZoneGuardianDef | undefined =>

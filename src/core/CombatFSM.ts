@@ -998,6 +998,9 @@ export class CombatFSM {
   // 1x/2x/3x alcançarem a mesma profundidade por descida) e é sincronizado com o useDiveStore
   // em intervalos de ~250ms para não re-renderizar a UI por frame.
   public isAirPocketEncounter: boolean = false;
+  // v10.7.0: Bolsão de Ar no lugar do Guardião derrotado — guarda os dados de completeDepth
+  // (recompensas do Guardião) até o jogador resolver o Bolsão, em vez de bancar/avançar na hora.
+  private pendingGuardianCompletion: { killedGuardian: boolean; runeRoll: boolean; guardianZone?: 1 | 2 | 3; bonusPearls: number } | null = null;
   private diveBreath: number = 100;
   private diveBreathSyncTimer: number = 0;
   private guardianShieldRebuildTimer: number = 0;
@@ -1293,7 +1296,9 @@ export class CombatFSM {
     this.unsubscribeAirPocketResolved = bridge.subscribe(GameEvent.AIR_POCKET_RESOLVED, () => {
       if (this.currentState !== CombatState.AIR_POCKET) return;
       this.diveBreath = useDiveStore.getState().breath;
-      useDiveStore.getState().completeDepth();
+      const guardianCompletion = this.pendingGuardianCompletion;
+      this.pendingGuardianCompletion = null;
+      useDiveStore.getState().completeDepth(guardianCompletion ?? undefined);
       if (!useDiveStore.getState().diveActive) return; // limpou a zona / subiu — START_COMBAT campaign já foi emitido
       this.isAirPocketEncounter = false;
       this.currentState = CombatState.TRANSITION;
@@ -1900,6 +1905,22 @@ export class CombatFSM {
 
     // Nix T3 (nix_elite_pearl): Elites soltam +1 Pérola, só nas Profundezas.
     const bonusPearls = (this.isElite && this.hasRuneSecondaryFlag('nix_elite_pearl')) ? 1 : 0;
+
+    // v10.7.0: Bolsão de Ar no lugar do Guardião — só quando há de fato uma decisão a tomar (pós-F50,
+    // com Zonas 2-4 abertas). Pré-F50, o Guardião da prof. 25 já força surface('cleared') logo abaixo
+    // (Zonas 2-4 bloqueadas, nada para escolher), então segue o fluxo antigo sem Bolsão.
+    const highestStageReached = useGameStore.getState().character.highestStageReached || 1;
+    if (wasGuardian && isFullDepthsUnlocked(highestStageReached)) {
+      this.pendingGuardianCompletion = { killedGuardian: true, runeRoll: true, guardianZone: guardianBeingFought?.zone, bonusPearls };
+      this.isAirPocketEncounter = true;
+      this.currentEnemy = AIR_POCKET_ENCOUNTER;
+      this.enemyMaxHP = 1;
+      this.enemyHP = 1;
+      this.currentState = CombatState.AIR_POCKET;
+      useDiveStore.getState().openAirPocket();
+      return;
+    }
+
     useDiveStore.getState().completeDepth({ killedGuardian: wasGuardian, runeRoll: true, guardianZone: guardianBeingFought?.zone, bonusPearls });
 
     // Limpou a Zona 1 (Guardião da prof. 25): completeDepth já disparou surface('cleared'),
