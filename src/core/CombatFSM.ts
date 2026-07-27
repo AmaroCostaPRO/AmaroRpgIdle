@@ -2141,6 +2141,13 @@ export class CombatFSM {
       }
       this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
       this.playerMana = Math.min(this.playerMana, this.playerMaxMana);
+    } else if (useDiveStore.getState().diveActive || useLeviathanStore.getState().leviathanActive) {
+      // Mergulho e Leviatã não usam char.currentStage — comparar com enemyLevel aqui sempre dava
+      // "mudou de fase" e forçava um respawn indevido do inimigo (e, numa Bolsão de Ar, escapava do
+      // CombatState.AIR_POCKET) toda vez que qualquer ação da store (consumível, compra, ponto de
+      // atributo/habilidade) criava uma nova referência de `character` e disparava este listener.
+      this.playerHP = Math.min(this.playerHP, this.playerMaxHP);
+      this.playerMana = Math.min(this.playerMana, this.playerMaxMana);
     } else {
       // Reinicia ou ajusta inimigo se mudou de fase/prestígio
       const hasPrestigeReset = char.level === 1 && char.xp === 0;
