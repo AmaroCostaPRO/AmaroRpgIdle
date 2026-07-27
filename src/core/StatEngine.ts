@@ -5,6 +5,10 @@ import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveR
 import type { RuneMultiplierStatKey } from '../core/types';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from './bestiaryFormulas';
 
+// Arredonda uma fração (ex.: 0.035) para cima, no ponto percentual inteiro mais próximo (0.04).
+// Usado para o bônus "meia-runa" das Palavras Rúnicas, evitando números quebrados como 1.75%.
+const roundUpPercent = (fraction: number): number => Math.ceil(fraction * 100) / 100;
+
 export const SET_BONUSES: Record<string, {
   name: string;
   classId: string;
@@ -678,7 +682,8 @@ export class StatEngine {
       Object.values(character.equipment).forEach((item) => {
         if (!item || !item.socketedRunes) return;
         // v10.3.0: Palavra Rúnica ativa — os bônus fixos da Palavra SUBSTITUEM a soma individual
-        // das runas da sequência para este item (nunca somam junto, senão dobraria o efeito).
+        // cheia das runas da sequência para este item (nunca somam os 100% juntos, senão dobraria
+        // o efeito); v-next: 50% da soma individual ainda é concedida à parte, ver comentário abaixo.
         const activeRuneword = getActiveRuneword(item);
         if (activeRuneword) {
           if (activeRuneword.statBonuses) {
@@ -695,6 +700,26 @@ export class StatEngine {
                 (finalStats[key] as number) = ((finalStats[key] as number) || 0) + bonus;
               }
             });
+          }
+          // v-next: além do efeito fixo/condicional da Palavra, o item ainda concede 50% do efeito
+          // individual de cada runa da própria sequência (arredondado para cima, em pontos
+          // percentuais inteiros) — sem isso, gravar uma Palavra Rúnica era sempre uma perda líquida
+          // de poder frente a manter as runas soltas, o que desincentivava usar o sistema.
+          for (const runeId of item.socketedRunes) {
+            if (!runeId) continue;
+            const runeDef = RUNE_CATALOG[runeId];
+            if (!runeDef) continue;
+            if (runeDef.tier === 'primordial') {
+              if (runeDef.extraStats) {
+                (Object.keys(runeDef.extraStats) as Array<keyof BaseStats>).forEach((key) => {
+                  const halved = roundUpPercent((runeDef.extraStats![key] as number) * 0.5);
+                  primordialExtras[key] = (primordialExtras[key] || 0) + halved;
+                });
+              }
+            } else if (runeDef.family && runeDef.statKey && typeof runeDef.value === 'number') {
+              const halved = roundUpPercent(runeDef.value * 0.5);
+              familyTotals[runeDef.family] = (familyTotals[runeDef.family] || 0) + halved;
+            }
           }
           return;
         }

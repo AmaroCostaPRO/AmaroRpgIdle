@@ -4280,7 +4280,7 @@ const GuidePanel: React.FC = () => {
                     Nova construção da Cidadela Astral: perfure soquetes em equipamento pesado (armas, peitorais e — em nível mais alto — qualquer slot pesado) e engaste Runas Abissais dropadas nas Profundezas. Existem 9 famílias base (3 tiers cada) e 9 Runas Primordiais únicas, cada uma com um efeito especial.
                   </p>
                   <p>
-                    A partir do Nível 5 da Câmara, gravar a sequência exata de runas certa num item forma uma <strong>Palavra Rúnica</strong> — um efeito fixo e nomeado que substitui a soma individual das runas. Desfazer devolve tudo ao cofre intacto. Uma nova aba <strong>Runas</strong> no Inventário e no Codex deixa consultar tudo o que você já possui/descobriu.
+                    A partir do Nível 5 da Câmara, gravar a sequência exata de runas certa num item forma uma <strong>Palavra Rúnica</strong> — um efeito fixo e nomeado somado a <strong>50% do bônus individual de cada runa da sequência</strong> (arredondado para cima), então gravar nunca é uma perda líquida de poder frente a manter as runas soltas. Desfazer devolve tudo ao cofre intacto. Uma nova aba <strong>Runas</strong> no Inventário e no Codex deixa consultar tudo o que você já possui/descobriu.
                   </p>
                 </div>
               </div>
