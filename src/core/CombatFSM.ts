@@ -1072,6 +1072,7 @@ export class CombatFSM {
   public frenzyEnergy: number = 0;
   public isFrenzyActive: boolean = false;
   private frenzyDuration: number = 0;
+  private frenzyTotalDuration: number = 10000;
   private frenzyAutoTapTimer: number = 0;
 
   // Elixires exclusivos do Mercador Ambulante (v7.0.0): cada tipo tem sua própria flag+duração,
@@ -2907,6 +2908,7 @@ export class CombatFSM {
   public activateFrenzyBoost(durationMs: number): void {
     this.isFrenzyActive = true;
     this.frenzyDuration = durationMs;
+    this.frenzyTotalDuration = durationMs;
     this.frenzyAutoTapTimer = 0;
     this.frenzyEnergy = 100;
     bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: true, energy: 100 });
@@ -3014,6 +3016,7 @@ export class CombatFSM {
     if (this.frenzyEnergy >= 100) {
       this.isFrenzyActive = true;
       this.frenzyDuration = 10000;
+      this.frenzyTotalDuration = 10000;
       this.frenzyAutoTapTimer = 0;
       bridge.emit(GameEvent.FRENZY_STATE_CHANGED, { active: true, energy: 100 });
       bridge.emit(GameEvent.LOG_EMITTED, { message: `🔥 MODO FRENESI ATIVADO! Toques automáticos críticos por 10 segundos!` });
@@ -3087,7 +3090,13 @@ export class CombatFSM {
   }
 
   private handleIdle(): void {
-    if (this.target) {
+    // Exige enemyHP > 0: sem essa checagem, o cadáver de um inimigo morto exatamente na distância
+    // de combate (400px) ficava parado ali durante o intervalo de respawn e promovia o estado para
+    // ATTACKING prematuramente — antes mesmo do próximo inimigo nascer. Como setupEnemyForLevel()/
+    // respawnEnemyAt() não tocam em currentState, esse ATTACKING "fantasma" sobrevivia ao respawn e
+    // permitia que toques (robô/frenesi/manual) acertassem o novo inimigo ainda fora da tela (x=900),
+    // antes dele sequer começar a se mover.
+    if (this.target && this.enemyHP > 0) {
       const distance = this.getDistanceToTarget();
       if (distance > 400) {
         this.currentState = CombatState.MOVING;
@@ -4788,6 +4797,7 @@ export class CombatFSM {
     if (this.isPotionSpeedActive) buffs.push({ id: 'potion_speed', icon: '🌪️', label: 'Poção de Velocidade Alquímica', remainingMs: this.potionSpeedDuration, totalMs: 60000 });
     if (this.isPotionManaRegenActive) buffs.push({ id: 'potion_manaregen', icon: '🔷', label: 'Poção de Clareza Alquímica', remainingMs: this.potionManaRegenDuration, totalMs: 120000 });
     if (this.isPotionRobotClickActive) buffs.push({ id: 'potion_robotclick', icon: '🤖', label: 'Poção de Sobrecarga do Robô', remainingMs: this.potionRobotClickDuration, totalMs: 60000 });
+    if (this.isFrenzyActive) buffs.push({ id: 'frenzy', icon: '⚡', label: 'Frenesi', remainingMs: this.frenzyDuration, totalMs: this.frenzyTotalDuration });
 
     if (this.isActiveRelicDamageBuffActive || this.isActiveRelicEliteBuffActive || this.isActiveRelicInvulnActive || this.isActiveRelicGoldBuffActive || this.isActiveRelicHealBuffActive) {
       const equippedRelic = this.characterData?.equipment?.activeRelic;

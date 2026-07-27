@@ -34,7 +34,7 @@ export const EXPEDITION_CLASS_GROUP: Record<string, 'strength' | 'dexterity' | '
   avatar: 'magic',
 };
 
-export const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 5 };
+export const EXPEDITION_BASE_HOURLY = { wood: 20, stone: 20, meat: 20, studyInsignias: 15 };
 export const EXPEDITIONS_MAX_LEVEL = 5;
 export const ACADEMY_MAX_LEVEL = 5;
 export const EXPEDITION_ALLOCATION_GOLD_COST = (expeditionLevel: number): number => 20000 * expeditionLevel;
