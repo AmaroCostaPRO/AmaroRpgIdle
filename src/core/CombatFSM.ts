@@ -2982,7 +2982,12 @@ export class CombatFSM {
     // Impede toques caso o jogo esteja pausado (velocidade do jogo igual a 0)
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.CONVERGENCE_ENCOUNTER || this.enemyHP <= 0) return;
+    // Lista de permissão (em vez de exclusão): toque só é válido durante ATTACKING. A lista de
+    // exclusão anterior (DEAD/MOVING/TRANSITION/MERCHANT_ENCOUNTER/CONVERGENCE_ENCOUNTER) deixava
+    // IDLE e AIR_POCKET passarem — permitindo dano no exato frame em que um inimigo reaparece
+    // (estado ainda IDLE, antes de handleIdle() promovê-lo a MOVING/ATTACKING), ou seja, o toque
+    // acertava o inimigo antes dele sequer começar a se aproximar da posição de combate.
+    if (this.currentState !== CombatState.ATTACKING || this.enemyHP <= 0) return;
     
     // Throttling: limite de 20 cliques por segundo (50ms por clique)
     const now = Date.now();
@@ -3021,7 +3026,10 @@ export class CombatFSM {
     // Impede a execução de toques caso o jogo esteja pausado
     if (useGameStore.getState().gameSpeed === 0) return;
 
-    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.CONVERGENCE_ENCOUNTER || this.enemyHP <= 0) return;
+    // Mesma correção de handlePlayerTap(): só permite dano de toque durante ATTACKING. Isso também
+    // cobre os toques automáticos do robô assistente e do modo Frenesi, que chamam este método
+    // diretamente sem checagem própria de estado.
+    if (this.currentState !== CombatState.ATTACKING || this.enemyHP <= 0) return;
 
     const dpsPassivo = this.getPassiveDPS();
     const effectiveTouch = this.playerFinalStats.touch * 0.5;
