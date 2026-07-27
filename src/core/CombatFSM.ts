@@ -1026,6 +1026,10 @@ export class CombatFSM {
 
   private attackCooldown: number = 0;
   private enemyAttackCooldown: number = 0;
+  // Guarda de reentrância: evita que handleEnemyDefeat() processe a mesma morte mais de uma vez
+  // (ex.: damageEnemy() chamado dentro de triggerSkill() já dispara a derrota; sem essa guarda,
+  // uma segunda checagem redundante duplicava XP/drops/avanço de estágio/respawn).
+  private enemyDefeatHandled: boolean = false;
   public enemyEffects: StatusEffect[] = [];
   public playerEffects: StatusEffect[] = [];
   // v8.0.0 "O Espelho Faminto": Elite 'replicante' — escudo periódico que precisa ser quebrado
@@ -1424,6 +1428,7 @@ export class CombatFSM {
   }
 
   private setupEnemyForLevel(stage: number, defeatedInStage: number): void {
+    this.enemyDefeatHandled = false;
     this.enemyEffects = [];
     this.playerEffects = [];
     this.playerShield = 0;
@@ -3776,6 +3781,9 @@ export class CombatFSM {
   }
 
   private handleEnemyDefeat() {
+    if (this.enemyDefeatHandled) return;
+    this.enemyDefeatHandled = true;
+
     const char = useGameStore.getState().character;
     const isBoss = char.enemiesDefeatedInStage === ENEMIES_PER_STAGE;
 
@@ -5361,10 +5369,6 @@ export class CombatFSM {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `💀 Você conjurou ${skill.name}! Invocando servos mortos-vivos para atacar o alvo.` });
     } else {
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Você desferiu ${skill.name}! Dano: ${formatNumber(dmg, useGameStore.getState().abbreviateNumbers)}${isCrit ? ' (Crítico!)' : ''}.` });
-    }
-
-    if (this.enemyHP <= 0) {
-      this.handleEnemyDefeat();
     }
   }
 
