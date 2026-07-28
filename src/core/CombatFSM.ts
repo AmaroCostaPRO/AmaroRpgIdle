@@ -5,6 +5,7 @@ import { useRelicStore } from '../store/useRelicStore';
 import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTowerStore';
 import { useDiveStore } from '../store/useDiveStore';
 import { useLeviathanStore } from '../store/useLeviathanStore';
+import { useQuestStore } from '../store/useQuestStore';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
@@ -3857,6 +3858,12 @@ export class CombatFSM {
 
     // Registra a morte do monstro no bestiário
     useGameStore.getState().registerEnemyKill(this.currentEnemy.id);
+
+    // Atualiza progresso de missões de abate (kill / kill_elite)
+    useQuestStore.getState().updateObjectiveProgress('kill', this.currentEnemy.id, 1);
+    if (this.isElite) {
+      useQuestStore.getState().updateObjectiveProgress('kill_elite', this.currentEnemy.id, 1);
+    }
 
     // v10.4.0 "O Leviatã do Ciclo": cada fase derrotada avança para a próxima (ou encerra a luta
     // na 5ª) via useLeviathanStore.completePhase() — nada do pipeline de recompensas da campanha.

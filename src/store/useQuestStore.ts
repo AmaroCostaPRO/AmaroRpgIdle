@@ -18,11 +18,27 @@ interface QuestStoreState {
   // Actions
   generateRunQuests: () => void;
   updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount?: number) => void;
+  syncQuestObjectives: () => void;
   claimReward: (questId: string) => void;
   triggerNpcDialog: (npcId: string, npcName: string, factionColor: string, text: string, options?: NpcDialogOption[], questId?: string) => void;
   closeDialog: () => void;
   getStoryStatsBonus: () => Partial<BaseStats>;
 }
+
+export const isMainQuestUnlocked = (quest: QuestDef, mainQuests: Record<string, QuestDef>, currentStage: number): boolean => {
+  if (!quest.act) return true;
+  for (const other of Object.values(mainQuests)) {
+    if (other.id === quest.id) continue;
+    if (!other.act) continue;
+    if (other.act < quest.act) {
+      if (!other.isCompleted && !other.isClaimed) return false;
+    } else if (other.act === quest.act && (other.chapterNumber || 0) < (quest.chapterNumber || 0)) {
+      if (!other.isCompleted && !other.isClaimed) return false;
+    }
+  }
+  if (quest.unlockedAtStage && currentStage < quest.unlockedAtStage) return false;
+  return true;
+};
 
 const defaultMainQuestsMap = (): Record<string, QuestDef> => {
   const map: Record<string, QuestDef> = {};
@@ -104,16 +120,23 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
       saveQuestStore({ ...get(), proceduralQuests });
     },
 
+    syncQuestObjectives: () => {
+      const char = useGameStore.getState().character;
+      if (!char) return;
+      get().updateObjectiveProgress('level', undefined, char.level || 1);
+    },
+
     updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount = 1) => {
       let changed = false;
-      const currentStage = useGameStore.getState().character.currentStage || 1;
-      const currentLevel = useGameStore.getState().character.level || 1;
+      const char = useGameStore.getState().character;
+      const currentStage = char?.currentStage || 1;
+      const currentLevel = char?.level || 1;
 
       // 1. Atualiza Main Quests
       const newMain = { ...get().mainQuests };
       for (const [id, quest] of Object.entries(newMain)) {
         if (quest.isCompleted) continue;
-        if (quest.unlockedAtStage && currentStage < quest.unlockedAtStage) continue;
+        if (!isMainQuestUnlocked(quest, newMain, currentStage)) continue;
 
         let questUpdated = false;
         let allCompleted = true;
@@ -133,9 +156,19 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
               }
             }
           } else if (obj.type === 'stage') {
+            const prev = obj.currentAmount;
             obj.currentAmount = Math.max(obj.currentAmount, currentStage);
+            if (obj.currentAmount !== prev) {
+              questUpdated = true;
+              changed = true;
+            }
           } else if (obj.type === 'level') {
+            const prev = obj.currentAmount;
             obj.currentAmount = Math.max(obj.currentAmount, currentLevel);
+            if (obj.currentAmount !== prev) {
+              questUpdated = true;
+              changed = true;
+            }
           }
 
           if (obj.currentAmount < obj.requiredAmount) {
@@ -143,7 +176,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
           }
         }
 
-        if (questUpdated && allCompleted && !quest.isCompleted) {
+        if (allCompleted && !quest.isCompleted) {
           quest.isCompleted = true;
           changed = true;
           // Trigger NPC Dialog if available
@@ -170,21 +203,27 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         let questUpdated = false;
         let allCompleted = true;
         const objectives = quest.objectives.map((obj) => {
+          let currentAmount = obj.currentAmount;
           if (obj.type === type) {
             if (!obj.targetId || obj.targetId === targetId) {
-              const currentAmount =
+              currentAmount =
                 type === 'stage' || type === 'level'
-                  ? Math.max(obj.currentAmount, amount)
-                  : Math.min(obj.requiredAmount, obj.currentAmount + amount);
-              if (currentAmount !== obj.currentAmount) questUpdated = true;
-              return { ...obj, currentAmount };
+                  ? Math.max(currentAmount, amount)
+                  : Math.min(obj.requiredAmount, currentAmount + amount);
             }
+          } else if (obj.type === 'stage') {
+            currentAmount = Math.max(currentAmount, currentStage);
+          } else if (obj.type === 'level') {
+            currentAmount = Math.max(currentAmount, currentLevel);
           }
-          if (obj.currentAmount < obj.requiredAmount) allCompleted = false;
-          return obj;
+
+          if (currentAmount !== obj.currentAmount) questUpdated = true;
+          if (currentAmount < obj.requiredAmount) allCompleted = false;
+
+          return { ...obj, currentAmount };
         });
 
-        const isCompleted = questUpdated && allCompleted ? true : quest.isCompleted;
+        const isCompleted = allCompleted ? true : quest.isCompleted;
         if (questUpdated) changed = true;
         return { ...quest, objectives, isCompleted };
       });

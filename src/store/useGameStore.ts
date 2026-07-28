@@ -1911,6 +1911,7 @@ export const useGameStore = create<GameState>((set) => ({
         changed = true;
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🏗️ ${structureLabels[key]} alcançou o Nível ${targetLevel}!` });
         bridge.emit(GameEvent.CITADEL_BUILDING_UPGRADED, { buildingKey: key, buildingName: structureLabels[key], newLevel: targetLevel });
+        useQuestStore.getState().updateObjectiveProgress('citadel_build', key, 1);
         if (key === 'forgeWorkshop' && targetLevel >= 5) {
           try {
             localStorage.setItem('rpg_auto_sell_common', 'false');
@@ -2471,6 +2472,7 @@ export const useGameStore = create<GameState>((set) => ({
       };
       saveToLocalStorage(updated);
       result = { success: true, message: `${def.icon} ${BAIT_BATCH_SIZE}x ${def.name} fabricada(s)!` };
+      useQuestStore.getState().updateObjectiveProgress('craft', type, 1);
       return { character: updated };
     });
     return result;
@@ -2991,6 +2993,7 @@ export const useGameStore = create<GameState>((set) => ({
       const updated = { ...afterUpdate, pearls: (char.pearls || 0) - cost, runeInventory };
       saveToLocalStorage(updated);
       result = { success: true, message: `⚡ Palavra Rúnica ${runeword.name} gravada em [${item.name}]!` };
+      useQuestStore.getState().updateObjectiveProgress('runeword', runewordId, 1);
       setTimeout(() => bridge.emit(GameEvent.RUNEWORD_COMPLETED, { runewordId, itemId }), 50);
       return { character: updated };
     });
@@ -4063,6 +4066,9 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     saveToLocalStorage(updated);
+    if (leveledUp) {
+      useQuestStore.getState().updateObjectiveProgress('level', undefined, newLevel);
+    }
     return { character: updated };
   }),
 
@@ -4215,6 +4221,7 @@ export const useGameStore = create<GameState>((set) => ({
     }
 
     saveToLocalStorage(updated);
+    useQuestStore.getState().updateObjectiveProgress('ascend', undefined, 1);
     return { character: updated, gameSpeed: clampGameSpeedToUnlocks(updated, state.gameSpeed) };
   }),
 
@@ -4393,6 +4400,7 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     saveToLocalStorage(updatedChar);
+    useQuestStore.getState().updateObjectiveProgress('transcend', undefined, 1);
     return { character: updatedChar, screen: 'playing', gameSpeed: clampGameSpeedToUnlocks(updatedChar, state.gameSpeed) };
   }),
 

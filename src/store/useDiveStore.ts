@@ -3,6 +3,7 @@ import { bridge } from '../bridge/GameBridge';
 import { GameEvent } from '../core/types';
 import { useGameStore } from './useGameStore';
 import { useTowerStore } from './useTowerStore';
+import { useQuestStore } from './useQuestStore';
 import { hasEquippedRuneFlag, isPrimordialRune, type RuneId } from '../core/runeFormulas';
 import {
   ECHO_RESCUE_CHANCE_PER_DEPTH, ECHO_RESCUE_MAX_PER_DIVE, getVocationPerkTotal,
@@ -230,6 +231,7 @@ export const useDiveStore = create<DiveStoreState>((set, get) => ({
     if (zone >= 3 && echoesRescuedThisDive < ECHO_RESCUE_MAX_PER_DIVE && Math.random() < ECHO_RESCUE_CHANCE_PER_DEPTH) {
       useGameStore.getState().rescueEcho(zone === 4 ? 'divesZone4' : 'divesZone3');
       echoesRescuedThisDive += 1;
+      useQuestStore.getState().updateObjectiveProgress('abyss_echo', undefined, 1);
     }
 
     if (opts.killedGuardian && opts.guardianZone) {

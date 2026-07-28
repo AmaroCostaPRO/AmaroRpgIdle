@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
 import { AudioManager } from '../core/AudioManager';
@@ -11,10 +11,53 @@ export const QuestLogPanel: React.FC = () => {
   const storyInventory = useQuestStore((s) => s.storyInventory);
   const claimReward = useQuestStore((s) => s.claimReward);
   const generateRunQuests = useQuestStore((s) => s.generateRunQuests);
+  const syncQuestObjectives = useQuestStore((s) => s.syncQuestObjectives);
+
+  useEffect(() => {
+    syncQuestObjectives();
+  }, [syncQuestObjectives]);
 
   const mainQuestsList = Object.values(mainQuests);
+
+  // Calcula o Ato máximo desbloqueado (Gating sequencial por Ato)
+  let maxUnlockedAct = 1;
+  for (let act = 1; act <= 6; act++) {
+    const questsInAct = mainQuestsList.filter((q) => q.act === act);
+    if (questsInAct.length === 0) continue;
+    const allDone = questsInAct.every((q) => q.isCompleted || q.isClaimed);
+    if (allDone && act < 6) {
+      maxUnlockedAct = act + 1;
+    } else if (!allDone) {
+      maxUnlockedAct = act;
+      break;
+    }
+  }
+
+  // Apenas missões do Ato desbloqueado e Atos anteriores são exibidas
+  const visibleMainQuests = mainQuestsList.filter((q) => (q.act || 1) <= maxUnlockedAct);
+
   const huntCraftQuests = proceduralQuests.filter((q) => q.category === 'hunt' || q.category === 'craft');
   const npcQuests = proceduralQuests.filter((q) => q.category === 'npc');
+
+  const subTabsList: Array<{ id: 'main' | 'contracts' | 'storyItems'; label: string; icon: string }> = [
+    { id: 'main', label: 'Jornada Principal', icon: '🌟' },
+    { id: 'contracts', label: 'Contratos & Caçadas', icon: '⚔️' },
+    { id: 'storyItems', label: 'Artefatos de História', icon: '🏺' },
+  ];
+
+  const currentSubTabIdx = subTabsList.findIndex((t) => t.id === subTab);
+
+  const handlePrevSubTab = () => {
+    AudioManager.getInstance().playClick();
+    const nextIdx = (currentSubTabIdx - 1 + subTabsList.length) % subTabsList.length;
+    setSubTab(subTabsList[nextIdx].id);
+  };
+
+  const handleNextSubTab = () => {
+    AudioManager.getInstance().playClick();
+    const nextIdx = (currentSubTabIdx + 1) % subTabsList.length;
+    setSubTab(subTabsList[nextIdx].id);
+  };
 
   return (
     <div className="panel animate-tabFade" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -33,41 +76,61 @@ export const QuestLogPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Navegação de Sub-Abas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
-        <button
-          onClick={() => { AudioManager.getInstance().playClick(); setSubTab('main'); }}
-          className={`tab-btn ${subTab === 'main' ? 'active' : ''}`}
-          style={{ padding: '0.45rem', fontSize: '0.65rem' }}
-        >
-          🌟 Jornada Principal
-        </button>
-        <button
-          onClick={() => { AudioManager.getInstance().playClick(); setSubTab('contracts'); }}
-          className={`tab-btn ${subTab === 'contracts' ? 'active' : ''}`}
-          style={{ padding: '0.45rem', fontSize: '0.65rem' }}
-        >
-          ⚔️ Contratos & Caçadas
-        </button>
-        <button
-          onClick={() => { AudioManager.getInstance().playClick(); setSubTab('storyItems'); }}
-          className={`tab-btn ${subTab === 'storyItems' ? 'active' : ''}`}
-          style={{ padding: '0.45rem', fontSize: '0.65rem' }}
-        >
-          🏺 Artefatos de História
-        </button>
+      {/* Seletor de Sub-Abas Responsivo / Carrossel para Mobile */}
+      <div style={{ background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+          <button
+            onClick={handlePrevSubTab}
+            className="btn btn-xs btn-secondary"
+            style={{ padding: '0.35rem 0.55rem', fontSize: '0.7rem', fontWeight: 700 }}
+            title="Aba Anterior"
+          >
+            ◀
+          </button>
+
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '0.3rem' }}>
+            {subTabsList.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  AudioManager.getInstance().playClick();
+                  setSubTab(tab.id);
+                }}
+                className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
+                style={{
+                  flex: 1,
+                  padding: '0.45rem 0.2rem',
+                  fontSize: '0.63rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleNextSubTab}
+            className="btn btn-xs btn-secondary"
+            style={{ padding: '0.35rem 0.55rem', fontSize: '0.7rem', fontWeight: 700 }}
+            title="Próxima Aba"
+          >
+            ▶
+          </button>
+        </div>
       </div>
 
       {/* Conteúdo da Sub-Aba: Jornada Principal */}
       {subTab === 'main' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-          {mainQuestsList.map((quest) => (
+          {visibleMainQuests.map((quest) => (
             <div
               key={quest.id}
               style={{
                 background: quest.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 0, 0, 0.35)',
-                border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-dim)'}`,
-                borderLeft: `4px solid ${quest.isCompleted ? '#10b981' : '#a855f7'}`,
+                border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-dim)'}`,
                 borderRadius: 'var(--radius-md)',
                 padding: '0.75rem 0.85rem',
                 display: 'flex',
@@ -140,6 +203,14 @@ export const QuestLogPanel: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {maxUnlockedAct < 6 && (
+            <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', border: '1px dashed var(--border-dim)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.64rem', color: '#94a3b8' }}>
+                🔒 <strong>Ato {maxUnlockedAct + 1}</strong>: Conclua e reclame todas as missões do Ato {maxUnlockedAct} para prosseguir na história.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -157,8 +228,7 @@ export const QuestLogPanel: React.FC = () => {
               key={quest.id}
               style={{
                 background: quest.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 0, 0, 0.35)',
-                border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-dim)'}`,
-                borderLeft: `4px solid ${quest.category === 'hunt' ? '#ef4444' : quest.category === 'craft' ? '#f59e0b' : '#3b82f6'}`,
+                border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-dim)'}`,
                 borderRadius: 'var(--radius-md)',
                 padding: '0.75rem 0.85rem',
                 display: 'flex',
