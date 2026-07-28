@@ -62,18 +62,8 @@ export const QuestLogPanel: React.FC = () => {
   return (
     <div className="panel animate-tabFade" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Cabeçalho */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
+      <div style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-dim)' }}>
         <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>📜 Diário de Jornada</h2>
-        <button
-          onClick={() => {
-            AudioManager.getInstance().playClick();
-            generateRunQuests();
-          }}
-          className="btn btn-xs btn-secondary"
-          style={{ fontSize: '0.62rem' }}
-        >
-          🔄 Renovar Contratos
-        </button>
       </div>
 
       {/* Seletor de Sub-Abas (Carrossel com 1 Aba visível por vez) */}
@@ -273,6 +263,19 @@ export const QuestLogPanel: React.FC = () => {
               </div>
             </div>
           ))}
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.25rem' }}>
+            <button
+              onClick={() => {
+                AudioManager.getInstance().playClick();
+                generateRunQuests();
+              }}
+              className="btn btn-xs btn-secondary"
+              style={{ fontSize: '0.65rem', padding: '0.45rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              🔄 Renovar Contratos
+            </button>
+          </div>
         </div>
       )}
 
