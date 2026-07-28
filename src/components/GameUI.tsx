@@ -1619,8 +1619,8 @@ const EquipmentPanel: React.FC<EquipmentPanelProps> = ({
                     bonusText5 = '(5) +333 Atrib., +22% Dano e +7% HP';
                   } else if (isAbyssal) {
                     bonusText2 = '(2) Itens já são 8.0× mais fortes';
-                    bonusText3 = '(3) +1 Soquete na arma acima do teto';
-                    bonusText5 = '(5) +30% Dano, +12% HP e imunidade a Encharcado';
+                    bonusText3 = '(3) +1 Soquete na arma acima do teto e +6% Roubo de Vida';
+                    bonusText5 = '(5) +65% Dano, +30% HP, +12% Vel. Atq., +10% Crítico e imunidade a Encharcado';
                   }
 
                   const setIcon = isPandemonium ? '🔥 ' : (isAncestral ? '✨ ' : (isCelestial ? '🌌 ' : (isBloodMoon ? '🌕 ' : (isAbyssal ? '💠 ' : ''))));
@@ -4289,7 +4289,7 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">💠 Set Abissal (v10.0.0)</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    Novo teto de multiplicador de status, <strong>8.0×</strong> — acima até do Set Celestial. Só dropa na Fossa do Caco (Zona 4 das Profundezas) e é garantido em toda morte do Leviatã do Ciclo. Bônus de 3 peças libera +1 soquete acima do teto normal; 5 peças concede grande bônus de Dano Final, Vida Máxima e imunidade a [ENCHARCADO].
+                    Maior teto de multiplicador de status do jogo, <strong>8.0×</strong> (acima do Set Celestial, 7.0×), e o set com o melhor bônus de conjunto: 3 peças libera +1 soquete acima do teto normal e +6% de Roubo de Vida; 5 peças concede +65% Dano Final, +30% Vida Máxima, +12% Vel. Ataque, +10% Chance Crítica (exclusivo do Abissal) e imunidade a [ENCHARCADO] — superando o Celestial em todo atributo compartilhado. Só dropa na Fossa do Caco (Zona 4 das Profundezas) e é garantido em toda morte do Leviatã do Ciclo.
                   </p>
                 </div>
               </div>

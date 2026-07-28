@@ -547,14 +547,21 @@ export class StatEngine {
         finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.07;
       }
 
-      // v10.3.0 "O Coração do Abismo": Set Abissal (8.0×, exclusivo da Fossa Z4/Leviatã).
-      // 3 peças: o soquete extra acima do teto (até 4 na arma) é resolvido em `drillSocket`
-      // (useGameStore.ts), que já tem acesso a `character.equipment` para contar peças do set.
-      // 5 peças: dano/vida iguais à progressão dos outros sets de topo + imunidade a
+      // v10.3.0 "O Coração do Abismo": Set Abissal (8.0×, exclusivo da Fossa Z4/Leviatã) — o set
+      // mais forte do jogo, propositalmente acima do Celestial em todo atributo compartilhado.
+      // 3 peças: além do soquete extra acima do teto (até 4 na arma, resolvido em `drillSocket`
+      // em `useGameStore.ts`), concede lifesteal maior que o 3pc de qualquer outro set de topo.
+      // 5 peças: dano/vida/vel. ataque acima da progressão do Celestial, mais chance crítica
+      // (exclusivo do Abissal — nenhum outro set de topo mexe em crítico) e imunidade a
       // [ENCHARCADO] (checada no CombatFSM junto de `dol_soaked_immunity`, via `hasAbyssalSet5pc`).
+      if (abyssalCount >= 3) {
+        finalStats.lifesteal = (finalStats.lifesteal || 0) + 0.06;
+      }
       if (abyssalCount >= 5) {
-        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.30;
-        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.12;
+        finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + 0.65;
+        finalStats.maxHpPct = (finalStats.maxHpPct || 0) + 0.30;
+        finalStats.attackSpeedPct = (finalStats.attackSpeedPct || 0) + 0.12;
+        finalStats.critChance = (finalStats.critChance || 0) + 0.10;
       }
     }
 

@@ -9,6 +9,7 @@ import {
   ECHO_VOCATION_NAMES, ECHO_VOCATION_ICONS, TIDE_BLESSINGS, getTidePhase, getTidePhaseEndsAt,
   calculateEchoEfficacies, sumDistrictEfficacy, DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost,
 } from '../../core/sunkenCitadelFormulas';
+import { PRESSURE_REDUCTION_PER_SUIT_LEVEL, BREATH_DRAIN_REDUCTION_PER_SUIT_LEVEL } from '../../core/abyssFormulas';
 import { LeviathanPanel } from './LeviathanPanel';
 
 interface DistrictPanelProps {
@@ -178,18 +179,26 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
           </button>
         )}
         {restoreCost && (
-          <button
-            onClick={handleRestore}
-            className="btn btn-ocean"
-            style={{
-              alignSelf: 'flex-start',
-              background: confirmRestore ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
-              borderColor: confirmRestore ? '#10b981' : undefined,
-              color: confirmRestore ? '#fff' : undefined,
-            }}
-          >
-            {confirmRestore ? 'Confirmar?' : `Restaurar ${restorationLevel === 1 ? 'II' : 'III'} — 🦪 ${restoreCost.pearls} + 🪸 ${restoreCost.coral} (${restorationLevel === 1 ? '1h' : '1h30'})`}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)' }}>
+              Slots de Eco: {slots} → <strong style={{ color: '#a5f3fc' }}>{getDistrictSlotCount((restorationLevel + 1) as 1 | 2 | 3)}</strong>
+              {id === 'dock' && restorationLevel === 0 && ' · desbloqueia o 🤿 Traje de Mergulho'}
+              {id === 'temple' && restorationLevel === 2 && ' · desbloqueia a 2ª Bênção da Maré'}
+              {id === 'throne' && restorationLevel === 0 && ' · desbloqueia o Leviatã'}
+            </span>
+            <button
+              onClick={handleRestore}
+              className="btn btn-ocean"
+              style={{
+                alignSelf: 'flex-start',
+                background: confirmRestore ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                borderColor: confirmRestore ? '#10b981' : undefined,
+                color: confirmRestore ? '#fff' : undefined,
+              }}
+            >
+              {confirmRestore ? 'Confirmar?' : `Restaurar ${restorationLevel === 1 ? 'II' : 'III'} — 🦪 ${restoreCost.pearls} + 🪸 ${restoreCost.coral} (${restorationLevel === 1 ? '1h' : '1h30'})`}
+            </button>
+          </div>
         )}
         {restoring && (
           <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>
@@ -241,6 +250,12 @@ export const DistrictPanel: React.FC<DistrictPanelProps> = ({ id }) => {
         {id === 'dock' && restorationLevel >= 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
             <p style={{ fontSize: '0.8rem', fontWeight: 700 }}>🤿 Traje de Mergulho — Nível {divingSuitLevel}/{DIVE_SUIT_MAX_LEVEL}</p>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+              Atual: −{(PRESSURE_REDUCTION_PER_SUIT_LEVEL * divingSuitLevel * 100).toFixed(0)}% Pressão extra · −{(BREATH_DRAIN_REDUCTION_PER_SUIT_LEVEL * divingSuitLevel * 100).toFixed(0)}% dreno de Fôlego
+              {divingSuitLevel < DIVE_SUIT_MAX_LEVEL && (
+                <> → Após upgrade: −{(PRESSURE_REDUCTION_PER_SUIT_LEVEL * (divingSuitLevel + 1) * 100).toFixed(0)}% Pressão extra · −{(BREATH_DRAIN_REDUCTION_PER_SUIT_LEVEL * (divingSuitLevel + 1) * 100).toFixed(0)}% dreno de Fôlego</>
+              )}
+            </p>
             {divingSuitUpgrading ? (
               <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
                 Melhorando para o Nível {character.abyss?.divingSuitUpgrade?.targetLevel}... conclusão em {suitUpgradeCountdown}.

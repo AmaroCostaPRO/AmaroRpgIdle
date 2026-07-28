@@ -8,6 +8,7 @@ interface EchoCardProps {
   efficacy?: EchoEfficacyBreakdown;
   selected: boolean;
   onSelect: (echoId: string) => void;
+  onUnassign?: (echoId: string) => void;
 }
 
 /**
@@ -16,7 +17,7 @@ interface EchoCardProps {
  * (`Base × Afinidade × Traço × Vizinhos × Salão = Final`), não só o percentual final. Tocar o
  * card seleciona o Eco para o fluxo de alocação por toque (ver `EchoRosterPanel`).
  */
-export const EchoCard: React.FC<EchoCardProps> = ({ echo, efficacy, selected, onSelect }) => {
+export const EchoCard: React.FC<EchoCardProps> = ({ echo, efficacy, selected, onSelect, onUnassign }) => {
   const healCountdown = useCountdown(echo.trait === 'brokenHeart' ? echo.brokenHeartHealsAt : undefined);
   const healed = echo.trait === 'brokenHeart' && !!echo.brokenHeartHealsAt && Date.now() >= echo.brokenHeartHealsAt;
 
@@ -42,12 +43,24 @@ export const EchoCard: React.FC<EchoCardProps> = ({ echo, efficacy, selected, on
       )}
 
       {echo.assignedDistrict ? (
-        <span style={{ color: '#a5f3fc', fontSize: '0.66rem' }}>
-          {DISTRICT_NAMES[echo.assignedDistrict]}
-          {efficacy && (
-            <> — Base {(efficacy.base * 100).toFixed(0)}% × Afin. {efficacy.affinity.toFixed(2)} × Traço {efficacy.selfMult.toFixed(2)} × Viz. {efficacy.neighborMult.toFixed(2)} × Salão {efficacy.salonMult.toFixed(2)} = <strong>{(efficacy.finalEfficacy * 100).toFixed(1)}%</strong></>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', flexWrap: 'wrap' }}>
+          <span style={{ color: '#a5f3fc', fontSize: '0.66rem' }}>
+            {DISTRICT_NAMES[echo.assignedDistrict]}
+            {efficacy && (
+              <> — Base {(efficacy.base * 100).toFixed(0)}% × Afin. {efficacy.affinity.toFixed(2)} × Traço {efficacy.selfMult.toFixed(2)} × Viz. {efficacy.neighborMult.toFixed(2)} × Salão {efficacy.salonMult.toFixed(2)} = <strong>{(efficacy.finalEfficacy * 100).toFixed(1)}%</strong></>
+            )}
+          </span>
+          {onUnassign && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onUnassign(echo.id); }}
+              className="btn btn-xs"
+              style={{ fontSize: '0.6rem', padding: '0.15rem 0.4rem', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.4)' }}
+              title="Remover deste distrito"
+            >
+              ✕ Remover
+            </button>
           )}
-        </span>
+        </div>
       ) : (
         <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.66rem' }}>Descansando</span>
       )}

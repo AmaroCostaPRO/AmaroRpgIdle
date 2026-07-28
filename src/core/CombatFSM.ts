@@ -4202,62 +4202,89 @@ export class CombatFSM {
     }
 
     for (const slot of slotsToDrop) {
-      const rareWeight = Math.min(600, 250 + luck * 5);
-      const legendaryWeight = Math.min(300, 50 + luck * 2);
-      const commonWeight = Math.max(100, 700 - (rareWeight - 250) - (legendaryWeight - 50));
-      
-      const totalWeight = commonWeight + rareWeight + legendaryWeight;
-      const roll = Math.random() * totalWeight;
-      
-      let rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' = 'common';
-      if (roll < legendaryWeight) {
-        rarity = 'legendary';
-      } else if (roll < legendaryWeight + rareWeight) {
-        rarity = 'rare';
-      }
-      
-      // Capstone do Simbolo do Aprendizado (Lvl 5): +10% de chance de Raro ou superior
-      const learningRelicLvl = useRelicStore.getState().relics['simbolo_aprendizado']?.level || 0;
-      const learningPromoteChance = learningRelicLvl === 5 ? (this.isRelicOverheated('simbolo_aprendizado') ? 0.25 : 0.10) : 0;
-      if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < learningPromoteChance) {
-        rarity = Math.random() < 0.20 ? 'legendary' : 'rare';
-        bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Símbolo do Aprendizado: Item comum promovido a [${rarity === 'legendary' ? 'Lendário' : 'Raro'}]!` });
-      }
-
-      // Palavra Rúnica OLHO DO NAUFRÁGIO: drops de Chefe nunca saem abaixo de Raro.
-      if (isBoss && rarity === 'common' && this.hasRunewordFlag('rw_olho_naufragio')) {
-        rarity = 'rare';
-      }
-
       const stage = char.currentStage;
       const classId = char.classId;
       const ascensionCount = char.ascensionCount || 0;
 
-      // v10.x: a partir da fase 31 (Pandemônio), itens comuns e raros não dropam mais — só lendários
-      // (relíquias seguem loop próprio, mais abaixo, e não são afetadas)
-      if (stage >= 31 && rarity !== 'legendary') {
-        continue;
-      }
-
       // Verificação de desbloqueio celestial (derrotar o Guardião dos Cacos / boss_crystal_guardian pela segunda vez em diante)
       const crystalGuardianKills = char.killCount?.['boss_crystal_guardian'] || 0;
       const isCelestialUnlocked = crystalGuardianKills >= 2;
-      const isCelestialDrop = isCelestialUnlocked && Math.random() < 0.10;
 
-      // v8.0.0 "O Espelho Faminto": chance de ser um item do Set da Lua de Sangue — só durante o
-      // evento sazonal (fim de semana) e 12% de chance sobre o drop (se não for Celestial)
-      const isBloodMoonDrop = !isCelestialDrop && isBloodMoonActive() && Math.random() < 0.12;
+      let rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mystic' = 'common';
+      let isCelestialDrop = false;
+      let isBloodMoonDrop = false;
+      let isPandemoniumDrop = false;
+      let isAncestralDrop = false;
 
-      // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop (se não for Celestial nem Lua de Sangue)
-      const isPandemoniumDrop = !isCelestialDrop && !isBloodMoonDrop && (stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
+      if (stage >= 31) {
+        // v10.x: a partir da fase 31 (Pandemônio), só dropam itens lendários pertencentes a um set
+        // especial (Celestial, Lua de Sangue, Pandemoníaco ou Ancestral). Em vez de sortear raridade/
+        // set livremente e descartar o drop (já concedido em slotsToDrop) quando o resultado não vale
+        // para a fase, filtramos o espaço de possibilidades ANTES de rolar: a raridade já nasce
+        // lendária, e o set é escolhido por uma rolagem ponderada só entre os sets elegíveis agora,
+        // que sempre produz um resultado (Pandemoníaco está sempre elegível aqui, pois stage >= 31
+        // implica stage >= 21). Assim nenhum drop já consumido é jogado fora.
+        rarity = 'legendary';
 
-      // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial, Lua de Sangue nem Pandemônio)
-      const isAncestralDrop = !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
+        const eligibleSets: { key: 'celestial' | 'bloodmoon' | 'pandemonium' | 'ancestral'; weight: number }[] = [];
+        if (isCelestialUnlocked) eligibleSets.push({ key: 'celestial', weight: 10 });
+        if (isBloodMoonActive()) eligibleSets.push({ key: 'bloodmoon', weight: 12 });
+        eligibleSets.push({ key: 'pandemonium', weight: 15 });
+        if (ascensionCount >= 1) eligibleSets.push({ key: 'ancestral', weight: 10 });
 
-      // v10.x: a partir da fase 31, o "Lendário solto" (sem set especial) também deixa de dropar —
-      // só os sets especiais (Celestial, Lua de Sangue, Pandemoníaco, Ancestral) aparecem a partir daqui
-      if (stage >= 31 && !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && !isAncestralDrop) {
-        continue;
+        const totalSetWeight = eligibleSets.reduce((sum, s) => sum + s.weight, 0);
+        const setRoll = Math.random() * totalSetWeight;
+        let acc = 0;
+        let chosenSet: 'celestial' | 'bloodmoon' | 'pandemonium' | 'ancestral' = 'pandemonium';
+        for (const s of eligibleSets) {
+          acc += s.weight;
+          if (setRoll < acc) { chosenSet = s.key; break; }
+        }
+
+        isCelestialDrop = chosenSet === 'celestial';
+        isBloodMoonDrop = chosenSet === 'bloodmoon';
+        isPandemoniumDrop = chosenSet === 'pandemonium';
+        isAncestralDrop = chosenSet === 'ancestral';
+      } else {
+        const rareWeight = Math.min(600, 250 + luck * 5);
+        const legendaryWeight = Math.min(300, 50 + luck * 2);
+        const commonWeight = Math.max(100, 700 - (rareWeight - 250) - (legendaryWeight - 50));
+
+        const totalWeight = commonWeight + rareWeight + legendaryWeight;
+        const roll = Math.random() * totalWeight;
+
+        if (roll < legendaryWeight) {
+          rarity = 'legendary';
+        } else if (roll < legendaryWeight + rareWeight) {
+          rarity = 'rare';
+        }
+
+        // Capstone do Simbolo do Aprendizado (Lvl 5): +10% de chance de Raro ou superior
+        const learningRelicLvl = useRelicStore.getState().relics['simbolo_aprendizado']?.level || 0;
+        const learningPromoteChance = learningRelicLvl === 5 ? (this.isRelicOverheated('simbolo_aprendizado') ? 0.25 : 0.10) : 0;
+        if (learningRelicLvl === 5 && rarity === 'common' && Math.random() < learningPromoteChance) {
+          rarity = Math.random() < 0.20 ? 'legendary' : 'rare';
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `✨ Símbolo do Aprendizado: Item comum promovido a [${rarity === 'legendary' ? 'Lendário' : 'Raro'}]!` });
+        }
+
+        // Palavra Rúnica OLHO DO NAUFRÁGIO: drops de Chefe nunca saem abaixo de Raro.
+        if (isBoss && rarity === 'common' && this.hasRunewordFlag('rw_olho_naufragio')) {
+          rarity = 'rare';
+        }
+
+        // v-next: Set Celestial passa a exigir também fase >= 31 (equilíbrio de dificuldade) —
+        // por isso não é rolado aqui neste ramo (fase < 31); isCelestialDrop permanece false e
+        // Celestial só passa a ser elegível no ramo `if (stage >= 31)` acima.
+
+        // v8.0.0 "O Espelho Faminto": chance de ser um item do Set da Lua de Sangue — só durante o
+        // evento sazonal (fim de semana) e 12% de chance sobre o drop (se não for Celestial)
+        isBloodMoonDrop = !isCelestialDrop && isBloodMoonActive() && Math.random() < 0.12;
+
+        // Chance de ser um item do Set Pandemoníaco: apenas no Modo Pandemônio e 15% de chance sobre o drop (se não for Celestial nem Lua de Sangue)
+        isPandemoniumDrop = !isCelestialDrop && !isBloodMoonDrop && !!(stage >= 21 || char.activePandemonium) && Math.random() < 0.15;
+
+        // Chance de ser um item do Set Ancestral: apenas após a 1ª ascensão e 10% de chance sobre o drop (se não for Celestial, Lua de Sangue nem Pandemônio)
+        isAncestralDrop = !isCelestialDrop && !isBloodMoonDrop && !isPandemoniumDrop && ascensionCount >= 1 && Math.random() < 0.10;
       }
 
       // Se for drop Celestial o multiplicador é 7.0; Lua de Sangue é 5.5; Pandemônio é 6.0; Ancestral é 4.5; senão segue o padrão

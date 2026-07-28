@@ -138,8 +138,9 @@ export const getDiveEnemyDamage = (depth: number, anchorStage: number, enemyDmgM
 // o que dá ao Traje de Mergulho um nicho que nenhum equipamento invade). Só se aplica pós-F50
 // (isFullDepthsUnlocked) — os Mergulhos Rasos pré-F50 continuam sem Pressão.
 // `divingSuitLevel` fica em 0 nesta versão (upgrade chega na 10.2.0 com a Doca Batial).
+export const PRESSURE_REDUCTION_PER_SUIT_LEVEL = 0.06;
 export const getPressureMultiplier = (depth: number, divingSuitLevel: number = 0): number =>
-  1 + 0.02 * depth * (1 - 0.06 * divingSuitLevel);
+  1 + 0.02 * depth * (1 - PRESSURE_REDUCTION_PER_SUIT_LEVEL * divingSuitLevel);
 
 // ─── Guardiões de Zona (25 / 50 / 80) ────────────────────────────────────────
 
@@ -196,8 +197,9 @@ export const ZONE4_MINIBOSS_ID = 'leviathan_spawn';
 // — é um relógio de sessão, não de poder (Design principal §5.B). O consumo DEVE usar o deltaTime
 // já multiplicado pela velocidade do jogo (CombatFSM.update) — nunca Date.now() — para que 2x/3x
 // alcancem a MESMA profundidade por descida (QA obrigatório do Anexo, §1.8).
+export const BREATH_DRAIN_REDUCTION_PER_SUIT_LEVEL = 0.04;
 export const getBreathDrainPerSecond = (depth: number, divingSuitLevel: number = 0): number =>
-  0.008 * (1 - 0.04 * divingSuitLevel);
+  0.008 * (1 - BREATH_DRAIN_REDUCTION_PER_SUIT_LEVEL * divingSuitLevel);
 
 export const DROWNING_DAMAGE_MULT = 2.0;    // Afogamento (Fôlego 0): dano recebido ×2, regen HP zero
 
