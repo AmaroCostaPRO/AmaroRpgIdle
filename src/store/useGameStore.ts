@@ -3,6 +3,7 @@ import { Character, BaseStats, EquipmentItem, GameEvent, CitadelState, HuntContr
 import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
+import { useQuestStore } from './useQuestStore';
 import { StatEngine } from '../core/StatEngine';
 import { getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
@@ -752,6 +753,7 @@ interface GameState {
   addTranscendencePoints(amount: number): void;
   addTranscendenceEssence(amount: number): void;
   addMaterials(wood: number, stone: number, meat: number, coral?: number): void;
+  addStudyInsignias(amount: number): void;
   addPearls(amount: number): void;
   buildOrUpgradeCommandCenter(): { success: boolean; message: string };
   buildOrUpgradeVault(): { success: boolean; message: string };
@@ -1646,6 +1648,20 @@ export const useGameStore = create<GameState>((set) => ({
         stone: farmedLifetime.stone + stone,
         meat: farmedLifetime.meat + meat,
       }
+    };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
+  addStudyInsignias: (amount) => set((state) => {
+    if (!amount || amount <= 0) return state;
+    const current = state.character.materials || DEFAULT_MATERIALS();
+    const updated = {
+      ...state.character,
+      materials: {
+        ...current,
+        studyInsignias: (current.studyInsignias || 0) + amount,
+      },
     };
     saveToLocalStorage(updated);
     return { character: updated };
@@ -4534,6 +4550,7 @@ export const useGameStore = create<GameState>((set) => ({
   advanceStage: () => set((state) => {
     const isPandemoniumUnlocked = state.character.pandemoniumUnlocked;
     let nextStage = state.character.currentStage + 1;
+    useQuestStore.getState().updateObjectiveProgress('stage', undefined, nextStage);
     let activePandemonium = state.character.activePandemonium || false;
     let purgatoryCompleted = state.character.purgatoryCompleted || false;
 

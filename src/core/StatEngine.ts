@@ -1,5 +1,6 @@
 import { BaseStats, Character, EquipmentItem, FinalStats } from '../core/types';
 import { useRelicStore } from '../store/useRelicStore';
+import { useQuestStore } from '../store/useQuestStore';
 import { SKILLS_CATALOG } from '../store/useGameStore';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
 import type { RuneMultiplierStatKey } from '../core/types';
@@ -459,6 +460,14 @@ export class StatEngine {
           });
         }
       });
+    }
+
+    // 1.B. Somar bônus passivos permanentes dos Itens de História (v11 "Ecos do Destino")
+    try {
+      const storyBonus = useQuestStore.getState().getStoryStatsBonus();
+      this.applyPartialStats(finalStats, storyBonus);
+    } catch (e) {
+      // safe fallback
     }
 
     // 2. Calcular bônus de conjunto (sets) equipados

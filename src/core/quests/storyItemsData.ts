@@ -1,0 +1,52 @@
+import { StoryItemDef } from './types';
+
+export const STORY_ITEMS_CATALOG: Record<string, StoryItemDef> = {
+  story_shard_memory: {
+    id: 'story_shard_memory',
+    name: 'Fragmento de Memória da Alma',
+    icon: '🔮',
+    lore: 'Um caco cintilante que vibra com as lembranças da primeira ascensão. Preserva a experiência adquirida em vidas passadas.',
+    statBonus: { touch: 5, critChance: 0.02 },
+    passiveDescription: '+5 Poder de Toque e +2% Chance de Crítico em todas as runs.',
+  },
+  story_seal_archdemon: {
+    id: 'story_seal_archdemon',
+    name: 'Selo do Arquidemônio Vencido',
+    icon: '👹',
+    lore: 'O selo de obsidian extraído das Ruínas Sombrias. Sua aura impõe respeito a qualquer criatura do Vazio.',
+    statBonus: { strength: 10, critDamage: 0.1 },
+    passiveDescription: '+10 de Força e +10% Dano Crítico permanente.',
+  },
+  story_astral_compass: {
+    id: 'story_astral_compass',
+    name: 'Bússola Astral da Alma-Mundo',
+    icon: '🧭',
+    lore: 'Uma bússola cujos ponteiros não apontam para o norte, mas para as frestas entre os Ecos.',
+    statBonus: { luck: 12, dropChancePct: 0.05 },
+    passiveDescription: '+12 de Sorte e +5% Chance de Drop de equipamentos.',
+  },
+  story_drowned_locket: {
+    id: 'story_drowned_locket',
+    name: 'Relicário dos Ecos Afogados',
+    icon: '📿',
+    lore: 'Um medalhão coberto de cracas e corais secos. Guarda o lamento harmonioso da cidadela afundada.',
+    statBonus: { constitution: 15, maxHpPct: 0.08 },
+    passiveDescription: '+15 de Constituição e +8% HP Máximo em todos os biomas.',
+  },
+  story_vessel_avatar: {
+    id: 'story_vessel_avatar',
+    name: 'Vazilhame do Avatar Pleno',
+    icon: '🌟',
+    lore: 'A essência cristalizada da união de todos os 5 atributos cardinais da Alma-Mundo.',
+    statBonus: { strength: 10, magic: 10, dexterity: 10, constitution: 10, luck: 10 },
+    passiveDescription: '+10 em Todos os Atributos Primários permanente.',
+  },
+  story_herald_horn: {
+    id: 'story_herald_horn',
+    name: 'Trombeta do Heraldo dos Céus',
+    icon: '📯',
+    lore: 'Instrumento divino que respondeu ao canto do Caco Submerso, ecoando a promessa dos novos céus.',
+    statBonus: { damageMultiplierPct: 0.1 },
+    passiveDescription: '+10% Dano Geral Global em todas as fases.',
+  },
+};

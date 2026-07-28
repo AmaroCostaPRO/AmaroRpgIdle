@@ -42,6 +42,9 @@ import { SunkenCitadelOverview } from './abyss/SunkenCitadelOverview';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
+import { QuestLogPanel } from './QuestLogPanel';
+import { NpcDialogOverlay } from './NpcDialogOverlay';
+import { useQuestStore } from '../store/useQuestStore';
 import { FARO_PERFECT_CATCHES_REQUIRED } from '../core/abyssFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
@@ -7576,7 +7579,7 @@ export default function GameUI() {
     { icon: '🎭', value: character.sunkenCitadel?.echoes.length || 0, color: '#c4b5fd', label: 'Ecos Afogados' },
   ], [character.pearls, citadelMaterials.coral, character.sunkenCitadel?.echoes.length]);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel' | 'abyss'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'quests' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel' | 'abyss'>('combat');
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
   // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
@@ -7806,6 +7809,7 @@ export default function GameUI() {
 
   const tabs = [
     { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false },
+    { id: 'quests' as const, label: 'Jornada', icon: '📜', disabled: false },
     { id: 'attributes' as const, label: 'Atributos', icon: '◆', disabled: false },
     { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
@@ -8186,6 +8190,7 @@ export default function GameUI() {
               <ActiveSkillsPanel />
             </div>
           )}
+          {activeTab === 'quests' && <QuestLogPanel />}
           {activeTab === 'citadel' && !citadelEntered && (
             <CitadelGate
               locked={!isCitadelUnlocked}
@@ -9213,6 +9218,7 @@ export default function GameUI() {
       )}
 
       <ProgressNotifications />
+      <NpcDialogOverlay />
       {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
     </div>
   );
