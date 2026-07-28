@@ -3352,7 +3352,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '36rem', margin: '0 auto' }}>
                       <div>
                         <h3 className="font-heading" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f87171', textShadow: '0 0 8px rgba(239,68,68,0.5)' }}>
-                          Modo Pandemônio (v4.0.0)
+                          Modo Pandemônio
                         </h3>
                         <p style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.5rem', lineHeight: 1.6 }}>
                           {isUnlocked 
@@ -3501,7 +3501,7 @@ const PrestigeTreePanel: React.FC<PrestigeTreePanelProps> = ({ onPrestige }) => 
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', textAlign: 'left' }}>
                   <span className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f87171' }}>
-                    Alma - Modo Pandemônio (v3.0.0)
+                    Alma - Modo Pandemônio
                   </span>
                   <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>
                     {character.pandemoniumUnlocked ? 'Desbloqueado' : 'Pronto para Ativar'}
@@ -3785,7 +3785,7 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🏰 A Cidadela Astral</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 10 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia (v8.0.0) e o Santuário de Contratos de Caça (v9.0.0), que ficam na 2ª:
+                    Uma aba de gerenciamento de base em tela cheia, desbloqueada após a <strong>1ª Ascensão</strong>. A Cidadela roda em paralelo ao combate principal (o herói continua lutando/dropando em segundo plano) e produz materiais (Madeira, Pedra, Carne, Insígnias de Estudo) usados para construir e evoluir o Centro de Comando e as outras 10 construções. O pátio clicável tem 2 páginas (setas nas bordas da tela) — todas as construções abaixo estão na 1ª página, exceto o Laboratório de Alquimia e o Santuário de Contratos de Caça, que ficam na 2ª:
                   </p>
                   <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.35rem', display: 'flex', flexDirection: 'column' }}>
                     <li><span className="text-white font-semibold">Centro de Comando:</span> <span className="text-gray-400">construção central, evoluível do Nível 1 ao 5. Cada nível aumenta em +10% a quantidade de Madeira/Pedra/Carne coletada em combate e define o nível máximo que as outras construções podem alcançar (ex: o Depósito só sobe ao Nível 2 depois do Centro de Comando).</span></li>
@@ -3797,9 +3797,9 @@ const GuidePanel: React.FC = () => {
                     <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
                     <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
                     <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
-                    <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia (v8.0.0):</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
-                    <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça (v9.0.0):</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
-                    <li><span className="text-white font-semibold">🪬 Câmara de Gravação (v10.0.0):</span> <span className="text-gray-400">12ª construção — perfura soquetes em equipamento pesado e engasta Runas Abissais/Palavras Rúnicas dropadas nas Profundezas (veja o detalhamento completo na categoria 🌊 Cidadela Submersa).</span></li>
+                    <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia:</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
+                    <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça:</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
+                    <li><span className="text-white font-semibold">🪬 Câmara de Gravação:</span> <span className="text-gray-400">12ª construção — perfura soquetes em equipamento pesado e engasta Runas Abissais/Palavras Rúnicas dropadas nas Profundezas (veja o detalhamento completo na categoria 🌊 Cidadela Submersa).</span></li>
                   </ul>
                 </div>
               </div>
@@ -3949,11 +3949,11 @@ const GuidePanel: React.FC = () => {
                   </ul>
                   <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
                   <div>
-                    <strong className="text-white block font-semibold">🧿 Amuleto (7º slot, v7.0.0)</strong>
+                    <strong className="text-white block font-semibold">🧿 Amuleto (7º slot)</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">Slot "leve" de entrada, disponível desde a Fase 1: concede exatamente 1 passivo da mesma pool do Colar acima. Drop fixo de 8%, sem influência da Sorte.</p>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold">💍 Anel (8º slot, v8.0.0)</strong>
+                    <strong className="text-white block font-semibold">💍 Anel (8º slot)</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">Ao contrário do Colar/Amuleto, o Anel é um slot "pesado" — concede atributos primários de classe normais (igual a Elmo/Peito/Pernas/Mãos/Arma), participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados.</p>
                   </div>
                 </div>
@@ -3961,7 +3961,7 @@ const GuidePanel: React.FC = () => {
 
               {/* Relíquia Ativa (9º slot, v9.0.0) */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔱 Relíquia Ativa (9º Slot, v9.0.0)</span>
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🔱 Relíquia Ativa (9º Slot)</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Diferente de todos os outros slots, a Relíquia Ativa não concede atributos passivos — ela dá uma <strong>habilidade ativa com recarga própria</strong>, disparada por um botão dedicado no painel de Habilidades. Não passa por Fusão Mística: a habilidade em si é fixa, só a potência do parâmetro relevante (dano, cura, duração, etc.) varia por um roll min/máx conforme a raridade do drop.
@@ -4016,13 +4016,13 @@ const GuidePanel: React.FC = () => {
                     </p>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold">♾️ Provações do Vácuo (v9.0.0)</strong>
+                    <strong className="text-white block font-semibold">♾️ Provações do Vácuo</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
                       3ª ramificação da Torre Infinita, liberada só após a <strong>1ª Transcendência</strong>. Reaproveita a mesma curva de dificuldade sem teto da Torre, mas só registra o seu recorde pessoal — sem títulos, sem semente semanal pública, sem leaderboard. A cada 40 andares batidos <strong>nesta semana</strong>, concede +1 Ponto de Transcendência, até um teto fixo de 3 PT por semana (resetado junto do relógio semanal da Torre) — como PT é a moeda mais escassa do jogo, esse modo é só uma fonte lenta e secundária, nunca uma alternativa de farm ao Rito de Transcendência.
                     </p>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold" style={{ color: '#67e8f9' }}>✨ Bônus Permanente de Transcendência (v10.6.0)</strong>
+                    <strong className="text-white block font-semibold" style={{ color: '#67e8f9' }}>✨ Bônus Permanente de Transcendência</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
                       Cada Transcendência realizada concede, para sempre, +5% multiplicativo de Dano, Vida Máxima e Mana Máxima — empilhando a cada ciclo (2 Transcendências = +10%, 3 = +15%...), por fora de qualquer outro bônus e nunca perdido nos ciclos seguintes.
                     </p>
@@ -4084,7 +4084,7 @@ const GuidePanel: React.FC = () => {
                     </ul>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold">🌀 Ramificação de Maldições (v8.0.0):</strong>
+                    <strong className="text-white block font-semibold">🌀 Ramificação de Maldições:</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
                       Modo roguelike opcional, escolhido ao iniciar a subida (não exige chave própria). A cada andar vencido, uma maldição se acumula: -10% em um atributo e +20% em outro, temporária (só durante a subida, nunca altera seus itens de verdade). Em troca, +50% de Ouro e Fragmentos de Forja. Recordes semanal/histórico e a galeria de títulos honoríficos são totalmente separados da Torre Normal.
                     </p>
@@ -4099,7 +4099,7 @@ const GuidePanel: React.FC = () => {
             <>
               {/* Bosque Sussurrante, Pets e Mercador (v7.0.0) */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🌲 Bosque Sussurrante, Pets e Mercador (v7.0.0)</span>
+                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🌲 Bosque Sussurrante, Pets e Mercador</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     A jornada agora começa no <strong>Bosque Sussurrante</strong> (Fases 1-5), bioma introdutório com inimigos e chefe exclusivos; as dificuldades Pesadelo/Inferno/Apocalipse passam a valer só a partir da Fase 6.
@@ -4117,7 +4117,7 @@ const GuidePanel: React.FC = () => {
 
               {/* Lua de Sangue (v8.0.0) */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">🌕 Lua de Sangue (v8.0.0)</span>
+                <span className="text-[9px] font-semibold text-rose-400 uppercase tracking-widest block">🌕 Lua de Sangue</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <div>
                     <strong className="text-white block font-semibold">🌕 Lua de Sangue:</strong>
@@ -4128,7 +4128,7 @@ const GuidePanel: React.FC = () => {
 
               {/* Convergência (v9.0.0) */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest block">☄️ Convergência — World Boss Semanal (v9.0.0)</span>
+                <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-widest block">☄️ Convergência — World Boss Semanal</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Versão endgame da Lua de Sangue. Toda <strong>quarta-feira</strong>, com o <strong>Pandemônio desbloqueado</strong>, cada encontro comum fora da Torre tem <strong>1% de chance</strong> de se transformar no world boss da semana — só <strong>uma vez por dia</strong> (a mesma seed semanal barra novos sorteios até a próxima quarta).
@@ -4216,7 +4216,7 @@ const GuidePanel: React.FC = () => {
           {guideSystemsSubTab === 'submerged' && (
             <>
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🎣 O Litoral Naufragado (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-cyan-400 uppercase tracking-widest block">🎣 O Litoral Naufragado</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Nova aba de topo 🌊 <strong>Abismo</strong>, desbloqueada ao completar a <strong>Fase 2</strong>. A <strong>Doca de Pesca</strong> (5 níveis) gera capturas passivamente num buffer que pausa ao encher — colete manualmente quando quiser, igual à Torre de Vigia. Você também pode pescar ativamente: um minigame de timing onde acertar a janela verde dobra a captura, e acertar a faixa dourada central conta como <strong>acerto perfeito</strong>.
@@ -4228,7 +4228,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">🤿 As Profundezas — Mergulho Vertical (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-blue-400 uppercase tracking-widest block">🤿 As Profundezas — Mergulho Vertical</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Modo push-your-luck totalmente separado da campanha: gaste <strong>Chaves de Mergulho</strong> (montadas a cada 5 Fragmentos de Batisfera pescados) para descer o quanto conseguir. O <strong>Fôlego</strong> é o único relógio da sessão — nunca escala com a profundidade, é puramente risco de sessão.
@@ -4241,7 +4241,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🔱 A Cidadela Submersa — 6 Distritos (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-teal-400 uppercase tracking-widest block">🔱 A Cidadela Submersa — 6 Distritos</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     A cidade-irmã afundada da Cidadela Astral, desbloqueada ao alcançar a <strong>Fase 50</strong>. Drene distritos com Pérolas e Coral (leva horas reais, 8h a 72h dependendo do distrito) para restaurá-los: Doca Batial, Salão dos Ecos, Forja Encharcada, Arquivo Submerso, Templo da Maré e Trono Afundado — cada um com sua própria função e slots para alocar Ecos Afogados.
@@ -4256,7 +4256,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">🎭 Os Ecos Afogados (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-emerald-400 uppercase tracking-widest block">🎭 Os Ecos Afogados</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Cidadãos resgatados nas Profundezas (Zona 3+) ou ao concluir drenagens de distrito. Cada Eco tem uma vocação (Pescador/Mergulhador/Escriba/Guardião) e um traço único — aloque-os no distrito certo para maximizar a produção. O traço <strong>Coração Partido</strong> pede 7 dias de descanso antes de voltar a render, e realocá-lo reinicia o prazo.
@@ -4265,7 +4265,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🕍 Ciclo de Marés (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">🕍 Ciclo de Marés</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Um relógio de 6 horas alterna <strong>Maré Baixa</strong> (+pesca, −custo de drenagem, −Pressão nas Profundezas) e <strong>Maré Alta</strong> (+Coral, ativa as Bênçãos do Templo — escolhas de dano/drop/produção). Acelera para um ciclo de 1 hora nas <strong>sextas-feiras</strong> (Maré Viva), completando o calendário semanal ao lado da Lua de Sangue (domingo) e da Convergência (quarta).
@@ -4274,7 +4274,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🪬 Câmara de Gravação, Runas Abissais e Palavras Rúnicas (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">🪬 Câmara de Gravação, Runas Abissais e Palavras Rúnicas</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Nova construção da Cidadela Astral: perfure soquetes em equipamento pesado (armas, peitorais e — em nível mais alto — qualquer slot pesado) e engaste Runas Abissais dropadas nas Profundezas. Existem 9 famílias base (3 tiers cada) e 9 Runas Primordiais únicas, cada uma com um efeito especial.
@@ -4286,7 +4286,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">💠 Set Abissal (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">💠 Set Abissal</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     Maior teto de multiplicador de status do jogo, <strong>8.0×</strong> (acima do Set Celestial, 7.0×), e o set com o melhor bônus de conjunto: 3 peças libera +1 soquete acima do teto normal e +6% de Roubo de Vida; 5 peças concede +65% Dano Final, +30% Vida Máxima, +12% Vel. Ataque, +10% Chance Crítica (exclusivo do Abissal) e imunidade a [ENCHARCADO] — superando o Celestial em todo atributo compartilhado. Só dropa na Fossa do Caco (Zona 4 das Profundezas) e é garantido em toda morte do Leviatã do Ciclo.
@@ -4295,7 +4295,7 @@ const GuidePanel: React.FC = () => {
               </div>
 
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-cyan-300 uppercase tracking-widest block">🐋 O Leviatã do Ciclo — Chefe Mundial Semanal (v10.0.0)</span>
+                <span className="text-[9px] font-semibold text-cyan-300 uppercase tracking-widest block">🐋 O Leviatã do Ciclo — Chefe Mundial Semanal</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
                     No Trono Afundado restaurado, desafie um chefe de <strong>5 fases</strong>, cada uma com sua própria mecânica e escalando com seu recorde de profundidade nas Profundezas. Você tem algumas tentativas por semana, e o progresso persiste — perder só custa a fase atual, fases já vencidas não se refazem.
