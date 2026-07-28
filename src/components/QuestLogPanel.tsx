@@ -12,6 +12,7 @@ export const QuestLogPanel: React.FC = () => {
   const claimReward = useQuestStore((s) => s.claimReward);
   const generateRunQuests = useQuestStore((s) => s.generateRunQuests);
   const syncQuestObjectives = useQuestStore((s) => s.syncQuestObjectives);
+  const playActCutscene = useQuestStore((s) => s.playActCutscene);
 
   useEffect(() => {
     syncQuestObjectives();
@@ -127,9 +128,24 @@ export const QuestLogPanel: React.FC = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.58rem', color: '#a855f7', fontWeight: 700, textTransform: 'uppercase' }}>
-                    Ato {quest.act} — Capítulo {quest.chapterNumber}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.58rem', color: '#a855f7', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Ato {quest.act} — Capítulo {quest.chapterNumber}
+                    </span>
+                    {quest.act && (
+                      <button
+                        onClick={() => {
+                          AudioManager.getInstance().playClick();
+                          playActCutscene(quest.act!);
+                        }}
+                        className="btn btn-xs btn-secondary"
+                        style={{ fontSize: '0.55rem', padding: '1px 6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                        title="Rever a cena narrativa deste Ato"
+                      >
+                        🎬 Rever Cena
+                      </button>
+                    )}
+                  </div>
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>{quest.title}</span>
                 </div>
                 {quest.isClaimed ? (

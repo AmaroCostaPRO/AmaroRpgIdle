@@ -2,9 +2,11 @@ import { create } from 'zustand';
 import { QuestDef, ObjectiveType, NpcDialogState, NpcDialogOption } from '../core/quests/types';
 import { MAIN_QUESTS_CATALOG } from '../core/quests/mainQuestsData';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
+import { ACT_CUTSCENES_CATALOG, ActCutsceneDef } from '../core/quests/storyCutscenesData';
 import { generateProceduralQuests } from '../core/quests/QuestGenerator';
 import { useGameStore } from './useGameStore';
-import { BaseStats } from '../core/types';
+import { BaseStats, GameEvent } from '../core/types';
+import { bridge } from '../bridge/GameBridge';
 
 const QUEST_STORE_STORAGE_KEY = 'medieval_idle_quest_store';
 
@@ -15,7 +17,13 @@ interface QuestStoreState {
   storyInventory: Record<string, number>;
   activeDialog: NpcDialogState | null;
 
-  // Actions
+  // Cutscenes Narrativas de Ato
+  seenActCutscenes: number[];
+  activeActCutscene: ActCutsceneDef | null;
+  playActCutscene: (actNumber: number) => void;
+  finishActCutscene: () => void;
+
+  // Ações
   generateRunQuests: () => void;
   updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount?: number) => void;
   syncQuestObjectives: () => void;
@@ -53,12 +61,12 @@ const loadPersistedQuestStore = (): {
   proceduralQuests: QuestDef[];
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
+  seenActCutscenes: number[];
 } => {
   try {
     const raw = localStorage.getItem(QUEST_STORE_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Merge mainQuests with default catalog in case new catalog items exist
       const mainMap = defaultMainQuestsMap();
       if (parsed.mainQuests) {
         for (const [id, quest] of Object.entries(parsed.mainQuests)) {
@@ -72,6 +80,7 @@ const loadPersistedQuestStore = (): {
         proceduralQuests: parsed.proceduralQuests || [],
         completedQuestIds: parsed.completedQuestIds || [],
         storyInventory: parsed.storyInventory || {},
+        seenActCutscenes: parsed.seenActCutscenes || [],
       };
     }
   } catch (e) {
@@ -82,6 +91,7 @@ const loadPersistedQuestStore = (): {
     proceduralQuests: [],
     completedQuestIds: [],
     storyInventory: {},
+    seenActCutscenes: [],
   };
 };
 
@@ -90,6 +100,7 @@ const saveQuestStore = (state: {
   proceduralQuests: QuestDef[];
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
+  seenActCutscenes: number[];
 }) => {
   try {
     localStorage.setItem(
@@ -99,6 +110,7 @@ const saveQuestStore = (state: {
         proceduralQuests: state.proceduralQuests,
         completedQuestIds: state.completedQuestIds,
         storyInventory: state.storyInventory,
+        seenActCutscenes: state.seenActCutscenes,
       })
     );
   } catch (e) {
@@ -112,6 +124,35 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
   return {
     ...initialData,
     activeDialog: null,
+    activeActCutscene: null,
+
+    playActCutscene: (actNumber: number) => {
+      const cutscene = ACT_CUTSCENES_CATALOG[actNumber];
+      if (!cutscene) return;
+
+      // Pausa a cena de combate durante a exibição narrativa
+      bridge.emit(GameEvent.END_COMBAT, {});
+      set({ activeActCutscene: cutscene });
+    },
+
+    finishActCutscene: () => {
+      const { activeActCutscene, seenActCutscenes } = get();
+      let updatedSeen = [...seenActCutscenes];
+
+      if (activeActCutscene && !updatedSeen.includes(activeActCutscene.act)) {
+        updatedSeen.push(activeActCutscene.act);
+      }
+
+      set({
+        activeActCutscene: null,
+        seenActCutscenes: updatedSeen,
+      });
+
+      saveQuestStore({ ...get(), seenActCutscenes: updatedSeen });
+
+      // Retoma o loop de combate
+      bridge.emit(GameEvent.START_COMBAT, { mode: 'campaign' });
+    },
 
     generateRunQuests: () => {
       const char = useGameStore.getState().character;
@@ -120,113 +161,124 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
       saveQuestStore({ ...get(), proceduralQuests });
     },
 
-    syncQuestObjectives: () => {
-      const char = useGameStore.getState().character;
-      if (!char) return;
-      get().updateObjectiveProgress('level', undefined, char.level || 1);
-    },
-
     updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount = 1) => {
-      let changed = false;
+      const { mainQuests, proceduralQuests } = get();
       const char = useGameStore.getState().character;
       const currentStage = char?.currentStage || 1;
-      const currentLevel = char?.level || 1;
 
-      // 1. Atualiza Main Quests
-      const newMain = { ...get().mainQuests };
-      for (const [id, quest] of Object.entries(newMain)) {
-        if (quest.isCompleted) continue;
-        if (!isMainQuestUnlocked(quest, newMain, currentStage)) continue;
+      let changed = false;
 
-        let questUpdated = false;
-        let allCompleted = true;
+      const updateQuestList = (quests: QuestDef[]) => {
+        return quests.map((quest) => {
+          if (quest.isCompleted || quest.isClaimed) return quest;
 
-        for (const obj of quest.objectives) {
-          if (obj.type === type) {
-            if (!obj.targetId || obj.targetId === targetId) {
-              const prev = obj.currentAmount;
-              if (type === 'stage' || type === 'level') {
-                obj.currentAmount = Math.max(obj.currentAmount, amount);
-              } else {
-                obj.currentAmount = Math.min(obj.requiredAmount, obj.currentAmount + amount);
-              }
-              if (obj.currentAmount !== prev) {
-                questUpdated = true;
-                changed = true;
-              }
-            }
-          } else if (obj.type === 'stage') {
-            const prev = obj.currentAmount;
-            obj.currentAmount = Math.max(obj.currentAmount, currentStage);
-            if (obj.currentAmount !== prev) {
-              questUpdated = true;
-              changed = true;
-            }
-          } else if (obj.type === 'level') {
-            const prev = obj.currentAmount;
-            obj.currentAmount = Math.max(obj.currentAmount, currentLevel);
-            if (obj.currentAmount !== prev) {
-              questUpdated = true;
-              changed = true;
-            }
+          if (quest.act && !isMainQuestUnlocked(quest, mainQuests, currentStage)) {
+            return quest;
           }
 
-          if (obj.currentAmount < obj.requiredAmount) {
-            allCompleted = false;
-          }
-        }
+          let questUpdated = false;
+          let allCompleted = true;
 
-        if (allCompleted && !quest.isCompleted) {
-          quest.isCompleted = true;
-          changed = true;
-          // Trigger NPC Dialog if available
-          if (quest.npcId && quest.npcName) {
-            get().triggerNpcDialog(
-              quest.npcId,
-              quest.npcName,
-              '#a855f7',
-              `Excelente progresso! Você concluiu os objetivos da missão "${quest.title}". Reclame sua recompensa no Diário da Jornada!`,
-              [
-                { label: 'Reclamar Recompensa', action: 'claim_reward', questId: quest.id },
-                { label: 'Fechar', action: 'close' },
-              ],
-              quest.id
-            );
-          }
-        }
-      }
-
-      // 2. Atualiza Procedural Quests
-      const newProcedural = get().proceduralQuests.map((quest) => {
-        if (quest.isCompleted) return quest;
-
-        let questUpdated = false;
-        let allCompleted = true;
-        const objectives = quest.objectives.map((obj) => {
-          let currentAmount = obj.currentAmount;
-          if (obj.type === type) {
-            if (!obj.targetId || obj.targetId === targetId) {
-              currentAmount =
-                type === 'stage' || type === 'level'
-                  ? Math.max(currentAmount, amount)
-                  : Math.min(obj.requiredAmount, currentAmount + amount);
+          const updatedObjectives = quest.objectives.map((obj) => {
+            if (obj.type !== type) {
+              if (obj.currentAmount < obj.requiredAmount) allCompleted = false;
+              return obj;
             }
-          } else if (obj.type === 'stage') {
-            currentAmount = Math.max(currentAmount, currentStage);
-          } else if (obj.type === 'level') {
-            currentAmount = Math.max(currentAmount, currentLevel);
-          }
 
-          if (currentAmount !== obj.currentAmount) questUpdated = true;
-          if (currentAmount < obj.requiredAmount) allCompleted = false;
+            if (type === 'stage') {
+              const currentAmount = currentStage;
+              if (currentAmount !== obj.currentAmount) questUpdated = true;
+              if (currentAmount < obj.requiredAmount) allCompleted = false;
+              return { ...obj, currentAmount };
+            }
 
-          return { ...obj, currentAmount };
+            if (type === 'level') {
+              const currentAmount = char?.level || 1;
+              if (currentAmount !== obj.currentAmount) questUpdated = true;
+              if (currentAmount < obj.requiredAmount) allCompleted = false;
+              return { ...obj, currentAmount };
+            }
+
+            if (obj.targetId && targetId && obj.targetId !== targetId) {
+              if (obj.currentAmount < obj.requiredAmount) allCompleted = false;
+              return obj;
+            }
+
+            const newAmount = Math.min(obj.requiredAmount, obj.currentAmount + amount);
+            if (newAmount !== obj.currentAmount) questUpdated = true;
+            if (newAmount < obj.requiredAmount) allCompleted = false;
+
+            return { ...obj, currentAmount: newAmount };
+          });
+
+          const isCompleted = allCompleted ? true : quest.isCompleted;
+          if (questUpdated) changed = true;
+
+          return {
+            ...quest,
+            objectives: updatedObjectives,
+            isCompleted,
+          };
         });
+      };
 
-        const isCompleted = allCompleted ? true : quest.isCompleted;
-        if (questUpdated) changed = true;
-        return { ...quest, objectives, isCompleted };
+      const newMainList = updateQuestList(Object.values(mainQuests));
+      const newMain: Record<string, QuestDef> = {};
+      newMainList.forEach((q) => {
+        newMain[q.id] = q;
       });
+
+      const newProcedural = updateQuestList(proceduralQuests);
+
+      if (changed) {
+        set({ mainQuests: newMain, proceduralQuests: newProcedural });
+        saveQuestStore({ ...get(), mainQuests: newMain, proceduralQuests: newProcedural });
+      }
+    },
+
+    syncQuestObjectives: () => {
+      const { mainQuests, proceduralQuests } = get();
+      const char = useGameStore.getState().character;
+      if (!char) return;
+
+      const currentStage = char.currentStage || 1;
+      const currentLevel = char.level || 1;
+      let changed = false;
+
+      const syncList = (quests: QuestDef[]) => {
+        return quests.map((quest) => {
+          if (quest.isCompleted || quest.isClaimed) return quest;
+          if (quest.act && !isMainQuestUnlocked(quest, mainQuests, currentStage)) return quest;
+
+          let questUpdated = false;
+          let allCompleted = true;
+
+          const objectives = quest.objectives.map((obj) => {
+            let currentAmount = obj.currentAmount;
+            if (obj.type === 'stage') {
+              currentAmount = currentStage;
+            } else if (obj.type === 'level') {
+              currentAmount = currentLevel;
+            }
+            if (currentAmount !== obj.currentAmount) questUpdated = true;
+            if (currentAmount < obj.requiredAmount) allCompleted = false;
+
+            return { ...obj, currentAmount };
+          });
+
+          const isCompleted = allCompleted ? true : quest.isCompleted;
+          if (questUpdated) changed = true;
+          return { ...quest, objectives, isCompleted };
+        });
+      };
+
+      const newMainList = syncList(Object.values(mainQuests));
+      const newMain: Record<string, QuestDef> = {};
+      newMainList.forEach((q) => {
+        newMain[q.id] = q;
+      });
+
+      const newProcedural = syncList(proceduralQuests);
 
       if (changed) {
         set({ mainQuests: newMain, proceduralQuests: newProcedural });
@@ -235,7 +287,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
     },
 
     claimReward: (questId: string) => {
-      const { mainQuests, proceduralQuests, completedQuestIds, storyInventory } = get();
+      const { mainQuests, proceduralQuests, completedQuestIds, storyInventory, seenActCutscenes, playActCutscene } = get();
 
       let targetQuest: QuestDef | null = mainQuests[questId] || null;
       let isMain = true;
@@ -291,7 +343,24 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         proceduralQuests,
         completedQuestIds: newCompleted,
         storyInventory: newStoryInventory,
+        seenActCutscenes,
       });
+
+      // Disparo Automático da Cutscene do Próximo Ato ao Concluir o Ato Atual
+      if (isMain && targetQuest.act) {
+        const currentAct = targetQuest.act;
+        const questsInAct = Object.values(mainQuests).filter((q) => q.act === currentAct);
+        const allActDone = questsInAct.every((q) => q.isCompleted || q.isClaimed);
+
+        if (allActDone && currentAct < 6) {
+          const nextAct = currentAct + 1;
+          if (!seenActCutscenes.includes(nextAct)) {
+            setTimeout(() => {
+              playActCutscene(nextAct);
+            }, 500);
+          }
+        }
+      }
     },
 
     triggerNpcDialog: (npcId, npcName, factionColor, text, options, questId) => {
@@ -301,7 +370,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
           npcName,
           factionColor,
           text,
-          options: options || [{ label: 'Entendido', action: 'close' }],
+          options,
           questId,
         },
       });
@@ -313,19 +382,21 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
 
     getStoryStatsBonus: () => {
       const { storyInventory } = get();
-      const totals: Partial<BaseStats> = {};
+      const bonus: Partial<BaseStats> = {};
 
-      for (const [itemId, qty] of Object.entries(storyInventory)) {
-        if (qty <= 0) continue;
+      for (const [itemId, count] of Object.entries(storyInventory)) {
+        if (count <= 0) continue;
         const itemDef = STORY_ITEMS_CATALOG[itemId];
         if (!itemDef || !itemDef.statBonus) continue;
 
-        for (const [key, val] of Object.entries(itemDef.statBonus)) {
-          const statKey = key as keyof BaseStats;
-          totals[statKey] = (totals[statKey] || 0) + (val as number) * qty;
+        for (const [statKey, statVal] of Object.entries(itemDef.statBonus)) {
+          const key = statKey as keyof BaseStats;
+          const val = Number(statVal || 0) * count;
+          bonus[key] = (Number(bonus[key]) || 0) + val;
         }
       }
-      return totals;
+
+      return bonus;
     },
   };
 });

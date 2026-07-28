@@ -44,6 +44,7 @@ import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
 import { QuestLogPanel } from './QuestLogPanel';
 import { NpcDialogOverlay } from './NpcDialogOverlay';
+import { ActCutsceneOverlay } from './ActCutsceneOverlay';
 import { useQuestStore } from '../store/useQuestStore';
 import { FARO_PERFECT_CATCHES_REQUIRED } from '../core/abyssFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
@@ -9193,6 +9194,10 @@ export default function GameUI() {
               onClick={() => {
                 AudioManager.getInstance().playClick();
                 useGameStore.getState().markIntroLoreAsShown();
+                const questStore = useQuestStore.getState();
+                if (!questStore.seenActCutscenes.includes(1)) {
+                  questStore.playActCutscene(1);
+                }
               }} 
               className={`btn font-heading ${visibleParagraphs >= 7 ? 'btn-gold animate-pulse' : 'btn-secondary'}`}
               style={{
@@ -9219,6 +9224,7 @@ export default function GameUI() {
 
       <ProgressNotifications />
       <NpcDialogOverlay />
+      <ActCutsceneOverlay />
       {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
     </div>
   );

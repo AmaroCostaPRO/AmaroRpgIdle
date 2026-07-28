@@ -1645,6 +1645,12 @@ interface QuestStoreState {
   storyInventory: Record<string, number>;
   activeDialog: NpcDialogState | null;
 
+  // Cutscenes Narrativas de Ato
+  seenActCutscenes: number[];
+  activeActCutscene: ActCutsceneDef | null;
+  playActCutscene: (actNumber: number) => void;
+  finishActCutscene: () => void;
+
   // Ações
   generateRunQuests: () => void;
   updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount?: number) => void;
@@ -1691,3 +1697,11 @@ A interface do Diário de Jornada utiliza um **seletor por carrossel dinâmico**
 *   Exibe **exatamente 1 sub-aba por vez** centralizada em destaque (`🌟 Jornada Principal` ↔ `⚔️ Contratos & Caçadas` ↔ `🏺 Artefatos de História`).
 *   Suporta navegação circular rápida por clique nas setas ou no botão central, sem estouro de layout em telas mobile.
 *   Cards de missões utilizam contornos limpos e sem bordas laterais coloridas `borderLeft`, mantendo alinhamento estético com o tema Dark Mode.
+
+### G. Cutscenes Narrativas Sequenciais de Atos (`storyCutscenesData.ts`, `ActCutsceneOverlay.tsx`)
+Apresentação em tela inteira estilo Visual Novel / RPG para enriquecer o contexto dos 6 Atos:
+*   **Roteiros de Diálogo (`ACT_CUTSCENES_CATALOG`)**: Roteiros imersivos detalhando encontros com a Voz da Alma-Mundo, Valéria, Vulkan, O Andarilho do Vazio, O Eco do Avatar e O Castelão Afundado.
+*   **Pausa e Fundo Dramático**: Ao ativar `playActCutscene(act)`, a store dispara `bridge.emit(GameEvent.END_COMBAT)` e escurece a tela (`rgba(6, 5, 12, 0.92)` com `backdropFilter: blur(10px)`). Ao concluir ou pular a cena (`finishActCutscene`), emite `GameEvent.START_COMBAT`.
+*   **Retratos e Sprites**: Renderiza o retrato/sprite do NPC (`/assets/npc_[id].png`) com bordas na cor da facção e fallback automático para badges/emojis animados (`🔮`, `📜`, `⚒️`, `🌌`, `✨`, `🌊`).
+*   **Máquina de Escrever & Controles**: Texto revelado caractere a caractere (22ms por letra), com botões `[ Avançar ➔ ]` (ou tecla `Espaço`/`Enter`) e `[ ⏩ Pular Cena ]`.
+*   **Disparo Automático**: Dispara o Ato I após a introdução inicial, e os Atos II a VI automaticamente ao reivindicar a última missão do Ato anterior em `claimReward`. Suporta re-exibição sob demanda via botão `[ 🎬 Rever Cena ]` no `QuestLogPanel.tsx`.

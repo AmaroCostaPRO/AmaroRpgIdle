@@ -369,6 +369,14 @@ const App: React.FC = () => {
                   <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.0.0 (Atual):</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ec4899', fontSize: '0.72rem' }}>
+                        🎬 Cutscenes Narrativas Sequenciais de Atos (Visual Novel / RPG Style)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cenas de história completas estilo RPG com diálogos expansivos dos 6 Atos. Apresenta retratos/sprites dos personagens com brilho de facção, efeito máquina de escrever, tela de fundo escurecida com blur e pausa automática do combate durante a narrativa. Disparo automático ao progredir entre Atos e opção de rever qualquer cena liberada no Diário.
+                      </div>
+                    </div>
+                    <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
                         📜 Jornada Principal & Bloqueio Sequencial de Atos
                       </div>
