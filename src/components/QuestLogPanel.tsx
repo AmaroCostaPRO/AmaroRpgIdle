@@ -76,45 +76,42 @@ export const QuestLogPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Seletor de Sub-Abas Responsivo / Carrossel para Mobile */}
+      {/* Seletor de Sub-Abas (Carrossel com 1 Aba visível por vez) */}
       <div style={{ background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
           <button
             onClick={handlePrevSubTab}
             className="btn btn-xs btn-secondary"
-            style={{ padding: '0.35rem 0.55rem', fontSize: '0.7rem', fontWeight: 700 }}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}
             title="Aba Anterior"
           >
             ◀
           </button>
 
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '0.3rem' }}>
-            {subTabsList.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  AudioManager.getInstance().playClick();
-                  setSubTab(tab.id);
-                }}
-                className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
-                style={{
-                  flex: 1,
-                  padding: '0.45rem 0.2rem',
-                  fontSize: '0.63rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {tab.icon} {tab.label}
-              </button>
-            ))}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={handleNextSubTab}
+              className="tab-btn active"
+              style={{
+                width: '100%',
+                padding: '0.45rem 0.5rem',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              <span>{subTabsList[currentSubTabIdx].icon}</span>
+              <span>{subTabsList[currentSubTabIdx].label}</span>
+            </button>
           </div>
 
           <button
             onClick={handleNextSubTab}
             className="btn btn-xs btn-secondary"
-            style={{ padding: '0.35rem 0.55rem', fontSize: '0.7rem', fontWeight: 700 }}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}
             title="Próxima Aba"
           >
             ▶
@@ -261,6 +258,19 @@ export const QuestLogPanel: React.FC = () => {
                   • {obj.description}: <strong>{obj.currentAmount} / {obj.requiredAmount}</strong>
                 </div>
               ))}
+
+              {/* Recompensas da Missão Procedural */}
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.6rem', color: '#e2e8f0', marginTop: '0.25rem' }}>
+                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Recompensas:</span>
+                {quest.rewards.gold && <span style={{ color: '#fbbf24' }}>🪙 {quest.rewards.gold} Ouro</span>}
+                {quest.rewards.forgeFragments && <span style={{ color: '#a855f7' }}>💎 {quest.rewards.forgeFragments} Frag. Forja</span>}
+                {quest.rewards.studyInsignias && <span style={{ color: '#38bdf8' }}>📜 {quest.rewards.studyInsignias} Insígnias</span>}
+                {quest.rewards.abyssPearls && <span style={{ color: '#06b6d4' }}>🦪 {quest.rewards.abyssPearls} Pérolas</span>}
+                {quest.rewards.transcendenceEssence && <span style={{ color: '#ec4899' }}>✨ {quest.rewards.transcendenceEssence} Essência</span>}
+                {quest.rewards.storyItemId && (
+                  <span style={{ color: '#38bdf8' }}>🏺 {STORY_ITEMS_CATALOG[quest.rewards.storyItemId]?.name}</span>
+                )}
+              </div>
             </div>
           ))}
         </div>
