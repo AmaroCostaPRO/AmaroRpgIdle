@@ -1627,3 +1627,67 @@ Sistema mínimo e reutilizável: overlay fullscreen preto, sequência de painéi
 
 ### O. Codex e Bestiário Atualizados (`codexData.ts`, `bestiaryFormulas.ts`)
 21 entradas de `bestiaryEntries` cobrem todo o elenco do Abismo (Litoral, 4 zonas das Profundezas, os 3 Guardiões, o Leviatã), desbloqueadas por `killed(ctx, enemyId)`. O cálculo do bônus de dano do Bestiário (`StatEngine.calculateBestiaryDamageMultiplier`) e a UI da aba 🐉 Bestiário compartilham uma única fonte de verdade (`BESTIARY_PHASE_GROUPS`, `bestiaryFormulas.ts`, agrupamento por ID de inimigo em vez de recorte posicional do array `ENEMY_TYPES`), garantindo que abates do Abismo contribuam normalmente para o bônus de dano acumulado. Além do Bestiário, ~21 entradas cobrem as demais categorias do Codex: 3 de Cosmologia, 2 de Facções, 4 de Personagens (bio mítica dos 3 Guardiões e do Leviatã, distinta da entrada técnica do Bestiário), 5 de Eventos e 7 de Locais.
+
+---
+
+## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0)
+
+A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais.
+
+### A. Arquitetura da Store de Quests (`useQuestStore.ts`)
+O gerenciamento de missões é centralizado na store Zustand `useQuestStore`, persistido sob a chave `medieval_idle_quest_store` no `localStorage`.
+
+```typescript
+interface QuestStoreState {
+  mainQuests: Record<string, QuestDef>;
+  proceduralQuests: QuestDef[];
+  completedQuestIds: string[];
+  storyInventory: Record<string, number>;
+  activeDialog: NpcDialogState | null;
+
+  // Ações
+  generateRunQuests: () => void;
+  updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount?: number) => void;
+  syncQuestObjectives: () => void;
+  claimReward: (questId: string) => void;
+  triggerNpcDialog: (npcId: string, npcName: string, factionColor: string, text: string, options?: NpcDialogOption[], questId?: string) => void;
+  closeDialog: () => void;
+  getStoryStatsBonus: () => Partial<BaseStats>;
+}
+```
+
+### B. Jornada Principal e Trava Sequencial de Atos (`mainQuestsData.ts`, `isMainQuestUnlocked`)
+A campanha principal contém **6 Atos** (`MAIN_QUESTS_CATALOG`), abrangendo o Despertar do Eco, a Reconstrução Astral, o Cárcere dos Cacos, a Promessa Quebrada, o Espelho da Alma e a Nota dos Céus.
+
+*   **Regra de Desbloqueio Sequencial (`isMainQuestUnlocked`)**: Para garantir uma progressão narrativa coerente, uma missão do Ato $N$ só aceita progresso ou conclusão se:
+    1.  Todas as missões dos Atos anteriores ($\text{Act} < N$) estiverem concluídas ou reclamadas.
+    2.  Todas as missões do mesmo Ato com número de capítulo menor ($\text{Chapter} < \text{Chapter}_{\text{atual}}$) estiverem concluídas ou reclamadas.
+    3.  A fase atual do personagem for maior ou igual ao requisito `unlockedAtStage`.
+*   **Filtragem na UI**: O painel `QuestLogPanel.tsx` exibe apenas as missões do Ato desbloqueado no momento e de Atos anteriores finalizados. Atos futuros permanecem ocultos com um aviso de bloqueio.
+
+### C. Tipos de Objetivos e Escuta de Eventos em Tempo Real
+Os objetivos das missões utilizam a união de tipos `ObjectiveType`:
+`kill` | `kill_elite` | `boss_time` | `stage` | `level` | `craft` | `runeword` | `ascend` | `transcend` | `abyss_echo` | `citadel_build`.
+
+*   **Hook de Abate**: Chamado em `CombatFSM.ts` (`handleEnemyDefeat`) via `updateObjectiveProgress('kill', enemyId)`. Se o objetivo não possuir `targetId`, qualquer abate incrementa o contador.
+*   **Hook de Nível e Fase**: `addXp` e `advanceStage` em `useGameStore.ts` notificam a store de quests. Adicionalmente, `syncQuestObjectives()` avalia os atributos do personagem ao carregar a interface da Jornada.
+*   **Hooks de Atividades**: Ações de forja/crafting (`craft`), gravação de palavras rúnicas (`runeword`), upgrades na Cidadela (`citadel_build`), resgate de Ecos (`abyss_echo`), Ascensão (`ascend`) e Transcendência (`transcend`) atualizam os objetivos correspondentes imediatamente.
+
+### D. Contratos & Caçadas Procedurais (`QuestGenerator.ts`)
+As missões secundárias procedurais são geradas dinamicamente pela função `generateProceduralQuests(character)`:
+1.  **Contrato de Caçada (`hunt`)**: Seleciona um monstro adequado ao bioma da fase atual e escala a quantidade exigida e as recompensas em Ouro/Fragmentos de Forja.
+2.  **Missão de Forja/Laboratório (`craft`)**: Solicita refino de equipamentos ou engaste/ativação de palavras rúnicas.
+3.  **Requisição de NPC (`npc`)**: Solicita ganho de nível do personagem para pesquisas do Codex.
+
+Cada card de contrato na sub-aba **Contratos & Caçadas** exibe os detalhes claros das recompensas (`gold`, `forgeFragments`, `studyInsignias`, `abyssPearls`, etc.) e conta com um botão dedicado `🔄 Renovar Contratos` ao final da lista.
+
+### E. Artefatos Narrativos Permanentes (`storyItemsData.ts`)
+Os Artefatos de História (`STORY_ITEMS_CATALOG`) são concedidos como recompensa ao concluir capítulos da Jornada Principal.
+*   **Persistência Eterna**: Armazenados em `storyInventory` (`Record<string, number>`), estes artefatos **permanecem intactos durante a Ascensão e a Transcendência**.
+*   **Bônus Passivos Acumuláveis**: `getStoryStatsBonus()` calcula os atributos acumulados de todos os artefatos possuídos e os injeta na fórmula de atributos finais (`StatEngine.ts`).
+
+### F. Interface do Usuário e Carrossel de Sub-Abas (`QuestLogPanel.tsx`)
+A interface do Diário de Jornada utiliza um **seletor por carrossel dinâmico** equipado com botões de navegação lateral (`◀` e `▶`):
+*   Exibe **exatamente 1 sub-aba por vez** centralizada em destaque (`🌟 Jornada Principal` ↔ `⚔️ Contratos & Caçadas` ↔ `🏺 Artefatos de História`).
+*   Suporta navegação circular rápida por clique nas setas ou no botão central, sem estouro de layout em telas mobile.
+*   Cards de missões utilizam contornos limpos e sem bordas laterais coloridas `borderLeft`, mantendo alinhamento estético com o tema Dark Mode.

@@ -354,26 +354,73 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v10.15.0 — Cidadela Submersa: Refinamentos e Endgame!
+              🔔 Atualização v11.0.0 — Ecos do Destino: Modo História & Diário de Jornada!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                A maior atualização de conteúdo do jogo até hoje: um Litoral inteiro para pescar, uma descida vertical infinita nas Profundezas do mar com seu próprio ritmo de risco, uma segunda Cidadela — afundada — para restaurar distrito por distrito, uma simulação de população dos Ecos Afogados, Palavras Rúnicas e o Set Abissal, e um chefe mundial semanal com direito a cutscene de encerramento.
+                Chegou a grande atualização v11.0.0 "Ecos do Destino"! A história da Alma-Mundo desabrocha em um sistema narrativo completo dividido em 6 Atos, acompanhado do Diário de Jornada, Artefatos Narrativos Permanentes, Contratos Procedurais e rastreamento de objetivos em tempo real.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
-                {/* v10.1.0 a v10.10.0 */}
+                {/* v11.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.15.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.0.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📜 Jornada Principal & Bloqueio Sequencial de Atos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A história é estruturada em 6 Atos com capítulos sequenciais. Para avançar para o Ato seguinte, é necessário concluir e reivindicar todas as missões do Ato anterior. Apenas os Atos já desbloqueados aparecem na aba da Jornada.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        ⚡ Atualização de Objetivos em Tempo Real
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Todas as missões principais e procedurais escutam eventos diretos do jogo em tempo real: abates de monstros, subida de nível, refino/forja de itens, ascensão, transcendência, gravação de palavras rúnicas, construções da cidadela e resgate de Ecos Afogados.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🏺 Artefatos Narrativos Permanentes
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Itens lendários de lore obtidos como recompensas em capítulos da história. Sobrevivem 100% intactos entre Ascensões e Transcendências no Inventário de História, concedendo bônus passivos permanentes acumuláveis para a sua conta.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        ⚔️ Contratos & Caçadas Procedurais com Exibição de Recompensas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Missões secundárias geradas por algoritmo escalonadas pela sua fase/nível. Exibição clara de todas as recompensas concedidas ao concluir e botão dedicado "Renovar Contratos" posicionado no final da sub-aba.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#c084fc', fontSize: '0.72rem' }}>
+                        📱 Seletor de Sub-Abas por Carrossel Dinâmico
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Interface refinada no Diário de Jornada com carrossel dinâmico de setas laterais (◀ / ▶) exibindo exatamente 1 sub-aba por vez em destaque no centro, sem estourar o cabeçalho nem cortar na tela mobile.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* v10.15.0 e anteriores */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#06b6d4', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades das Versões 10.1.0 a 10.15.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
                         🎯 Fim dos Drops Perdidos e Sets de Topo Rebalanceados
                       </div>
                       <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
-                        A partir da Fase 31, um slot que já tinha "ganhado" um drop podia ainda assim não gerar nenhum item, caso a raridade/set sorteado depois não servisse para a fase — corrigido para nunca mais descartar um drop já concedido. Além disso, o Set Celestial agora exige também estar na Fase 31+ (antes bastava abater o chefe do Purgatório, liberando cedo demais o bônus mais forte do jogo), e o Set Abissal — o de maior multiplicador do jogo — foi reforçado para superar claramente o Celestial (+65% Dano, +30% Vida, +12% Vel. Ataque, +10% Crítico, +6% Roubo de Vida em 3 peças), tornando-o de fato o set mais forte do jogo.
+                        Drops de fases altas ajustados para nunca descartar slots sorteados e Set Abissal reforçado para ser o mais forte do jogo.
                       </div>
                     </div>
                     <div>
