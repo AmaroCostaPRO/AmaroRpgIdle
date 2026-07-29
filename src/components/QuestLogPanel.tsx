@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
+import { ACT_CUTSCENES_CATALOG } from '../core/quests/storyCutscenesData';
 import { AudioManager } from '../core/AudioManager';
 
 export const QuestLogPanel: React.FC = () => {
   const [subTab, setSubTab] = useState<'main' | 'contracts' | 'storyItems'>('main');
+  const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
 
   const mainQuests = useQuestStore((s) => s.mainQuests);
   const proceduralQuests = useQuestStore((s) => s.proceduralQuests);
@@ -37,6 +39,18 @@ export const QuestLogPanel: React.FC = () => {
   // Apenas missões do Ato desbloqueado e Atos anteriores são exibidas
   const visibleMainQuests = mainQuestsList.filter((q) => (q.act || 1) <= maxUnlockedAct);
 
+  const visibleActs = Array.from(new Set(visibleMainQuests.map((q) => q.act || 1))).sort((a, b) => a - b);
+
+  const isActFullyClaimed = (act: number) =>
+    mainQuestsList.filter((q) => q.act === act).every((q) => q.isClaimed);
+
+  const isActCollapsed = (act: number) => collapsedActs[act] ?? isActFullyClaimed(act);
+
+  const toggleAct = (act: number) => {
+    AudioManager.getInstance().playClick();
+    setCollapsedActs((prev) => ({ ...prev, [act]: !isActCollapsed(act) }));
+  };
+
   const huntCraftQuests = proceduralQuests.filter((q) => q.category === 'hunt' || q.category === 'craft');
   const npcQuests = proceduralQuests.filter((q) => q.category === 'npc');
 
@@ -54,13 +68,13 @@ export const QuestLogPanel: React.FC = () => {
       </div>
 
       {/* Seletor de Sub-Abas (grid estático de pills, padrão CodexPanel) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(92px, 1fr))', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
         {subTabsList.map((t) => (
           <button
             key={t.id}
             onClick={() => { AudioManager.getInstance().playClick(); setSubTab(t.id); }}
             className={`tab-btn ${subTab === t.id ? 'active' : ''}`}
-            style={{ padding: '0.4rem', fontSize: '0.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+            style={{ padding: '0.4rem', fontSize: '0.58rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', minWidth: 0 }}
           >
             <span>{t.icon} {t.label}</span>
           </button>
@@ -70,99 +84,123 @@ export const QuestLogPanel: React.FC = () => {
       {/* Conteúdo da Sub-Aba: Jornada Principal */}
       {subTab === 'main' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-          {visibleMainQuests.map((quest) => (
-            <div
-              key={quest.id}
-              style={{
-                background: quest.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 0, 0, 0.35)',
-                border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-dim)'}`,
-                borderRadius: 'var(--radius-md)',
-                padding: '0.75rem 0.85rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.58rem', color: '#a855f7', fontWeight: 700, textTransform: 'uppercase' }}>
-                      Ato {quest.act} — Capítulo {quest.chapterNumber}
+          {visibleActs.map((act) => {
+            const chaptersInAct = visibleMainQuests.filter((q) => (q.act || 1) === act);
+            const collapsed = isActCollapsed(act);
+            const actInfo = ACT_CUTSCENES_CATALOG[act];
+
+            return (
+              <div key={act} style={{ border: '1px solid var(--border-dim)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
+                {/* Cabeçalho do Ato: título, chevron de colapso e Rever Cena (1x por Ato) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'rgba(168, 85, 247, 0.08)' }}>
+                  <button
+                    onClick={() => toggleAct(act)}
+                    style={{ background: 'none', border: 'none', color: '#fff', flex: 1, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: 0, minWidth: 0 }}
+                  >
+                    <span className={`console-arrow ${collapsed ? 'collapsed' : 'expanded'}`} style={{ fontSize: '0.6rem', flexShrink: 0 }}>▼</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a855f7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {actInfo?.title || `Ato ${act}`}
                     </span>
-                    {quest.act && (
-                      <button
-                        onClick={() => {
-                          AudioManager.getInstance().playClick();
-                          playActCutscene(quest.act!);
-                        }}
-                        className="btn btn-xs btn-secondary"
-                        style={{ fontSize: '0.55rem', padding: '1px 6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
-                        title="Rever a cena narrativa deste Ato"
-                      >
-                        🎬 Rever Cena
-                      </button>
-                    )}
-                  </div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>{quest.title}</span>
-                </div>
-                {quest.isClaimed ? (
-                  <span style={{ fontSize: '0.55rem', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16,185,129,0.4)' }}>
-                    ✓ CONCLUÍDO
-                  </span>
-                ) : quest.isCompleted ? (
+                  </button>
                   <button
                     onClick={() => {
-                      AudioManager.getInstance().playQuestComplete();
-                      claimReward(quest.id);
+                      AudioManager.getInstance().playClick();
+                      playActCutscene(act);
                     }}
-                    className="btn btn-xs"
-                    style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#fff', fontWeight: 700 }}
+                    className="btn btn-xs btn-secondary"
+                    style={{ fontSize: '0.55rem', padding: '2px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)', flexShrink: 0 }}
+                    title="Rever a cena narrativa deste Ato"
                   >
-                    🎁 RECLAMAR
+                    🎬 Rever Cena
                   </button>
-                ) : (
-                  <span style={{ fontSize: '0.55rem', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', padding: '2px 6px', borderRadius: '4px' }}>
-                    EM PROGRESSO
-                  </span>
+                </div>
+
+                {/* Corpo do Ato: capítulos (colapso via mount condicional, altura automática) */}
+                {!collapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.75rem' }}>
+                    {chaptersInAct.map((quest) => (
+                      <div
+                        key={quest.id}
+                        style={{
+                          background: quest.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 0, 0, 0.35)',
+                          border: `1px solid ${quest.isCompleted ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-dim)'}`,
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.75rem 0.85rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.58rem', color: '#a855f7', fontWeight: 700, textTransform: 'uppercase' }}>
+                              Capítulo {quest.chapterNumber}
+                            </span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>{quest.title}</span>
+                          </div>
+                          {quest.isClaimed ? (
+                            <span style={{ fontSize: '0.55rem', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16,185,129,0.4)' }}>
+                              ✓ CONCLUÍDO
+                            </span>
+                          ) : quest.isCompleted ? (
+                            <button
+                              onClick={() => {
+                                AudioManager.getInstance().playQuestComplete();
+                                claimReward(quest.id);
+                              }}
+                              className="btn btn-xs"
+                              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#fff', fontWeight: 700 }}
+                            >
+                              🎁 RECLAMAR
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.55rem', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', padding: '2px 6px', borderRadius: '4px' }}>
+                              EM PROGRESSO
+                            </span>
+                          )}
+                        </div>
+
+                        <p style={{ fontSize: '0.64rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{quest.description}</p>
+
+                        {/* Lista de Objetivos */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
+                          {quest.objectives.map((obj) => {
+                            const pct = Math.min(100, (obj.currentAmount / obj.requiredAmount) * 100);
+                            const isDone = obj.currentAmount >= obj.requiredAmount;
+                            return (
+                              <div key={obj.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem' }}>
+                                  <span style={{ color: isDone ? '#10b981' : '#cbd5e1' }}>
+                                    {isDone ? '✓ ' : '• '}{obj.description}
+                                  </span>
+                                  <span style={{ fontWeight: 700, color: isDone ? '#10b981' : '#a855f7' }}>
+                                    {obj.currentAmount} / {obj.requiredAmount}
+                                  </span>
+                                </div>
+                                <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#10b981' : '#a855f7', transition: 'width 0.4s' }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Recompensas */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.6rem', color: '#e2e8f0', marginTop: '0.2rem' }}>
+                          <span style={{ color: '#94a3b8', fontWeight: 600 }}>Recompensas:</span>
+                          {quest.rewards.gold && <span style={{ color: '#fbbf24' }}>🪙 {quest.rewards.gold} Ouro</span>}
+                          {quest.rewards.forgeFragments && <span style={{ color: '#a855f7' }}>💎 {quest.rewards.forgeFragments} Frag. Forja</span>}
+                          {quest.rewards.storyItemId && (
+                            <span style={{ color: '#38bdf8' }}>🏺 {STORY_ITEMS_CATALOG[quest.rewards.storyItemId]?.name}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              <p style={{ fontSize: '0.64rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{quest.description}</p>
-
-              {/* Lista de Objetivos */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', background: 'rgba(0,0,0,0.25)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
-                {quest.objectives.map((obj) => {
-                  const pct = Math.min(100, (obj.currentAmount / obj.requiredAmount) * 100);
-                  const isDone = obj.currentAmount >= obj.requiredAmount;
-                  return (
-                    <div key={obj.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem' }}>
-                        <span style={{ color: isDone ? '#10b981' : '#cbd5e1' }}>
-                          {isDone ? '✓ ' : '• '}{obj.description}
-                        </span>
-                        <span style={{ fontWeight: 700, color: isDone ? '#10b981' : '#a855f7' }}>
-                          {obj.currentAmount} / {obj.requiredAmount}
-                        </span>
-                      </div>
-                      <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: isDone ? '#10b981' : '#a855f7', transition: 'width 0.4s' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Recompensas */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.6rem', color: '#e2e8f0', marginTop: '0.2rem' }}>
-                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Recompensas:</span>
-                {quest.rewards.gold && <span style={{ color: '#fbbf24' }}>🪙 {quest.rewards.gold} Ouro</span>}
-                {quest.rewards.forgeFragments && <span style={{ color: '#a855f7' }}>💎 {quest.rewards.forgeFragments} Frag. Forja</span>}
-                {quest.rewards.storyItemId && (
-                  <span style={{ color: '#38bdf8' }}>🏺 {STORY_ITEMS_CATALOG[quest.rewards.storyItemId]?.name}</span>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {maxUnlockedAct < 6 && (
             <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.3)', border: '1px dashed var(--border-dim)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>

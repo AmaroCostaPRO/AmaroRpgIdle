@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
 
@@ -10,6 +10,7 @@ export const ActCutsceneOverlay: React.FC = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const typewriterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentLine = activeActCutscene?.lines[currentLineIdx];
 
@@ -23,16 +24,18 @@ export const ActCutsceneOverlay: React.FC = () => {
 
     let idx = 0;
     const fullText = currentLine.text;
-    const timer = setInterval(() => {
+    typewriterTimerRef.current = setInterval(() => {
       idx++;
       setDisplayedText(fullText.slice(0, idx));
       if (idx >= fullText.length) {
         setIsTyping(false);
-        clearInterval(timer);
+        if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
       }
     }, 22);
 
-    return () => clearInterval(timer);
+    return () => {
+      if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
+    };
   }, [currentLineIdx, currentLine]);
 
   // Reset do índice quando uma nova cutscene for carregada
@@ -61,7 +64,8 @@ export const ActCutsceneOverlay: React.FC = () => {
     AudioManager.getInstance().playDialogAdvance();
 
     if (isTyping) {
-      // Se ainda estiver digitando, revela o texto completo da linha
+      // Se ainda estiver digitando, interrompe o timer e revela o texto completo da linha
+      if (typewriterTimerRef.current) clearInterval(typewriterTimerRef.current);
       setDisplayedText(currentLine.text);
       setIsTyping(false);
     } else {
@@ -227,7 +231,8 @@ export const ActCutsceneOverlay: React.FC = () => {
             color: '#f8fafc',
             margin: 0,
             fontStyle: 'italic',
-            minHeight: '3.6em',
+            height: '6.6em',
+            overflowY: 'auto',
             fontFamily: 'var(--font-body)',
           }}
         >
