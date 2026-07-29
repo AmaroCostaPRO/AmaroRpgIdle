@@ -754,6 +754,65 @@ export class AudioManager {
   }
 
   /**
+   * Som de Missão Concluída (Reivindicar recompensa na Jornada)
+   * Arpejo curto de 3 notas, mais festivo que playUpgrade.
+   */
+  public playQuestComplete() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 987.77]; // C5 -> E5 -> B5
+
+    notes.forEach((freq, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + index * 0.08);
+
+      gain.gain.setValueAtTime(0.01, now + index * 0.08);
+      gain.gain.linearRampToValueAtTime(this.sfxVolume * 0.5, now + index * 0.08 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + index * 0.08 + 0.24);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(now + index * 0.08);
+      osc.stop(now + index * 0.08 + 0.26);
+    });
+  }
+
+  /**
+   * Som de Avanço de Diálogo (NPCs e Cutscenes de Ato)
+   * Blip curto e suave, mais discreto que playClick.
+   */
+  public playDialogAdvance() {
+    const sfxEnabled = useGameStore.getState().sfxEnabled ?? true;
+    if (!sfxEnabled) return;
+    if (!this.initCtx() || !this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.type = 'sine';
+    const now = this.ctx.currentTime;
+
+    osc.frequency.setValueAtTime(720, now);
+    osc.frequency.exponentialRampToValueAtTime(480, now + 0.05);
+
+    gain.gain.setValueAtTime(this.sfxVolume * 0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
+  /**
    * Som de Level Up (Vitória / Subir de nível)
    * Um arpejo triunfal clássico estilo 8-bits.
    */

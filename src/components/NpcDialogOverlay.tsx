@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
+import { ModalCloseButton } from './shared/ModalCloseButton';
 
 export const NpcDialogOverlay: React.FC = () => {
   const activeDialog = useQuestStore((s) => s.activeDialog);
@@ -37,9 +38,11 @@ export const NpcDialogOverlay: React.FC = () => {
   if (!activeDialog) return null;
 
   const handleOptionClick = (opt: { label: string; action: string; questId?: string }) => {
-    AudioManager.getInstance().playClick();
     if (opt.action === 'claim_reward' && opt.questId) {
+      AudioManager.getInstance().playQuestComplete();
       claimReward(opt.questId);
+    } else {
+      AudioManager.getInstance().playDialogAdvance();
     }
     closeDialog();
   };
@@ -59,11 +62,11 @@ export const NpcDialogOverlay: React.FC = () => {
         width: 'calc(100% - 2rem)',
         maxWidth: '720px',
         zIndex: 9000,
-        background: 'rgba(23, 23, 23, 0.95)',
-        backdropFilter: 'blur(8px)',
+        background: 'var(--surface-glass)',
+        backdropFilter: 'blur(20px) saturate(1.2)',
         border: `1px solid ${activeDialog.factionColor || '#a855f7'}`,
         boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 12px ${activeDialog.factionColor || '#a855f7'}40`,
-        borderRadius: 'var(--radius-lg, 12px)',
+        borderRadius: 'var(--radius-lg)',
         padding: '1rem',
         color: '#fff',
         display: 'flex',
@@ -107,22 +110,11 @@ export const NpcDialogOverlay: React.FC = () => {
           </span>
           <span style={{ fontSize: '0.6rem', color: '#94a3b8' }}>Mensagem de Lore & Missão</span>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            closeDialog();
-          }}
-          style={{
-            marginLeft: 'auto',
-            background: 'none',
-            border: 'none',
-            color: '#64748b',
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          ✕
-        </button>
+        <ModalCloseButton
+          onClick={closeDialog}
+          size={24}
+          style={{ marginLeft: 'auto' }}
+        />
       </div>
 
       {/* Corpo do Diálogo com Efeito Máquina de Escrever */}

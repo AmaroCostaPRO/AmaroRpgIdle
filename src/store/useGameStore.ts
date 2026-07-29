@@ -2757,6 +2757,7 @@ export const useGameStore = create<GameState>((set) => ({
       const updated = { ...afterUpdate, runeInventory };
       saveToLocalStorage(updated);
       result = { success: true, message: `${runeDef.glyph} ${runeDef.name} engastada em [${item.name}]!` };
+      useQuestStore.getState().updateObjectiveProgress('runeword', undefined, 1);
       return { character: updated };
     });
     return result;
@@ -5552,6 +5553,7 @@ export const useGameStore = create<GameState>((set) => ({
         ? `⚡ FORJA LENDÁRIA! Os astros sorriram! ${newName} foi forjado com +50% de poder!${runeNote}`
         : `Fusão bem-sucedida! Gerou: ${newName}${runeNote}`;
       result = { success: true, message: successMsg, newItem };
+      useQuestStore.getState().updateObjectiveProgress('craft', undefined, 1);
       return { character: updated };
     });
 

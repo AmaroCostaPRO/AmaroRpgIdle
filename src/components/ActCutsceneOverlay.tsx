@@ -58,7 +58,7 @@ export const ActCutsceneOverlay: React.FC = () => {
   if (!activeActCutscene || !currentLine) return null;
 
   const handleNextOrSkip = () => {
-    AudioManager.getInstance().playClick();
+    AudioManager.getInstance().playDialogAdvance();
 
     if (isTyping) {
       // Se ainda estiver digitando, revela o texto completo da linha
@@ -179,6 +179,7 @@ export const ActCutsceneOverlay: React.FC = () => {
                 color: currentLine.factionColor || '#a855f7',
                 textShadow: `0 0 12px ${currentLine.factionColor || '#a855f7'}60`,
                 letterSpacing: '0.5px',
+                fontFamily: 'var(--font-heading)',
               }}
             >
               {currentLine.speakerName}
@@ -227,7 +228,7 @@ export const ActCutsceneOverlay: React.FC = () => {
             margin: 0,
             fontStyle: 'italic',
             minHeight: '3.6em',
-            fontFamily: 'sans-serif',
+            fontFamily: 'var(--font-body)',
           }}
         >
           "{displayedText}"

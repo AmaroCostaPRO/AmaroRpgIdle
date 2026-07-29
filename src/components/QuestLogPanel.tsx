@@ -46,20 +46,6 @@ export const QuestLogPanel: React.FC = () => {
     { id: 'storyItems', label: 'Artefatos de História', icon: '🏺' },
   ];
 
-  const currentSubTabIdx = subTabsList.findIndex((t) => t.id === subTab);
-
-  const handlePrevSubTab = () => {
-    AudioManager.getInstance().playClick();
-    const nextIdx = (currentSubTabIdx - 1 + subTabsList.length) % subTabsList.length;
-    setSubTab(subTabsList[nextIdx].id);
-  };
-
-  const handleNextSubTab = () => {
-    AudioManager.getInstance().playClick();
-    const nextIdx = (currentSubTabIdx + 1) % subTabsList.length;
-    setSubTab(subTabsList[nextIdx].id);
-  };
-
   return (
     <div className="panel animate-tabFade" style={{ padding: '1.25rem', color: '#fff', pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* Cabeçalho */}
@@ -67,47 +53,18 @@ export const QuestLogPanel: React.FC = () => {
         <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>📜 Diário de Jornada</h2>
       </div>
 
-      {/* Seletor de Sub-Abas (Carrossel com 1 Aba visível por vez) */}
-      <div style={{ background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+      {/* Seletor de Sub-Abas (grid estático de pills, padrão CodexPanel) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'rgba(0,0,0,0.4)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-dim)' }}>
+        {subTabsList.map((t) => (
           <button
-            onClick={handlePrevSubTab}
-            className="btn btn-xs btn-secondary"
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}
-            title="Aba Anterior"
+            key={t.id}
+            onClick={() => { AudioManager.getInstance().playClick(); setSubTab(t.id); }}
+            className={`tab-btn ${subTab === t.id ? 'active' : ''}`}
+            style={{ padding: '0.4rem', fontSize: '0.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
           >
-            ◀
+            <span>{t.icon} {t.label}</span>
           </button>
-
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={handleNextSubTab}
-              className="tab-btn active"
-              style={{
-                width: '100%',
-                padding: '0.45rem 0.5rem',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              <span>{subTabsList[currentSubTabIdx].icon}</span>
-              <span>{subTabsList[currentSubTabIdx].label}</span>
-            </button>
-          </div>
-
-          <button
-            onClick={handleNextSubTab}
-            className="btn btn-xs btn-secondary"
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}
-            title="Próxima Aba"
-          >
-            ▶
-          </button>
-        </div>
+        ))}
       </div>
 
       {/* Conteúdo da Sub-Aba: Jornada Principal */}
@@ -155,7 +112,7 @@ export const QuestLogPanel: React.FC = () => {
                 ) : quest.isCompleted ? (
                   <button
                     onClick={() => {
-                      AudioManager.getInstance().playClick();
+                      AudioManager.getInstance().playQuestComplete();
                       claimReward(quest.id);
                     }}
                     className="btn btn-xs"
@@ -246,7 +203,7 @@ export const QuestLogPanel: React.FC = () => {
                 ) : quest.isCompleted ? (
                   <button
                     onClick={() => {
-                      AudioManager.getInstance().playClick();
+                      AudioManager.getInstance().playQuestComplete();
                       claimReward(quest.id);
                     }}
                     className="btn btn-xs"
