@@ -52,7 +52,7 @@ function generateHuntQuest(stage: number, level: number): QuestDef {
     category: 'hunt',
     title: `Caçada: ${enemyName}`,
     description: `As patrulhas da Cidadela relatam um surto de ${enemyName} em ${suitableBiome.biomeName}. Elimine o grupo para manter a região segura.`,
-    npcId: 'vulkan',
+    npcId: 'forge_master_vulkan',
     npcName: 'Vulkan, Mestre da Forja',
     isProcedural: true,
     objectives: [
@@ -85,7 +85,7 @@ function generateCraftQuest(stage: number): QuestDef {
       category: 'craft',
       title: 'Mestria do Metal',
       description: 'Vulkan precisa de equipamentos refinados para reforçar os arsenais da Cidadela.',
-      npcId: 'vulkan',
+      npcId: 'forge_master_vulkan',
       npcName: 'Vulkan, Mestre da Forja',
       isProcedural: true,
       objectives: [
@@ -110,7 +110,7 @@ function generateCraftQuest(stage: number): QuestDef {
       category: 'craft',
       title: 'Ressonância do Laboratório',
       description: 'Valéria solicita que você prepare consumíveis ou soquetes de runas para fortalecer o herói.',
-      npcId: 'valeria',
+      npcId: 'archivist_valeria',
       npcName: 'Valéria, a Arquivista Astral',
       isProcedural: true,
       objectives: [
@@ -146,7 +146,7 @@ function generateNpcRequestQuest(character: Character): QuestDef {
     category: 'npc',
     title: 'Requisição de Valéria: Maestria de Batalha',
     description: `Valéria requer que seu herói acumule mais experiência em combate para catalogar novas técnicas no Codex.`,
-    npcId: 'valeria',
+    npcId: 'archivist_valeria',
     npcName: 'Valéria, a Arquivista Astral',
     isProcedural: true,
     objectives: [

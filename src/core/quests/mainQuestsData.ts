@@ -43,7 +43,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 2,
     title: 'A Marca das Ruínas',
     description: 'Progreva pelas fases da campanha e derrote os guardiões dos biomas primários.',
-    npcId: 'valeria',
+    npcId: 'archivist_valeria',
     npcName: 'Valéria, a Arquivista Astral',
     unlockedAtStage: 1,
     objectives: [
@@ -109,7 +109,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 1,
     title: 'Erguendo a Cidadela',
     description: 'Reconstrua as alas da Cidadela Astral para ter uma base de operações contra o Vazio.',
-    npcId: 'vulkan',
+    npcId: 'forge_master_vulkan',
     npcName: 'Vulkan, Mestre da Forja',
     unlockedAtStage: 6,
     objectives: [
@@ -144,7 +144,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 2,
     title: 'O Domínio da Maestria',
     description: 'Leve sua classe inicial até o limite do aprendizado para abrir os Caminhos Ascendentes.',
-    npcId: 'valeria',
+    npcId: 'archivist_valeria',
     npcName: 'Valéria, a Arquivista Astral',
     unlockedAtStage: 10,
     objectives: [
@@ -172,7 +172,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 3,
     title: 'A Forja e o Metal',
     description: 'Supere o tier Apocalipse e forje um equipamento digno dos conquistadores ancestrais.',
-    npcId: 'vulkan',
+    npcId: 'forge_master_vulkan',
     npcName: 'Vulkan, Mestre da Forja',
     unlockedAtStage: 15,
     objectives: [
@@ -210,7 +210,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 1,
     title: 'A Entropia do Purgatório',
     description: 'Adentre o Purgatório — a região espelhada onde os fragmentos da Alma-Mundo são mantidos em cárcere.',
-    npcId: 'wanderer',
+    npcId: 'void_wanderer',
     npcName: 'O Andarilho do Vazio',
     unlockedAtStage: 21,
     objectives: [
@@ -245,7 +245,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 2,
     title: 'A Tranca de Pedra',
     description: 'Derrote o Guardião dos Cacos na Fase 30 e liberte os limites da campanha.',
-    npcId: 'valeria',
+    npcId: 'archivist_valeria',
     npcName: 'Valéria, a Arquivista Astral',
     unlockedAtStage: 25,
     objectives: [
@@ -276,7 +276,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     chapterNumber: 1,
     title: 'O Despertar do Pandemônio',
     description: 'Desbloqueie o Modo Pandemônio no Altar de Alma e encare a infinitude do Vazio.',
-    npcId: 'wanderer',
+    npcId: 'void_wanderer',
     npcName: 'O Andarilho do Vazio',
     unlockedAtStage: 30,
     objectives: [

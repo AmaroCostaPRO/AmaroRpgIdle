@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
 import { getTransparentImageUrl, peekTransparentImageUrl } from '../core/imageBackgroundStrip';
+import { AlmaMundoFlame, AvatarEchoPortrait } from './shared/SpecialNpcPortraits';
+
+// NPCs com apresentação especial (sem PNG próprio de busto) — ver SpecialNpcPortraits.tsx
+const SPECIAL_PORTRAIT_NPC_IDS = new Set(['alma_mundo', 'avatar_echo']);
 
 export const ActCutsceneOverlay: React.FC = () => {
   const activeActCutscene = useQuestStore((s) => s.activeActCutscene);
@@ -18,7 +22,7 @@ export const ActCutsceneOverlay: React.FC = () => {
 
   // Resolve o retrato do speaker atual (remoção de fundo via chroma key #FE0201)
   useEffect(() => {
-    if (!currentLine?.speakerId) {
+    if (!currentLine?.speakerId || SPECIAL_PORTRAIT_NPC_IDS.has(currentLine.speakerId)) {
       setPortraitSrc(null);
       return;
     }
@@ -176,8 +180,12 @@ export const ActCutsceneOverlay: React.FC = () => {
               overflow: 'hidden',
             }}
           >
-            {/* Fallback de Avatar / Emoji Placeholder */}
-            {imageError || !currentLine.speakerId || !portraitSrc ? (
+            {/* Fallback de Avatar / Emoji Placeholder, ou apresentação especial (Alma-Mundo/Eco do Avatar) */}
+            {currentLine.speakerId === 'alma_mundo' ? (
+              <AlmaMundoFlame />
+            ) : currentLine.speakerId === 'avatar_echo' ? (
+              <AvatarEchoPortrait />
+            ) : imageError || !currentLine.speakerId || !portraitSrc ? (
               <span style={{ fontSize: '3.2rem', filter: `drop-shadow(0 0 10px ${currentLine.factionColor || '#a855f7'})` }}>
                 {currentLine.avatarIcon || '🔮'}
               </span>

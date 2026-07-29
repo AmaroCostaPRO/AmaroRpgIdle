@@ -161,6 +161,38 @@ input, textarea, [contenteditable="true"] {
   to { transform: rotate(360deg); }
 }
 
+/* Chama roxa animada da Voz da Alma-Mundo (retrato "sem corpo") — ver SpecialNpcPortraits.tsx */
+.alma-mundo-flame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.alma-mundo-flame-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 65%, #e9d5ff 0%, #c084fc 30%, #a855f7 55%, #7c3aed 72%, transparent 82%);
+  filter: blur(3px);
+  mix-blend-mode: screen;
+  animation: alma-mundo-flicker 2.2s ease-in-out infinite;
+}
+.alma-mundo-flame-layer:nth-child(2) {
+  animation-duration: 1.8s;
+  animation-delay: -0.6s;
+  filter: blur(5px);
+}
+.alma-mundo-flame-layer:nth-child(3) {
+  animation-duration: 2.6s;
+  animation-delay: -1.3s;
+  filter: blur(2px);
+}
+@keyframes alma-mundo-flicker {
+  0%, 100% { transform: scale(0.82) translateY(3%); opacity: 0.7; }
+  35% { transform: scale(1.05) translateY(-4%); opacity: 1; }
+  60% { transform: scale(0.92) translateY(1%); opacity: 0.82; }
+  80% { transform: scale(1.02) translateY(-2%); opacity: 0.95; }
+}
+
 @keyframes hp-pulse {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.3); }

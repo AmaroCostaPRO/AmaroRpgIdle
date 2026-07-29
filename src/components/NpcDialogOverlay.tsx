@@ -3,6 +3,10 @@ import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
 import { getTransparentImageUrl, peekTransparentImageUrl } from '../core/imageBackgroundStrip';
 import { ModalCloseButton } from './shared/ModalCloseButton';
+import { AlmaMundoFlame, AvatarEchoPortrait } from './shared/SpecialNpcPortraits';
+
+// NPCs com apresentação especial (sem PNG próprio de busto) — ver SpecialNpcPortraits.tsx
+const SPECIAL_PORTRAIT_NPC_IDS = new Set(['alma_mundo', 'avatar_echo']);
 
 export const NpcDialogOverlay: React.FC = () => {
   const activeDialog = useQuestStore((s) => s.activeDialog);
@@ -15,7 +19,7 @@ export const NpcDialogOverlay: React.FC = () => {
   const [portraitFailed, setPortraitFailed] = useState(false);
 
   useEffect(() => {
-    if (!activeDialog?.npcId) {
+    if (!activeDialog?.npcId || SPECIAL_PORTRAIT_NPC_IDS.has(activeDialog.npcId)) {
       setPortraitSrc(null);
       setPortraitFailed(false);
       return;
@@ -113,14 +117,22 @@ export const NpcDialogOverlay: React.FC = () => {
             position: 'relative',
           }}
         >
-          <span style={{ fontSize: '1.2rem', position: 'absolute' }}>👤</span>
-          {!portraitFailed && portraitSrc && (
-            <img
-              src={portraitSrc}
-              alt={activeDialog.npcName}
-              onError={() => setPortraitFailed(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
-            />
+          {activeDialog.npcId === 'alma_mundo' ? (
+            <AlmaMundoFlame />
+          ) : activeDialog.npcId === 'avatar_echo' ? (
+            <AvatarEchoPortrait />
+          ) : (
+            <>
+              <span style={{ fontSize: '1.2rem', position: 'absolute' }}>👤</span>
+              {!portraitFailed && portraitSrc && (
+                <img
+                  src={portraitSrc}
+                  alt={activeDialog.npcName}
+                  onError={() => setPortraitFailed(true)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
+                />
+              )}
+            </>
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>

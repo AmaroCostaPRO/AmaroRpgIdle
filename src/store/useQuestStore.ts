@@ -10,6 +10,18 @@ import { bridge } from '../bridge/GameBridge';
 
 const QUEST_STORE_STORAGE_KEY = 'medieval_idle_quest_store';
 
+// Cor de facção por NPC narrativo, usada no banner de diálogo (`triggerNpcDialog`) ao concluir um
+// capítulo com `completionLore` — mesma paleta já usada nas cutscenes de Ato (storyCutscenesData.ts).
+const NPC_FACTION_COLORS: Record<string, string> = {
+  alma_mundo: '#a855f7',
+  archivist_valeria: '#38bdf8',
+  forge_master_vulkan: '#f97316',
+  void_wanderer: '#10b981',
+  avatar_echo: '#ec4899',
+  sunken_castellan: '#06b6d4',
+  sky_herald: '#fbbf24',
+};
+
 interface QuestStoreState {
   mainQuests: Record<string, QuestDef>;
   proceduralQuests: QuestDef[];
@@ -345,6 +357,17 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         storyInventory: newStoryInventory,
         seenActCutscenes,
       });
+
+      // Banner de Diálogo do NPC ao concluir um capítulo com lore de conclusão registrada — reusa o
+      // `triggerNpcDialog`/`NpcDialogOverlay` já existente (antes nunca era chamado por ninguém).
+      if (targetQuest.completionLore && targetQuest.npcId && targetQuest.npcName) {
+        get().triggerNpcDialog(
+          targetQuest.npcId,
+          targetQuest.npcName,
+          NPC_FACTION_COLORS[targetQuest.npcId] || '#a855f7',
+          targetQuest.completionLore
+        );
+      }
 
       // Disparo Automático da Cutscene do Próximo Ato ao Concluir o Ato Atual
       if (isMain && targetQuest.act) {

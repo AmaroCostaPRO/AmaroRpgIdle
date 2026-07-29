@@ -38,7 +38,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Você não é um habitante comum desta era. Você é um Eco — uma centelha de vontade moldada no molde dos campeões ancestrais. Este mundo já desmoronou e renasceu inúmeras vezes, tragado pelas sombras do Vazio.',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
@@ -46,7 +46,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Ah, você despertou! Meus registros astrais indicavam um distúrbio na malha do Bosque Sussurrante. Eu sou Valéria, guardiã das memórias não apagadas. O Vazio enviou suas imitações para extinguir sua centelha antes mesmo que você recobre suas forças.',
       },
       {
-        speakerId: 'vulkan',
+        speakerId: 'forge_master_vulkan',
         speakerName: 'Vulkan',
         speakerRole: 'Mestre da Forja',
         factionColor: '#f97316',
@@ -71,7 +71,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
     subtitle: 'Com o metal e a vontade, ergue-se o baluarte contra o Vazio.',
     lines: [
       {
-        speakerId: 'vulkan',
+        speakerId: 'forge_master_vulkan',
         speakerName: 'Vulkan',
         speakerRole: 'Mestre da Forja',
         factionColor: '#f97316',
@@ -79,7 +79,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Veja com seus próprios olhos! As ruínas da Cidadela Astral repousavam esquecidas sob a poeira das eras. Mas agora que você alcançou o domínio inicial, podemos erguer novamente a Oficina da Forja e o Centro de Comando!',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
@@ -87,7 +87,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'A Cidadela não é um mero refúgio de pedra, Eco. Ela é o ancorete espiritual que impede que o Vazio dissolva nossos tomos e experimentos. À medida que você aprimora suas construções, novas técnicas de maestria se desdobram em seu espírito.',
       },
       {
-        speakerId: 'vulkan',
+        speakerId: 'forge_master_vulkan',
         speakerName: 'Vulkan',
         speakerRole: 'Mestre da Forja',
         factionColor: '#f97316',
@@ -112,7 +112,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
     subtitle: 'No purgatório espelhado, a verdade sobre os fragmentos se revela.',
     lines: [
       {
-        speakerId: 'wanderer',
+        speakerId: 'void_wanderer',
         speakerName: 'O Andarilho do Vazio',
         speakerRole: 'Sentinela Esquecida',
         factionColor: '#10b981',
@@ -120,7 +120,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Passos pesados para quem carrega uma alma tão remendada... Bem-vindo ao Purgatório. Não olhe para os espelhos de cristal — eles mostram todas as vidas em que você falhou.',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
@@ -128,7 +128,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Os registros astrais confirmam: o Purgatório não foi criado pelos demônios para nos conter. Ele foi construído pelos próprios deuses antigos para encancerar os Fragmentos da Alma-Mundo antes que a Entropia os corrompesse por completo.',
       },
       {
-        speakerId: 'wanderer',
+        speakerId: 'void_wanderer',
         speakerName: 'O Andarilho do Vazio',
         speakerRole: 'Sentinela Esquecida',
         factionColor: '#10b981',
@@ -153,7 +153,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
     subtitle: 'No abismo do Pandemônio, a entropia aprende e se adapta.',
     lines: [
       {
-        speakerId: 'wanderer',
+        speakerId: 'void_wanderer',
         speakerName: 'O Andarilho do Vazio',
         speakerRole: 'Sentinela Esquecida',
         factionColor: '#10b981',
@@ -169,7 +169,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Há muito tempo, uma promessa foi feita pelos sete primeiros Avatares: eles garantiram que conteriam o Vazio no selo de obsidiana. Eles falharam. A promessa foi quebrada quando o primeiro de nós caiu no desespero.',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
@@ -177,7 +177,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'No Pandemônio, seus equipamentos Lendários precisarão do toque supremo da Fusão Mística e do poder das Palavras Rúnicas gravadas na Câmara. Sem as Runas, a pressão atordoante do Vazio esmagará seu espírito.',
       },
       {
-        speakerId: 'vulkan',
+        speakerId: 'forge_master_vulkan',
         speakerName: 'Vulkan',
         speakerRole: 'Mestre da Forja',
         factionColor: '#f97316',
@@ -202,7 +202,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Você finalmente chegou diante do espelho primordial. Olhe para mim... Eu sou aquilo que você se tornará quando abandonar o medo de recomeçar.',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
@@ -243,7 +243,7 @@ export const ACT_CUTSCENES_CATALOG: Record<number, ActCutsceneDef> = {
         text: 'Quem é você que caminha sob o peso de cem atmosferas sem sufocar? Eu guardei estas ruínas naufragadas enquanto os séculos dissolviam as pedras em coral e sal.',
       },
       {
-        speakerId: 'valeria',
+        speakerId: 'archivist_valeria',
         speakerName: 'Valéria',
         speakerRole: 'Arquivista Astral',
         factionColor: '#38bdf8',
