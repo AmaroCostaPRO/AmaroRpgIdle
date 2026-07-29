@@ -354,19 +354,74 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v11.0.0 — Ecos do Destino: Modo História & Diário de Jornada!
+              🔔 Atualização v11.1.0 — Correções da Jornada, Chefes Mundiais e Progresso por Personagem!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Chegou a grande atualização v11.0.0 "Ecos do Destino"! A história da Alma-Mundo desabrocha em um sistema narrativo completo dividido em 6 Atos, acompanhado do Diário de Jornada, Artefatos Narrativos Permanentes, Contratos Procedurais e rastreamento de objetivos em tempo real.
+                Rodada de correções e polimento sobre o Modo História "Ecos do Destino": bugs de progresso de missão corrigidos, layout da Jornada reformulado, cutscenes com visual mais nítido, os 4 Chefes Mundiais da Convergência ganharam resistência própria e entraram no Bestiário, e — a correção mais importante — Jornada, Relíquias, Torre e Recordes Pessoais deixaram de ser compartilhados entre personagens diferentes.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v11.1.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.1.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ef4444', fontSize: '0.72rem' }}>
+                        🔒 Jornada, Relíquias, Torre e Recordes Pessoais agora são por Personagem
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Corrigido um bug em que esses 4 sistemas eram compartilhados entre todos os personagens da conta — um personagem novo herdava os Atos concluídos, Artefatos, níveis de Relíquia e recordes do personagem mais avançado. Agora cada save tem seu próprio progresso, com migração automática do que você já tinha.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🐛 Missões de Forja e Engaste de Runas Corrigidas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Forjar/fundir equipamentos e engastar runas avulsas agora atualizam corretamente as missões de Forja/Alquimia/Runas do Diário de Jornada.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📜 Diário de Jornada Reformulado
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Sub-abas viraram um grid de botões sempre visível (sem estourar no mobile), e a Jornada Principal agora agrupa os capítulos por Ato em blocos colapsáveis (fechados automaticamente quando já concluídos), com o botão "🎬 Rever Cena" centralizado no cabeçalho de cada Ato.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ec4899', fontSize: '0.72rem' }}>
+                        🎬 Cutscenes com Retratos Maiores e Bugs Corrigidos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Retratos de NPC dobrados de tamanho, corrigido o bug em que revelar o texto instantaneamente voltava a digitar letra por letra, e a caixa de diálogo não desloca mais o retrato ao crescer. A Voz da Alma-Mundo ganhou uma chama roxa animada, e o Eco do Avatar reflete o sprite da sua própria classe.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🔔 Banner de Diálogo ao Concluir Capítulos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada capítulo principal concluído agora exibe o retrato do NPC e sua fala de conclusão — recurso que existia desde a v11.0.0 mas nunca era acionado, incluindo a primeira aparição do Heraldo dos Céus.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        🐲 Chefes Mundiais da Convergência: Bestiário e Resistência
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Os 4 World Bosses (incluindo O Trono Vazio) agora aparecem no Bestiário (+10% de Dano a cada 20 abates) e ganharam um teto de dano por golpe, garantindo uma luta com múltiplas trocas de golpe mesmo contra builds de dano altíssimo.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v11.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.0.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.0.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ec4899', fontSize: '0.72rem' }}>

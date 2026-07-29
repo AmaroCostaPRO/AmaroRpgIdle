@@ -146,6 +146,10 @@ Para garantir a coesão visual e o funcionamento adequado dos efeitos de transpa
     *   Todo combatente deve conter uma **sombra elíptica preta sólida absoluta (`#000000`)** sob os pés/patas.
     *   A sombra não deve ter degradês, transparências (*opacidade reduzida*) ou bordas esfumaçadas. Deve ser preta 100% opaca.
     *   A elipse de sombra deve estar perfeitamente alinhada e em contato direto com a base dos pés do personagem, garantindo que o sprite pareça assentado corretamente no chão do cenário de combate.
+5.  **Exceção (v11.1.0): Retratos de Diálogo e Ícones de Itens de História (React/DOM)**:
+    *   Os retratos circulares de NPCs de história (`NpcDialogOverlay.tsx`, 42px; `ActCutsceneOverlay.tsx`, 220px) e os ícones de Artefatos de História (`QuestLogPanel.tsx`, 32px) **não** seguem o padrão acima — são renderizados em componentes React/DOM puros, nunca carregados como textura do Phaser, então o branco nunca seria removido por `makeTextureTransparent`.
+    *   Convenção própria: **fundo sólido liso `#FE0201`** (vermelho puro, sem gradiente/blur nas bordas), **sem sombra** (não há "chão" nesses retratos/ícones flutuantes), pose em **busto/meio corpo** (não corpo inteiro — o rosto ficaria ilegível reduzido a 32-220px de diâmetro). Removido via chroma key por `getTransparentImageUrl`/`peekTransparentImageUrl` (`src/core/imageBackgroundStrip.ts`), a mesma função já usada pelas construções da Cidadela (`EvolutionSprite.tsx`/`IconSprite.tsx`), com feathering + despill para evitar franja colorida na borda.
+    *   Dois NPCs narrativos não usam PNG algum: a Voz da Alma-Mundo é uma chama roxa animada em CSS puro (`AlmaMundoFlame`, `src/components/shared/SpecialNpcPortraits.tsx`); o Eco do Avatar reaproveita o sprite de combate (branco, Phaser) da classe atual do herói, com chave de recorte branca, zoom no busto e espelhamento horizontal (`AvatarEchoPortrait`, mesmo arquivo).
 
 ### H. Persistência da Tela Ativa (Wake Lock)
 Para evitar que o dispositivo móvel apague ou bloqueie a tela durante sessões longas de jogo *idle*, foi implementado o hook `useWakeLock` (`src/hooks/useWakeLock.ts`), consumido em `App.tsx`:
@@ -876,7 +880,8 @@ O jogo possui 24 monstros catalogados de acordo com sua fase e tipo:
 
 O Bestiário concede um bônus passivo e permanente de **Dano Geral** ao herói com base na derrota acumulada de monstros comuns e chefes. Para que um monstro seja considerado "concluído" no Bestiário, o jogador deve alcançar a meta de eliminação exigida:
 *   **Monstros Comuns**: 100 abates.
-*   **Chefes (Bosses)**: 50 abates, exceto o **Guardião dos Cacos** (`boss_crystal_guardian`, chefe da Fase 30), cuja meta foi reduzida para **20 abates** (ver Versão 5.5.0 no Histórico de Updates).
+*   **Chefes (Bosses)**: 50 abates, exceto o **Guardião dos Cacos** (`boss_crystal_guardian`, chefe da Fase 30) e os **4 Chefes Mundiais da Convergência** (Seção 9.E), cuja meta é **20 abates** cada.
+*   **Nota (v11.1.0)**: os grupos do Bestiário (`BESTIARY_PHASE_GROUPS`, `bestiaryFormulas.ts`) já cobrem todos os biomas do jogo, incluindo Litoral/Profundezas/Trono Afundado (v10.0.0+) e o novo grupo "Convergência — Chefes Mundiais" (+10% de Dano Geral por chefe, em vez do +1%/+2% padrão descrito abaixo) — a tabela e a fórmula de "Multiplicador Máximo" logo abaixo descrevem apenas os 6 biomas originais (Fases 1-6) e estão desatualizadas quanto aos grupos adicionados depois.
 
 O cálculo do multiplicador de dano é efetuado na classe `StatEngine` (através do método `calculateBestiaryDamageMultiplier`) com base nas seguintes regras de acúmulo de bônus:
 1.  **Bônus Individual por Monstro**:
@@ -977,6 +982,13 @@ Os pontos de prestígio obtidos são gastos no menu de Ascensão em bônus perma
 *   **Mecânica de Campanha e Loop Infinito**: Com o Modo Pandemônio desbloqueado, o jogador avança pelas 20 fases normais e depois pelas 10 fases do Purgatório (Fases 21 a 30). Ao derrotar o Guardião dos Cacos na Fase 30, o bloqueio é quebrado e o jogo entra no **Loop Infinito do Pandemônio (Fase 31+)**.
 *   **Dificuldade e Recompensas no Pandemônio**: A partir da fase 21, o HP e Dano dos inimigos recebem um multiplicador de **5.0x** sobre a base escalonada (aumentando continuamente a cada estágio infinito). Os inimigos comuns e chefes são gerados aleatoriamente em todas as rodadas. Os drops de equipamentos no Modo Pandemônio possuem status **7.0x superiores** e recebem o prefixo "Pandemoníaco(a)".
 *   **Retenção de Itens Equipados**: Estando com o Modo Pandemônio desbloqueado, todas as ascensões futuras do herói preservam as peças de armadura e armas equipadas ativamente nos slots de equipamento (`Cabeça`, `Torso`, `Pernas`, `Mãos` e `Arma`), destruindo apenas as sobras guardadas no inventário de 30 slots. Isso permite que o jogador reinicie rodadas rapidamente utilizando os bônus de seus melhores equipamentos.
+
+### E. Convergência: Chefes Mundiais (v9.0.0, Bestiário e Resistência atualizados na v11.1.0)
+A Convergência substitui, com 1% de chance por encontro elegível, um inimigo comum da campanha (nunca um chefe de fase nem um Elite) por um dos **4 World Bosses rotativos da semana** (`CONVERGENCE_BOSS_TYPES`, `CombatFSM.ts`) — só às quartas-feiras, só a partir da Fase 31 e só após o Modo Pandemônio desbloqueado. Mantidos de propósito fora de `ENEMY_TYPES` para nunca serem sorteados pelos pools aleatórios de chefe da Torre/Pandemônio.
+*   **Rotação Semanal Determinística**: `getConvergenceBossOfWeek()` seleciona 1 dos 4 bosses (`O Que Ainda Sonha`, `O Ceifador de Reflexos`, `A Fome sem Nome`, `O Trono Vazio`) por uma seed semanal — todo jogador enfrenta o mesmo boss na mesma semana.
+*   **Drop Garantido (100%, sem RNG)**: Ao derrotar o boss da semana, `handleEnemyDefeat` concede sua Relíquia Ativa exclusiva (`CONVERGENCE_EXCLUSIVE_RELICS`) com valor fixo (`rollRange` com `min === max`), isenta de auto-venda — única fonte de obtenção dessas 4 relíquias no jogo.
+*   **Integração ao Bestiário (v11.1.0)**: os 4 bosses foram adicionados ao grupo "Convergência — Chefes Mundiais" (`bestiaryFormulas.ts`), com fallback de exibição em `CONVERGENCE_BOSS_TYPES` (`GameUI.tsx`) já que continuam fora de `ENEMY_TYPES`. Cada um exige só **20 abates** (como o Guardião dos Cacos) e concede **+10% de Dano Geral** por chefe — bem acima do +1%/+2% padrão do Bestiário (Seção 7.E), refletindo a raridade (1% de chance/semana) e dificuldade muito acima dos chefes comuns.
+*   **Teto de Dano por Golpe (v11.1.0)**: para impedir que builds de dano muito alto derrotem o chefe em 1-2 golpes, `damageEnemy()` (`CombatFSM.ts`) limita cada golpe contra um Chefe da Convergência a **3% do HP máximo do chefe em golpes diretos** (ataque básico, skills, toque) e **1% em golpes indiretos** (DoT, reflexo, invocação) — aplicado depois da absorção de escudo, sem alterar o dano bruto exibido/logado ao jogador, só o quanto efetivamente sai do HP do chefe. A primeira vez que o teto age numa luta emite um aviso no log; golpes seguintes limitados mostram um texto flutuante "🛡️ RESISTÊNCIA!".
 
 ---
 
@@ -1123,8 +1135,8 @@ A Loja Celestial (acessível na sub-aba *Loja Celestial*) permite ao jogador gas
 A persistência do jogo é robusta, segura e segmentada em slots de uso livre.
 
 ### A. Persistência de Slots
-O jogo oferece seis slots de salvamento independentes armazenados na memória local do navegador.
-*   `medieval_idle_save_slot_1` até `medieval_idle_save_slot_6` contêm a serialização JSON dos dados do herói (`Character`), incluindo atributos, maestrias de classe, itens no inventário e abates de monstros.
+O jogo oferece doze slots de salvamento independentes armazenados na memória local do navegador.
+*   `medieval_idle_save_slot_1` até `medieval_idle_save_slot_12` contêm a serialização JSON dos dados do herói (`Character`), incluindo atributos, maestrias de classe, itens no inventário e abates de monstros.
 *   `medieval_idle_save` contém o arquivo de carregamento rápido utilizado ao carregar o jogo na inicialização do menu principal.
 *   `medieval_idle_current_slot` registra o índice do slot ativo no momento da sessão de jogo.
 
@@ -1132,6 +1144,15 @@ O jogo oferece seis slots de salvamento independentes armazenados na memória lo
 Para permitir o compartilhamento de arquivos de salvamento entre dispositivos, o jogo implementa a codificação Base64. A camada de dados (`useGameStore.ts`) não mudou desde a v6.1.0 — apenas a forma como a interface (`SavesMenu.tsx`) entrega/recebe esse conteúdo do usuário, que passou de área de transferência/caixa de texto para arquivo baixado/selecionado:
 *   **Exportação**: A ação `exportSave(slotIndex)` lê a string JSON do slot especificado no localStorage e a converte em texto codificado Base64 através do método `btoa()`, retornando a string para a UI. `SavesMenu.tsx` empacota esse texto num `Blob` e aciona o download de um arquivo `.sav` (nomeado `amaro-rpg-idle_slot{N}_{classe}_{data}.sav`) via um elemento `<a download>` temporário e `URL.createObjectURL` — não há mais botão de "copiar código" nem exibição do texto Base64 na tela.
 *   **Importação**: Um único `<input type="file">` oculto e compartilhado entre os slots (`accept=".sav,.txt,text/plain,application/octet-stream"`, aceitando também o formato `.txt` usado antes da mudança) é acionado ao clicar em "Importar"; o conteúdo do arquivo escolhido é lido via `FileReader.readAsText()` e passado para `importSave(slotIndex, conteúdo)`, que decodifica via `atob()`, valida a integridade da estrutura do herói (presença de atributos, classes e IDs válidos) e a salva no slot desejado, atualizando a store de jogo reativa se o slot importado for o selecionado. Não há mais caixa de texto para colar o código manualmente.
+
+### C. Progresso Secundário por Personagem (Jornada, Relíquias, Torre, Recordes Pessoais) — v11.1.0
+Até a v11.1.0, quatro sistemas persistiam numa única chave global do `localStorage`, compartilhada por todos os slots — um personagem novo herdava os Atos concluídos, o inventário de Artefatos de História, os níveis de Relíquia e os recordes pessoais do personagem mais avançado da conta. Corrigido para que cada um use uma chave própria por slot:
+*   **`useQuestStore.ts`** (Jornada, Atos vistos, Artefatos de História): `medieval_idle_quest_store_slot_{N}`.
+*   **`useRelicStore.ts`** (Relíquias Ativas do Altar): `medieval_idle_relics_slot_{N}`.
+*   **`useTowerStore.ts`** (recordes/títulos da Torre Infinita): `medieval_idle_tower_slot_{N}`.
+*   **`getPersonalRecords`/`savePersonalRecords`** (`useGameStore.ts`): `medieval_idle_personal_records_slot_{N}`.
+
+Cada um migra automaticamente o progresso legado (chave global antiga) para o slot ativo na primeira carga após a atualização, sem perda de progresso já existente. Os 3 stores Zustand (`useQuestStore`, `useRelicStore`, `useTowerStore`) recarregam seu estado em memória reativamente quando o slot ativo muda em runtime (`setCurrentSlot`/`loadGameFromSlot`/`deleteSlot`/`importSave`, todos em `useGameStore.ts`) — o gatilho de recarregamento é centralizado numa única assinatura (`useGameStore.subscribe`) ao final de `useGameStore.ts`, e não dentro de cada store individual, para não criar um import circular perigoso entre os módulos (`useRelicStore.ts`/`useTowerStore.ts` não podem ler `useGameStore` durante a própria inicialização síncrona do módulo sem risco de TDZ). `getPersonalRecords`/`savePersonalRecords` não precisam de assinatura própria, pois já relêem o `localStorage` do zero a cada chamada. A ação "Resetar Todos os Dados" (`resetAllData`) também foi corrigida para limpar as 12 chaves possíveis de cada um dos 4 sistemas, além das chaves legadas e flags de migração.
 
 ---
 
@@ -1630,12 +1651,12 @@ Sistema mínimo e reutilizável: overlay fullscreen preto, sequência de painéi
 
 ---
 
-## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0)
+## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0, revisado na v11.1.0)
 
-A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais.
+A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais. A v11.1.0 corrigiu diversos bugs encontrados em teste real (detalhados nas subseções C, F, G, H e I abaixo) e adicionou o banner de diálogo ao concluir capítulos.
 
 ### A. Arquitetura da Store de Quests (`useQuestStore.ts`)
-O gerenciamento de missões é centralizado na store Zustand `useQuestStore`, persistido sob a chave `medieval_idle_quest_store` no `localStorage`.
+O gerenciamento de missões é centralizado na store Zustand `useQuestStore`, persistido sob a chave `medieval_idle_quest_store_slot_{N}` no `localStorage` — **por personagem/slot de save desde a v11.1.0** (ver Seção 12.C), com migração automática de saves anteriores que usavam a chave global antiga.
 
 ```typescript
 interface QuestStoreState {
@@ -1659,6 +1680,10 @@ interface QuestStoreState {
   triggerNpcDialog: (npcId: string, npcName: string, factionColor: string, text: string, options?: NpcDialogOption[], questId?: string) => void;
   closeDialog: () => void;
   getStoryStatsBonus: () => Partial<BaseStats>;
+  // v11.1.0: usado por resetAllData (useGameStore.ts) — zera a Jornada do slot atual
+  resetQuestProgress: () => void;
+  // v11.1.0: chamado por useGameStore.ts quando o slot de save ativo muda
+  reloadForActiveSlot: () => void;
 }
 ```
 
@@ -1678,6 +1703,7 @@ Os objetivos das missões utilizam a união de tipos `ObjectiveType`:
 *   **Hook de Abate**: Chamado em `CombatFSM.ts` (`handleEnemyDefeat`) via `updateObjectiveProgress('kill', enemyId)`. Se o objetivo não possuir `targetId`, qualquer abate incrementa o contador.
 *   **Hook de Nível e Fase**: `addXp` e `advanceStage` em `useGameStore.ts` notificam a store de quests. Adicionalmente, `syncQuestObjectives()` avalia os atributos do personagem ao carregar a interface da Jornada.
 *   **Hooks de Atividades**: Ações de forja/crafting (`craft`), gravação de palavras rúnicas (`runeword`), upgrades na Cidadela (`citadel_build`), resgate de Ecos (`abyss_echo`), Ascensão (`ascend`) e Transcendência (`transcend`) atualizam os objetivos correspondentes imediatamente.
+*   **🐛 Correção (v11.1.0) — `craft`/`runeword` nunca disparavam pelas ações reais**: `reforgeItems()` (fusão mística de equipamentos, `ForgeView.tsx`) e `socketRune()` (engaste avulso de runa) nunca chamavam `updateObjectiveProgress`, então os objetivos `craft`/`runeword` só avançavam por acaso (via `craftBait`, fabricação de isca de pesca, sem relação com forjar equipamento). Corrigido adicionando as chamadas faltantes nos dois pontos (`useGameStore.ts`).
 
 ### D. Contratos & Caçadas Procedurais (`QuestGenerator.ts`)
 As missões secundárias procedurais são geradas dinamicamente pela função `generateProceduralQuests(character)`:
@@ -1692,16 +1718,23 @@ Os Artefatos de História (`STORY_ITEMS_CATALOG`) são concedidos como recompens
 *   **Persistência Eterna**: Armazenados em `storyInventory` (`Record<string, number>`), estes artefatos **permanecem intactos durante a Ascensão e a Transcendência**.
 *   **Bônus Passivos Acumuláveis**: `getStoryStatsBonus()` calcula os atributos acumulados de todos os artefatos possuídos e os injeta na fórmula de atributos finais (`StatEngine.ts`).
 
-### F. Interface do Usuário e Carrossel de Sub-Abas (`QuestLogPanel.tsx`)
-A interface do Diário de Jornada utiliza um **seletor por carrossel dinâmico** equipado com botões de navegação lateral (`◀` e `▶`):
-*   Exibe **exatamente 1 sub-aba por vez** centralizada em destaque (`🌟 Jornada Principal` ↔ `⚔️ Contratos & Caçadas` ↔ `🏺 Artefatos de História`).
-*   Suporta navegação circular rápida por clique nas setas ou no botão central, sem estouro de layout em telas mobile.
+### F. Interface do Usuário (`QuestLogPanel.tsx`) — revisado na v11.1.0
+*   **Sub-abas em grid estático de pills**: o carrossel original de 1-aba-por-vez (setas `◀`/`▶`) estourava a tela no mobile, deixando a 3ª aba inacessível. Substituído por `display: grid, gridTemplateColumns: repeat(auto-fit, minmax(92px, 1fr))` — as 3 sub-abas (`🌟 Jornada Principal` ↔ `⚔️ Contratos & Caçadas` ↔ `🏺 Artefatos de História`) ficam todas visíveis, quebrando para 2ª linha em telas estreitas em vez de transbordar, mesmo padrão do `CodexPanel`.
+*   **Jornada Principal agrupada por Ato, com blocos colapsáveis**: capítulos de Atos diferentes eram exibidos numa lista plana sem separação visual. Agora cada Ato é um bloco próprio com cabeçalho (título do Ato, vindo de `ACT_CUTSCENES_CATALOG`), chevron de colapso (reaproveitando `.console-arrow`, o mesmo padrão do Console de Combate) e corpo com os capítulos daquele Ato. Fecha por padrão quando o Ato já foi 100% concluído/reivindicado; o Ato ativo permanece aberto. Cada bloco de Ato tem `flexShrink: 0` para não ser comprimido pelo flexbox do container com scroll (bug que cortava conteúdo ao expandir).
+*   **Botão `🎬 Rever Cena` centralizado no cabeçalho do Ato**: antes repetido em cada capítulo (redundante, já que é a mesma cena para todos os capítulos do Ato); agora aparece 1x no cabeçalho do bloco.
 *   Cards de missões utilizam contornos limpos e sem bordas laterais coloridas `borderLeft`, mantendo alinhamento estético com o tema Dark Mode.
 
-### G. Cutscenes Narrativas Sequenciais de Atos (`storyCutscenesData.ts`, `ActCutsceneOverlay.tsx`)
+### G. Cutscenes Narrativas Sequenciais de Atos (`storyCutscenesData.ts`, `ActCutsceneOverlay.tsx`) — revisado na v11.1.0
 Apresentação em tela inteira estilo Visual Novel / RPG para enriquecer o contexto dos 6 Atos:
 *   **Roteiros de Diálogo (`ACT_CUTSCENES_CATALOG`)**: Roteiros imersivos detalhando encontros com a Voz da Alma-Mundo, Valéria, Vulkan, O Andarilho do Vazio, O Eco do Avatar e O Castelão Afundado.
 *   **Pausa e Fundo Dramático**: Ao ativar `playActCutscene(act)`, a store dispara `bridge.emit(GameEvent.END_COMBAT)` e escurece a tela (`rgba(6, 5, 12, 0.92)` com `backdropFilter: blur(10px)`). Ao concluir ou pular a cena (`finishActCutscene`), emite `GameEvent.START_COMBAT`.
-*   **Retratos e Sprites**: Renderiza o retrato/sprite do NPC (`/assets/npc_[id].png`) com bordas na cor da facção e fallback automático para badges/emojis animados (`🔮`, `📜`, `⚒️`, `🌌`, `✨`, `🌊`).
-*   **Máquina de Escrever & Controles**: Texto revelado caractere a caractere (22ms por letra), com botões `[ Avançar ➔ ]` (ou tecla `Espaço`/`Enter`) e `[ ⏩ Pular Cena ]`.
-*   **Disparo Automático**: Dispara o Ato I após a introdução inicial, e os Atos II a VI automaticamente ao reivindicar a última missão do Ato anterior em `claimReward`. Suporta re-exibição sob demanda via botão `[ 🎬 Rever Cena ]` no `QuestLogPanel.tsx`.
+*   **Retratos e Sprites (220px, dobrado na v11.1.0)**: Renderiza o retrato/sprite do NPC (`/assets/npc_[id].png`, removido via chroma key `#FE0201` — ver Seção 3.G.5) com bordas na cor da facção e fallback automático para badges/emojis animados (`🔮`, `📜`, `⚒️`, `🌌`, `✨`, `🌊`). Dois NPCs têm apresentação especial sem PNG: a Voz da Alma-Mundo (chama roxa animada em CSS, `AlmaMundoFlame`) e o Eco do Avatar (sprite de combate da classe atual do herói, zoom + espelhado horizontalmente, `AvatarEchoPortrait`) — ambos em `src/components/shared/SpecialNpcPortraits.tsx`.
+*   **Máquina de Escrever & Controles**: Texto revelado caractere a caractere (22ms por letra), com botões `[ Avançar ➔ ]` (ou tecla `Espaço`/`Enter`) e `[ ⏩ Pular Cena ]`. **Bug corrigido (v11.1.0)**: revelar o texto completo antes de terminar de digitar mostrava o texto por um instante e voltava a digitar letra por letra, pois o `setInterval` da máquina de escrever continuava rodando em paralelo e sobrescrevia o texto — corrigido guardando o timer num `useRef` e cancelando-o explicitamente ao revelar.
+*   **Caixa de Diálogo com Altura Fixa (v11.1.0)**: antes usava `minHeight`, que crescia conforme o texto era digitado, empurrando o retrato do NPC para cima a cada linha extra. Corrigido com altura fixa (`11.55em`, ~7 linhas) e `overflowY: auto` como rede de segurança para linhas excepcionalmente longas.
+*   **Disparo Automático**: Dispara o Ato I após a introdução inicial, e os Atos II a VI automaticamente ao reivindicar a última missão do Ato anterior em `claimReward`. Suporta re-exibição sob demanda via botão `[ 🎬 Rever Cena ]` no `QuestLogPanel.tsx` (movido para o cabeçalho do Ato — ver Seção F).
+
+### H. Banner de Diálogo ao Concluir Capítulos (`NpcDialogOverlay.tsx`) — v11.1.0
+O componente `NpcDialogOverlay.tsx` e a ação `triggerNpcDialog` existiam desde a v11.0.0, mas nenhum código do jogo os chamava — a lore de conclusão (`completionLore`) dos 18 capítulos principais nunca era mostrada. Corrigido conectando `claimReward` (`useQuestStore.ts`): sempre que um capítulo com `completionLore`, `npcId` e `npcName` é reivindicado, o banner é disparado automaticamente com o retrato do NPC (mesmo pipeline de retratos da Seção G) e a cor de facção correspondente (`NPC_FACTION_COLORS`). É o único ponto de apresentação do Heraldo dos Céus (`sky_herald`), que não participa de nenhuma cutscene de Ato.
+
+### I. Correção de `speakerId`/`npcId` Divergentes dos Nomes de Arquivo (v11.1.0)
+Diversas entradas em `storyCutscenesData.ts`, `mainQuestsData.ts` e `QuestGenerator.ts` usavam identificadores curtos (`valeria`, `vulkan`, `wanderer`) que não correspondiam aos nomes reais dos arquivos de sprite gerados a partir da especificação de arte (`npc_archivist_valeria.png`, `npc_forge_master_vulkan.png`, `npc_void_wanderer.png`) — como `/assets/npc_${id}.png` nunca encontrava o arquivo, o retrato caía sempre no emoji de placeholder. Corrigido em todas as ocorrências dos 3 arquivos.
