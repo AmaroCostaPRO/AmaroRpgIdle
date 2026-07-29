@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
+import { getTransparentImageUrl, peekTransparentImageUrl } from '../core/imageBackgroundStrip';
 
 export const ActCutsceneOverlay: React.FC = () => {
   const activeActCutscene = useQuestStore((s) => s.activeActCutscene);
@@ -10,9 +11,25 @@ export const ActCutsceneOverlay: React.FC = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [portraitSrc, setPortraitSrc] = useState<string | null>(null);
   const typewriterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentLine = activeActCutscene?.lines[currentLineIdx];
+
+  // Resolve o retrato do speaker atual (remoção de fundo via chroma key #FE0201)
+  useEffect(() => {
+    if (!currentLine?.speakerId) {
+      setPortraitSrc(null);
+      return;
+    }
+    const src = `/assets/npc_${currentLine.speakerId}.png`;
+    let cancelled = false;
+    setPortraitSrc(peekTransparentImageUrl(src));
+    getTransparentImageUrl(src)
+      .then((dataUrl) => { if (!cancelled) setPortraitSrc(dataUrl); })
+      .catch(() => { if (!cancelled) setPortraitSrc(null); });
+    return () => { cancelled = true; };
+  }, [currentLine?.speakerId]);
 
   // Efeito Máquina de Escrever para a linha atual
   useEffect(() => {
@@ -160,13 +177,13 @@ export const ActCutsceneOverlay: React.FC = () => {
             }}
           >
             {/* Fallback de Avatar / Emoji Placeholder */}
-            {imageError || !currentLine.speakerId ? (
+            {imageError || !currentLine.speakerId || !portraitSrc ? (
               <span style={{ fontSize: '3.2rem', filter: `drop-shadow(0 0 10px ${currentLine.factionColor || '#a855f7'})` }}>
                 {currentLine.avatarIcon || '🔮'}
               </span>
             ) : (
               <img
-                src={`/assets/npc_${currentLine.speakerId}.png`}
+                src={portraitSrc}
                 alt={currentLine.speakerName}
                 onError={() => setImageError(true)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
@@ -231,7 +248,7 @@ export const ActCutsceneOverlay: React.FC = () => {
             color: '#f8fafc',
             margin: 0,
             fontStyle: 'italic',
-            height: '6.6em',
+            height: '11.55em',
             overflowY: 'auto',
             fontFamily: 'var(--font-body)',
           }}

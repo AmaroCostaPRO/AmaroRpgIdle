@@ -3,6 +3,35 @@ import { useQuestStore } from '../store/useQuestStore';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
 import { ACT_CUTSCENES_CATALOG } from '../core/quests/storyCutscenesData';
 import { AudioManager } from '../core/AudioManager';
+import { getTransparentImageUrl, peekTransparentImageUrl } from '../core/imageBackgroundStrip';
+
+// Ícone de Artefato de História com remoção de fundo via chroma key (#FE0201, mesmo pipeline das
+// construções da Cidadela) — extraído em componente próprio porque é montado dentro de um `.map()`.
+const StoryItemIcon: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(() => peekTransparentImageUrl(src));
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedSrc(peekTransparentImageUrl(src));
+    setFailed(false);
+    getTransparentImageUrl(src)
+      .then((dataUrl) => { if (!cancelled) setResolvedSrc(dataUrl); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [src]);
+
+  if (failed || !resolvedSrc) return null;
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      onError={() => setFailed(true)}
+      style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 1 }}
+    />
+  );
+};
 
 export const QuestLogPanel: React.FC = () => {
   const [subTab, setSubTab] = useState<'main' | 'contracts' | 'storyItems'>('main');
@@ -76,7 +105,7 @@ export const QuestLogPanel: React.FC = () => {
             className={`tab-btn ${subTab === t.id ? 'active' : ''}`}
             style={{ padding: '0.4rem', fontSize: '0.58rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', minWidth: 0 }}
           >
-            <span>{t.icon} {t.label}</span>
+            <span style={{ minWidth: 0, whiteSpace: 'normal', wordBreak: 'break-word', textAlign: 'center', lineHeight: 1.25 }}>{t.icon} {t.label}</span>
           </button>
         ))}
       </div>
@@ -90,7 +119,7 @@ export const QuestLogPanel: React.FC = () => {
             const actInfo = ACT_CUTSCENES_CATALOG[act];
 
             return (
-              <div key={act} style={{ border: '1px solid var(--border-dim)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'rgba(0,0,0,0.2)' }}>
+              <div key={act} style={{ border: '1px solid var(--border-dim)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}>
                 {/* Cabeçalho do Ato: título, chevron de colapso e Rever Cena (1x por Ato) */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', background: 'rgba(168, 85, 247, 0.08)' }}>
                   <button
@@ -322,14 +351,7 @@ export const QuestLogPanel: React.FC = () => {
                     <div style={{ width: '32px', height: '32px', borderRadius: '4px', overflow: 'hidden', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
                       <span style={{ fontSize: '1.2rem', position: 'absolute' }}>{unlocked ? item.icon : '🔒'}</span>
                       {unlocked && (
-                        <img
-                          src={`/assets/${item.id}.png`}
-                          alt={item.name}
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', position: 'relative', zIndex: 1 }}
-                        />
+                        <StoryItemIcon src={`/assets/${item.id}.png`} alt={item.name} />
                       )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>

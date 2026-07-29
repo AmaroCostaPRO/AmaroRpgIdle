@@ -10,7 +10,7 @@ import { bridge } from '../bridge/GameBridge';
 import { GameEvent, BaseStats, EquipmentItem, EnemyType, PET_POOL } from '../core/types';
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from '../core/bestiaryFormulas';
-import { ENEMY_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
+import { ENEMY_TYPES, CONVERGENCE_BOSS_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
 import { AudioManager } from '../core/AudioManager';
 import { calculateMaxMana, getSkillManaCost } from '../core/manaFormulas';
 import { SavesMenu } from './SavesMenu';
@@ -5360,10 +5360,15 @@ interface BestiaryPanelProps {
 // ficava desatualizado toda vez que novos inimigos eram acrescentados ao array (era o motivo do
 // Bestiário só mostrar Litoral + Profundezas Z1, ignorando Z2/Z3/Z4/Trono). Calculado uma única
 // vez (dado estático), não a cada render do BestiaryPanel.
+// Os 4 Chefes Mundiais da Convergência ficam de propósito FORA de ENEMY_TYPES (ver comentário em
+// CombatFSM.ts) para nunca serem sorteados pelos pools aleatórios de boss — por isso o fallback
+// busca em CONVERGENCE_BOSS_TYPES antes de descartar o ID.
 const BESTIARY_PHASES = BESTIARY_PHASE_GROUPS.map((group, i) => ({
   number: i + 1,
   name: group.name,
-  enemies: group.enemyIds.map((id) => ENEMY_TYPES.find((e) => e.id === id)).filter((e): e is EnemyType => !!e),
+  enemies: group.enemyIds
+    .map((id) => ENEMY_TYPES.find((e) => e.id === id) || CONVERGENCE_BOSS_TYPES.find((e) => e.id === id))
+    .filter((e): e is EnemyType => !!e),
 }));
 
 const BestiaryPanel: React.FC<BestiaryPanelProps> = ({

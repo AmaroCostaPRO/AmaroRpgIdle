@@ -836,6 +836,13 @@ export const ACTIVE_RELICS_CATALOG: Record<string, ActiveRelicDefinition> = {
 export const getActiveRelicDefinition = (relicId: string): ActiveRelicDefinition | undefined =>
   ACTIVE_RELICS_CATALOG[relicId] || CONVERGENCE_EXCLUSIVE_RELICS[relicId];
 
+// v11.1.0: teto de dano por golpe contra os 4 World Bosses da Convergência — sem isso, builds de
+// dano alto matam o chefe em 1-2 golpes. Diferenciado por isDirect (mesmo parâmetro já usado em
+// damageEnemy): golpes diretos (ataque básico/skills/execução) toleram um teto maior que
+// DoT/reflexos/invocações, que já batem com muito mais frequência.
+const CONVERGENCE_DIRECT_HIT_CAP_PCT = 0.03;   // 3% do HP máx. por golpe direto
+const CONVERGENCE_INDIRECT_HIT_CAP_PCT = 0.01; // 1% do HP máx. por tick indireto (DoT/reflexo/invocação)
+
 // v9.0.0 "O Que Espera no Pandemônio": Convergência — versão endgame da Lua de Sangue. Spawna um
 // "world boss" único que rotaciona semanalmente entre 4 formas (todas tentativas malformadas da
 // coisa antiga do Pandemônio de "ser vista"), só às quartas-feiras, só depois do Pandemônio
@@ -992,6 +999,8 @@ export class CombatFSM {
   // v9.0.0 "O Que Espera no Pandemônio": Convergência — mesmo espírito do Mercador acima, mas
   // substitui o inimigo comum por um dos 4 world bosses rotativos da semana.
   public isConvergenceEncounter: boolean = false;
+  // v11.1.0: garante que o aviso de "resistência" do teto de dano só apareça 1x por luta de Convergência.
+  private convergenceCapWarningShown: boolean = false;
   // v10.0.0 "A Cidadela Submersa": spawn alternativo aquático do Litoral (Fases 1–10, 15%).
   public isCoastalEncounter: boolean = false;
   // v10.0.0: Mergulhos Rasos — Bolsão de Ar (sem combate) e estado local do Fôlego.
@@ -1703,6 +1712,7 @@ export class CombatFSM {
       const convergenceBoss = getConvergenceBossOfWeek();
       this.currentEnemy = convergenceBoss;
       this.isConvergenceEncounter = true;
+      this.convergenceCapWarningShown = false;
       this.enemyMaxHP = Math.floor((150 + (stage * 50)) * difficultyScale * convergenceBoss.hpMultiplier * 3.0 * hpBoost);
       this.enemyHP = this.enemyMaxHP;
       this.currentState = CombatState.CONVERGENCE_ENCOUNTER;
@@ -3684,6 +3694,26 @@ export class CombatFSM {
         finalAmount = Math.floor(finalAmount * 0.5);
       }
       bridge.emit(GameEvent.LOG_EMITTED, { message: `👥 A réplica fantasma foi destruída!` });
+    }
+
+    // v11.1.0: teto de dano por golpe contra os World Bosses da Convergência (ver constantes no
+    // topo do arquivo) — o número de dano bruto já mostrado/logado pelo chamador não muda, só o
+    // quanto disso é de fato aplicado ao HP do chefe.
+    if (this.isConvergenceEncounter && this.enemyMaxHP > 0) {
+      const capPct = isDirect ? CONVERGENCE_DIRECT_HIT_CAP_PCT : CONVERGENCE_INDIRECT_HIT_CAP_PCT;
+      const cap = Math.floor(this.enemyMaxHP * capPct);
+      if (finalAmount > cap) {
+        finalAmount = cap;
+        if (this.scene && typeof this.scene.spawnDamageText === 'function') {
+          this.scene.spawnDamageText(this.scene.getEnemyX(), this.scene.getEnemyY() - 45, '🛡️ RESISTÊNCIA!', '#a855f7');
+        }
+        if (!this.convergenceCapWarningShown) {
+          this.convergenceCapWarningShown = true;
+          bridge.emit(GameEvent.LOG_EMITTED, {
+            message: `🛡️ ${this.currentEnemy.name} resiste ao excesso de dano por golpe! Chefes Mundiais da Convergência limitam cada ataque a uma fração do HP máximo, tornando a luta mais longa — seu dano continua o mesmo, só a redução de HP por golpe é limitada.`
+          });
+        }
+      }
     }
 
     this.enemyHP = Math.max(0, this.enemyHP - finalAmount);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
+import { getTransparentImageUrl, peekTransparentImageUrl } from '../core/imageBackgroundStrip';
 import { ModalCloseButton } from './shared/ModalCloseButton';
 
 export const NpcDialogOverlay: React.FC = () => {
@@ -10,6 +11,24 @@ export const NpcDialogOverlay: React.FC = () => {
 
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [portraitSrc, setPortraitSrc] = useState<string | null>(null);
+  const [portraitFailed, setPortraitFailed] = useState(false);
+
+  useEffect(() => {
+    if (!activeDialog?.npcId) {
+      setPortraitSrc(null);
+      setPortraitFailed(false);
+      return;
+    }
+    const src = `/assets/npc_${activeDialog.npcId}.png`;
+    let cancelled = false;
+    setPortraitSrc(peekTransparentImageUrl(src));
+    setPortraitFailed(false);
+    getTransparentImageUrl(src)
+      .then((dataUrl) => { if (!cancelled) setPortraitSrc(dataUrl); })
+      .catch(() => { if (!cancelled) setPortraitFailed(true); });
+    return () => { cancelled = true; };
+  }, [activeDialog?.npcId]);
 
   useEffect(() => {
     if (!activeDialog) {
@@ -95,14 +114,14 @@ export const NpcDialogOverlay: React.FC = () => {
           }}
         >
           <span style={{ fontSize: '1.2rem', position: 'absolute' }}>👤</span>
-          <img
-            src={`/assets/npc_${activeDialog.npcId}.png`}
-            alt={activeDialog.npcName}
-            onError={(e) => {
-              (e.currentTarget as HTMLElement).style.display = 'none';
-            }}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
-          />
+          {!portraitFailed && portraitSrc && (
+            <img
+              src={portraitSrc}
+              alt={activeDialog.npcName}
+              onError={() => setPortraitFailed(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
+            />
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: activeDialog.factionColor || '#a855f7' }}>

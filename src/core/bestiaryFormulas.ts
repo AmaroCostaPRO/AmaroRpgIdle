@@ -7,6 +7,8 @@
 // (Litoral + Profundezas Z1) por causa do slice fixo. Agrupar por ID (não por posição no array)
 // elimina as duas classes de bug de uma vez.
 
+import { CONVERGENCE_BOSS_IDS } from './codexData';
+
 export interface BestiaryPhaseGroup {
   name: string;
   enemyIds: string[];
@@ -31,9 +33,16 @@ export const BESTIARY_PHASE_GROUPS: BestiaryPhaseGroup[] = [
   { name: 'Profundezas — Ruínas da Cidadela', enemyIds: ['guardian_echo', 'salt_mourner', 'barnacle_knight', 'boss_drowned_castellan'] },
   { name: 'Profundezas — Fossa do Caco', enemyIds: ['trench_serpent', 'false_light', 'leviathan_spawn', 'dark_breather'] },
   { name: 'O Trono Afundado', enemyIds: ['boss_leviathan'] },
+  // v11.0.0: os 4 Chefes Mundiais da Convergência — exigem só 20 abates cada (ver
+  // getBestiaryRequiredKills) mas concedem +10% de dano cada (em vez do +1%/+2% padrão),
+  // refletindo sua raridade (spawn de 1% de chance) e dificuldade muito acima dos chefes comuns.
+  { name: 'Convergência — Chefes Mundiais', enemyIds: CONVERGENCE_BOSS_IDS, bonusMultiplier: 10 },
 ];
 
-// 200 abates para comuns, 50 para chefes — exceção histórica: o Guardião de Cristal (Purgatório)
-// pede só 20, mantida por compatibilidade com jogadores que já o desbloquearam nesse patamar.
+// 200 abates para comuns, 50 para chefes — exceções: o Guardião de Cristal (Purgatório) e os 4
+// Chefes Mundiais da Convergência pedem só 20 (o Guardião por compatibilidade histórica com quem já
+// o desbloqueou nesse patamar; os Chefes Mundiais porque cada abate já é uma conquista rara em si).
 export const getBestiaryRequiredKills = (enemyId: string): number =>
-  enemyId === 'boss_crystal_guardian' ? 20 : (enemyId.startsWith('boss_') ? 50 : 200);
+  (enemyId === 'boss_crystal_guardian' || (CONVERGENCE_BOSS_IDS as string[]).includes(enemyId))
+    ? 20
+    : (enemyId.startsWith('boss_') ? 50 : 200);

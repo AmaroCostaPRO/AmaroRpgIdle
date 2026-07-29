@@ -58,7 +58,7 @@ const runeObtained = (ctx: CodexUnlockContext, runeId: RuneId): boolean => (ctx.
 const runeFamilyObtained = (ctx: CodexUnlockContext, family: RuneFamilyId): boolean =>
   ([1, 2, 3] as const).some((tier) => runeObtained(ctx, `${family}_t${tier}` as RuneId));
 
-const CONVERGENCE_BOSS_IDS = ['boss_what_still_dreams', 'boss_reflection_reaper', 'boss_nameless_hunger', 'boss_empty_throne'];
+export const CONVERGENCE_BOSS_IDS = ['boss_what_still_dreams', 'boss_reflection_reaper', 'boss_nameless_hunger', 'boss_empty_throne'];
 
 // ============================================================================
 // 1. COSMOLOGIA
