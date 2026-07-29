@@ -126,7 +126,44 @@ export interface TowerStoreState {
   // duplica se já desbloqueado.
   unlockTitle: (title: string) => void;
   resetTowerProgress: () => void;
+  // v11.1.1: recarrega os recordes/títulos da Torre do slot de save ativo — chamado por
+  // useGameStore quando o personagem troca (ver comentário em getTowerStoreKey abaixo).
+  reloadForActiveSlot: () => void;
 }
+
+// v11.1.1: recordes/títulos da Torre são progresso POR PERSONAGEM, não por conta — mesma correção
+// já aplicada em useQuestStore.ts/useRelicStore.ts. Lê `medieval_idle_current_slot` direto do
+// localStorage em vez de usar `useGameStore` (que este arquivo já importa para OUTRAS ações) para
+// não depender de timing de inicialização circular no carregamento inicial do módulo — o gatilho de
+// recarregamento ao trocar de slot é registrado do lado de `useGameStore.ts`, não daqui.
+const getActiveSlot = (): number | null => {
+  const raw = localStorage.getItem('medieval_idle_current_slot');
+  return raw ? Number(raw) : null;
+};
+
+const getTowerStoreKey = (slot: number | null): string =>
+  slot != null ? `medieval_idle_tower_slot_${slot}` : 'medieval_idle_tower';
+
+const TOWER_MIGRATED_FLAG = 'medieval_idle_tower_migrated_to_slots';
+
+const migrateLegacyTowerIfNeeded = (slot: number | null): void => {
+  if (slot == null) return;
+  try {
+    if (localStorage.getItem(TOWER_MIGRATED_FLAG)) return;
+    const legacyRaw = localStorage.getItem('medieval_idle_tower');
+    if (!legacyRaw) {
+      localStorage.setItem(TOWER_MIGRATED_FLAG, '1');
+      return;
+    }
+    const slotKey = getTowerStoreKey(slot);
+    if (!localStorage.getItem(slotKey)) {
+      localStorage.setItem(slotKey, legacyRaw);
+    }
+    localStorage.setItem(TOWER_MIGRATED_FLAG, '1');
+  } catch (e) {
+    console.error('Erro ao migrar dados legados da Torre para slots:', e);
+  }
+};
 
 // Gera a seed semanal baseada no ano e número da semana
 export const getWeeklySeed = (): number => {
@@ -153,15 +190,16 @@ const saveTowerToStorage = (state: Partial<TowerStoreState>) => {
       weeklySeed: state.weeklySeed,
       lastWeeklyResetTime: state.lastWeeklyResetTime,
     };
-    localStorage.setItem('medieval_idle_tower', JSON.stringify(dataToSave));
+    localStorage.setItem(getTowerStoreKey(getActiveSlot()), JSON.stringify(dataToSave));
   } catch (e) {
     console.error('Erro ao salvar dados da Torre no localStorage:', e);
   }
 };
 
-const loadTowerFromStorage = (): Partial<TowerStoreState> => {
+const loadTowerFromStorage = (slot: number | null): Partial<TowerStoreState> => {
+  migrateLegacyTowerIfNeeded(slot);
   try {
-    const saved = localStorage.getItem('medieval_idle_tower');
+    const saved = localStorage.getItem(getTowerStoreKey(slot));
     if (saved) {
       const parsed = JSON.parse(saved);
       return {
@@ -200,7 +238,7 @@ const loadTowerFromStorage = (): Partial<TowerStoreState> => {
   };
 };
 
-const initialData = loadTowerFromStorage();
+const initialData = loadTowerFromStorage(getActiveSlot());
 
 export const useTowerStore = create<TowerStoreState>((set, get) => {
   // Centraliza a persistência: sempre lê o estado atual inteiro via `get()`, então nenhuma
@@ -543,6 +581,24 @@ export const useTowerStore = create<TowerStoreState>((set, get) => {
       lastWeeklyResetTime: Date.now(),
     });
     persistTowerState();
+  },
+
+  reloadForActiveSlot: () => {
+    const reloaded = loadTowerFromStorage(getActiveSlot());
+    set({
+      weeklyHighestFloor: reloaded.weeklyHighestFloor ?? 0,
+      historicalHighestFloor: reloaded.historicalHighestFloor ?? 0,
+      unlockedTitles: reloaded.unlockedTitles ?? ['Iniciante da Torre'],
+      equippedTitle: reloaded.equippedTitle ?? '',
+      curseWeeklyHighestFloor: reloaded.curseWeeklyHighestFloor ?? 0,
+      curseHistoricalHighestFloor: reloaded.curseHistoricalHighestFloor ?? 0,
+      curseUnlockedTitles: reloaded.curseUnlockedTitles ?? [],
+      voidTrialsHistoricalHighestFloor: reloaded.voidTrialsHistoricalHighestFloor ?? 0,
+      voidTrialsWeeklyHighestFloor: reloaded.voidTrialsWeeklyHighestFloor ?? 0,
+      voidTrialsPtGrantedThisWeek: reloaded.voidTrialsPtGrantedThisWeek ?? 0,
+      weeklySeed: reloaded.weeklySeed ?? 0,
+      lastWeeklyResetTime: reloaded.lastWeeklyResetTime ?? 0,
+    });
   }
   };
 });

@@ -899,9 +899,44 @@ export interface PersonalRecords {
   totalAscensions: number;
 }
 
-export const getPersonalRecords = (): PersonalRecords => {
+// v11.1.2: Recordes Pessoais são progresso POR PERSONAGEM, não por conta — mesma correção já
+// aplicada em useQuestStore.ts/useRelicStore.ts/useTowerStore.ts. Como não há estado em memória
+// cacheado aqui (cada chamada já relê o localStorage do zero), basta trocar a chave pelo slot ativo
+// — não precisa de assinatura de recarregamento como os stores Zustand.
+const getPersonalRecordsKey = (slot: number | null): string =>
+  slot != null ? `medieval_idle_personal_records_slot_${slot}` : 'medieval_idle_personal_records';
+
+const PERSONAL_RECORDS_MIGRATED_FLAG = 'medieval_idle_personal_records_migrated_to_slots';
+
+const migrateLegacyPersonalRecordsIfNeeded = (slot: number | null): void => {
+  if (slot == null) return;
   try {
-    const raw = localStorage.getItem('medieval_idle_personal_records');
+    if (localStorage.getItem(PERSONAL_RECORDS_MIGRATED_FLAG)) return;
+    const legacyRaw = localStorage.getItem('medieval_idle_personal_records');
+    if (!legacyRaw) {
+      localStorage.setItem(PERSONAL_RECORDS_MIGRATED_FLAG, '1');
+      return;
+    }
+    const slotKey = getPersonalRecordsKey(slot);
+    if (!localStorage.getItem(slotKey)) {
+      localStorage.setItem(slotKey, legacyRaw);
+    }
+    localStorage.setItem(PERSONAL_RECORDS_MIGRATED_FLAG, '1');
+  } catch (e) {
+    console.error('Erro ao migrar recordes pessoais legados para slots:', e);
+  }
+};
+
+const getActiveSlotForRecords = (): number | null => {
+  const raw = localStorage.getItem('medieval_idle_current_slot');
+  return raw ? Number(raw) : null;
+};
+
+export const getPersonalRecords = (): PersonalRecords => {
+  const slot = getActiveSlotForRecords();
+  migrateLegacyPersonalRecordsIfNeeded(slot);
+  try {
+    const raw = localStorage.getItem(getPersonalRecordsKey(slot));
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -924,7 +959,7 @@ export const getPersonalRecords = (): PersonalRecords => {
 
 export const savePersonalRecords = (records: PersonalRecords): void => {
   try {
-    localStorage.setItem('medieval_idle_personal_records', JSON.stringify(records));
+    localStorage.setItem(getPersonalRecordsKey(getActiveSlotForRecords()), JSON.stringify(records));
   } catch (e) {
     console.error('Erro ao salvar recordes pessoais:', e);
   }
@@ -4678,14 +4713,30 @@ export const useGameStore = create<GameState>((set) => ({
       localStorage.removeItem('medieval_idle_relics');
       localStorage.removeItem('medieval_idle_tower');
       localStorage.removeItem('medieval_idle_personal_records');
+      // v11.1.1: Relíquias/Torre/Jornada agora são por slot (ver comentário na assinatura de
+      // reload no fim deste arquivo) — "Resetar Todos os Dados" apaga a conta inteira, então
+      // limpa os 12 slots possíveis de cada um, além das chaves legadas acima e das flags de
+      // migração (senão uma migração antiga poderia "reviver" progresso já resetado).
+      localStorage.removeItem('medieval_idle_quest_store');
+      localStorage.removeItem('medieval_idle_relics_migrated_to_slots');
+      localStorage.removeItem('medieval_idle_tower_migrated_to_slots');
+      localStorage.removeItem('medieval_idle_quest_store_migrated_to_slots');
+      localStorage.removeItem('medieval_idle_personal_records_migrated_to_slots');
+      for (let i = 1; i <= 12; i++) {
+        localStorage.removeItem(`medieval_idle_relics_slot_${i}`);
+        localStorage.removeItem(`medieval_idle_tower_slot_${i}`);
+        localStorage.removeItem(`medieval_idle_quest_store_slot_${i}`);
+        localStorage.removeItem(`medieval_idle_personal_records_slot_${i}`);
+      }
     } catch (e) {}
 
     // Reseta também o estado em memória dessas stores, já que a tela permanece
     // montada (volta para 'menu' sem recarregar a página) — sem isso, o jogador
-    // veria relíquias/torre antigas até um refresh manual do navegador.
+    // veria relíquias/torre/jornada antigas até um refresh manual do navegador.
     try {
       useRelicStore.getState().resetRelics();
       useTowerStore.getState().resetTowerProgress();
+      useQuestStore.getState().resetQuestProgress();
     } catch (e) {}
 
     const fresh = DEFAULT_CHARACTER('warrior');
@@ -6108,3 +6159,19 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   }
 }));
+
+// v11.1.1: Relíquias Ativas, recordes/títulos da Torre e progresso da Jornada são POR PERSONAGEM,
+// não por conta. Nenhum desses 3 stores pode assinar `useGameStore` no topo do próprio módulo com
+// segurança (todos formam um import circular com este arquivo — inofensivo enquanto só se tocam
+// dentro de corpos de função, arriscado se algum tentar ler o outro durante a própria inicialização
+// síncrona do módulo). Por isso o gatilho de recarregamento ao trocar de slot fica centralizado
+// aqui: este é o lado seguro do ciclo, já que os 3 stores terminam de carregar antes desta linha
+// rodar (import é resolvido por completo antes do corpo deste módulo continuar).
+let lastActiveSlotForSideStores = useGameStore.getState().currentSlot;
+useGameStore.subscribe((state) => {
+  if (state.currentSlot === lastActiveSlotForSideStores) return;
+  lastActiveSlotForSideStores = state.currentSlot;
+  useRelicStore.getState().reloadForActiveSlot();
+  useTowerStore.getState().reloadForActiveSlot();
+  useQuestStore.getState().reloadForActiveSlot();
+});

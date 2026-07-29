@@ -167,10 +167,10 @@ export const ActCutsceneOverlay: React.FC = () => {
           {/* Moldura do Sprite/Retrato com Brilho de Facção */}
           <div
             style={{
-              width: '110px',
-              height: '110px',
+              width: '220px',
+              height: '220px',
               borderRadius: '50%',
-              border: `3px solid ${currentLine.factionColor || '#a855f7'}`,
+              border: `4px solid ${currentLine.factionColor || '#a855f7'}`,
               boxShadow: `0 0 30px ${currentLine.factionColor || '#a855f7'}80, inset 0 0 15px rgba(0,0,0,0.8)`,
               background: 'radial-gradient(circle, rgba(25,20,40,0.9) 0%, rgba(10,8,18,0.95) 100%)',
               display: 'flex',
@@ -186,7 +186,7 @@ export const ActCutsceneOverlay: React.FC = () => {
             ) : currentLine.speakerId === 'avatar_echo' ? (
               <AvatarEchoPortrait />
             ) : imageError || !currentLine.speakerId || !portraitSrc ? (
-              <span style={{ fontSize: '3.2rem', filter: `drop-shadow(0 0 10px ${currentLine.factionColor || '#a855f7'})` }}>
+              <span style={{ fontSize: '6.4rem', filter: `drop-shadow(0 0 10px ${currentLine.factionColor || '#a855f7'})` }}>
                 {currentLine.avatarIcon || '🔮'}
               </span>
             ) : (

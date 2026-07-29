@@ -19,7 +19,46 @@ interface RelicStoreState {
   forgeRelic: () => { success: boolean; message: string; relicId?: string };
   getRelicEffectBonus: (relicId: string) => number;
   resetRelics: () => void;
+  // v11.1.1: recarrega as Relíquias do slot de save ativo — chamado por useGameStore quando o
+  // personagem troca (ver comentário em getRelicStoreKey abaixo).
+  reloadForActiveSlot: () => void;
 }
+
+// v11.1.1: Relíquias Ativas são progresso POR PERSONAGEM, não por conta — cada slot de save tem sua
+// própria chave, igual à correção já aplicada em useQuestStore.ts. Lê `medieval_idle_current_slot`
+// direto do localStorage (em vez de importar useGameStore) para não criar um import circular, já que
+// `useGameStore.ts` importa este arquivo no topo — o gatilho de recarregamento ao trocar de slot é
+// registrado do lado de `useGameStore.ts`, não daqui.
+const getActiveSlot = (): number | null => {
+  const raw = localStorage.getItem('medieval_idle_current_slot');
+  return raw ? Number(raw) : null;
+};
+
+const getRelicStoreKey = (slot: number | null): string =>
+  slot != null ? `medieval_idle_relics_slot_${slot}` : 'medieval_idle_relics';
+
+const RELICS_MIGRATED_FLAG = 'medieval_idle_relics_migrated_to_slots';
+
+// Migração única do progresso legado (chave global, de antes desta correção) para o slot ativo no
+// momento em que a correção passou a rodar — mesmo raciocínio de useQuestStore.ts.
+const migrateLegacyRelicsIfNeeded = (slot: number | null): void => {
+  if (slot == null) return;
+  try {
+    if (localStorage.getItem(RELICS_MIGRATED_FLAG)) return;
+    const legacyRaw = localStorage.getItem('medieval_idle_relics');
+    if (!legacyRaw) {
+      localStorage.setItem(RELICS_MIGRATED_FLAG, '1');
+      return;
+    }
+    const slotKey = getRelicStoreKey(slot);
+    if (!localStorage.getItem(slotKey)) {
+      localStorage.setItem(slotKey, legacyRaw);
+    }
+    localStorage.setItem(RELICS_MIGRATED_FLAG, '1');
+  } catch (e) {
+    console.error('Erro ao migrar relíquias legadas para slots:', e);
+  }
+};
 
 const DEFAULT_RELICS: Record<string, Relic> = {
   luz_alma: {
@@ -91,7 +130,7 @@ const DEFAULT_RELICS: Record<string, Relic> = {
 const saveRelicsToStorage = (fragments: number, relics: Record<string, Relic>) => {
   try {
     localStorage.setItem(
-      'medieval_idle_relics',
+      getRelicStoreKey(getActiveSlot()),
       JSON.stringify({ unstableSoulFragments: fragments, relics })
     );
   } catch (e) {
@@ -107,9 +146,10 @@ const cloneDefaultRelics = (): Record<string, Relic> => {
   return clone;
 };
 
-const loadRelicsFromStorage = (): { unstableSoulFragments: number; relics: Record<string, Relic> } => {
+const loadRelicsFromStorage = (slot: number | null): { unstableSoulFragments: number; relics: Record<string, Relic> } => {
+  migrateLegacyRelicsIfNeeded(slot);
   try {
-    const saved = localStorage.getItem('medieval_idle_relics');
+    const saved = localStorage.getItem(getRelicStoreKey(slot));
     if (saved) {
       const parsed = JSON.parse(saved);
       const mergedRelics = cloneDefaultRelics();
@@ -135,7 +175,7 @@ const loadRelicsFromStorage = (): { unstableSoulFragments: number; relics: Recor
   };
 };
 
-const initialData = loadRelicsFromStorage();
+const initialData = loadRelicsFromStorage(getActiveSlot());
 
 export const useRelicStore = create<RelicStoreState>((set, get) => ({
   unstableSoulFragments: initialData.unstableSoulFragments,
@@ -220,5 +260,10 @@ export const useRelicStore = create<RelicStoreState>((set, get) => ({
     const freshRelics = cloneDefaultRelics();
     saveRelicsToStorage(0, freshRelics);
     set({ unstableSoulFragments: 0, relics: freshRelics });
+  },
+
+  reloadForActiveSlot: () => {
+    const reloaded = loadRelicsFromStorage(getActiveSlot());
+    set({ unstableSoulFragments: reloaded.unstableSoulFragments, relics: reloaded.relics });
   },
 }));

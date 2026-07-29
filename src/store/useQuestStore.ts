@@ -10,6 +10,28 @@ import { bridge } from '../bridge/GameBridge';
 
 const QUEST_STORE_STORAGE_KEY = 'medieval_idle_quest_store';
 
+// v11.1.1: progresso da Jornada (missões, Atos vistos, Artefatos de História) é POR PERSONAGEM, não
+// por conta — cada slot de save (1-12) tem sua própria chave. Sem isso, um personagem novo herdava
+// os Atos/artefatos do personagem mais avançado, pois tudo caía na mesma chave global. `null`
+// (nenhum slot carregado, ex: tela de menu) cai na chave legada sem sufixo, só para não perder o
+// progresso de saves já existentes antes desta correção.
+//
+// Lê `medieval_idle_current_slot` direto do localStorage em vez de `useGameStore.getState()`: este
+// arquivo já importa `useGameStore` (usado dentro de funções de ação, ex. `claimReward`) e
+// `useGameStore.ts` importa este arquivo de volta — um import circular que já existia e era
+// inofensivo porque as duas pontas só se tocavam dentro de corpos de função (nunca no topo do
+// módulo). Ler `useGameStore.getState()` aqui no topo do módulo quebraria essa segurança (a
+// inicialização de um dos dois ficaria em TDZ dependendo da ordem de carregamento). O gatilho de
+// recarregamento ao trocar de slot fica centralizado em `useGameStore.ts` (mesmo padrão usado por
+// `useRelicStore.ts`/`useTowerStore.ts`), não uma assinatura própria aqui.
+const getActiveSlot = (): number | null => {
+  const raw = localStorage.getItem('medieval_idle_current_slot');
+  return raw ? Number(raw) : null;
+};
+
+const getQuestStoreKey = (slot: number | null): string =>
+  slot != null ? `${QUEST_STORE_STORAGE_KEY}_slot_${slot}` : QUEST_STORE_STORAGE_KEY;
+
 // Cor de facção por NPC narrativo, usada no banner de diálogo (`triggerNpcDialog`) ao concluir um
 // capítulo com `completionLore` — mesma paleta já usada nas cutscenes de Ato (storyCutscenesData.ts).
 const NPC_FACTION_COLORS: Record<string, string> = {
@@ -43,6 +65,12 @@ interface QuestStoreState {
   triggerNpcDialog: (npcId: string, npcName: string, factionColor: string, text: string, options?: NpcDialogOption[], questId?: string) => void;
   closeDialog: () => void;
   getStoryStatsBonus: () => Partial<BaseStats>;
+  // v11.1.1: usado por `resetAllData` (useGameStore.ts) — zera a Jornada do slot atual em memória e
+  // no localStorage, já que "Resetar Todos os Dados" nunca tocava neste store antes desta correção.
+  resetQuestProgress: () => void;
+  // v11.1.1: recarrega a Jornada do slot de save ativo — chamado por useGameStore quando o
+  // personagem troca.
+  reloadForActiveSlot: () => void;
 }
 
 export const isMainQuestUnlocked = (quest: QuestDef, mainQuests: Record<string, QuestDef>, currentStage: number): boolean => {
@@ -68,15 +96,42 @@ const defaultMainQuestsMap = (): Record<string, QuestDef> => {
   return map;
 };
 
-const loadPersistedQuestStore = (): {
+const QUEST_STORE_MIGRATED_FLAG = 'medieval_idle_quest_store_migrated_to_slots';
+
+// Migração única: saves anteriores a esta correção guardavam tudo na chave global legada. Na
+// primeira leitura de QUALQUER slot após a correção, se essa chave legada ainda existir e a
+// migração nunca tiver rodado, copiamos o progresso legado para o slot que está sendo carregado
+// agora (o slot ativo do jogador) em vez de perdê-lo — e marcamos como migrado para não duplicar
+// esse mesmo progresso legado em outros slots carregados depois.
+const migrateLegacyQuestStoreIfNeeded = (slot: number | null): void => {
+  if (slot == null) return;
+  try {
+    if (localStorage.getItem(QUEST_STORE_MIGRATED_FLAG)) return;
+    const legacyRaw = localStorage.getItem(QUEST_STORE_STORAGE_KEY);
+    if (!legacyRaw) {
+      localStorage.setItem(QUEST_STORE_MIGRATED_FLAG, '1');
+      return;
+    }
+    const slotKey = getQuestStoreKey(slot);
+    if (!localStorage.getItem(slotKey)) {
+      localStorage.setItem(slotKey, legacyRaw);
+    }
+    localStorage.setItem(QUEST_STORE_MIGRATED_FLAG, '1');
+  } catch (e) {
+    console.error('Erro ao migrar useQuestStore legado para slots:', e);
+  }
+};
+
+const loadPersistedQuestStore = (slot: number | null): {
   mainQuests: Record<string, QuestDef>;
   proceduralQuests: QuestDef[];
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
   seenActCutscenes: number[];
 } => {
+  migrateLegacyQuestStoreIfNeeded(slot);
   try {
-    const raw = localStorage.getItem(QUEST_STORE_STORAGE_KEY);
+    const raw = localStorage.getItem(getQuestStoreKey(slot));
     if (raw) {
       const parsed = JSON.parse(raw);
       const mainMap = defaultMainQuestsMap();
@@ -116,7 +171,7 @@ const saveQuestStore = (state: {
 }) => {
   try {
     localStorage.setItem(
-      QUEST_STORE_STORAGE_KEY,
+      getQuestStoreKey(getActiveSlot()),
       JSON.stringify({
         mainQuests: state.mainQuests,
         proceduralQuests: state.proceduralQuests,
@@ -131,7 +186,7 @@ const saveQuestStore = (state: {
 };
 
 export const useQuestStore = create<QuestStoreState>((set, get) => {
-  const initialData = loadPersistedQuestStore();
+  const initialData = loadPersistedQuestStore(getActiveSlot());
 
   return {
     ...initialData,
@@ -420,6 +475,27 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
       }
 
       return bonus;
+    },
+
+    resetQuestProgress: () => {
+      const fresh = {
+        mainQuests: defaultMainQuestsMap(),
+        proceduralQuests: [] as QuestDef[],
+        completedQuestIds: [] as string[],
+        storyInventory: {} as Record<string, number>,
+        seenActCutscenes: [] as number[],
+      };
+      set({ ...fresh, activeDialog: null, activeActCutscene: null });
+      saveQuestStore(fresh);
+    },
+
+    // v11.1.1: chamado por `useGameStore.ts` (não por assinatura própria aqui — ver comentário em
+    // `getActiveSlot` acima) sempre que o slot de save ativo mudar (novo personagem, troca de
+    // personagem, exclusão de slot). A troca acontece em runtime sem reload de página, então sem
+    // isso o useQuestStore continuaria com os dados do personagem anterior até um F5 manual.
+    reloadForActiveSlot: () => {
+      const reloaded = loadPersistedQuestStore(getActiveSlot());
+      set({ ...reloaded, activeDialog: null, activeActCutscene: null });
     },
   };
 });
