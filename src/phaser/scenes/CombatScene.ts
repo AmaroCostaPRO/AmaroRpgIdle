@@ -36,6 +36,11 @@ export class CombatScene extends Phaser.Scene {
   private enemyHPBar!: Phaser.GameObjects.Graphics;
   private playerHPBar!: Phaser.GameObjects.Graphics;
   private xpBar!: Phaser.GameObjects.Graphics;
+  // v11.1.1: sombra dinâmica exclusiva do Chefe Mundial da Convergência (o "chão" pintado no fundo
+  // é calibrado para o tamanho normal de inimigo — o boss dobrado de tamanho estoura essa sombra
+  // fixa) e a barra de vida larga no topo da tela que substitui o texto de fase durante a luta.
+  private worldBossShadow!: Phaser.GameObjects.Graphics;
+  private worldBossHPBar!: Phaser.GameObjects.Graphics;
   private xpText!: Phaser.GameObjects.Text;
   private unsubscribeSkill?: () => void;
   private unsubscribeActiveRelic?: () => void;
@@ -357,9 +362,11 @@ export class CombatScene extends Phaser.Scene {
     this.diveDarknessOverlay.setAlpha(0);
 
     // Barra de vida flutuante do inimigo e do jogador, e a barra de XP do canvas
+    this.worldBossShadow = this.add.graphics();
     this.enemyHPBar = this.add.graphics();
     this.playerHPBar = this.add.graphics();
     this.xpBar = this.add.graphics();
+    this.worldBossHPBar = this.add.graphics();
 
     // Mapeamento da classe ativa para textura
     const classId = useGameStore.getState().character.classId || 'warrior';
@@ -632,10 +639,16 @@ export class CombatScene extends Phaser.Scene {
       }
 
       if (this.enemyLevelText && this.enemyBody) {
-        const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
-        this.enemyLevelText.x = isMoving ? this.enemyBody.x : 600;
-        const enemyAlpha = this.fsm.enemyHP <= 0 ? this.enemyBody.alpha : 1;
-        this.enemyLevelText.setAlpha(enemyAlpha);
+        if (this.fsm.isConvergenceEncounter) {
+          // Nome do Chefe Mundial já aparece na barra larga do topo (drawWorldBossHPBar) —
+          // esconde o texto flutuante normal, que ficaria fora da tela com o sprite dobrado.
+          this.enemyLevelText.setAlpha(0);
+        } else {
+          const isMoving = this.fsm.getCurrentState() === CombatState.MOVING;
+          this.enemyLevelText.x = isMoving ? this.enemyBody.x : 600;
+          const enemyAlpha = this.fsm.enemyHP <= 0 ? this.enemyBody.alpha : 1;
+          this.enemyLevelText.setAlpha(enemyAlpha);
+        }
       }
 
       // Atualiza posição do texto de status do inimigo
@@ -692,7 +705,12 @@ export class CombatScene extends Phaser.Scene {
 
       if (this.stageText) {
         const isTowerActive = useTowerStore.getState().towerActive;
-        if (isTowerActive) {
+        if (this.fsm.isConvergenceEncounter) {
+          // v11.1.1: Chefe Mundial da Convergência — texto de fase normal é substituído pelo nome
+          // do chefe; a barra larga de vida é desenhada por drawWorldBossHPBar() logo abaixo.
+          this.stageText.setText(`☄️ ${this.fsm.currentEnemy.name.toUpperCase()}`);
+          this.stageText.setColor('#a78bfa');
+        } else if (isTowerActive) {
           const currentFloor = useTowerStore.getState().currentFloor;
           const isTowerBoss = currentFloor % 5 === 0;
           if (isTowerBoss) {
@@ -738,6 +756,8 @@ export class CombatScene extends Phaser.Scene {
       this.drawEnemyHPBar();
       this.drawPlayerHPBar();
       this.drawXPBar();
+      this.drawWorldBossShadow();
+      this.drawWorldBossHPBar();
 
       const isTowerActive = useTowerStore.getState().towerActive;
       // v10.0.0: no mergulho o herói flutua o tempo todo (±4px em loop — sensação de estar
@@ -1040,9 +1060,11 @@ export class CombatScene extends Phaser.Scene {
     if (!this.enemyHPBar || !this.enemyBody || !this.fsm) return;
     
     this.enemyHPBar.clear();
-    
-    // Só desenha se o inimigo estiver vivo e visível
-    if (this.fsm.enemyHP > 0 && this.fsm.getCurrentState() !== CombatState.DEAD && this.enemyBody.alpha > 0.1) {
+
+    // Só desenha se o inimigo estiver vivo e visível — Chefes Mundiais da Convergência usam a
+    // barra larga própria (drawWorldBossHPBar), já que o sprite dobrado de tamanho desloca esta
+    // barra flutuante para fora da área visível do canvas.
+    if (!this.fsm.isConvergenceEncounter && this.fsm.enemyHP > 0 && this.fsm.getCurrentState() !== CombatState.DEAD && this.enemyBody.alpha > 0.1) {
       const barWidth = 70 * ZOOM_FACTOR;
       const barHeight = 7 * ZOOM_FACTOR;
       
@@ -1066,6 +1088,48 @@ export class CombatScene extends Phaser.Scene {
       this.enemyHPBar.lineStyle(1.5, 0x1f2937, 1);
       this.enemyHPBar.strokeRect(x, y, barWidth, barHeight);
     }
+  }
+
+  // v11.1.1: sombra dinâmica exclusiva do Chefe Mundial da Convergência. A sombra "de chão" normal
+  // é pintada estaticamente na arte de fundo, calibrada para o tamanho padrão de inimigo — como o
+  // Chefe Mundial dobra de tamanho (`respawnEnemyAt`, `size *= 2`), essa sombra fixa nunca acompanha,
+  // dando a impressão de o boss estar flutuando. Esta elipse escala com `displayWidth` do sprite.
+  private drawWorldBossShadow(): void {
+    if (!this.worldBossShadow) return;
+    this.worldBossShadow.clear();
+    if (!this.fsm || !this.enemyBody || !this.fsm.isConvergenceEncounter) return;
+    if (this.fsm.getCurrentState() === CombatState.DEAD || this.enemyBody.alpha <= 0.1) return;
+
+    const groundY = 600 - 50 * ZOOM_FACTOR; // mesma linha de "chão" usada por respawnEnemyAt
+    const shadowWidth = this.enemyBody.displayWidth * 0.55;
+    const shadowHeight = shadowWidth * 0.22;
+    this.worldBossShadow.fillStyle(0x000000, 0.55);
+    this.worldBossShadow.fillEllipse(this.enemyBody.x, groundY, shadowWidth, shadowHeight);
+  }
+
+  // v11.1.1: barra de vida larga no topo da tela, exclusiva do Chefe Mundial da Convergência —
+  // substitui visualmente a barra/nome flutuantes normais (escondidos em drawEnemyHPBar/update()),
+  // que ficariam fora da área visível do canvas com o sprite dobrado de tamanho.
+  private drawWorldBossHPBar(): void {
+    if (!this.worldBossHPBar) return;
+    this.worldBossHPBar.clear();
+    if (!this.fsm || !this.fsm.isConvergenceEncounter) return;
+    if (this.fsm.enemyHP <= 0 || this.fsm.getCurrentState() === CombatState.DEAD) return;
+
+    const barWidth = 760;
+    const barHeight = 22;
+    const x = 400 - barWidth / 2;
+    const y = 55;
+
+    this.worldBossHPBar.fillStyle(0x000000, 0.75);
+    this.worldBossHPBar.fillRect(x, y, barWidth, barHeight);
+
+    const hpRatio = Math.max(0, Math.min(1, this.fsm.enemyHP / this.fsm.enemyMaxHP));
+    this.worldBossHPBar.fillStyle(0x7c3aed, 1.0); // roxo cósmico, cor temática da Convergência
+    this.worldBossHPBar.fillRect(x, y, barWidth * hpRatio, barHeight);
+
+    this.worldBossHPBar.lineStyle(2.5, 0xfbbf24, 1); // borda dourada — sinaliza luta especial
+    this.worldBossHPBar.strokeRect(x, y, barWidth, barHeight);
   }
 
   private drawXPBar(): void {

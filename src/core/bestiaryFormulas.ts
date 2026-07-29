@@ -27,7 +27,7 @@ export const BESTIARY_PHASE_GROUPS: BestiaryPhaseGroup[] = [
   { name: 'Ruínas Sombrias', enemyIds: ['stone_gargoyle', 'living_armor', 'demon_imp', 'boss_archdemon'] },
   { name: 'Purgatório', enemyIds: ['purgatory_specter', 'lost_soul', 'crystal_shatterer', 'boss_crystal_guardian'], bonusMultiplier: 2 },
   // v10.0.0-v10.4.0 "A Cidadela Submersa": Litoral + as 4 zonas das Profundezas + o Trono.
-  { name: 'Litoral Naufragado', enemyIds: ['wreck_crab', 'drift_jelly', 'slime_moray', 'drowned_echo'] },
+  { name: 'Litoral Naufragado', enemyIds: ['wreck_crab', 'drift_jelly', 'slime_moray', 'boss_drowned_echo'] },
   { name: 'Profundezas — Recife Partido', enemyIds: ['grudge_puffer', 'reef_shark', 'hungry_anemone', 'boss_reef_arachnid'] },
   { name: 'Profundezas — Bosque de Algas Negras', enemyIds: ['kelp_strangler', 'mirror_octopus', 'gloom_angler', 'boss_kelp_thing'] },
   { name: 'Profundezas — Ruínas da Cidadela', enemyIds: ['guardian_echo', 'salt_mourner', 'barnacle_knight', 'boss_drowned_castellan'] },

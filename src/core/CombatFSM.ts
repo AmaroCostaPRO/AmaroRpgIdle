@@ -455,7 +455,7 @@ export const ENEMY_TYPES: EnemyType[] = [
     materialDrops: ['coral']
   },
   {
-    id: 'drowned_echo',
+    id: 'boss_drowned_echo',
     name: 'Eco Afogado',
     texture: 'enemy_drowned_echo',
     hpMultiplier: 3.00,
@@ -687,7 +687,7 @@ export const ENEMY_TYPES: EnemyType[] = [
 // via setupCoastalEncounter/setupDiveEncounter/setupLeviathanEncounter). `EnemyType` não tem um
 // campo de bioma/exclusividade, então o filtro é por lista explícita de IDs.
 export const ABYSS_ENEMY_IDS = new Set<string>([
-  'wreck_crab', 'drift_jelly', 'slime_moray', 'drowned_echo',
+  'wreck_crab', 'drift_jelly', 'slime_moray', 'boss_drowned_echo',
   'grudge_puffer', 'reef_shark', 'hungry_anemone', 'boss_reef_arachnid',
   'kelp_strangler', 'mirror_octopus', 'gloom_angler', 'boss_kelp_thing',
   'guardian_echo', 'salt_mourner', 'barnacle_knight', 'boss_drowned_castellan',
@@ -1624,7 +1624,7 @@ export class CombatFSM {
       else if (theme === 5) bossId = 'boss_archdemon';
       // v10.6.0: bloco sorteado vira Litoral — Eco Afogado é o chefe do bloco.
       if (litoralBlockActiveThisStage) {
-        bossId = 'drowned_echo';
+        bossId = 'boss_drowned_echo';
         bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 Um ECO AFOGADO emerge da maré — os afogados da cidadela ainda vagam...' });
       }
 
@@ -4105,7 +4105,7 @@ export class CombatFSM {
 
     // v10.0.0: Eco Afogado (miniboss raro do Litoral) — drop garantido de 1 Pérola Abissal +
     // primeiro contato do jogador com a lore da Cidadela Submersa (semente da cutscene, Anexo 3 §3.2).
-    if (!isTower && this.currentEnemy.id === 'drowned_echo') {
+    if (!isTower && this.currentEnemy.id === 'boss_drowned_echo') {
       useGameStore.getState().addPearls(1);
       bridge.emit(GameEvent.LOG_EMITTED, { message: '👻 "Ela ainda canta lá embaixo... você não ouve?" — o Eco se desfaz em espuma, deixando 1 🦪 Pérola Abissal.' });
     }

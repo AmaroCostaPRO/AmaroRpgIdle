@@ -1108,7 +1108,7 @@ const bestiaryEntries: CodexEntry[] = [
     tags: ['litoral', 'miniboss'],
     alwaysVisible: false,
     unlockHint: 'Derrote um Eco Afogado.',
-    isUnlocked: (ctx) => killed(ctx, 'drowned_echo'),
+    isUnlocked: (ctx) => killed(ctx, 'boss_drowned_echo'),
   },
   // --- v10.1.0 "As Profundezas": Zona 1 — Recife Partido ---
   {
