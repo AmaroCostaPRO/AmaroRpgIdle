@@ -124,7 +124,10 @@ function generateCraftQuest(stage: number): QuestDef {
       ],
       rewards: {
         gold: Math.floor(1500 + stage * 250),
-        studyInsignias: 20 + stage * 2,
+        // v11.3.0: recompensa de Insígnias reduzida em 5x — o valor anterior permitia farmar
+        // Insígnias rápido demais girando "Renovar Contratos" repetidamente (ver também o limite
+        // diário de renovações em useQuestStore.generateRunQuests).
+        studyInsignias: Math.max(1, Math.floor((20 + stage * 2) / 5)),
       },
       isCompleted: false,
       isClaimed: false,
@@ -139,7 +142,8 @@ function generateNpcRequestQuest(character: Character): QuestDef {
 
   const targetLevel = level + 5;
   const goldReward = Math.floor(2000 + stage * 300);
-  const insigniasReward = Math.floor(30 + stage * 5);
+  // v11.3.0: recompensa de Insígnias reduzida em 5x (ver comentário equivalente em generateCraftQuest).
+  const insigniasReward = Math.max(1, Math.floor((30 + stage * 5) / 5));
 
   return {
     id: `npc_proc_${Date.now()}_${Math.floor(Math.random() * 1000)}`,

@@ -458,7 +458,7 @@ export class CombatScene extends Phaser.Scene {
       padding: { left: 8, right: 8, top: 4, bottom: 4 }
     }).setOrigin(0.5);
 
-    this.xpText = this.add.text(400, 552, '', {
+    this.xpText = this.add.text(400, 547, '', {
       fontSize: '16px',
       color: '#fbbf24',
       fontStyle: 'bold',
@@ -1156,7 +1156,7 @@ export class CombatScene extends Phaser.Scene {
     const barWidth = 680;
     const barHeight = 8;
     const x = 400 - barWidth / 2; // 60
-    const y = 572; // Posição abaixo dos personagens (próxima à borda inferior)
+    const y = 567; // Posição abaixo dos personagens (próxima à borda inferior) — subida 5px para não colar nas abas
 
     // Fundo preto translúcido da barra
     this.xpBar.fillStyle(0x000000, 0.65);

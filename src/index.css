@@ -728,6 +728,7 @@ input, textarea, [contenteditable="true"] {
   padding: 1px;
   background: linear-gradient(135deg, rgba(217,70,239,0.5), rgba(245,158,11,0.5));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -1309,9 +1310,15 @@ input, textarea, [contenteditable="true"] {
     display: flex !important;
     align-items: center;
     position: relative;
-    z-index: 10;
+    /* Precisa vencer o z-index dos backgrounds da Cidadela Astral e da Cidadela Submersa
+       (CitadelSpriteStage/SunkenCitadelSpriteStage, ambos com wrapper em z-index:25 e elementos
+       internos até 30) — senão a sobreposição no combat scene abaixo fica atrás desses fundos. */
+    z-index: 40;
     width: 100%;
     height: 3rem; /* Compacto, conforme solicitado */
+    /* Sobe alguns px em relação ao topo do ui-container, ficando levemente sobreposto à borda
+       inferior da tela de combate — ajuste pontual pedido para aproximar a barra de abas do jogo. */
+    margin-top: -11px;
     background: rgb(22, 18, 14);
     border: 1px solid var(--border-dim);
     border-radius: var(--radius-lg);

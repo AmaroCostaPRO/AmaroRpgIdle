@@ -10,6 +10,9 @@ import { bridge } from '../bridge/GameBridge';
 
 const QUEST_STORE_STORAGE_KEY = 'medieval_idle_quest_store';
 
+// v11.3.0: teto diário de usos do botão "Renovar Contratos" — ver `generateRunQuests`.
+export const MAX_DAILY_CONTRACT_RENEWALS = 5;
+
 // v11.1.1: progresso da Jornada (missões, Atos vistos, Artefatos de História) é POR PERSONAGEM, não
 // por conta — cada slot de save (1-12) tem sua própria chave. Sem isso, um personagem novo herdava
 // os Atos/artefatos do personagem mais avançado, pois tudo caía na mesma chave global. `null`
@@ -63,6 +66,13 @@ interface QuestStoreState {
   activeActCutscene: ActCutsceneDef | null;
   playActCutscene: (actNumber: number) => void;
   finishActCutscene: () => void;
+
+  // v11.3.0: limita "Renovar Contratos" a 5 usos por dia (evita farm de recompensas geradas
+  // proceduralmente girando o botão repetidamente). `contractRenewalsDate` guarda a data
+  // (YYYY-MM-DD, ver `useGameStore.getTodayYYYYMMDD`) da última renovação contada — quando o dia
+  // muda, o contador reseta para 0 antes de contar a renovação atual.
+  contractRenewalsToday: number;
+  contractRenewalsDate: string;
 
   // Ações
   generateRunQuests: () => void;
@@ -135,6 +145,8 @@ const loadPersistedQuestStore = (slot: number | null): {
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
   seenActCutscenes: number[];
+  contractRenewalsToday: number;
+  contractRenewalsDate: string;
 } => {
   migrateLegacyQuestStoreIfNeeded(slot);
   try {
@@ -155,6 +167,8 @@ const loadPersistedQuestStore = (slot: number | null): {
         completedQuestIds: parsed.completedQuestIds || [],
         storyInventory: parsed.storyInventory || {},
         seenActCutscenes: parsed.seenActCutscenes || [],
+        contractRenewalsToday: parsed.contractRenewalsToday || 0,
+        contractRenewalsDate: parsed.contractRenewalsDate || '',
       };
     }
   } catch (e) {
@@ -166,6 +180,8 @@ const loadPersistedQuestStore = (slot: number | null): {
     completedQuestIds: [],
     storyInventory: {},
     seenActCutscenes: [],
+    contractRenewalsToday: 0,
+    contractRenewalsDate: '',
   };
 };
 
@@ -175,6 +191,8 @@ const saveQuestStore = (state: {
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
   seenActCutscenes: number[];
+  contractRenewalsToday?: number;
+  contractRenewalsDate?: string;
 }) => {
   try {
     localStorage.setItem(
@@ -185,6 +203,8 @@ const saveQuestStore = (state: {
         completedQuestIds: state.completedQuestIds,
         storyInventory: state.storyInventory,
         seenActCutscenes: state.seenActCutscenes,
+        contractRenewalsToday: state.contractRenewalsToday || 0,
+        contractRenewalsDate: state.contractRenewalsDate || '',
       })
     );
   } catch (e) {
@@ -230,11 +250,23 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
       bridge.emit(GameEvent.START_COMBAT, { mode: 'campaign' });
     },
 
+    // v11.3.0: limita a 5 renovações por dia — sem isso o jogador podia girar o botão "Renovar
+    // Contratos" indefinidamente para re-rolar missões fáceis e farmar recompensas.
     generateRunQuests: () => {
+      const today = useGameStore.getState().getTodayYYYYMMDD();
+      const { contractRenewalsToday, contractRenewalsDate } = get();
+      const renewalsSoFar = contractRenewalsDate === today ? contractRenewalsToday : 0;
+      if (renewalsSoFar >= MAX_DAILY_CONTRACT_RENEWALS) return;
+
       const char = useGameStore.getState().character;
       const proceduralQuests = generateProceduralQuests(char);
-      set({ proceduralQuests });
-      saveQuestStore({ ...get(), proceduralQuests });
+      const updated = {
+        proceduralQuests,
+        contractRenewalsToday: renewalsSoFar + 1,
+        contractRenewalsDate: today,
+      };
+      set(updated);
+      saveQuestStore({ ...get(), ...updated });
     },
 
     updateObjectiveProgress: (type: ObjectiveType, targetId?: string, amount = 1) => {
@@ -505,6 +537,8 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         completedQuestIds: [] as string[],
         storyInventory: {} as Record<string, number>,
         seenActCutscenes: [] as number[],
+        contractRenewalsToday: 0,
+        contractRenewalsDate: '',
       };
       set({ ...fresh, activeDialog: null, activeArtifactReveal: null, pendingActCutscene: null, activeActCutscene: null });
       saveQuestStore(fresh);

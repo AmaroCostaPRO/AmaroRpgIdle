@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuestStore } from '../store/useQuestStore';
+import { useQuestStore, MAX_DAILY_CONTRACT_RENEWALS } from '../store/useQuestStore';
+import { useGameStore } from '../store/useGameStore';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
 import { ACT_CUTSCENES_CATALOG } from '../core/quests/storyCutscenesData';
 import { AudioManager } from '../core/AudioManager';
@@ -42,6 +43,11 @@ export const QuestLogPanel: React.FC = () => {
   const storyInventory = useQuestStore((s) => s.storyInventory);
   const claimReward = useQuestStore((s) => s.claimReward);
   const generateRunQuests = useQuestStore((s) => s.generateRunQuests);
+  const contractRenewalsToday = useQuestStore((s) => s.contractRenewalsToday);
+  const contractRenewalsDate = useQuestStore((s) => s.contractRenewalsDate);
+  const today = useGameStore((s) => s.getTodayYYYYMMDD());
+  const renewalsUsedToday = contractRenewalsDate === today ? contractRenewalsToday : 0;
+  const renewalsRemaining = Math.max(0, MAX_DAILY_CONTRACT_RENEWALS - renewalsUsedToday);
   const syncQuestObjectives = useQuestStore((s) => s.syncQuestObjectives);
   const playActCutscene = useQuestStore((s) => s.playActCutscene);
 
@@ -304,17 +310,24 @@ export const QuestLogPanel: React.FC = () => {
             </div>
           ))}
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
             <button
               onClick={() => {
+                if (renewalsRemaining <= 0) return;
                 AudioManager.getInstance().playClick();
                 generateRunQuests();
               }}
+              disabled={renewalsRemaining <= 0}
               className="btn btn-xs btn-secondary"
               style={{ fontSize: '0.65rem', padding: '0.45rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
               🔄 Renovar Contratos
             </button>
+            <span style={{ fontSize: '0.58rem', color: renewalsRemaining <= 0 ? '#f87171' : '#64748b' }}>
+              {renewalsRemaining > 0
+                ? `${renewalsRemaining}/${MAX_DAILY_CONTRACT_RENEWALS} renovações restantes hoje`
+                : 'Limite diário de renovações atingido — volte amanhã'}
+            </span>
           </div>
         </div>
       )}
