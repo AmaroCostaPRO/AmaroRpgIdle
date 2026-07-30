@@ -56,7 +56,7 @@ export const CitadelGate: React.FC<CitadelGateProps> = ({ onEnter, locked = fals
         animation: 'glow-pulse 2.6s ease-in-out infinite',
       }}
     >
-      🌌
+      🏰
     </div>
 
     <div style={{ position: 'relative' }}>

@@ -118,7 +118,7 @@ export const QuestLogPanel: React.FC = () => {
 
       {/* Conteúdo da Sub-Aba: Jornada Principal */}
       {subTab === 'main' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {visibleActs.map((act) => {
             const chaptersInAct = visibleMainQuests.filter((q) => (q.act || 1) === act);
             const collapsed = isActCollapsed(act);
@@ -249,7 +249,7 @@ export const QuestLogPanel: React.FC = () => {
 
       {/* Conteúdo da Sub-Aba: Contratos & Caçadas */}
       {subTab === 'contracts' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {[...huntCraftQuests, ...npcQuests].length === 0 && (
             <p style={{ fontSize: '0.65rem', color: '#64748b', textAlign: 'center', padding: '1.5rem 0' }}>
               Nenhum contrato ativo no momento. Clique em "Renovar Contratos" acima para solicitar novas tarefas!
@@ -334,7 +334,7 @@ export const QuestLogPanel: React.FC = () => {
 
       {/* Conteúdo da Sub-Aba: Artefatos de História */}
       {subTab === 'storyItems' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
             <p style={{ fontSize: '0.64rem', color: '#38bdf8', margin: 0, fontStyle: 'italic' }}>
               "Os Artefatos Narrativos são fragmentos eternos da Alma-Mundo. Diferente dos equipamentos comuns, eles permanecem intactos entre Ascensões e Transcendências, concedendo bônus permanentes."

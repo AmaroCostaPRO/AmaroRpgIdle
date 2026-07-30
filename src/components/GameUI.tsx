@@ -33,6 +33,7 @@ import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { CodexPanel } from './CodexPanel';
 import { AbyssPanel } from './abyss/AbyssPanel';
+import { LockedTabPanel } from './common/LockedTabPanel';
 import { DiveHud } from './abyss/DiveHud';
 import { LoreCutscene } from './abyss/LoreCutscene';
 import { SunkenCitadelTabsBar, SUNKEN_SUB_TABS, SunkenSubTab } from './abyss/SunkenCitadelTabsBar';
@@ -7813,6 +7814,7 @@ export default function GameUI() {
   // v10.0.0: a aba 🌊 Abismo só existe com o Litoral descoberto (completar a Fase 2) — mesma
   // regra de visibilidade condicional da Transcendência abaixo.
   const isAbyssUnlocked = character.coastal?.unlocked || (character.highestStageReached || 1) >= 3;
+  const isTranscendenceUnlocked = (character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0;
 
   const tabs = [
     { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false },
@@ -7821,15 +7823,11 @@ export default function GameUI() {
     { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
     { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
     { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
-    ...(isAbyssUnlocked ? [
-      { id: 'abyss' as const, label: 'Abismo', icon: '🌊', disabled: false }
-    ] : []),
-    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🌌' : '🔒', disabled: false },
+    { id: 'abyss' as const, label: 'Abismo', icon: isAbyssUnlocked ? '🌊' : '🔒', disabled: false },
+    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🏰' : '🔒', disabled: false },
     { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
-    ...(((character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0) ? [
-      { id: 'transcendence' as const, label: 'Transcendência', icon: '🌌', disabled: false }
-    ] : []),
+    { id: 'transcendence' as const, label: 'Transcendência', icon: isTranscendenceUnlocked ? '🌌' : '🔒', disabled: false },
     { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false },
     { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉', disabled: false },
     { id: 'codex' as const, label: 'Codex', icon: '📖', disabled: false },
@@ -8222,10 +8220,13 @@ export default function GameUI() {
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}
-          {activeTab === 'abyss' && !sunkenEntered && (
+          {activeTab === 'abyss' && !isAbyssUnlocked && (
+            <LockedTabPanel icon="🌊" title="Abismo Bloqueado" reason="Complete a Fase 2 para descobrir o Litoral e desbloquear o Abismo." theme="ocean" />
+          )}
+          {activeTab === 'abyss' && isAbyssUnlocked && !sunkenEntered && (
             <AbyssPanel onEnterCitadel={() => setSunkenEntered(true)} />
           )}
-          {activeTab === 'abyss' && sunkenEntered && (
+          {activeTab === 'abyss' && isAbyssUnlocked && sunkenEntered && (
             <>
               {sunkenSubTab === 'overview' ? <SunkenCitadelOverview /> : sunkenSubTab === 'echoes' ? <EchoRosterPanel /> : <DistrictPanel id={sunkenSubTab} />}
             </>
@@ -8243,7 +8244,11 @@ export default function GameUI() {
             />
           )}
           {activeTab === 'prestige' && <PrestigeTreePanel onPrestige={handlePrestigeWithTransition} />}
-          {activeTab === 'transcendence' && <TranscendencePanel onPrestige={handlePrestigeWithTransition} />}
+          {activeTab === 'transcendence' && (
+            isTranscendenceUnlocked
+              ? <TranscendencePanel onPrestige={handlePrestigeWithTransition} />
+              : <LockedTabPanel icon="🌌" title="Transcendência Bloqueada" reason="Alcance a Fase 50 com o Pandemônio desbloqueado para acessar a Transcendência." theme="amber" />
+          )}
           {activeTab === 'shop' && <ShopPanel />}
           {activeTab === 'bestiary' && (
             <BestiaryPanel 
