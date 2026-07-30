@@ -1651,9 +1651,9 @@ Sistema mínimo e reutilizável: overlay fullscreen preto, sequência de painéi
 
 ---
 
-## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0, revisado na v11.1.0)
+## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0, revisado na v11.1.0 e na v11.2.0)
 
-A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais. A v11.1.0 corrigiu diversos bugs encontrados em teste real (detalhados nas subseções C, F, G, H e I abaixo) e adicionou o banner de diálogo ao concluir capítulos.
+A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais. A v11.1.0 corrigiu diversos bugs encontrados em teste real (detalhados nas subseções C, F, G, H e I abaixo) e adicionou o banner de diálogo ao concluir capítulos. A v11.2.0 expandiu os 6 Atos para 3 capítulos cada (subseção B), corrigiu textos de recompensa/lore imprecisos, e resolveu 3 problemas de UX no encerramento de capítulo — sobreposição da cutscene de Ato com o banner de diálogo, posicionamento do botão de fechar e ausência de destaque visual ao ganhar um Artefato de História (subseções J e K).
 
 ### A. Arquitetura da Store de Quests (`useQuestStore.ts`)
 O gerenciamento de missões é centralizado na store Zustand `useQuestStore`, persistido sob a chave `medieval_idle_quest_store_slot_{N}` no `localStorage` — **por personagem/slot de save desde a v11.1.0** (ver Seção 12.C), com migração automática de saves anteriores que usavam a chave global antiga.
@@ -1665,6 +1665,12 @@ interface QuestStoreState {
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
   activeDialog: NpcDialogState | null;
+  // v11.2.0: Ato aguardando cutscene — setado quando o capítulo concluído também abre o banner de
+  // diálogo, para a cutscene só entrar depois que `closeDialog` for chamado (ver Seção J).
+  pendingActCutscene: number | null;
+  // v11.2.0: Artefato de história concedido na missão recém-reivindicada, exibido em paralelo ao
+  // banner de diálogo e limpo junto com ele (ver Seção K).
+  activeArtifactReveal: { storyItemId: string } | null;
 
   // Cutscenes Narrativas de Ato
   seenActCutscenes: number[];
@@ -1688,7 +1694,14 @@ interface QuestStoreState {
 ```
 
 ### B. Jornada Principal e Trava Sequencial de Atos (`mainQuestsData.ts`, `isMainQuestUnlocked`)
-A campanha principal contém **6 Atos** (`MAIN_QUESTS_CATALOG`), abrangendo o Despertar do Eco, a Reconstrução Astral, o Cárcere dos Cacos, a Promessa Quebrada, o Espelho da Alma e a Nota dos Céus.
+A campanha principal contém **6 Atos** (`MAIN_QUESTS_CATALOG`), abrangendo o Despertar do Eco, a Reconstrução Astral, o Cárcere dos Cacos, a Promessa Quebrada, o Espelho da Alma e a Nota dos Céus. Desde a v11.2.0, **todos os 6 Atos têm exatamente 3 capítulos** (18 → 24 capítulos no total) — antes o Ato III tinha 2, os Atos IV e V tinham apenas 1, e o Ato VI tinha 2.
+
+*   **🐛 Correções de texto/recompensa (v11.2.0)**: revisão do usuário encontrou várias imprecisões nos capítulos originais, todas corrigidas em `mainQuestsData.ts`:
+    *   Ato I Cap. 2: recompensa de Insígnias de Estudo (inúteis antes da Cidadela existir, e perdidas na Ascensão do capítulo seguinte) trocada por mais Fragmentos de Forja.
+    *   Ato I Cap. 2 e Ato II Cap. 3: removido o sufixo de fase junto ao nome dos chefes Golem de Pedra Silvestre e Arquidemônio das Ruínas — ambos são chefes cíclicos que reaparecem a cada 5 fases (`CombatFSM.ts`), então fixar uma única "Fase N" no texto era impreciso (o Golem nunca aparece na Fase 1, como o texto original sugeria).
+    *   Ato II Cap. 2: objetivo de nível reescrito de "Nível 50 com qualquer classe" para "Nível 50 com seu herói" — o nível do personagem é um contador único por save-slot, não por classe, então o texto antigo sugeria uma distinção que não existe na mecânica.
+    *   Ato VI Cap. 2: fase de liberação alterada de 50 para 60 (antes idêntica à do Cap. 1, sem progressão real entre os dois); Cap. 1 e Cap. 2 passaram a conceder Ouro (nenhum capítulo do Ato VI dava Ouro antes).
+*   **Novos capítulos (v11.2.0)**: Ato III Cap. 3 "Os Ecos do Vazio" (elites do Purgatório + Torre de Vigia), Ato IV Cap. 2 "A Fome do Vazio" e Cap. 3 "A Última Promessa" (este último concede o novo Artefato `story_void_promise`, fechando a lacuna do único Ato sem item — ver Seção E), Ato V Cap. 2 "O Peso do Infinito" e Cap. 3 "O Avatar Desperto" (2ª e 3ª Transcendência), e Ato VI Cap. 3 "O Coração do Abismo" (Fase 70, grava a Palavra Rúnica `coracao_leviata`).
 
 *   **Regra de Desbloqueio Sequencial (`isMainQuestUnlocked`)**: Para garantir uma progressão narrativa coerente, uma missão do Ato $N$ só aceita progresso ou conclusão se:
     1.  Todas as missões dos Atos anteriores ($\text{Act} < N$) estiverem concluídas ou reclamadas.
@@ -1717,6 +1730,7 @@ Cada card de contrato na sub-aba **Contratos & Caçadas** exibe os detalhes clar
 Os Artefatos de História (`STORY_ITEMS_CATALOG`) são concedidos como recompensa ao concluir capítulos da Jornada Principal.
 *   **Persistência Eterna**: Armazenados em `storyInventory` (`Record<string, number>`), estes artefatos **permanecem intactos durante a Ascensão e a Transcendência**.
 *   **Bônus Passivos Acumuláveis**: `getStoryStatsBonus()` calcula os atributos acumulados de todos os artefatos possuídos e os injeta na fórmula de atributos finais (`StatEngine.ts`).
+*   **7º Artefato (v11.2.0) — `story_void_promise`** ("Promessa Quebrada do Vazio", +10 Magia / +5% Dano Geral): concedido pelo novo Ato IV Cap. 3, fechando a lacuna do único Ato que não tinha item de história (Seção B). Documentado em `public/DocsUpdate/Update11/Assets_NPCs_e_Itens.md` (Parte 2), mesmo padrão de tabela dos demais 6 itens.
 
 ### F. Interface do Usuário (`QuestLogPanel.tsx`) — revisado na v11.1.0
 *   **Sub-abas em grid estático de pills**: o carrossel original de 1-aba-por-vez (setas `◀`/`▶`) estourava a tela no mobile, deixando a 3ª aba inacessível. Substituído por `display: grid, gridTemplateColumns: repeat(auto-fit, minmax(92px, 1fr))` — as 3 sub-abas (`🌟 Jornada Principal` ↔ `⚔️ Contratos & Caçadas` ↔ `🏺 Artefatos de História`) ficam todas visíveis, quebrando para 2ª linha em telas estreitas em vez de transbordar, mesmo padrão do `CodexPanel`.
@@ -1738,3 +1752,15 @@ O componente `NpcDialogOverlay.tsx` e a ação `triggerNpcDialog` existiam desde
 
 ### I. Correção de `speakerId`/`npcId` Divergentes dos Nomes de Arquivo (v11.1.0)
 Diversas entradas em `storyCutscenesData.ts`, `mainQuestsData.ts` e `QuestGenerator.ts` usavam identificadores curtos (`valeria`, `vulkan`, `wanderer`) que não correspondiam aos nomes reais dos arquivos de sprite gerados a partir da especificação de arte (`npc_archivist_valeria.png`, `npc_forge_master_vulkan.png`, `npc_void_wanderer.png`) — como `/assets/npc_${id}.png` nunca encontrava o arquivo, o retrato caía sempre no emoji de placeholder. Corrigido em todas as ocorrências dos 3 arquivos.
+
+### J. Sequenciamento de Cutscene de Ato após o Banner de Diálogo (v11.2.0)
+Ao reivindicar o último capítulo de um Ato que também exibe o banner de conclusão (`completionLore`), a cutscene do próximo Ato (Seção G) era disparada por um `setTimeout` fixo de 500ms em `claimReward` — sem nenhuma relação com o fechamento do banner (`NpcDialogOverlay`), então ela podia (e normalmente aparecia) por cima do banner ainda aberto, já que os dois componentes ficam sempre montados em `GameUI.tsx` e reagem a fatias independentes da store.
+*   **Correção**: `claimReward` agora avalia se o banner de diálogo vai mesmo aparecer (`completionLore && npcId && npcName`). Se sim, e o Ato foi concluído, grava `pendingActCutscene: nextAct` em vez de chamar `playActCutscene` direto. `closeDialog()` passou a ler esse campo: ao fechar o banner, limpa `activeDialog`/`activeArtifactReveal`/`pendingActCutscene` e só então dispara `playActCutscene(pendingActCutscene)`, se houver um valor pendente. Quando o capítulo não tem `completionLore` (sem banner para esperar), mantém o `setTimeout` antigo, já que não há nada para sequenciar.
+
+### K. Revelação de Artefato de História (`ArtifactRevealOverlay.tsx`) — v11.2.0
+Artefatos de história só eram visíveis como um ícone pequeno (32px) na sub-aba do Diário. Por pedido do usuário, o momento da concessão ganhou destaque visual próprio, sem repetir o padrão de tela escurecida das cutscenes de Ato (o jogo continua visível por trás):
+*   **Componente novo**: `ArtifactRevealOverlay.tsx`, montado ao lado de `NpcDialogOverlay`/`ActCutsceneOverlay` em `GameUI.tsx`, lendo o novo `activeArtifactReveal` da store (Seção A). Busca o `StoryItemDef` em `STORY_ITEMS_CATALOG` para nome/ícone e reaproveita o mesmo carregador com chroma key (`peekTransparentImageUrl`/`getTransparentImageUrl`) já usado pelo ícone pequeno do Diário — sem custo extra de processamento, já cacheado por `src`.
+*   **Visual**: sprite grande (140px, `objectFit: contain`, sem recorte circular) centralizado no topo da tela, `pointerEvents: none` (não bloqueia o jogo por baixo), com um halo de luz maior que o sprite atrás dele (nova keyframe `artifact-reveal-glow` em `index.css`, mesma linguagem visual do brilho já usado em `forge-result-glow` na Forja Mística).
+*   **Ciclo de vida**: setado em `claimReward` junto com o processamento de `rewards.storyItemId`; limpo dentro de `closeDialog()` junto com `activeDialog`, então desaparece no mesmo instante em que o jogador fecha o banner de conclusão — sem animação de saída dedicada, mesmo padrão já usado por `CombatDropToasts`.
+*   **Correção acoplada — botão de fechar do banner (`NpcDialogOverlay.tsx`)**: o botão de fechar (`ModalCloseButton`) usava `style={{ marginLeft: 'auto' }}` para ficar na borda direita do cabeçalho, mas a classe `.modal-close-btn` tem `position: absolute` fixo no CSS — o que anula `margin` e faz o botão cair na sua posição estática de fluxo (perto do retrato/nome do NPC, à esquerda, em vez da borda direita). Corrigido sobrescrevendo `position: 'relative'` no `style` do botão, devolvendo-o ao fluxo do flexbox do cabeçalho.
+*   **Correção acoplada — flash de placeholder no 1º carregamento**: `App.tsx` já pré-processava (chroma key) os sprites das construções da Cidadela/Cidadela Submersa e as spritesheets de Runas assim que o app monta, evitando o flash do ícone de fallback no primeiro acesso a cada painel. O mesmo pré-processamento foi estendido aos retratos de NPC (`NPC_FACTION_COLORS`, exportado de `useQuestStore.ts`, menos `alma_mundo`/`avatar_echo` que não têm PNG) e aos ícones de Artefato de História (`STORY_ITEMS_CATALOG`) — sem isso, a primeira cutscene ou o primeiro artefato concedido na sessão mostravam rapidamente o emoji de fallback antes da arte real (processamento assíncrono) ficar pronta.

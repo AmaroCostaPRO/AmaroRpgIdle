@@ -386,19 +386,66 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v11.1.0 — Correções da Jornada, Chefes Mundiais e Progresso por Personagem!
+              🔔 Atualização v11.2.0 — Jornada em 3 Atos por Capítulo e Novo Artefato!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Rodada de correções e polimento sobre o Modo História "Ecos do Destino": bugs de progresso de missão corrigidos, layout da Jornada reformulado, cutscenes com visual mais nítido, os 4 Chefes Mundiais da Convergência ganharam resistência própria e entraram no Bestiário, e — a correção mais importante — Jornada, Relíquias, Torre e Recordes Pessoais deixaram de ser compartilhados entre personagens diferentes.
+                Todos os 6 Atos da Jornada agora têm 3 capítulos (18 → 24 no total), com um novo Artefato de História fechando a lacuna do Ato IV, textos de recompensa/lore corrigidos, e 3 ajustes de UX no encerramento de capítulo: a cutscene do próximo Ato não aparece mais por cima do banner de conclusão, o botão de fechar voltou para o lado certo, e ganhar um Artefato agora mostra uma revelação visual dedicada.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v11.2.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.2.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        📜 Todos os 6 Atos Agora Têm 3 Capítulos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        6 novos capítulos preenchem os Atos III, IV, V e VI (18 → 24 no total), incluindo um novo confronto com elites do Purgatório, a 2ª e 3ª Transcendência, e a Palavra Rúnica Coração do Leviatã no capítulo final do Ato VI.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fbbf24', fontSize: '0.72rem' }}>
+                        🏺 Novo Artefato: Promessa Quebrada do Vazio
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Ato IV era o único sem Artefato de História — corrigido com um novo item concedido no capítulo final, com bônus permanente de Magia e Dano Geral.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🐛 Textos e Recompensas Corrigidos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Removida uma recompensa de Insígnias de Estudo que não fazia sentido tão cedo na história, corrigido o texto de dois chefes cíclicos que citavam uma fase única errada, reescrito um objetivo de nível para refletir que o progresso é por herói, e o Ato VI passou a dar Ouro e a ter uma progressão de fase real entre capítulos.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ec4899', fontSize: '0.72rem' }}>
+                        🎬 Fim da Cutscene por Cima do Banner de Conclusão
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ao concluir o último capítulo de um Ato, a cutscene do próximo Ato agora só aparece depois de você fechar o banner de conclusão do capítulo, em vez de entrar por cima dele.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        ✨ Revelação de Artefato de História
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ganhar um Artefato agora mostra o sprite grande do item com um brilho de destaque no topo da tela, junto com o banner de conclusão do capítulo. Corrigido também o botão de fechar do banner (estava do lado errado) e o flash do ícone de placeholder no primeiro carregamento de retratos de NPC e artefatos.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v11.1.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.1.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.1.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#ef4444', fontSize: '0.72rem' }}>
