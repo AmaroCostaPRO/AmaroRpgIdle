@@ -17,6 +17,8 @@ import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites
 import { SUNKEN_BUILDING_SPRITE_SRC } from './components/citadel/sunkenBuildingSprites';
 import { getTransparentImageUrl } from './core/imageBackgroundStrip';
 import { RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL } from './components/shared/itemVisuals';
+import { NPC_FACTION_COLORS } from './store/useQuestStore';
+import { STORY_ITEMS_CATALOG } from './core/quests/storyItemsData';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
 import { useWakeLock } from './hooks/useWakeLock';
 
@@ -138,6 +140,22 @@ const App: React.FC = () => {
   useEffect(() => {
     [RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL].forEach((src) => {
       getTransparentImageUrl(src).catch(() => {});
+    });
+  }, []);
+
+  // Mesmo pré-processamento acima, para os retratos de NPC (banners de diálogo/cutscenes de Ato)
+  // e os ícones de Artefatos de História — sem isso, a primeira cutscene ou o primeiro artefato
+  // concedido na sessão mostravam rapidamente o emoji de fallback antes da arte real (chroma key
+  // assíncrono) ficar pronta. `alma_mundo`/`avatar_echo` não têm PNG próprio (retrato especial em
+  // CSS/reuso do sprite de combate — ver `SpecialNpcPortraits.tsx`), por isso são excluídos aqui.
+  useEffect(() => {
+    Object.keys(NPC_FACTION_COLORS)
+      .filter((npcId) => npcId !== 'alma_mundo' && npcId !== 'avatar_echo')
+      .forEach((npcId) => {
+        getTransparentImageUrl(`/assets/npc_${npcId}.png`).catch(() => {});
+      });
+    Object.keys(STORY_ITEMS_CATALOG).forEach((storyItemId) => {
+      getTransparentImageUrl(`/assets/${storyItemId}.png`).catch(() => {});
     });
   }, []);
 
@@ -285,19 +303,33 @@ const App: React.FC = () => {
               <div className={`absolute inset-0 flex flex-col items-center justify-center bg-[#161717] z-20 text-center p-6 phaser-loader ${isGameReady ? 'fade-out' : ''}`}>
                 {/* Imagem de Fundo de Carregamento */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay"
+                  className="absolute inset-0 bg-cover bg-center opacity-70"
                   style={{ backgroundImage: 'url("/assets/battle_loading_bg.png")' }}
                 />
+                {/* Vinheta Escura para Destacar o Centro */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(10,10,15,0.4)_0%,rgba(10,10,15,0.85)_100%)]" />
                 
-                {/* Conteúdo do Carregador */}
+                {/* Conteúdo do Carregador — Sem card, texto livre com sombra projetada profunda */}
                 <div className="relative z-30 flex flex-col items-center gap-4">
                   {/* Spinner de Carregamento Estilizado */}
-                  <div className="w-12 h-12 border-4 border-t-purple-500 border-r-purple-500/20 border-b-purple-500/20 border-l-purple-500/20 rounded-full animate-spin shadow-[0_0_15px_rgba(168,85,247,0.4)]" />
+                  <div className="w-12 h-12 border-4 border-t-purple-400 border-r-purple-500/20 border-b-purple-500/20 border-l-purple-500/20 rounded-full animate-spin shadow-[0_0_20px_rgba(168,85,247,0.6)]" />
                   
-                  {/* Textos Informativos */}
-                  <div className="space-y-1">
-                    <h3 className="font-heading text-xs font-bold text-purple-400 tracking-widest uppercase animate-pulse">Carregando Arena de Batalha...</h3>
-                    <p className="text-[10px] text-gray-400 max-w-[240px] leading-relaxed">
+                  {/* Textos Informativos Destacados com Sombra Escura Profunda */}
+                  <div className="space-y-1.5 flex flex-col items-center">
+                    <h3 
+                      className="font-heading text-sm font-extrabold text-purple-200 tracking-widest uppercase animate-pulse"
+                      style={{ 
+                        textShadow: '0 0 12px rgba(168,85,247,0.8), 0 2px 8px #000000, 0 4px 12px #000000',
+                      }}
+                    >
+                      Carregando Arena de Batalha...
+                    </h3>
+                    <p 
+                      className="text-xs text-slate-100 font-medium max-w-[280px] leading-relaxed"
+                      style={{
+                        textShadow: '0 2px 6px #000000, 0 0 10px rgba(0,0,0,0.9), 0 1px 3px #000000',
+                      }}
+                    >
                       Sincronizando sprites e heróis. Prepare suas espadas e feitiços!
                     </p>
                   </div>

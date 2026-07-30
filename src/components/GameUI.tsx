@@ -45,6 +45,7 @@ import { RUNE_CATALOG } from '../core/runeFormulas';
 import { QuestLogPanel } from './QuestLogPanel';
 import { NpcDialogOverlay } from './NpcDialogOverlay';
 import { ActCutsceneOverlay } from './ActCutsceneOverlay';
+import { ArtifactRevealOverlay } from './ArtifactRevealOverlay';
 import { useQuestStore } from '../store/useQuestStore';
 import { FARO_PERFECT_CATCHES_REQUIRED } from '../core/abyssFormulas';
 import { useHoldRepeat } from '../hooks/useHoldRepeat';
@@ -9229,6 +9230,7 @@ export default function GameUI() {
 
       <ProgressNotifications />
       <NpcDialogOverlay />
+      <ArtifactRevealOverlay />
       <ActCutsceneOverlay />
       {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
     </div>

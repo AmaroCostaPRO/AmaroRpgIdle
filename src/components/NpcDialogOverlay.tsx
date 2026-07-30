@@ -144,7 +144,7 @@ export const NpcDialogOverlay: React.FC = () => {
         <ModalCloseButton
           onClick={closeDialog}
           size={24}
-          style={{ marginLeft: 'auto' }}
+          style={{ position: 'relative', marginLeft: 'auto' }}
         />
       </div>
 

@@ -34,7 +34,7 @@ const getQuestStoreKey = (slot: number | null): string =>
 
 // Cor de facção por NPC narrativo, usada no banner de diálogo (`triggerNpcDialog`) ao concluir um
 // capítulo com `completionLore` — mesma paleta já usada nas cutscenes de Ato (storyCutscenesData.ts).
-const NPC_FACTION_COLORS: Record<string, string> = {
+export const NPC_FACTION_COLORS: Record<string, string> = {
   alma_mundo: '#a855f7',
   archivist_valeria: '#38bdf8',
   forge_master_vulkan: '#f97316',
@@ -50,6 +50,13 @@ interface QuestStoreState {
   completedQuestIds: string[];
   storyInventory: Record<string, number>;
   activeDialog: NpcDialogState | null;
+  // Ato aguardando exibição de cutscene: setado por `claimReward` quando o capítulo concluído também
+  // mostra um banner de diálogo (`activeDialog`) — a cutscene só entra depois que `closeDialog` for
+  // chamado, evitando que ela apareça por cima do banner ainda aberto.
+  pendingActCutscene: number | null;
+  // Artefato de história concedido na missão recém-reivindicada — exibido em paralelo ao banner de
+  // diálogo (`ArtifactRevealOverlay`) e limpo junto com ele em `closeDialog`.
+  activeArtifactReveal: { storyItemId: string } | null;
 
   // Cutscenes Narrativas de Ato
   seenActCutscenes: number[];
@@ -191,6 +198,8 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
   return {
     ...initialData,
     activeDialog: null,
+    pendingActCutscene: null,
+    activeArtifactReveal: null,
     activeActCutscene: null,
 
     playActCutscene: (actNumber: number) => {
@@ -403,6 +412,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         proceduralQuests: [...proceduralQuests],
         completedQuestIds: newCompleted,
         storyInventory: newStoryInventory,
+        activeArtifactReveal: rewards.storyItemId ? { storyItemId: rewards.storyItemId } : get().activeArtifactReveal,
       });
 
       saveQuestStore({
@@ -415,16 +425,19 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
 
       // Banner de Diálogo do NPC ao concluir um capítulo com lore de conclusão registrada — reusa o
       // `triggerNpcDialog`/`NpcDialogOverlay` já existente (antes nunca era chamado por ninguém).
-      if (targetQuest.completionLore && targetQuest.npcId && targetQuest.npcName) {
+      const willShowDialog = !!(targetQuest.completionLore && targetQuest.npcId && targetQuest.npcName);
+      if (willShowDialog) {
         get().triggerNpcDialog(
-          targetQuest.npcId,
-          targetQuest.npcName,
-          NPC_FACTION_COLORS[targetQuest.npcId] || '#a855f7',
-          targetQuest.completionLore
+          targetQuest.npcId!,
+          targetQuest.npcName!,
+          NPC_FACTION_COLORS[targetQuest.npcId!] || '#a855f7',
+          targetQuest.completionLore!
         );
       }
 
-      // Disparo Automático da Cutscene do Próximo Ato ao Concluir o Ato Atual
+      // Disparo Automático da Cutscene do Próximo Ato ao Concluir o Ato Atual — se o capítulo também
+      // abrir o banner de diálogo acima, a cutscene fica pendente e só entra quando o jogador fechar
+      // o banner (`closeDialog`), em vez de aparecer por cima dele.
       if (isMain && targetQuest.act) {
         const currentAct = targetQuest.act;
         const questsInAct = Object.values(mainQuests).filter((q) => q.act === currentAct);
@@ -433,9 +446,13 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         if (allActDone && currentAct < 6) {
           const nextAct = currentAct + 1;
           if (!seenActCutscenes.includes(nextAct)) {
-            setTimeout(() => {
-              playActCutscene(nextAct);
-            }, 500);
+            if (willShowDialog) {
+              set({ pendingActCutscene: nextAct });
+            } else {
+              setTimeout(() => {
+                playActCutscene(nextAct);
+              }, 500);
+            }
           }
         }
       }
@@ -455,7 +472,11 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
     },
 
     closeDialog: () => {
-      set({ activeDialog: null });
+      const { pendingActCutscene, playActCutscene } = get();
+      set({ activeDialog: null, activeArtifactReveal: null, pendingActCutscene: null });
+      if (pendingActCutscene) {
+        playActCutscene(pendingActCutscene);
+      }
     },
 
     getStoryStatsBonus: () => {
@@ -485,7 +506,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         storyInventory: {} as Record<string, number>,
         seenActCutscenes: [] as number[],
       };
-      set({ ...fresh, activeDialog: null, activeActCutscene: null });
+      set({ ...fresh, activeDialog: null, activeArtifactReveal: null, pendingActCutscene: null, activeActCutscene: null });
       saveQuestStore(fresh);
     },
 
@@ -495,7 +516,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
     // isso o useQuestStore continuaria com os dados do personagem anterior até um F5 manual.
     reloadForActiveSlot: () => {
       const reloaded = loadPersistedQuestStore(getActiveSlot());
-      set({ ...reloaded, activeDialog: null, activeActCutscene: null });
+      set({ ...reloaded, activeDialog: null, activeArtifactReveal: null, pendingActCutscene: null, activeActCutscene: null });
     },
   };
 });

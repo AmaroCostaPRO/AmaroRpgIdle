@@ -25,6 +25,14 @@ export const STORY_ITEMS_CATALOG: Record<string, StoryItemDef> = {
     statBonus: { luck: 12, dropChancePct: 0.05 },
     passiveDescription: '+12 de Sorte e +5% Chance de Drop de equipamentos.',
   },
+  story_void_promise: {
+    id: 'story_void_promise',
+    name: 'Promessa Quebrada do Vazio',
+    icon: '🕳️',
+    lore: 'Um fragmento condensado de uma promessa que o Vazio jurou e não cumpriu. Ainda pulsa com o peso do que foi prometido.',
+    statBonus: { magic: 10, damageMultiplierPct: 0.05 },
+    passiveDescription: '+10 de Magia e +5% Dano Geral contra criaturas do Vazio e do Pandemônio.',
+  },
   story_drowned_locket: {
     id: 'story_drowned_locket',
     name: 'Relicário dos Ecos Afogados',
