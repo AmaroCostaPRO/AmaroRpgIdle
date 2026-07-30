@@ -177,7 +177,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
     objectives: [
       {
         id: 'obj_act2_craft',
-        type: 'craft',
+        type: 'forge',
         description: 'Refine ou forje um equipamento de raridade Lendária ou superior',
         requiredAmount: 1,
         currentAmount: 0,
@@ -488,7 +488,7 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
       },
       {
         id: 'obj_act5_craft',
-        type: 'craft',
+        type: 'forge',
         description: 'Forje ou refine 3 equipamentos de raridade Lendária ou superior',
         requiredAmount: 3,
         currentAmount: 0,

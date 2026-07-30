@@ -91,7 +91,7 @@ function generateCraftQuest(stage: number): QuestDef {
       objectives: [
         {
           id: 'obj_craft_1',
-          type: 'craft',
+          type: 'forge',
           description: 'Refine ou forje 1 equipamento de raridade Rara ou superior',
           requiredAmount: 1,
           currentAmount: 0,

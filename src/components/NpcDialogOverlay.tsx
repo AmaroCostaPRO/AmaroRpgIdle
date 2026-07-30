@@ -76,29 +76,42 @@ export const NpcDialogOverlay: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '1.5rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 2rem)',
-        maxWidth: '720px',
-        zIndex: 9000,
-        background: 'var(--surface-glass)',
-        backdropFilter: 'blur(20px) saturate(1.2)',
-        border: `1px solid ${activeDialog.factionColor || '#a855f7'}`,
-        boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 12px ${activeDialog.factionColor || '#a855f7'}40`,
-        borderRadius: 'var(--radius-lg)',
-        padding: '1rem',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        pointerEvents: 'auto',
-      }}
-      onClick={isTyping ? handleSkipTyping : undefined}
-    >
+    <>
+      {/* Escurecida de fundo — mais sutil que a da cutscene (0.92), só para dar destaque ao
+          diálogo/artefato sem escurecer a cena de combate por completo. */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 8800,
+          background: 'rgba(4, 4, 10, 0.5)',
+          pointerEvents: 'none',
+          animation: 'fadeIn 0.35s ease-out',
+        }}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 2rem)',
+          maxWidth: '720px',
+          zIndex: 9000,
+          background: 'var(--surface-glass)',
+          backdropFilter: 'blur(20px) saturate(1.2)',
+          border: `1px solid ${activeDialog.factionColor || '#a855f7'}`,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 12px ${activeDialog.factionColor || '#a855f7'}40`,
+          borderRadius: 'var(--radius-lg)',
+          padding: '1rem',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          pointerEvents: 'auto',
+        }}
+        onClick={isTyping ? handleSkipTyping : undefined}
+      >
       {/* Cabeçalho do NPC */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
         <div
@@ -176,6 +189,7 @@ export const NpcDialogOverlay: React.FC = () => {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };

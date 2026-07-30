@@ -9,6 +9,7 @@ export type ObjectiveType =
   | 'stage'
   | 'level'
   | 'craft'
+  | 'forge'
   | 'runeword'
   | 'ascend'
   | 'transcend'

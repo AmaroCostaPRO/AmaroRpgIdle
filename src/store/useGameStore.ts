@@ -564,6 +564,21 @@ export const updateGlobalClassCharacters = (
   }
 };
 
+// Remove todas as entradas de um slot apagado do registro global de personagens por classe —
+// sem isso, a aba Expedições da Cidadela continua listando personagens de saves já excluídos.
+export const removeGlobalClassCharacterSlot = (slotIndex: number) => {
+  try {
+    const current = getGlobalClassCharacters();
+    const updated: Record<string, GlobalClassCharacterEntry[]> = {};
+    Object.entries(current).forEach(([classId, entries]) => {
+      updated[classId] = entries.filter((e) => e.slotIndex !== slotIndex);
+    });
+    localStorage.setItem(GLOBAL_CLASS_CHARACTERS_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Erro ao remover slot do registro global de personagens por classe:', e);
+  }
+};
+
 export const isClassUnlocked = (classId: string, classLevels: Record<string, number>): boolean => {
   if (classId === 'warrior' || classId === 'mage' || classId === 'ranger') return true;
   
@@ -2911,6 +2926,7 @@ export const useGameStore = create<GameState>((set) => ({
       const updated = { ...char, pearls: (char.pearls || 0) - fuseCost, runeInventory };
       saveToLocalStorage(updated);
       result = { success: true, message: `⚗️ 3x ${runeDef.name} fundidas em 1x ${RUNE_CATALOG[fusedId].name}!${runeReturned ? ' (A Forja devolveu 1 runa!)' : ''}` };
+      useQuestStore.getState().updateObjectiveProgress('runeword', undefined, 1);
       return { character: updated };
     });
     return result;
@@ -4012,7 +4028,10 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
-  addXp: (amount) => set((state) => {
+  addXp: (amount) => {
+    let leveledUpForQuest = false;
+    let levelForQuest = 0;
+    set((state) => {
     const currentStage = state.character.currentStage;
     const newTotalXpEarned = (state.character.totalXpEarned ?? legacyReconstructTotalXp(state.character.level, state.character.xp)) + amount;
 
@@ -4103,10 +4122,15 @@ export const useGameStore = create<GameState>((set) => ({
 
     saveToLocalStorage(updated);
     if (leveledUp) {
-      useQuestStore.getState().updateObjectiveProgress('level', undefined, newLevel);
+      leveledUpForQuest = true;
+      levelForQuest = newLevel;
     }
     return { character: updated };
-  }),
+  });
+    if (leveledUpForQuest) {
+      useQuestStore.getState().updateObjectiveProgress('level', undefined, levelForQuest);
+    }
+  },
 
   upgradeAttribute: (stat, amount = 1) => set((state) => {
     const pointsToUse = Math.min(state.character.attributePoints, amount);
@@ -4704,6 +4728,7 @@ export const useGameStore = create<GameState>((set) => ({
       localStorage.removeItem('medieval_idle_save');
       localStorage.removeItem('medieval_idle_current_slot');
       localStorage.removeItem(GLOBAL_CLASS_LEVELS_KEY);
+      localStorage.removeItem(GLOBAL_CLASS_CHARACTERS_KEY);
       for (let i = 1; i <= 12; i++) {
         localStorage.removeItem(`medieval_idle_save_slot_${i}`);
       }
@@ -5020,11 +5045,25 @@ export const useGameStore = create<GameState>((set) => ({
 
   deleteSlot: (slotIndex) => set((state) => {
     try {
+      // v11.2.0: apagar um slot precisa limpar TODOS os sistemas persistidos por-slot, não só o
+      // personagem — senão a Jornada, Relíquias e Torre "vazam" para o próximo personagem criado
+      // nesse mesmo número de slot (ver comentário em `resetAllData` sobre o mesmo padrão).
       localStorage.removeItem(`medieval_idle_save_slot_${slotIndex}`);
+      localStorage.removeItem(`medieval_idle_quest_store_slot_${slotIndex}`);
+      localStorage.removeItem(`medieval_idle_relics_slot_${slotIndex}`);
+      localStorage.removeItem(`medieval_idle_tower_slot_${slotIndex}`);
+      localStorage.removeItem(`medieval_idle_personal_records_slot_${slotIndex}`);
+      removeGlobalClassCharacterSlot(slotIndex);
+
       const currentSlot = localStorage.getItem('medieval_idle_current_slot');
       if (currentSlot === String(slotIndex)) {
         localStorage.removeItem('medieval_idle_current_slot');
         localStorage.removeItem('medieval_idle_save');
+        try {
+          useRelicStore.getState().resetRelics();
+          useTowerStore.getState().resetTowerProgress();
+          useQuestStore.getState().resetQuestProgress();
+        } catch (e) {}
         return { currentSlot: null, character: DEFAULT_CHARACTER('warrior') };
       }
     } catch (e) {
@@ -5604,7 +5643,7 @@ export const useGameStore = create<GameState>((set) => ({
         ? `⚡ FORJA LENDÁRIA! Os astros sorriram! ${newName} foi forjado com +50% de poder!${runeNote}`
         : `Fusão bem-sucedida! Gerou: ${newName}${runeNote}`;
       result = { success: true, message: successMsg, newItem };
-      useQuestStore.getState().updateObjectiveProgress('craft', undefined, 1);
+      useQuestStore.getState().updateObjectiveProgress('forge', undefined, 1);
       return { character: updated };
     });
 

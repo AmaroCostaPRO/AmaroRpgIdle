@@ -3,6 +3,7 @@ import { CombatFSM, CombatState, isBloodMoonActive } from '../../core/CombatFSM'
 import { bridge } from '../../bridge/GameBridge';
 import { GameEvent, ENEMIES_PER_STAGE, PET_POOL } from '../../core/types';
 import { useGameStore, CLASS_CONFIGS, formatNumber } from '../../store/useGameStore';
+import { useQuestStore } from '../../store/useQuestStore';
 import { useTowerStore } from '../../store/useTowerStore';
 import { useDiveStore } from '../../store/useDiveStore';
 import { useLeviathanStore } from '../../store/useLeviathanStore';
@@ -613,7 +614,13 @@ export class CombatScene extends Phaser.Scene {
 
     if (this.fsm) {
       const isLoreOpen = useGameStore.getState().character.introLoreShown === false;
-      const gameSpeed = isLoreOpen ? 0 : useGameStore.getState().gameSpeed;
+      // Pausa o combate enquanto o banner de diálogo de NPC (e o artefato de história que
+      // eventualmente o acompanha) estiver aberto — evita que o herói continue lutando/morrendo
+      // "nos bastidores" enquanto o jogador está lendo a Jornada.
+      const questState = useQuestStore.getState();
+      const isJourneyDialogOpen = !!questState.activeDialog || !!questState.activeArtifactReveal;
+      const isPaused = isLoreOpen || isJourneyDialogOpen;
+      const gameSpeed = isPaused ? 0 : useGameStore.getState().gameSpeed;
       const speedMultiplier = gameSpeed === 0 ? 0 : (gameSpeed || 1);
       this.accumulatedTime += delta * speedMultiplier;
 
