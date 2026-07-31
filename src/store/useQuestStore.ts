@@ -455,6 +455,11 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
         seenActCutscenes,
       });
 
+      // Reivindicar um capítulo pode desbloquear o próximo (isMainQuestUnlocked) — reavalia
+      // nível/fase imediatamente para que ele já apareça com o progresso correto, em vez de
+      // ficar preso em 0 até o painel de Jornada ser remontado.
+      get().syncQuestObjectives();
+
       // Banner de Diálogo do NPC ao concluir um capítulo com lore de conclusão registrada — reusa o
       // `triggerNpcDialog`/`NpcDialogOverlay` já existente (antes nunca era chamado por ninguém).
       const willShowDialog = !!(targetQuest.completionLore && targetQuest.npcId && targetQuest.npcName);

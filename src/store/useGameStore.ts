@@ -4615,7 +4615,8 @@ export const useGameStore = create<GameState>((set) => ({
     return false;
   },
 
-  advanceStage: () => set((state) => {
+  advanceStage: () => {
+    set((state) => {
     const isPandemoniumUnlocked = state.character.pandemoniumUnlocked;
     let nextStage = state.character.currentStage + 1;
     useQuestStore.getState().updateObjectiveProgress('stage', undefined, nextStage);
@@ -4712,7 +4713,11 @@ export const useGameStore = create<GameState>((set) => ({
     };
     saveToLocalStorage(updated);
     return { character: updated };
-  }),
+    });
+    // Cruzar um `unlockedAtStage` também pode desbloquear o próximo capítulo — reavalia
+    // nível/fase imediatamente para que ele já apareça com o progresso correto.
+    useQuestStore.getState().syncQuestObjectives();
+  },
 
   resetStageProgress: () => set((state) => {
     const updated = {

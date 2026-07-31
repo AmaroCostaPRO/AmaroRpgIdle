@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuestStore, MAX_DAILY_CONTRACT_RENEWALS } from '../store/useQuestStore';
+import { useQuestStore, MAX_DAILY_CONTRACT_RENEWALS, isMainQuestUnlocked } from '../store/useQuestStore';
 import { useGameStore } from '../store/useGameStore';
 import { STORY_ITEMS_CATALOG } from '../core/quests/storyItemsData';
 import { ACT_CUTSCENES_CATALOG } from '../core/quests/storyCutscenesData';
@@ -46,6 +46,7 @@ export const QuestLogPanel: React.FC = () => {
   const contractRenewalsToday = useQuestStore((s) => s.contractRenewalsToday);
   const contractRenewalsDate = useQuestStore((s) => s.contractRenewalsDate);
   const today = useGameStore((s) => s.getTodayYYYYMMDD());
+  const currentStage = useGameStore((s) => s.character.currentStage || 1);
   const renewalsUsedToday = contractRenewalsDate === today ? contractRenewalsToday : 0;
   const renewalsRemaining = Math.max(0, MAX_DAILY_CONTRACT_RENEWALS - renewalsUsedToday);
   const syncQuestObjectives = useQuestStore((s) => s.syncQuestObjectives);
@@ -84,6 +85,19 @@ export const QuestLogPanel: React.FC = () => {
   const toggleAct = (act: number) => {
     AudioManager.getInstance().playClick();
     setCollapsedActs((prev) => ({ ...prev, [act]: !isActCollapsed(act) }));
+  };
+
+  // Texto curto explicando o que falta para liberar um capítulo ainda bloqueado, sem revelar
+  // seu conteúdo (título/descrição/objetivos/recompensas continuam ocultos até desbloquear).
+  const getUnlockRequirementText = (quest: typeof mainQuestsList[number]): string => {
+    const prevChapter = mainQuestsList.find(
+      (q) => q.act === quest.act && (q.chapterNumber || 0) < (quest.chapterNumber || 0) && !q.isCompleted && !q.isClaimed
+    );
+    const parts: string[] = [];
+    if (prevChapter) parts.push(`concluir "${prevChapter.title}"`);
+    if (quest.unlockedAtStage && currentStage < quest.unlockedAtStage) parts.push(`alcançar a Fase ${quest.unlockedAtStage}`);
+    if (parts.length === 0) return '🔒 Bloqueado.';
+    return `🔒 Requer ${parts.join(' e ')} para desbloquear.`;
   };
 
   const huntCraftQuests = proceduralQuests.filter((q) => q.category === 'hunt' || q.category === 'craft');
@@ -153,7 +167,9 @@ export const QuestLogPanel: React.FC = () => {
                 {/* Corpo do Ato: capítulos (colapso via mount condicional, altura automática) */}
                 {!collapsed && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.75rem' }}>
-                    {chaptersInAct.map((quest) => (
+                    {chaptersInAct.map((quest) => {
+                      const unlocked = isMainQuestUnlocked(quest, mainQuests, currentStage);
+                      return (
                       <div
                         key={quest.id}
                         style={{
@@ -173,7 +189,7 @@ export const QuestLogPanel: React.FC = () => {
                             </span>
                             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>{quest.title}</span>
                           </div>
-                          {quest.isClaimed ? (
+                          {!unlocked ? null : quest.isClaimed ? (
                             <span style={{ fontSize: '0.55rem', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16,185,129,0.4)' }}>
                               ✓ CONCLUÍDO
                             </span>
@@ -195,6 +211,12 @@ export const QuestLogPanel: React.FC = () => {
                           )}
                         </div>
 
+                        {!unlocked ? (
+                          <p style={{ fontSize: '0.64rem', color: '#64748b', margin: 0, lineHeight: 1.45 }}>
+                            {getUnlockRequirementText(quest)}
+                          </p>
+                        ) : (
+                        <>
                         <p style={{ fontSize: '0.64rem', color: '#94a3b8', margin: 0, lineHeight: 1.45 }}>{quest.description}</p>
 
                         {/* Lista de Objetivos */}
@@ -229,8 +251,11 @@ export const QuestLogPanel: React.FC = () => {
                             <span style={{ color: '#38bdf8' }}>🏺 {STORY_ITEMS_CATALOG[quest.rewards.storyItemId]?.name}</span>
                           )}
                         </div>
+                        </>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
