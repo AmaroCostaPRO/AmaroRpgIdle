@@ -8110,13 +8110,11 @@ export default function GameUI() {
               disabled={tab.disabled}
               title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
               className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'tab-btn-citadel' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
+              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1, position: 'relative' }}>
-                {tab.icon}
-                {tab.hasNotification && <TabBadgeDot />}
-              </span>
+              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
               {tab.label}
+              {tab.hasNotification && <TabBadgeDot />}
             </button>
           ))}
         </div>
@@ -8175,16 +8173,15 @@ export default function GameUI() {
                 title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'carousel-tab-btn-citadel' : ''}`}
                 style={{
+                  position: 'relative',
                   flex: '0 0 33.333%',
                   width: '33.333%',
                   opacity: tab.disabled ? 0.45 : 1
                 }}
               >
-                <span className="carousel-icon" style={{ position: 'relative' }}>
-                  {tab.icon}
-                  {tab.hasNotification && <TabBadgeDot />}
-                </span>
+                <span className="carousel-icon">{tab.icon}</span>
                 <span className="carousel-label">{tab.label}</span>
+                {tab.hasNotification && <TabBadgeDot />}
               </button>
             );
           })}

@@ -168,6 +168,16 @@ A trilha sonora do jogo é inteiramente sintetizada em tempo real via Web Audio 
 *   **Seleção de Fase**: a função `getPhaseForStage(character.currentStage)` (`bgmThemes.ts`) determina o tema ativo a partir do estágio de combate atual do personagem, usando os mesmos limiares de fase do `CombatFSM.ts` (Normal 1-5, Pesadelo 6-10, Inferno 11-15, Apocalipse 16-20, Purgatório 21-30, Pandemônio 31+). A troca de tema é detectada reativamente via `useGameStore.subscribe` dentro do `AudioManager`, reiniciando o loop de BGM (`stopBGM()` + `startBGM()`) sempre que a fase muda enquanto a música está tocando.
 *   **Torre Infinita e Cidadela**: como a seleção de tema depende exclusivamente do `currentStage` do personagem — não da tela ativa — tanto a Torre Infinita quanto a Cidadela automaticamente herdam a música da fase vigente do jogador, sem trilha sonora própria.
 
+### J. Indicadores de Notificação nas Abas (Bolinhas, v11.3.0)
+Para que o jogador não precise entrar em cada aba só pra descobrir se há algo pendente, um pequeno ponto pulsante (`TabBadgeDot.tsx`, classes `.tab-badge-dot`/`.tab-badge-dot-pulse` reaproveitando a keyframe `pulse` já existente) é renderizado no canto superior do ícone sempre que a condição correspondente é verdadeira. Toda a leitura é feita pelo hook `useTabNotifications` (`src/hooks/useTabNotifications.ts`) — puro/derivado, sem estado próprio, consumindo `useGameStore`, `useQuestStore`, `useRelicStore` e `useTowerStore`:
+*   **Atributos / Habilidades**: `character.attributePoints > 0` / `character.skillPoints > 0`.
+*   **Jornada**: `hasClaimableQuest()` (novo helper exportado em `useQuestStore.ts`) — verdadeiro se alguma missão principal ou procedural estiver `isCompleted && !isClaimed`.
+*   **Ascensão / Transcendência**: replicam exatamente as mesmas condições `canPrestige`/`canTranscend` já usadas em `PrestigeTreePanel`/`TranscendencePanel` (Seções 9 e 11), incluindo o bloqueio por Torre/Desafio Diário ativos.
+*   **Cidadela**: `getCitadelBuildingAffordability()` (`citadelFormulas.ts`) — uma checagem por construção (12 no total) que espelha a condição de "botão de melhoria habilitado" de `CitadelBuildingPanel` (Seção 17): nível abaixo do máximo, sem melhoria em andamento, sem bloqueio pelo nível do Centro de Comando e recursos suficientes. `unstableSoulFragments` (Laboratório de Relíquias) vem do `useRelicStore`, por isso é passado como parâmetro separado do `Character`.
+*   **Abismo**: `coastalHasNotification()` (rede de pesca no limite/`getFishingBufferCap`, pronta pra coleta manual, ou upgrade de nível da Doca acessível) e `getSunkenBuildingAffordability()` (`sunkenCitadelFormulas.ts`) — uma checagem por distrito (drenagem ou restauração, já aplicando os descontos de Maré Baixa e do perk de Mergulhador dos Ecos alocados, Seção 18) mais o upgrade do Traje de Mergulho (contabilizado na entrada do distrito `dock`, onde o botão aparece).
+*   **Sub-abas de Cidadela e Cidadela Submersa**: `CitadelTabsBar.tsx` e `SunkenCitadelTabsBar.tsx` chamam localmente as mesmas funções acima para acender a bolinha só na construção/distrito específico com pendência.
+*   Abas ainda bloqueadas (ícone 🔒) nunca exibem bolinha, independentemente do valor interno da condição.
+
 ---
 
 ## 4. Sistema de Classes e Maestria
@@ -1651,9 +1661,9 @@ Sistema mínimo e reutilizável: overlay fullscreen preto, sequência de painéi
 
 ---
 
-## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0, revisado na v11.1.0 e na v11.2.0)
+## 19. Modo História "Ecos do Destino" e Diário de Jornada (v11.0.0, revisado na v11.1.0, na v11.2.0 e na v11.3.0)
 
-A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais. A v11.1.0 corrigiu diversos bugs encontrados em teste real (detalhados nas subseções C, F, G, H e I abaixo) e adicionou o banner de diálogo ao concluir capítulos. A v11.2.0 expandiu os 6 Atos para 3 capítulos cada (subseção B), corrigiu textos de recompensa/lore imprecisos, e resolveu 3 problemas de UX no encerramento de capítulo — sobreposição da cutscene de Ato com o banner de diálogo, posicionamento do botão de fechar e ausência de destaque visual ao ganhar um Artefato de História (subseções J e K).
+A atualização v11.0.0 introduz o sistema oficial de Modo História, o Diário de Jornada, Artefatos Narrativos Permanentes e a arquitetura de escuta de eventos em tempo real para missões principais e procedurais. A v11.1.0 corrigiu diversos bugs encontrados em teste real (detalhados nas subseções C, F, G, H e I abaixo) e adicionou o banner de diálogo ao concluir capítulos. A v11.2.0 expandiu os 6 Atos para 3 capítulos cada (subseção B), corrigiu textos de recompensa/lore imprecisos, e resolveu 3 problemas de UX no encerramento de capítulo — sobreposição da cutscene de Ato com o banner de diálogo, posicionamento do botão de fechar e ausência de destaque visual ao ganhar um Artefato de História (subseções J e K). A v11.3.0 inverteu a ordem de exibição dos Atos (subseção B) para o Ato em andamento aparecer sempre no topo da lista, em vez de empurrado para o fim conforme novos Atos eram desbloqueados.
 
 ### A. Arquitetura da Store de Quests (`useQuestStore.ts`)
 O gerenciamento de missões é centralizado na store Zustand `useQuestStore`, persistido sob a chave `medieval_idle_quest_store_slot_{N}` no `localStorage` — **por personagem/slot de save desde a v11.1.0** (ver Seção 12.C), com migração automática de saves anteriores que usavam a chave global antiga.
@@ -1708,6 +1718,7 @@ A campanha principal contém **6 Atos** (`MAIN_QUESTS_CATALOG`), abrangendo o De
     2.  Todas as missões do mesmo Ato com número de capítulo menor ($\text{Chapter} < \text{Chapter}_{\text{atual}}$) estiverem concluídas ou reclamadas.
     3.  A fase atual do personagem for maior ou igual ao requisito `unlockedAtStage`.
 *   **Filtragem na UI**: O painel `QuestLogPanel.tsx` exibe apenas as missões do Ato desbloqueado no momento e de Atos anteriores finalizados. Atos futuros permanecem ocultos com um aviso de bloqueio.
+*   **Ordenação — Ato atual primeiro (v11.3.0)**: os Atos visíveis são ordenados do mais recente para o mais antigo (`visibleActs.sort((a, b) => b - a)`, antes ascendente), então o Ato em andamento aparece sempre no topo da lista. Como o colapso automático de Atos 100% concluídos (`isActCollapsed`) e o lookup de cutscene (`ACT_CUTSCENES_CATALOG[act]`) já são indexados pelo número do Ato — não pela posição no array — a inversão não exigiu nenhum outro ajuste: Atos antigos continuam aparecendo colapsados, só que agora abaixo do Ato ativo em vez de acima.
 
 ### C. Tipos de Objetivos e Escuta de Eventos em Tempo Real
 Os objetivos das missões utilizam a união de tipos `ObjectiveType`:

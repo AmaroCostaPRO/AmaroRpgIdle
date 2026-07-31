@@ -94,13 +94,11 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
                 setSubTab(tab.id);
               }}
               className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, minWidth: 0, overflow: 'hidden' }}
+              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, minWidth: 0, overflow: 'hidden' }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1, flexShrink: 0, position: 'relative' }}>
-                {tab.icon}
-                {hasDistrictNotification(tab.id) && <TabBadgeDot />}
-              </span>
+              <span style={{ fontSize: '0.7rem', lineHeight: 1, flexShrink: 0 }}>{tab.icon}</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
+              {hasDistrictNotification(tab.id) && <TabBadgeDot />}
             </button>
           ))}
         </div>
@@ -152,13 +150,11 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
                   setSubTab(tab.id);
                 }}
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
-                style={{ flex: '0 0 33.333%', width: '33.333%' }}
+                style={{ position: 'relative', flex: '0 0 33.333%', width: '33.333%' }}
               >
-                <span className="carousel-icon" style={{ position: 'relative' }}>
-                  {tab.icon}
-                  {hasDistrictNotification(tab.id) && <TabBadgeDot />}
-                </span>
+                <span className="carousel-icon">{tab.icon}</span>
                 <span className="carousel-label">{tab.label}</span>
+                {hasDistrictNotification(tab.id) && <TabBadgeDot />}
               </button>
             );
           })}
