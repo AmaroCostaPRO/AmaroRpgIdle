@@ -44,6 +44,8 @@ import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
 import { QuestLogPanel } from './QuestLogPanel';
+import { TabBadgeDot } from './TabBadgeDot';
+import { useTabNotifications } from '../hooks/useTabNotifications';
 import { NpcDialogOverlay } from './NpcDialogOverlay';
 import { ActCutsceneOverlay } from './ActCutsceneOverlay';
 import { ArtifactRevealOverlay } from './ArtifactRevealOverlay';
@@ -7816,24 +7818,26 @@ export default function GameUI() {
   const isAbyssUnlocked = character.coastal?.unlocked || (character.highestStageReached || 1) >= 3;
   const isTranscendenceUnlocked = (character.pandemoniumUnlocked && character.highestStageReached >= 50) || (character.transcendenceCount || 0) > 0;
 
+  const tabNotifications = useTabNotifications();
+
   const tabs = [
-    { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false },
-    { id: 'quests' as const, label: 'Jornada', icon: '📜', disabled: false },
-    { id: 'attributes' as const, label: 'Atributos', icon: '◆', disabled: false },
-    { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false },
-    { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false },
-    { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false },
-    { id: 'abyss' as const, label: 'Abismo', icon: isAbyssUnlocked ? '🌊' : '🔒', disabled: false },
-    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🏰' : '🔒', disabled: false },
-    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false },
-    { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false },
-    { id: 'transcendence' as const, label: 'Transcendência', icon: isTranscendenceUnlocked ? '🌌' : '🔒', disabled: false },
-    { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false },
-    { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉', disabled: false },
-    { id: 'codex' as const, label: 'Codex', icon: '📖', disabled: false },
-    { id: 'guide' as const, label: 'Guia', icon: '▤', disabled: false },
-    { id: 'saves' as const, label: 'Saves', icon: '💾', disabled: false },
-    { id: 'options' as const, label: 'Opções', icon: '⚙️', disabled: false },
+    { id: 'combat' as const, label: 'Combate', icon: '⚔', disabled: false, hasNotification: false },
+    { id: 'quests' as const, label: 'Jornada', icon: '📜', disabled: false, hasNotification: tabNotifications.quests },
+    { id: 'attributes' as const, label: 'Atributos', icon: '◆', disabled: false, hasNotification: tabNotifications.attributes },
+    { id: 'skills' as const, label: 'Habilidades', icon: '★', disabled: false, hasNotification: tabNotifications.skills },
+    { id: 'equipment' as const, label: 'Equipamento', icon: '🛡️', disabled: false, hasNotification: false },
+    { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false, hasNotification: false },
+    { id: 'abyss' as const, label: 'Abismo', icon: isAbyssUnlocked ? '🌊' : '🔒', disabled: false, hasNotification: isAbyssUnlocked && tabNotifications.abyss },
+    { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🏰' : '🔒', disabled: false, hasNotification: isCitadelUnlocked && tabNotifications.citadel },
+    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false, hasNotification: false },
+    { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false, hasNotification: tabNotifications.prestige },
+    { id: 'transcendence' as const, label: 'Transcendência', icon: isTranscendenceUnlocked ? '🌌' : '🔒', disabled: false, hasNotification: isTranscendenceUnlocked && tabNotifications.transcendence },
+    { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false, hasNotification: false },
+    { id: 'bestiary' as const, label: 'Bestiário', icon: '🐉', disabled: false, hasNotification: false },
+    { id: 'codex' as const, label: 'Codex', icon: '📖', disabled: false, hasNotification: false },
+    { id: 'guide' as const, label: 'Guia', icon: '▤', disabled: false, hasNotification: false },
+    { id: 'saves' as const, label: 'Saves', icon: '💾', disabled: false, hasNotification: false },
+    { id: 'options' as const, label: 'Opções', icon: '⚙️', disabled: false, hasNotification: false },
   ];
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab);
@@ -8108,7 +8112,10 @@ export default function GameUI() {
               className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'tab-btn-citadel' : ''}`}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
+              <span style={{ fontSize: '0.7rem', lineHeight: 1, position: 'relative' }}>
+                {tab.icon}
+                {tab.hasNotification && <TabBadgeDot />}
+              </span>
               {tab.label}
             </button>
           ))}
@@ -8173,7 +8180,10 @@ export default function GameUI() {
                   opacity: tab.disabled ? 0.45 : 1
                 }}
               >
-                <span className="carousel-icon">{tab.icon}</span>
+                <span className="carousel-icon" style={{ position: 'relative' }}>
+                  {tab.icon}
+                  {tab.hasNotification && <TabBadgeDot />}
+                </span>
                 <span className="carousel-label">{tab.label}</span>
               </button>
             );

@@ -941,6 +941,22 @@ input, textarea, [contenteditable="true"] {
 .badge-unlocked { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
 .badge-locked { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
 
+/* ── Bolinha de notificação em abas (algo novo para ver/coletar) ── */
+.tab-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.6);
+  pointer-events: none;
+  z-index: 2;
+}
+.tab-badge-dot-pulse {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
 /* ── Console de Combate ── */
 .combat-console {
   background: rgba(0, 0, 0, 0.5);

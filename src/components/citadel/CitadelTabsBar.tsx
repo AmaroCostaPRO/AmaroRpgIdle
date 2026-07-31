@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
+import { useGameStore } from '../../store/useGameStore';
+import { useRelicStore } from '../../store/useRelicStore';
+import { getCitadelBuildingAffordability } from '../../core/citadelFormulas';
+import { TabBadgeDot } from '../TabBadgeDot';
 
 export type CitadelSubTab = 'overview' | 'vault' | 'expeditions' | 'academy' | 'watchTower' | 'forgeWorkshop' | 'cosmicSiphon' | 'synchronyAltar' | 'relicLab' | 'alchemyLab' | 'huntSanctuary' | 'engravingChamber';
 
@@ -30,6 +34,11 @@ interface Props {
  */
 export const CitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
+  const character = useGameStore((state) => state.character);
+  const unstableSoulFragments = useRelicStore((state) => state.unstableSoulFragments);
+  const buildingAffordability = getCitadelBuildingAffordability(character, unstableSoulFragments);
+  const hasBuildingNotification = (id: CitadelSubTab): boolean =>
+    id !== 'overview' && !!buildingAffordability[id as keyof typeof buildingAffordability];
 
   useEffect(() => {
     const activeIdx = CITADEL_SUB_TABS.findIndex((t) => t.id === subTab);
@@ -92,7 +101,10 @@ export const CitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
               className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1 }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
+              <span style={{ fontSize: '0.7rem', lineHeight: 1, position: 'relative' }}>
+                {tab.icon}
+                {hasBuildingNotification(tab.id) && <TabBadgeDot />}
+              </span>
               {tab.label}
             </button>
           ))}
@@ -147,7 +159,10 @@ export const CitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
                 style={{ flex: '0 0 33.333%', width: '33.333%' }}
               >
-                <span className="carousel-icon">{tab.icon}</span>
+                <span className="carousel-icon" style={{ position: 'relative' }}>
+                  {tab.icon}
+                  {hasBuildingNotification(tab.id) && <TabBadgeDot />}
+                </span>
                 <span className="carousel-label">{tab.label}</span>
               </button>
             );

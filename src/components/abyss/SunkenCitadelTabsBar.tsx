@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
 import type { DistrictId } from '../../core/types';
-import { DISTRICT_NAMES, DISTRICT_ICONS } from '../../core/sunkenCitadelFormulas';
+import { DISTRICT_NAMES, DISTRICT_ICONS, getSunkenBuildingAffordability } from '../../core/sunkenCitadelFormulas';
+import { useGameStore } from '../../store/useGameStore';
+import { TabBadgeDot } from '../TabBadgeDot';
 
 export type SunkenSubTab = DistrictId | 'echoes' | 'overview';
 
@@ -28,6 +30,10 @@ interface Props {
  */
 export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => {
   const [desktopStartIndex, setDesktopStartIndex] = useState(0);
+  const character = useGameStore((state) => state.character);
+  const districtAffordability = getSunkenBuildingAffordability(character);
+  const hasDistrictNotification = (id: SunkenSubTab): boolean =>
+    id !== 'overview' && id !== 'echoes' && !!districtAffordability[id as DistrictId];
 
   useEffect(() => {
     const activeIdx = SUNKEN_SUB_TABS.findIndex((t) => t.id === subTab);
@@ -90,7 +96,10 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
               className={`tab-btn ${subTab === tab.id ? 'active' : ''}`}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, minWidth: 0, overflow: 'hidden' }}
             >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1, flexShrink: 0 }}>{tab.icon}</span>
+              <span style={{ fontSize: '0.7rem', lineHeight: 1, flexShrink: 0, position: 'relative' }}>
+                {tab.icon}
+                {hasDistrictNotification(tab.id) && <TabBadgeDot />}
+              </span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tab.label}</span>
             </button>
           ))}
@@ -145,7 +154,10 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
                 style={{ flex: '0 0 33.333%', width: '33.333%' }}
               >
-                <span className="carousel-icon">{tab.icon}</span>
+                <span className="carousel-icon" style={{ position: 'relative' }}>
+                  {tab.icon}
+                  {hasDistrictNotification(tab.id) && <TabBadgeDot />}
+                </span>
                 <span className="carousel-label">{tab.label}</span>
               </button>
             );

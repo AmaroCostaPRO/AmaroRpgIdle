@@ -9,8 +9,9 @@
 // arquivo) — as Palavras Rúnicas propriamente ditas vivem em `runeFormulas.ts` (mesmo módulo do
 // resto do sistema de soquetes/runas).
 
-import type { BaseStats, DistrictId, DrownedEcho, EchoTraitId, EchoVocation, EquipmentItem, SunkenDistrictState } from './types';
+import type { BaseStats, Character, DistrictId, DrownedEcho, EchoTraitId, EchoVocation, EquipmentItem, SunkenDistrictState } from './types';
 import { StatEngine } from './StatEngine';
+import { COASTAL_DOCK_MAX_LEVEL, getCoastalDockUpgradeCost, getFishingBufferCap } from './abyssFormulas';
 
 // ─── Distritos: drenagem e restauração ───────────────────────────────────────
 
@@ -457,4 +458,70 @@ export const rollAbyssalSetDrop = (classId: string, stage: number): EquipmentIte
     spriteName: `${classId}-${slot}`,
     stage,
   };
+};
+
+// ── Indicador de upgrade disponível (bolinha de notificação na aba Abismo / sub-abas de distrito) ──
+// Espelha as mesmas checagens de recursos já feitas em `startDistrictDrain`/`upgradeDistrictRestoration`/
+// `upgradeDivingSuit` (useGameStore.ts), incluindo os descontos de Maré Baixa e do perk de Mergulhador
+// dos Ecos alocados — sem essas checagens a bolinha poderia acender mesmo sem recursos suficientes
+// para a ação de fato ser aceita pelo store. O upgrade do Traje de Mergulho é exibido dentro do
+// distrito 'dock' (Doca Batial) assim que restaurado, então sua disponibilidade soma na entrada 'dock'.
+export const getSunkenBuildingAffordability = (character: Character): Record<DistrictId, boolean> => {
+  const result: Record<DistrictId, boolean> = {
+    dock: false, echoHall: false, forge: false, archive: false, temple: false, throne: false,
+  };
+  const sunken = character.sunkenCitadel;
+  if (!sunken) return result;
+
+  const pearls = character.pearls || 0;
+  const coral = character.materials?.coral || 0;
+  const diverDiscount = 1 - getVocationPerkTotal(sunken.echoes || [], 'diver');
+  const tideDiscount = getTidePhase() === 'low' ? TIDE_LOW_DRAIN_COST_MULT : 1.0;
+
+  for (const id of DISTRICT_IDS) {
+    const state = sunken.districts[id];
+    const flooded = !state || state.flooded;
+    const draining = !!state?.drainUpgrade;
+    const restoring = !!state?.restoreUpgrade;
+    const restorationLevel = state?.restorationLevel || 0;
+
+    if (flooded && !draining) {
+      const base = DISTRICT_DRAIN_COST[id];
+      const cost = { pearls: Math.round(base.pearls * tideDiscount * diverDiscount), coral: Math.round(base.coral * tideDiscount * diverDiscount) };
+      result[id] = pearls >= cost.pearls && coral >= cost.coral;
+    } else if (!flooded && !restoring && restorationLevel < 3) {
+      const base = getRestorationCost(id, (restorationLevel + 1) as 2 | 3);
+      const cost = { pearls: Math.round(base.pearls * diverDiscount), coral: Math.round(base.coral * diverDiscount) };
+      result[id] = pearls >= cost.pearls && coral >= cost.coral;
+    }
+  }
+
+  const dockRestored = (sunken.districts.dock?.restorationLevel || 0) >= 1;
+  const suitLevel = character.abyss?.divingSuitLevel || 0;
+  const suitUpgrading = !!character.abyss?.divingSuitUpgrade;
+  if (dockRestored && !suitUpgrading && suitLevel < DIVE_SUIT_MAX_LEVEL) {
+    const suitCost = getDiveSuitUpgradeCost(suitLevel + 1);
+    if (pearls >= suitCost.pearls && coral >= suitCost.coral) result.dock = true;
+  }
+
+  return result;
+};
+
+export const sunkenCitadelHasAffordableUpgrade = (character: Character): boolean =>
+  Object.values(getSunkenBuildingAffordability(character)).some(Boolean);
+
+// Doca de Pesca do Litoral (CoastalPanel) — rede na capacidade máxima (pronta para coleta manual)
+// ou upgrade de nível acessível. Fica fora de `getSunkenBuildingAffordability` porque o Litoral não
+// é um distrito da Cidadela Submersa (é acessado antes de "entrar" na Cidadela, via aba Abismo).
+export const coastalHasNotification = (character: Character): boolean => {
+  const coastal = character.coastal;
+  if (!coastal) return false;
+  const bufferReady = Math.floor(coastal.passiveBuffer || 0) >= getFishingBufferCap(coastal.dockLevel || 0);
+  if (bufferReady) return true;
+  if (coastal.dockUpgrade) return false;
+  const nextDockLevel = (coastal.dockLevel || 0) + 1;
+  if (nextDockLevel > COASTAL_DOCK_MAX_LEVEL) return false;
+  const cost = getCoastalDockUpgradeCost(nextDockLevel);
+  const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
+  return character.gold >= cost.gold && materials.meat >= cost.meat;
 };

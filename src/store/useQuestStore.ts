@@ -105,6 +105,16 @@ export const isMainQuestUnlocked = (quest: QuestDef, mainQuests: Record<string, 
   return true;
 };
 
+export const hasClaimableQuest = (mainQuests: Record<string, QuestDef>, proceduralQuests: QuestDef[]): boolean => {
+  for (const quest of Object.values(mainQuests)) {
+    if (quest.isCompleted && !quest.isClaimed) return true;
+  }
+  for (const quest of proceduralQuests) {
+    if (quest.isCompleted && !quest.isClaimed) return true;
+  }
+  return false;
+};
+
 const defaultMainQuestsMap = (): Record<string, QuestDef> => {
   const map: Record<string, QuestDef> = {};
   for (const q of MAIN_QUESTS_CATALOG) {

@@ -1,7 +1,7 @@
 // Fórmulas de custo/nível-máximo compartilhadas entre a lógica do store (useGameStore.ts)
 // e os painéis de UI da Citadel/Forja, que antes reimplementavam os mesmos valores só para preview.
 
-import type { HuntContract } from './types';
+import type { Character, HuntContract } from './types';
 
 // Construção central da Cidadela — nunca fica "não construída" (começa no Nível 1) e seu
 // nível funciona como teto para o nível de todas as outras construções (ex: o Depósito só
@@ -272,3 +272,117 @@ export const getMysticFusionCost = (currentMysticLevel: number): { cost: number;
     fragmentCost: extraFragmentCosts[currentMysticLevel] || 50000,
   };
 };
+
+// ── Indicador de upgrade disponível (bolinha de notificação nas abas) ──────────────────────────
+// Espelha, para cada construção, a mesma condição de "botão de melhoria habilitado" já usada no
+// respectivo painel (src/components/citadel/*Panel.tsx via CitadelBuildingPanel): nível abaixo do
+// máximo, sem melhoria em andamento, sem bloqueio pelo Centro de Comando e recursos suficientes.
+// `unstableSoulFragments` vem do useRelicStore (não faz parte de `Character`) — precisa ser passado.
+export const getCitadelBuildingAffordability = (
+  character: Character,
+  unstableSoulFragments: number
+): Record<CitadelStructureKey, boolean> => {
+  const citadel = character.citadel;
+  const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0, coral: 0 };
+  const essence = character.transcendenceEssence || 0;
+  const commandCenterLevel = citadel?.commandCenter.level || 1;
+
+  const result: Record<CitadelStructureKey, boolean> = {
+    commandCenter: false, vault: false, expeditions: false, academy: false, watchTower: false,
+    forgeWorkshop: false, cosmicSiphon: false, synchronyAltar: false, relicLab: false,
+    alchemyLab: false, huntSanctuary: false, engravingChamber: false,
+  };
+  if (!citadel) return result;
+
+  const check = (
+    key: CitadelStructureKey,
+    level: number,
+    maxLevel: number,
+    upgradeInProgress: unknown,
+    affordable: boolean,
+    gatedByCommandCenter = true
+  ) => {
+    if (level >= maxLevel || upgradeInProgress) return;
+    const lockedByCommandCenter = gatedByCommandCenter && (level + 1) > commandCenterLevel;
+    result[key] = affordable && !lockedByCommandCenter;
+  };
+
+  check('commandCenter', citadel.commandCenter.level, COMMAND_CENTER_MAX_LEVEL, citadel.commandCenter.upgradeInProgress,
+    (() => {
+      const cost = COMMAND_CENTER_UPGRADE_COST(citadel.commandCenter.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
+    })(), false);
+
+  check('vault', citadel.vault.level, VAULT_MAX_LEVEL, citadel.vault.upgradeInProgress,
+    (() => {
+      const cost = VAULT_UPGRADE_COST(citadel.vault.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone;
+    })());
+
+  check('expeditions', citadel.expeditions.level, EXPEDITIONS_MAX_LEVEL, citadel.expeditions.upgradeInProgress,
+    (() => {
+      const cost = EXPEDITIONS_UPGRADE_COST(citadel.expeditions.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
+    })());
+
+  check('academy', citadel.academy.level, ACADEMY_MAX_LEVEL, citadel.academy.upgradeInProgress,
+    (() => {
+      const cost = ACADEMY_UPGRADE_COST(citadel.academy.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
+    })());
+
+  check('watchTower', citadel.watchTower.level, WATCH_TOWER_MAX_LEVEL, citadel.watchTower.upgradeInProgress,
+    (() => {
+      const cost = WATCH_TOWER_UPGRADE_COST(citadel.watchTower.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone && materials.meat >= cost.meat;
+    })());
+
+  check('forgeWorkshop', citadel.forgeWorkshop.level, FORGE_WORKSHOP_MAX_LEVEL, citadel.forgeWorkshop.upgradeInProgress,
+    (() => {
+      const cost = FORGE_WORKSHOP_UPGRADE_COST(citadel.forgeWorkshop.level + 1);
+      return materials.wood >= cost.wood && materials.stone >= cost.stone && materials.studyInsignias >= cost.studyInsignias;
+    })());
+
+  check('cosmicSiphon', citadel.cosmicSiphon.level, COSMIC_SIPHON_MAX_LEVEL, citadel.cosmicSiphon.upgradeInProgress,
+    (() => {
+      const cost = COSMIC_SIPHON_UPGRADE_COST(citadel.cosmicSiphon.level + 1);
+      return materials.stone >= cost.stone && materials.wood >= cost.wood && essence >= cost.transcendenceEssence;
+    })());
+
+  check('synchronyAltar', citadel.synchronyAltar.level, SYNCHRONY_ALTAR_MAX_LEVEL, citadel.synchronyAltar.upgradeInProgress,
+    (() => {
+      const cost = SYNCHRONY_ALTAR_UPGRADE_COST(citadel.synchronyAltar.level + 1);
+      return materials.stone >= cost.stone && essence >= cost.transcendenceEssence && materials.studyInsignias >= cost.studyInsignias;
+    })());
+
+  check('relicLab', citadel.relicLab.level, RELIC_LAB_MAX_LEVEL, citadel.relicLab.upgradeInProgress,
+    (() => {
+      const cost = RELIC_LAB_UPGRADE_COST(citadel.relicLab.level + 1);
+      return materials.stone >= cost.stone && materials.wood >= cost.wood && unstableSoulFragments >= cost.unstableSoulFragments;
+    })());
+
+  check('alchemyLab', citadel.alchemyLab.level, ALCHEMY_LAB_MAX_LEVEL, citadel.alchemyLab.upgradeInProgress,
+    (() => {
+      const cost = ALCHEMY_LAB_UPGRADE_COST(citadel.alchemyLab.level + 1);
+      return materials.wood >= cost.wood && materials.meat >= cost.meat && materials.studyInsignias >= cost.studyInsignias;
+    })());
+
+  check('huntSanctuary', citadel.huntSanctuary.level, HUNT_SANCTUARY_MAX_LEVEL, citadel.huntSanctuary.upgradeInProgress,
+    (() => {
+      const cost = HUNT_SANCTUARY_UPGRADE_COST(citadel.huntSanctuary.level + 1);
+      return materials.wood >= cost.wood && materials.meat >= cost.meat && materials.studyInsignias >= cost.studyInsignias;
+    })());
+
+  if (citadel.engravingChamber) {
+    check('engravingChamber', citadel.engravingChamber.level, ENGRAVING_CHAMBER_MAX_LEVEL, citadel.engravingChamber.upgradeInProgress,
+      (() => {
+        const cost = ENGRAVING_CHAMBER_UPGRADE_COST(citadel.engravingChamber!.level + 1);
+        return materials.wood >= cost.wood && materials.stone >= cost.stone && (materials.coral || 0) >= cost.coral;
+      })());
+  }
+
+  return result;
+};
+
+export const citadelHasAffordableUpgrade = (character: Character, unstableSoulFragments: number): boolean =>
+  Object.values(getCitadelBuildingAffordability(character, unstableSoulFragments)).some(Boolean);

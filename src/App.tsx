@@ -391,7 +391,7 @@ const App: React.FC = () => {
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <p>
-                Todos os 6 Atos da Jornada agora têm 3 capítulos (18 → 24 no total), com um novo Artefato de História fechando a lacuna do Ato IV, textos de recompensa/lore corrigidos, e 3 ajustes de UX no encerramento de capítulo: a cutscene do próximo Ato não aparece mais por cima do banner de conclusão, o botão de fechar voltou para o lado certo, e ganhar um Artefato agora mostra uma revelação visual dedicada.
+                Confira as novidades desta versão:
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>

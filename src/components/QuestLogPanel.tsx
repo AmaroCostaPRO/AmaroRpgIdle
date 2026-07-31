@@ -75,7 +75,7 @@ export const QuestLogPanel: React.FC = () => {
   // Apenas missões do Ato desbloqueado e Atos anteriores são exibidas
   const visibleMainQuests = mainQuestsList.filter((q) => (q.act || 1) <= maxUnlockedAct);
 
-  const visibleActs = Array.from(new Set(visibleMainQuests.map((q) => q.act || 1))).sort((a, b) => a - b);
+  const visibleActs = Array.from(new Set(visibleMainQuests.map((q) => q.act || 1))).sort((a, b) => b - a);
 
   const isActFullyClaimed = (act: number) =>
     mainQuestsList.filter((q) => q.act === act).every((q) => q.isClaimed);
