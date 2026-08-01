@@ -150,11 +150,13 @@ export const SunkenCitadelTabsBar: React.FC<Props> = ({ subTab, setSubTab }) => 
                   setSubTab(tab.id);
                 }}
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''}`}
-                style={{ position: 'relative', flex: '0 0 33.333%', width: '33.333%' }}
+                style={{ flex: '0 0 33.333%', width: '33.333%' }}
               >
-                <span className="carousel-icon">{tab.icon}</span>
-                <span className="carousel-label">{tab.label}</span>
-                {hasDistrictNotification(tab.id) && <TabBadgeDot />}
+                <span style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span className="carousel-icon">{tab.icon}</span>
+                  <span className="carousel-label">{tab.label}</span>
+                  {hasDistrictNotification(tab.id) && <TabBadgeDot />}
+                </span>
               </button>
             );
           })}

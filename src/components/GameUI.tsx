@@ -8173,15 +8173,16 @@ export default function GameUI() {
                 title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
                 className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'carousel-tab-btn-citadel' : ''}`}
                 style={{
-                  position: 'relative',
                   flex: '0 0 33.333%',
                   width: '33.333%',
                   opacity: tab.disabled ? 0.45 : 1
                 }}
               >
-                <span className="carousel-icon">{tab.icon}</span>
-                <span className="carousel-label">{tab.label}</span>
-                {tab.hasNotification && <TabBadgeDot />}
+                <span style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span className="carousel-icon">{tab.icon}</span>
+                  <span className="carousel-label">{tab.label}</span>
+                  {tab.hasNotification && <TabBadgeDot />}
+                </span>
               </button>
             );
           })}
