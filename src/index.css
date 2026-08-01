@@ -283,7 +283,7 @@ input, textarea, [contenteditable="true"] {
 }
 
 .ui-container {
-  width: 620px;
+  width: 630px;
   height: 600px;
   display: flex;
   flex-direction: column;
@@ -605,6 +605,165 @@ input, textarea, [contenteditable="true"] {
   50% { box-shadow: 0 0 16px rgba(168, 85, 247, 0.4); }
 }
 
+/* ── Navegação por categorias — rail lateral (desktop) / menu em folha (mobile) ── */
+.nav-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  width: calc(5.75rem + 5px);
+  flex-shrink: 0;
+  padding: 0.6rem;
+  overflow-y: auto;
+}
+
+.nav-sidebar-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.3rem 0.2rem;
+  flex-shrink: 0;
+}
+
+.nav-sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.3rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-sidebar-item:hover { color: #e2e8f0; }
+
+.nav-sidebar-item.active {
+  background: var(--surface-3);
+  color: var(--gold-300);
+  border-color: var(--border-accent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 12px var(--gold-glow);
+}
+
+.nav-sidebar-icon { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+.nav-sidebar-label { line-height: 1.15; text-align: center; }
+
+/* Botão ☰ que abre o menu de categorias no mobile — escondido no desktop (o sidebar já
+   cobre a navegação lá), reaparece via media query junto com o resto do layout mobile. */
+.nav-menu-trigger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  background: var(--surface-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--gold-400);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.nav-menu-trigger:hover { color: var(--gold-300); border-color: var(--border-active); }
+
+/* ── Menu de navegação em folha (mobile) — substitui a antiga barra inferior fixa ── */
+.nav-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 8, 15, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 80;
+  animation: nav-sheet-fade-in 0.2s ease-out;
+}
+
+.nav-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 81;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 0.75rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  animation: nav-sheet-slide-up 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.nav-sheet-scrim.closing {
+  animation: nav-sheet-fade-out 0.2s ease-in forwards;
+}
+
+.nav-sheet.closing {
+  animation: nav-sheet-slide-down 0.2s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes nav-sheet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes nav-sheet-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes nav-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes nav-sheet-slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.nav-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.nav-sheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.4rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.nav-sheet-item.active {
+  background: var(--surface-3);
+  color: var(--gold-300);
+  border-color: var(--border-accent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 12px var(--gold-glow);
+}
+
+.nav-sheet-icon { font-size: 1.4rem; line-height: 1; }
+.nav-sheet-label { line-height: 1.1; text-align: center; }
+
 /* ── Skill Node (Árvore de habilidades) ── */
 .skill-node {
   position: absolute;
@@ -790,16 +949,8 @@ input, textarea, [contenteditable="true"] {
 
 /* ── Halo de revelação de Artefato de História (ArtifactRevealOverlay) ── */
 @keyframes artifact-reveal-glow {
-  0%, 100% {
-    box-shadow:
-      0 0 40px rgba(217,70,239,0.35),
-      0 0 70px rgba(245,158,11,0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 55px rgba(217,70,239,0.55),
-      0 0 90px rgba(245,158,11,0.3);
-  }
+  0%, 100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.75; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
 }
 
 .forge-chain-path {
@@ -1220,7 +1371,7 @@ input, textarea, [contenteditable="true"] {
   }
 
   .ui-container {
-    width: 800px;
+    width: 810px;
     max-width: 100%;
     height: 500px;
   }
@@ -1319,6 +1470,14 @@ input, textarea, [contenteditable="true"] {
 
   .tabs-container-desktop {
     display: none !important;
+  }
+
+  .nav-sidebar {
+    display: none !important;
+  }
+
+  .nav-menu-trigger {
+    display: inline-flex !important;
   }
 
   /* Carrossel de Abas Mobile 3D Rotativo (Roleta Contínua) */
@@ -1452,10 +1611,15 @@ input, textarea, [contenteditable="true"] {
     flex: 1 !important;
     min-height: 0 !important;
     overflow-y: auto !important;
-    margin-top: -3rem !important;
-    padding-top: calc(3rem + 0.75rem) !important;
     padding-left: 6px !important;
     padding-right: 6px !important;
+  }
+
+  /* A compensação de sobreposição só faz sentido quando existe uma barra de sub-abas
+     flutuando sobre o conteúdo (Combate, sem categoria aberta, não tem nenhuma). */
+  .game-ui-root:not(.no-subtabs) .ui-scrollable-content {
+    margin-top: -3rem !important;
+    padding-top: calc(3rem + 6px) !important;
   }
 
   .game-ui-root .ui-scrollable-content::-webkit-scrollbar,

@@ -65,10 +65,12 @@ export const ArtifactRevealOverlay: React.FC = () => {
             justifyContent: 'center',
           }}
         >
-          {/* Halo de luz num elemento próprio, maior que o sprite e sem clipe de borda — a versão
-              anterior desenhava o gradiente radial dentro de uma caixa com `border-radius: 50%` do
-              mesmo tamanho do sprite, então o gradiente era cortado antes de esmaecer por completo,
-              criando um anel visível ao redor da transparência do PNG do artefato. */}
+          {/* Halo de luz num elemento próprio, maior que o sprite. A animação anima `opacity`/
+              `transform` (não `box-shadow`) de propósito: `box-shadow` é desenhado a partir da
+              borda do elemento pra fora, então num círculo isso pinta um anel de luz forte só
+              fora do círculo — deixando a região atrás do sprite (bem dentro do raio) sem brilho.
+              O `transform` do keyframe precisa incluir o mesmo `translate(-50%, -50%)` da
+              centralização abaixo, senão a animação sobrescreve e o halo pula pro canto. */}
           <div
             style={{
               position: 'absolute',
@@ -78,7 +80,9 @@ export const ArtifactRevealOverlay: React.FC = () => {
               top: '50%',
               transform: 'translate(-50%, -50%)',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(217,70,239,0.18) 0%, rgba(245,158,11,0.08) 35%, transparent 58%)',
+              background: 'radial-gradient(circle, rgba(217,70,239,0.35) 0%, rgba(245,158,11,0.18) 40%, transparent 85%)',
+              filter: 'blur(8px)',
+              mixBlendMode: 'screen',
               animation: 'artifact-reveal-glow 2.2s ease-in-out infinite',
               pointerEvents: 'none',
             }}

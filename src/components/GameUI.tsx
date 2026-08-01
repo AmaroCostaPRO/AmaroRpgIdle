@@ -55,6 +55,10 @@ import { useHoldRepeat } from '../hooks/useHoldRepeat';
 import { getRarityColor, getRarityBg, slotLabels, slotIcons, statLabels, isPercentStat, formatStatValue, getSetVisual, getSetPrefixAndColor } from './shared/itemVisuals';
 import { ModalCloseButton } from './shared/ModalCloseButton';
 import { RuneInventoryPanel } from './shared/RuneInventoryPanel';
+import { SubTabBar } from './nav/SubTabBar';
+import { CategorySidebar } from './nav/CategorySidebar';
+import { MobileNavSheet } from './nav/MobileNavSheet';
+import { NAV_CATEGORIES, CATEGORY_DEFAULT_TAB, findCategoryForTab, type CategoryId, type TopLevelTabId } from './nav/navConfig';
 
 // Toggle para reexibir o Modo de Teste (5x) na UI, usado apenas em testes internos.
 const SHOW_TEST_MODE_TOGGLE = false;
@@ -7537,7 +7541,6 @@ export default function GameUI() {
       { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
     ],
     forgeWorkshop: [
-      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
       { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
@@ -7556,7 +7559,6 @@ export default function GameUI() {
       { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
       { icon: '💠', value: citadelSoulFragments, color: '#67e8f9', label: 'Fragmentos de Alma Instável' },
-      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
     ],
     alchemyLab: [
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
@@ -7565,7 +7567,6 @@ export default function GameUI() {
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
     ],
     huntSanctuary: [
-      { icon: '🪙', value: character.gold || 0, color: '#fbbf24', label: 'Ouro' },
       { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
       { icon: '🥩', value: citadelMaterials.meat, color: '#fca5a5', label: 'Carne' },
       { icon: '📜', value: citadelMaterials.studyInsignias, color: '#93c5fd', label: 'Insígnias de Estudo' },
@@ -7578,7 +7579,7 @@ export default function GameUI() {
       { icon: '🪸', value: citadelMaterials.coral || 0, color: '#fb7185', label: 'Coral Vivo' },
       { icon: '🦪', value: character.pearls || 0, color: '#a5f3fc', label: 'Pérolas Abissais' },
     ],
-  }), [citadelMaterials, character.gold, character.transcendenceEssence, citadelSoulFragments, character.pearls]);
+  }), [citadelMaterials, character.transcendenceEssence, citadelSoulFragments, character.pearls]);
 
   // Recursos do cabeçalho enquanto a Cidadela Submersa está aberta — mesmos em qualquer distrito
   // (Pérolas/Coral movem quase toda economia dela), sem precisar de um mapa por sub-aba como a
@@ -7589,7 +7590,28 @@ export default function GameUI() {
     { icon: '🎭', value: character.sunkenCitadel?.echoes.length || 0, color: '#c4b5fd', label: 'Ecos Afogados' },
   ], [character.pearls, citadelMaterials.coral, character.sunkenCitadel?.echoes.length]);
 
-  const [activeTab, setActiveTab] = useState<'combat' | 'quests' | 'tower' | 'attributes' | 'skills' | 'equipment' | 'forge' | 'prestige' | 'transcendence' | 'shop' | 'bestiary' | 'codex' | 'guide' | 'saves' | 'options' | 'citadel' | 'abyss'>('combat');
+  // Navegação em 2 níveis: activeCategory decide qual categoria está aberta (null = Combate,
+  // sempre acessível em 1 clique fora do sistema de categorias); activeSubTab guarda, por
+  // categoria, qual das suas abas internas foi vista por último. activeTab é derivado —
+  // todo o corpo do render abaixo continua comparando `activeTab === 'x'` sem nenhuma mudança.
+  const [activeCategory, setActiveCategory] = useState<CategoryId | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<Record<CategoryId, TopLevelTabId>>(CATEGORY_DEFAULT_TAB);
+  // Menu de categorias no mobile — folha aberta pelo botão ☰ no rodapé (header-panel), em vez
+  // de uma barra sempre visível disputando espaço com o botão Sair/Voltar do mesmo rodapé.
+  const [navSheetOpen, setNavSheetOpen] = useState(false);
+  const activeTab: TopLevelTabId = activeCategory === null ? 'combat' : activeSubTab[activeCategory];
+
+  // Substitui o antigo setActiveTab: navega para qualquer aba resolvendo automaticamente
+  // a categoria dona dela (ou null/Combate se for a própria aba de combate).
+  const navigateTo = (tabId: TopLevelTabId) => {
+    const category = findCategoryForTab(tabId);
+    if (category === null) {
+      setActiveCategory(null);
+      return;
+    }
+    setActiveCategory(category);
+    setActiveSubTab((prev) => ({ ...prev, [category]: tabId }));
+  };
   const [resourceTooltip, setResourceTooltip] = useState<{ idx: number; label: string; x: number; y: number; placement: 'above' | 'below' } | null>(null);
 
   // Fecha o tooltip de recurso clicado ao clicar em qualquer outro lugar da tela
@@ -7650,7 +7672,7 @@ export default function GameUI() {
   // (padrão da Torre, que troca de conteúdo ao iniciar a subida).
   useEffect(() => {
     const unsubscribe = bridge.subscribe(GameEvent.DIVE_STARTED, () => {
-      setActiveTab('combat');
+      navigateTo('combat');
     });
     return () => unsubscribe();
   }, []);
@@ -7680,7 +7702,6 @@ export default function GameUI() {
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
   }, []);
-  const [desktopStartIndex, setDesktopStartIndex] = useState(0);
   const [citadelSubTab, setCitadelSubTab] = useState<CitadelSubTab>('overview');
 
   useEffect(() => {
@@ -7779,7 +7800,7 @@ export default function GameUI() {
     // 1.5s para escurecer totalmente
     setTimeout(() => {
       performPrestige();
-      setActiveTab('combat');
+      navigateTo('combat');
       setTransitionText('Sua Alma Ascendeu!');
       
       // Mantém na tela totalmente escura por 1.2s para leitura e compreensão do jogador
@@ -7801,17 +7822,6 @@ export default function GameUI() {
     }
   }, [showExitConfirm]);
 
-  useEffect(() => {
-    const activeIdx = tabs.findIndex(t => t.id === activeTab);
-    if (activeIdx !== -1) {
-      if (activeIdx < desktopStartIndex) {
-        setDesktopStartIndex(activeIdx);
-      } else if (activeIdx >= desktopStartIndex + 5) {
-        setDesktopStartIndex(activeIdx - 4);
-      }
-    }
-  }, [activeTab]);
-
   const isCitadelUnlocked = character.citadel?.unlocked || (character.ascensionCount || 0) >= 1;
   // v10.0.0: a aba 🌊 Abismo só existe com o Litoral descoberto (completar a Fase 2) — mesma
   // regra de visibilidade condicional da Transcendência abaixo.
@@ -7829,7 +7839,7 @@ export default function GameUI() {
     { id: 'forge' as const, label: 'Forja', icon: '⚒️', disabled: false, hasNotification: false },
     { id: 'abyss' as const, label: 'Abismo', icon: isAbyssUnlocked ? '🌊' : '🔒', disabled: false, hasNotification: isAbyssUnlocked && tabNotifications.abyss },
     { id: 'citadel' as const, label: 'Cidadela', icon: isCitadelUnlocked ? '🏰' : '🔒', disabled: false, hasNotification: isCitadelUnlocked && tabNotifications.citadel },
-    { id: 'tower' as const, label: 'Torre', icon: '🏰', disabled: false, hasNotification: false },
+    { id: 'tower' as const, label: 'Torre', icon: '🏯', disabled: false, hasNotification: false },
     { id: 'prestige' as const, label: 'Ascensão', icon: '☾', disabled: false, hasNotification: tabNotifications.prestige },
     { id: 'transcendence' as const, label: 'Transcendência', icon: isTranscendenceUnlocked ? '🌌' : '🔒', disabled: false, hasNotification: isTranscendenceUnlocked && tabNotifications.transcendence },
     { id: 'shop' as const, label: 'Loja', icon: '🛒', disabled: false, hasNotification: false },
@@ -7837,15 +7847,19 @@ export default function GameUI() {
     { id: 'codex' as const, label: 'Codex', icon: '📖', disabled: false, hasNotification: false },
     { id: 'guide' as const, label: 'Guia', icon: '▤', disabled: false, hasNotification: false },
     { id: 'saves' as const, label: 'Saves', icon: '💾', disabled: false, hasNotification: false },
-    { id: 'options' as const, label: 'Opções', icon: '⚙️', disabled: false, hasNotification: false },
+    { id: 'options' as const, label: 'Configurações', icon: '⚙️', disabled: false, hasNotification: false },
   ];
 
-  const activeIndex = tabs.findIndex(t => t.id === activeTab);
-  const extendedTabs = [
-    tabs[tabs.length - 1], // Guia no início
-    ...tabs,
-    tabs[0]                // Combate no final
-  ];
+  // Itens navegáveis por swipe/carrossel na categoria atualmente aberta (null = Combate, sem sub-abas).
+  const activeCategoryItems = activeCategory === null
+    ? []
+    : NAV_CATEGORIES.find((cat) => cat.id === activeCategory)?.items.map((id) => tabs.find((t) => t.id === id)!).filter(Boolean) ?? [];
+
+  const categoryHasNotification = (catId: CategoryId): boolean => {
+    const cat = NAV_CATEGORIES.find((c) => c.id === catId);
+    if (!cat) return false;
+    return cat.items.some((id) => tabs.find((t) => t.id === id)?.hasNotification);
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (window.innerWidth > 840) return;
@@ -7899,37 +7913,55 @@ export default function GameUI() {
         });
         return;
       }
+      // Fora da Cidadela/Abismo, o swipe cicla as sub-abas da categoria aberta (sem virar
+      // para outra categoria — troca de categoria é só pelo sidebar/bottom-nav). Sem
+      // categoria aberta (Combate) não há para onde ciclar.
+      if (activeCategoryItems.length === 0) return;
+      const currentIdx = activeCategoryItems.findIndex((t) => t.id === activeTab);
       if (diffX < 0) {
-        // Swipe para a esquerda (próxima aba à direita)
-        AudioManager.getInstance().playClick();
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.id === prev);
-          const nextIdx = (idx + 1) % tabs.length;
-          return tabs[nextIdx].id;
-        });
+        // Swipe para a esquerda (próxima sub-aba), clampando no fim
+        if (currentIdx < activeCategoryItems.length - 1) {
+          AudioManager.getInstance().playClick();
+          navigateTo(activeCategoryItems[currentIdx + 1].id);
+        }
       } else {
-        // Swipe para a direita (aba anterior à esquerda)
-        AudioManager.getInstance().playClick();
-        setActiveTab((prev) => {
-          const idx = tabs.findIndex((t) => t.id === prev);
-          const prevIdx = (idx - 1 + tabs.length) % tabs.length;
-          return tabs[prevIdx].id;
-        });
+        // Swipe para a direita (sub-aba anterior), clampando no início
+        if (currentIdx > 0) {
+          AudioManager.getInstance().playClick();
+          navigateTo(activeCategoryItems[currentIdx - 1].id);
+        }
       }
     }
   };
 
+  // Controla se alguma barra de sub-abas será renderizada logo abaixo do cabeçalho — usado só
+  // para a compensação de layout do mobile (`.game-ui-root .ui-scrollable-content`), que precisa
+  // saber se há uma barra "flutuando" sobre o conteúdo ou não (Combate não tem sub-abas).
+  const showsSubTabBar = (activeTab === 'citadel' && citadelEntered) || (activeTab === 'abyss' && sunkenEntered) || activeCategoryItems.length > 0;
+
   return (
-    <div 
-      className="game-ui-root" 
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}
-    >
+    <div className="game-ui-layout" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row', gap: '0.75rem', minHeight: 0 }}>
+      <div
+        className={`game-ui-root ${showsSubTabBar ? '' : 'no-subtabs'}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{ width: '100%', height: '100%', flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', pointerEvents: 'auto', minHeight: 0 }}
+      >
       {/* Cabeçalho do Painel com Botão Sair */}
       <div className="panel header-panel" style={{ padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{ width: 8, height: 8, background: '#fbbf24', borderRadius: '50%', boxShadow: '0 0 8px rgba(251,191,36,0.5)', animation: 'glow-pulse 2s infinite' }} />
+          <button
+            onClick={() => {
+              AudioManager.getInstance().playClick();
+              setNavSheetOpen(true);
+            }}
+            className="nav-menu-trigger"
+            style={{ position: 'relative' }}
+            title="Menu de navegação"
+          >
+            ☰
+            {NAV_CATEGORIES.some((cat) => categoryHasNotification(cat.id)) && <TabBadgeDot />}
+          </button>
           {(activeTab === 'citadel' && citadelEntered) || (activeTab === 'abyss' && sunkenEntered) ? (
             <>
               {(activeTab === 'citadel' ? CITADEL_HEADER_RESOURCES[citadelSubTab] : SUNKEN_HEADER_RESOURCES).map((res, idx) => (
@@ -7985,12 +8017,16 @@ export default function GameUI() {
             <button
               onClick={() => {
                 AudioManager.getInstance().playClick();
-                setActiveTab('combat');
+                navigateTo('combat');
               }}
               className="btn btn-danger btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Voltar"
+              aria-label="Voltar"
             >
-              VOLTAR
+              <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
             </button>
           ) : activeTab === 'abyss' && sunkenEntered ? (
             <button
@@ -7999,9 +8035,13 @@ export default function GameUI() {
                 setSunkenEntered(false);
               }}
               className="btn btn-danger btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Voltar"
+              aria-label="Voltar"
             >
-              VOLTAR
+              <svg style={{ width: 14, height: 14 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
             </button>
           ) : showExitConfirm ? (
             <button
@@ -8058,138 +8098,23 @@ export default function GameUI() {
         document.body
       )}
 
-      {/* Abas Superiores — Premium Tab Bar (Desktop) — substituída pelas sub-abas da Cidadela (ou da
-          Cidadela Submersa) após o jogador confirmar a entrada */}
+      {/* Sub-abas da categoria aberta — substituídas pelas sub-abas da Cidadela (ou da Cidadela
+          Submersa) após o jogador confirmar a entrada. Sem categoria aberta (Combate) não há
+          sub-abas — o conteúdo de combate ocupa o espaço inteiro. */}
       {activeTab === 'citadel' && citadelEntered ? (
         <CitadelTabsBar subTab={citadelSubTab} setSubTab={setCitadelSubTab} />
       ) : activeTab === 'abyss' && sunkenEntered ? (
         <SunkenCitadelTabsBar subTab={sunkenSubTab} setSubTab={setSunkenSubTab} />
-      ) : (
-      <>
-      <div className="tabs-container-desktop-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%', pointerEvents: 'auto' }}>
-        <button
-          onClick={() => {
-            AudioManager.getInstance().playClick();
-            const currentIndex = tabs.findIndex(t => t.id === activeTab);
-            let nextIndex = currentIndex <= 0 ? tabs.length - 1 : currentIndex - 1;
-            while (tabs[nextIndex]?.disabled && nextIndex !== currentIndex) {
-              nextIndex = nextIndex === 0 ? tabs.length - 1 : nextIndex - 1;
-            }
-            setActiveTab(tabs[nextIndex].id);
-          }}
-          className="tab-carousel-arrow-btn"
-          style={{
-            background: 'var(--surface-glass)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--gold-400)',
-            borderRadius: 'var(--radius-md)',
-            width: '2.2rem',
-            height: '2.2rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: 'var(--shadow-button)',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            flexShrink: 0
-          }}
-        >
-          ◀
-        </button>
-
-        <div className="tabs-container tabs-container-desktop" style={{ flex: 1, display: 'flex', gap: '2px', overflow: 'hidden' }}>
-          {tabs.slice(desktopStartIndex, desktopStartIndex + 5).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                AudioManager.getInstance().playClick();
-                setActiveTab(tab.id);
-              }}
-              disabled={tab.disabled}
-              title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''} ${tab.disabled ? 'tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'tab-btn-citadel' : ''}`}
-              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', whiteSpace: 'nowrap', flex: 1, opacity: tab.disabled ? 0.45 : 1, cursor: tab.disabled ? 'not-allowed' : 'pointer' }}
-            >
-              <span style={{ fontSize: '0.7rem', lineHeight: 1 }}>{tab.icon}</span>
-              {tab.label}
-              {tab.hasNotification && <TabBadgeDot />}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => {
-            AudioManager.getInstance().playClick();
-            const currentIndex = tabs.findIndex(t => t.id === activeTab);
-            let nextIndex = currentIndex === -1 || currentIndex >= tabs.length - 1 ? 0 : currentIndex + 1;
-            while (tabs[nextIndex]?.disabled && nextIndex !== currentIndex) {
-              nextIndex = nextIndex >= tabs.length - 1 ? 0 : nextIndex + 1;
-            }
-            setActiveTab(tabs[nextIndex].id);
-          }}
-          className="tab-carousel-arrow-btn"
-          style={{
-            background: 'var(--surface-glass)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--gold-400)',
-            borderRadius: 'var(--radius-md)',
-            width: '2.2rem',
-            height: '2.2rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: 'var(--shadow-button)',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            flexShrink: 0
-          }}
-        >
-          ▶
-        </button>
-      </div>
-
-      {/* Abas Superiores — Carrossel Circular de Roleta (Mobile) */}
-      <div className="tabs-container-mobile">
-        <div 
-          className="tabs-carousel-inner"
-          style={{
-            transform: `translateX(calc(33.333% - ${(activeIndex + 1) * 33.333}%))`
-          }}
-        >
-          {extendedTabs.map((tab, idx) => {
-            const isCurrentActive = tab.id === activeTab;
-            return (
-              <button
-                key={`${tab.id}-${idx}`}
-                onClick={() => {
-                  if (tab.disabled) return;
-                  AudioManager.getInstance().playClick();
-                  setActiveTab(tab.id);
-                }}
-                title={tab.disabled ? 'Realize sua primeira Ascensão para desbloquear' : undefined}
-                className={`carousel-tab-btn ${isCurrentActive ? 'active' : ''} ${tab.disabled ? 'carousel-tab-btn-disabled' : ''} ${tab.id === 'citadel' && !tab.disabled ? 'carousel-tab-btn-citadel' : ''}`}
-                style={{
-                  flex: '0 0 33.333%',
-                  width: '33.333%',
-                  opacity: tab.disabled ? 0.45 : 1
-                }}
-              >
-                <span style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span className="carousel-icon">{tab.icon}</span>
-                  <span className="carousel-label">{tab.label}</span>
-                  {tab.hasNotification && <TabBadgeDot />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      </>
-      )}
+      ) : activeCategoryItems.length > 0 ? (
+        <SubTabBar
+          tabs={activeCategoryItems}
+          activeTab={activeTab}
+          setActiveTab={navigateTo}
+          getNotification={(id) => !!tabs.find((t) => t.id === id)?.hasNotification}
+          getAccentClassName={(id) => (id === 'citadel' ? 'citadel' : undefined)}
+          disabledTitle="Realize sua primeira Ascensão para desbloquear"
+        />
+      ) : null}
 
       {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -8267,7 +8192,7 @@ export default function GameUI() {
           {activeTab === 'codex' && <CodexPanel />}
           {activeTab === 'guide' && <GuidePanel />}
           {activeTab === 'forge' && <ForgeView />}
-          {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => setActiveTab('combat')} />}
+          {activeTab === 'saves' && <SavesMenu isInGame={true} onBackToCombat={() => navigateTo('combat')} />}
           {activeTab === 'options' && <OptionsPanel />}
         </div>
 
@@ -9246,6 +9171,23 @@ export default function GameUI() {
       <ArtifactRevealOverlay />
       <ActCutsceneOverlay />
       {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
+      </div>
+      <CategorySidebar
+        categories={NAV_CATEGORIES}
+        activeCategory={activeCategory}
+        onSelectCategory={setActiveCategory}
+        onSelectCombat={() => setActiveCategory(null)}
+        categoryHasNotification={categoryHasNotification}
+      />
+      <MobileNavSheet
+        open={navSheetOpen}
+        onClose={() => setNavSheetOpen(false)}
+        categories={NAV_CATEGORIES}
+        activeCategory={activeCategory}
+        onSelectCategory={setActiveCategory}
+        onSelectCombat={() => setActiveCategory(null)}
+        categoryHasNotification={categoryHasNotification}
+      />
     </div>
   );
 }
