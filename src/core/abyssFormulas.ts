@@ -209,14 +209,9 @@ export const getPearlsForDepth = (depth: number): number => 1 + Math.floor(depth
 // v10.4.0 "O Leviatã do Ciclo": 6 títulos honoríficos das Profundezas (Design principal §5.D),
 // concedidos por recorde histórico de profundidade — mesma infraestrutura de títulos da Torre
 // (`useTowerStore.unlockTitle`), chamada de `useDiveStore.completeDepth`.
-export const PROFUNDEZAS_TITLE_MILESTONES: Record<number, string> = {
-  10: 'Molhado de Coragem',
-  25: 'Vencedor do Recife Partido',
-  50: 'Sobrevivente das Algas Negras',
-  80: 'Andarilho das Ruínas Afundadas',
-  120: 'Peregrino da Fossa do Caco',
-  200: 'O Que Voltou do Fundo',
-};
+// v11.5.0: definição movida para `titleFormulas.ts` — re-exportada aqui para não quebrar os call
+// sites existentes (`AbyssPanel.tsx`).
+export { PROFUNDEZAS_TITLE_MILESTONES } from './titleFormulas';
 
 // Runas: 8% fixo por abate, SEM influência de Sorte (padrão da rolagem separada do Colar).
 export const DIVE_RUNE_DROP_CHANCE = 0.08;

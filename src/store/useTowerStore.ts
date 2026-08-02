@@ -70,22 +70,12 @@ export const applyCursesToStats = (stats: BaseStats, curses: TowerCurse[]): Base
 // Pools de títulos-marco, um por ramificação da Torre. Nomes usados tanto para o desbloqueio em
 // `advanceTowerFloor` quanto para a galeria de títulos exibida em `TowerPanel.tsx` (`*_TITLES_CONFIG`
 // espelha estes nomes — mesmo padrão de duplicação leve que já existia antes desta mudança).
-export const NORMAL_TITLE_MILESTONES: Record<number, string> = {
-  5: 'Iniciante da Torre',
-  10: 'Desbravador da Torre',
-  20: 'Conquistador das Alturas',
-  30: 'Guardião da Torre',
-  50: 'Mestre do Infinito',
-  100: 'Lenda Eterna',
-};
-export const CURSE_TITLE_MILESTONES: Record<number, string> = {
-  5: 'Tocado pela Sombra',
-  10: 'Andarilho do Espelho Faminto',
-  20: 'Herdeiro da Maldição',
-  30: 'Senhor das Cicatrizes',
-  50: 'Devorador de Bênçãos',
-  100: 'Avatar do Vazio Eterno',
-};
+// v11.5.0: definição movida para `titleFormulas.ts` (módulo sem import de stores, para permitir que
+// `StatEngine.ts` leia o bônus do título equipado sem criar ciclo) — re-exportado aqui para não
+// quebrar os call sites existentes (`TowerPanel.tsx`, `useGameStore.ts`), e também importado
+// normalmente porque é usado internamente neste arquivo (`advanceTowerFloor`).
+import { NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES } from '../core/titleFormulas';
+export { NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES };
 
 export interface TowerStoreState {
   towerActive: boolean;

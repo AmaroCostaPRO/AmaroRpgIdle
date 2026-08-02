@@ -5,6 +5,8 @@ import { SKILLS_CATALOG } from '../store/useGameStore';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
 import type { RuneMultiplierStatKey } from '../core/types';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from './bestiaryFormulas';
+import { getEquippedTitleBonus } from './titleFormulas';
+import { useTowerStore } from '../store/useTowerStore';
 
 // Arredonda uma fração (ex.: 0.035) para cima, no ponto percentual inteiro mais próximo (0.04).
 // Usado para o bônus "meia-runa" das Palavras Rúnicas, evitando números quebrados como 1.75%.
@@ -661,6 +663,16 @@ export class StatEngine {
       finalStats.luck = Math.floor(finalStats.luck * multiplier);
       finalStats.touch = Math.floor(finalStats.touch * multiplier);
     }
+
+    // 4.55. v11.5.0 "Títulos com Propósito": o título honorífico atualmente equipado (Torre Normal,
+    // Ramificação de Maldições ou Profundezas — um único campo compartilhado, `useTowerStore.equippedTitle`)
+    // concede um bônus por nível/lista distinto (Vida, Dano Geral ou Dano Crítico). Não cumulativo
+    // entre listas — trocar de título troca o bônus ativo (ver `titleFormulas.ts`).
+    const equippedTitle = useTowerStore.getState().equippedTitle;
+    const titleBonus = getEquippedTitleBonus(equippedTitle);
+    finalStats.maxHpPct = (finalStats.maxHpPct || 0) + titleBonus.maxHpPct;
+    finalStats.damageMultiplierPct = (finalStats.damageMultiplierPct || 0) + titleBonus.damageMultiplierPct;
+    finalStats.critDamage = (finalStats.critDamage || 0) + titleBonus.critDamage;
 
     // 4.6. Aplicar as pesquisas permanentes da Academia Militar da Cidadela (universais para todas as classes)
     const academy = character.citadel?.academy;

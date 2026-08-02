@@ -11,6 +11,7 @@ import {
 import { DIVE_SUIT_MAX_LEVEL } from '../../core/sunkenCitadelFormulas';
 import { CoastalPanel } from './CoastalPanel';
 import { EquippedTitleBox } from '../tower/EquippedTitleBox';
+import { getTitleTier, getTitleBonusLabel, TITLE_CRIT_DAMAGE_PER_LEVEL } from '../../core/titleFormulas';
 
 /**
  * v10.0.0 "A Cidadela Submersa" — aba de topo 🌊 Abismo.
@@ -265,11 +266,15 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
             {/* Títulos das Profundezas */}
             <div style={depthsSectionStyle}>
               <p style={{ fontWeight: 700, fontSize: '0.8rem', margin: 0 }}>👑 Títulos das Profundezas</p>
+              <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', margin: 0, textAlign: 'center' }}>
+                Apenas o título EQUIPADO concede seu bônus — único e compartilhado com os títulos da Torre.
+              </p>
               <EquippedTitleBox
                 selectedTitle={equippedTitle}
                 onRemove={() => selectTitle('')}
                 accentColor="#22d3ee"
                 borderColor="rgba(34, 211, 238, 0.35)"
+                bonusLabel={getTitleBonusLabel(equippedTitle)}
               />
               {Object.entries(PROFUNDEZAS_TITLE_MILESTONES).filter(([, name]) => unlockedTitles.includes(name)).length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
@@ -280,9 +285,12 @@ export const AbyssPanel: React.FC<AbyssPanelProps> = ({ onEnterCitadel }) => {
                         key={depth}
                         onClick={() => { AudioManager.getInstance().playClick(); selectTitle(equippedTitle === name ? '' : name); }}
                         className="btn btn-xs"
-                        style={{ fontSize: '0.65rem', border: equippedTitle === name ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)' }}
+                        style={{ fontSize: '0.65rem', border: equippedTitle === name ? '1px solid #22d3ee' : '1px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: 'column', gap: '1px', lineHeight: 1.2 }}
                       >
-                        👑 {name}
+                        <span>👑 {name}</span>
+                        <span style={{ fontSize: '0.55rem', color: '#4ade80', fontWeight: 700 }}>
+                          +{getTitleTier(PROFUNDEZAS_TITLE_MILESTONES, name) * TITLE_CRIT_DAMAGE_PER_LEVEL}% Dano Crítico
+                        </span>
                       </button>
                     ))}
                   </div>

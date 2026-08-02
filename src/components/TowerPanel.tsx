@@ -2,18 +2,23 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTowerStore, NORMAL_TITLE_MILESTONES, CURSE_TITLE_MILESTONES, CURSE_STAT_LABELS, CURSE_BUFF_PCT, CURSE_DEBUFF_PCT, applyCursesToStats, VOID_TRIALS_PT_FLOOR_INTERVAL, VOID_TRIALS_WEEKLY_PT_CAP } from '../store/useTowerStore';
 import { useGameStore } from '../store/useGameStore';
 import { StatEngine } from '../core/StatEngine';
+import { TITLE_HP_PCT_PER_LEVEL, TITLE_DAMAGE_PCT_PER_LEVEL, getTitleBonusLabel } from '../core/titleFormulas';
 import { AudioManager } from '../core/AudioManager';
 import { EquippedTitleBox } from './tower/EquippedTitleBox';
 
 // Deriva a galeria de títulos diretamente dos pools da store (fonte única de verdade), evitando
 // que a lista exibida aqui fique dessincronizada dos nomes realmente concedidos em `advanceTowerFloor`.
-const buildTitlesConfig = (milestones: Record<number, string>, floorLabel: string) =>
+// v11.5.0: cada título ganhou uma função além do estético — `bonusLabel` mostra o bônus de stat que
+// aquele nível concede (nível = posição na lista, 1º = nível 1), lembrando que só o título
+// EQUIPADO no momento concede seu bônus (não cumulativo entre as 3 listas de título do jogo).
+const buildTitlesConfig = (milestones: Record<number, string>, floorLabel: string, pctPerLevel: number, bonusName: string) =>
   Object.entries(milestones)
     .map(([floor, name]) => ({ name, floorRequired: Number(floor), description: `Desbloqueado ao vencer o ${floorLabel} ${floor}` }))
-    .sort((a, b) => a.floorRequired - b.floorRequired);
+    .sort((a, b) => a.floorRequired - b.floorRequired)
+    .map((title, idx) => ({ ...title, bonusLabel: `+${Math.round((idx + 1) * pctPerLevel * 100)}% ${bonusName}` }));
 
-const NORMAL_TITLES_CONFIG = buildTitlesConfig(NORMAL_TITLE_MILESTONES, 'Andar');
-const CURSE_TITLES_CONFIG = buildTitlesConfig(CURSE_TITLE_MILESTONES, 'Andar amaldiçoado');
+const NORMAL_TITLES_CONFIG = buildTitlesConfig(NORMAL_TITLE_MILESTONES, 'Andar', TITLE_HP_PCT_PER_LEVEL, 'Vida Máxima');
+const CURSE_TITLES_CONFIG = buildTitlesConfig(CURSE_TITLE_MILESTONES, 'Andar amaldiçoado', TITLE_DAMAGE_PCT_PER_LEVEL, 'Dano Geral');
 
 export const TowerPanel: React.FC = () => {
   const {
@@ -302,6 +307,7 @@ export const TowerPanel: React.FC = () => {
           onRemove={() => handleSelectTitle('')}
           accentColor={theme.accent}
           borderColor={theme.border}
+          bonusLabel={getTitleBonusLabel(displaySelectedTitle)}
         />
       )}
 
@@ -513,6 +519,9 @@ export const TowerPanel: React.FC = () => {
         <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.35rem', margin: '0 0 0.65rem 0' }}>
           🏷️ Títulos Honoríficos da Torre
         </h3>
+        <p style={{ fontSize: '0.55rem', color: '#94a3b8', margin: '-0.35rem 0 0.65rem 0' }}>
+          Apenas o título EQUIPADO concede seu bônus — ele é único e compartilhado entre Torre Normal, Ramificação de Maldições e Profundezas do Abismo, então trocar de título troca o bônus ativo.
+        </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
           {titlesConfig.map((title) => {
@@ -551,6 +560,9 @@ export const TowerPanel: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '0.55rem', color: '#94a3b8', marginTop: '2px' }}>
                       {title.description}
+                    </div>
+                    <div style={{ fontSize: '0.55rem', color: theme.accent, fontWeight: 700, marginTop: '2px' }}>
+                      {title.bonusLabel}
                     </div>
                   </div>
                 </div>
