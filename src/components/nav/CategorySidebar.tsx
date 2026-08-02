@@ -16,6 +16,11 @@ interface Props {
  * fora do sistema de categorias) seguido pelas categorias de navegação. Selecionar uma
  * categoria não abre um painel próprio — apenas troca qual conjunto de sub-abas aparece
  * no `SubTabBar` do cabeçalho de conteúdo (ver GameUI.tsx).
+ *
+ * `.nav-sidebar-anchor` fica no fluxo flex normal, reservando a largura recolhida (então
+ * a coluna de conteúdo ao lado nunca muda de tamanho). A `.nav-sidebar` de verdade é
+ * `position: absolute` ancorada em `left:0` desse anchor — ao expandir no hover, ela
+ * cresce só pra direita, por cima do espaço vazio da página, sem empurrar o conteúdo.
  */
 export const CategorySidebar: React.FC<Props> = ({
   categories,
@@ -26,41 +31,62 @@ export const CategorySidebar: React.FC<Props> = ({
 }) => {
   const combatActive = activeCategory === null;
 
+  // "Opções" fica separada, ancorada embaixo do componente (config/preferências não é uma
+  // categoria de conteúdo do jogo como as demais — faz sentido ficar à parte, tipo rodapé).
+  const mainCategories = categories.filter((cat) => cat.id !== 'config');
+  const configCategory = categories.find((cat) => cat.id === 'config');
+
+  const renderItem = (
+    id: string,
+    icon: string,
+    label: string,
+    isActive: boolean,
+    onClick: () => void,
+    hasNotification?: boolean
+  ) => (
+    <button
+      key={id}
+      onClick={() => {
+        AudioManager.getInstance().playClick();
+        onClick();
+      }}
+      className={`nav-sidebar-item ${isActive ? 'active' : ''}`}
+      title={label}
+      style={{ position: 'relative' }}
+    >
+      <span className="nav-sidebar-icon-slot">
+        <span className="nav-sidebar-icon">{icon}</span>
+      </span>
+      <span className="nav-sidebar-label">{label}</span>
+      {hasNotification && <TabBadgeDot />}
+    </button>
+  );
+
   return (
-    <div className="nav-sidebar panel">
-      <button
-        onClick={() => {
-          AudioManager.getInstance().playClick();
-          onSelectCombat();
-        }}
-        className={`nav-sidebar-item ${combatActive ? 'active' : ''}`}
-        title="Combate"
-      >
-        <span className="nav-sidebar-icon">⚔</span>
-        {combatActive && <span className="nav-sidebar-label">Combate</span>}
-      </button>
+    <div className="nav-sidebar-anchor">
+      <div className="nav-sidebar panel">
+        {renderItem('combat', '⚔', 'Combate', combatActive, onSelectCombat)}
 
-      <div className="nav-sidebar-divider" />
+        <div className="nav-sidebar-divider" />
 
-      {categories.map((cat) => {
-        const isActive = activeCategory === cat.id;
-        return (
-          <button
-            key={cat.id}
-            onClick={() => {
-              AudioManager.getInstance().playClick();
-              onSelectCategory(cat.id);
-            }}
-            className={`nav-sidebar-item ${isActive ? 'active' : ''}`}
-            title={cat.label}
-            style={{ position: 'relative' }}
-          >
-            <span className="nav-sidebar-icon">{cat.icon}</span>
-            {isActive && <span className="nav-sidebar-label">{cat.label}</span>}
-            {categoryHasNotification(cat.id) && <TabBadgeDot />}
-          </button>
-        );
-      })}
+        {mainCategories.map((cat) =>
+          renderItem(cat.id, cat.icon, cat.label, activeCategory === cat.id, () => onSelectCategory(cat.id), categoryHasNotification(cat.id))
+        )}
+
+        {configCategory && (
+          <>
+            <div className="nav-sidebar-divider nav-sidebar-divider-push" />
+            {renderItem(
+              configCategory.id,
+              configCategory.icon,
+              configCategory.label,
+              activeCategory === configCategory.id,
+              () => onSelectCategory(configCategory.id),
+              categoryHasNotification(configCategory.id)
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

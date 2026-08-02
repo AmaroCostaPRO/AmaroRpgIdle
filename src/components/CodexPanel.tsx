@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore, getGlobalClassLevels, isClassUnlocked } from '../store/useGameStore';
+import { useQuestStore } from '../store/useQuestStore';
 import { AudioManager } from '../core/AudioManager';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent } from '../core/types';
@@ -7,6 +8,8 @@ import { CODEX_CATEGORIES, CODEX_ENTRIES, CodexCategory, CodexUnlockContext } fr
 
 export const CodexPanel: React.FC = () => {
   const character = useGameStore((s) => s.character);
+  const completedQuestIds = useQuestStore((s) => s.completedQuestIds);
+  const storyInventory = useQuestStore((s) => s.storyInventory);
   const [activeCategory, setActiveCategory] = useState<CodexCategory>('cosmology');
   const [search, setSearch] = useState('');
 
@@ -19,8 +22,10 @@ export const CodexPanel: React.FC = () => {
       getClassLevel,
       isClassUnlockedFn: (id: string) => isClassUnlocked(id, classLevels),
       totalKills: Object.values(character.killCount || {}).reduce((a, b) => a + b, 0),
+      completedQuestIds,
+      storyInventory,
     };
-  }, [character]);
+  }, [character, completedQuestIds, storyInventory]);
 
   const resolvedEntries = useMemo(
     () => CODEX_ENTRIES.map((entry) => ({ entry, unlocked: entry.alwaysVisible || entry.isUnlocked(ctx) })),

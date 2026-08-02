@@ -3946,6 +3946,20 @@ const GuidePanel: React.FC = () => {
           {/* ---- Categoria: Equipamento e Itens ---- */}
           {guideSystemsSubTab === 'equipment' && (
             <>
+              {/* Bônus de Conjunto (Sets) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-widest block">🛡️ Bônus de Conjunto (Sets)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Muitos equipamentos pesados (Elmo, Peito, Pernas, Mãos, Arma e Anel) pertencem a um <strong>conjunto temático</strong>, geralmente ligado a uma classe (ex: "Senhor da Guerra"). Você não precisa fazer nada além de vestir as peças — o jogo reconhece automaticamente quantas peças do mesmo conjunto estão equipadas ao mesmo tempo.
+                  </p>
+                  <p>
+                    Quanto mais peças do mesmo conjunto você usa, mais bônus extras são liberados, normalmente em marcos de <strong>2, 3 e 5 peças</strong>. Esses bônus somam-se aos atributos normais de cada peça, então vale a pena mirar fechar o conjunto da sua classe conforme itens melhores forem aparecendo, em vez de misturar peças soltas de conjuntos diferentes.
+                  </p>
+                  <p className="text-gray-500 text-[8px]">Dica: se duas peças do mesmo slot e do mesmo conjunto caírem, dá pra combiná-las na Fusão Mística da Forja para melhorar a peça que você já está usando sem perder o bônus de conjunto.</p>
+                </div>
+              </div>
+
               {/* Colar, Amuleto e Anel */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
                 <span className="text-[9px] font-semibold text-sky-400 uppercase tracking-widest block">📿 Colar, Amuleto e Anel (6º, 7º e 8º Slots)</span>
@@ -3995,6 +4009,44 @@ const GuidePanel: React.FC = () => {
           {/* ---- Categoria: Progressão e Endgame ---- */}
           {guideSystemsSubTab === 'endgame' && (
             <>
+              {/* Mecânica de Ascensão e Prestígio */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
+                      <li>
+                        <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico</strong>, <strong>+1% de Dano Crítico</strong> e <strong>+0.5% de Esquiva</strong>.
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Fórmula de PP obtido:</span>
+                        <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
+                        <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
+                      </li>
+                      <li>
+                        <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
+                    <p className="text-gray-400 mt-0.5">
+                      Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Transcendência / Ecoterra / Loja Celestial */}
               <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
                 <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
@@ -4037,44 +4089,6 @@ const GuidePanel: React.FC = () => {
                     <strong className="text-white block font-semibold" style={{ color: '#67e8f9' }}>✨ Bônus Permanente de Transcendência</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
                       Cada Transcendência realizada concede, para sempre, +5% multiplicativo de Dano, Vida Máxima e Mana Máxima — empilhando a cada ciclo (2 Transcendências = +10%, 3 = +15%...), por fora de qualquer outro bônus e nunca perdido nos ciclos seguintes.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mecânica de Ascensão e Prestígio */}
-              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
-                <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest block">Mecânica de Ascensão e Prestígio (Roguelite)</span>
-                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
-                  <p>
-                    A Ascensão é a sua principal mecânica de progressão de longo prazo (Roguelite). Ao atingir níveis mais altos, você pode <strong>Ascender sua Alma</strong> no painel de Ascensão para reiniciar seu progresso atual em troca de poder permanente.
-                  </p>
-                  <div>
-                    <strong className="text-white block font-semibold">Regras da Ascensão:</strong>
-                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.2rem', display: 'flex', flexDirection: 'column' }}>
-                      <li>
-                        <span className="text-gray-400">O que é resetado:</span> Nível atual do personagem, Pontos de Atributos distribuídos pelo jogador, todas as Habilidades ativas/passivas aprendidas (e seus níveis), progresso atual das fases de combate (volta para a Fase 1), mana/HP, e todos os equipamentos e itens do inventário.
-                      </li>
-                      <li>
-                        <span className="text-gray-400">O que é mantido (Permanente):</span> Classes desbloqueadas com seu progresso de maestria de nível, todas as melhorias de atributos compradas com Pontos de Prestígio (PP) na árvore, progresso do Bestiário e saves.
-                      </li>
-                      <li>
-                        <span className="text-gray-400">Bônus Passivo de Alma (Acumulado):</span> Cada ascensão realizada concede bônus percentuais cumulativos de <strong>+5% de Dano Geral</strong>, <strong>+1% de Velocidade de Ataque</strong>, <strong>+2.5% de HP Máximo</strong>, <strong>+2.5% de Mana Máxima</strong>, <strong>+5 de Dano de Toque</strong>, <strong>+0.1% de Chance de Crítico</strong>, <strong>+1% de Dano Crítico</strong> e <strong>+0.5% de Esquiva</strong>.
-                      </li>
-                      <li>
-                        <span className="text-gray-400">Fórmula de PP obtido:</span>
-                        <code className="text-purple-300 block font-mono bg-black/40 px-1.5 py-0.5 rounded mt-0.5">PP Recebido = Floor(Floor((XP Acumulada / 1000) ^ 0.45) * 1.5)</code>
-                        <span className="text-gray-500 text-[8px] block mt-0.5">(O ganho de PP foi triplicado para acelerar a progressão)</span>
-                      </li>
-                      <li>
-                        <span className="text-gray-400">Requisito Crescente de PP:</span> A primeira ascensão requer apenas 1 PP. A segunda exige juntar pelo menos <strong>5 PP</strong> nesta rodada. A terceira exige <strong>7 PP</strong>, a quarta exige <strong>9 PP</strong>, e assim por diante (sempre aumentando em <strong>+2 PP</strong> de requisito a cada ascensão realizada).
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <strong className="text-white block font-semibold">Melhorias Permanentes de Prestígio:</strong>
-                    <p className="text-gray-400 mt-0.5">
-                      Com os Pontos de Prestígio (PP) acumulados, você pode comprar melhorias na árvore de Ascensão que aumentam permanentemente seus atributos base (+12 Força, +12 Magia, +6 Destreza, +18 Constituição, +6 Sorte por nível), acelerando drasticamente o progresso nas próximas rodadas. Após desbloquear o Modo Pandemônio, o limite de nível 10 nessas melhorias é removido (torna-se infinito).
                     </p>
                   </div>
                 </div>
@@ -7459,6 +7473,18 @@ export default function GameUI() {
     return () => unsubscribeMerchant();
   }, []);
 
+  // Fecha o painel sozinho depois de 20s se o jogador não interagir — sem esse limite, o
+  // encontro do Mercador travava o idle indefinidamente esperando o jogador fechar manualmente.
+  useEffect(() => {
+    if (!merchantOffer) return;
+    const timer = setTimeout(() => {
+      setMerchantOffer(null);
+      setMerchantFeedback(null);
+      bridge.emit(GameEvent.MERCHANT_DISMISSED, {});
+    }, 20000);
+    return () => clearTimeout(timer);
+  }, [merchantOffer]);
+
   const handleMerchantBuy = (elixirType: ElixirType) => {
     if (merchantPurchased) return;
     AudioManager.getInstance().playCoin();
@@ -7913,23 +7939,21 @@ export default function GameUI() {
         });
         return;
       }
-      // Fora da Cidadela/Abismo, o swipe cicla as sub-abas da categoria aberta (sem virar
-      // para outra categoria — troca de categoria é só pelo sidebar/bottom-nav). Sem
-      // categoria aberta (Combate) não há para onde ciclar.
+      // Fora da Cidadela/Abismo, o swipe cicla as sub-abas da categoria aberta em loop
+      // contínuo (mesmo padrão do carrossel visual, que clona a 1ª/última aba pra dar essa
+      // ilusão) — sem virar para outra categoria, isso continua sendo só pelo sidebar/bottom-nav.
+      // Sem categoria aberta (Combate) não há para onde ciclar.
       if (activeCategoryItems.length === 0) return;
       const currentIdx = activeCategoryItems.findIndex((t) => t.id === activeTab);
+      AudioManager.getInstance().playClick();
       if (diffX < 0) {
-        // Swipe para a esquerda (próxima sub-aba), clampando no fim
-        if (currentIdx < activeCategoryItems.length - 1) {
-          AudioManager.getInstance().playClick();
-          navigateTo(activeCategoryItems[currentIdx + 1].id);
-        }
+        // Swipe para a esquerda (próxima sub-aba, volta pra 1ª ao passar da última)
+        const nextIdx = (currentIdx + 1) % activeCategoryItems.length;
+        navigateTo(activeCategoryItems[nextIdx].id);
       } else {
-        // Swipe para a direita (sub-aba anterior), clampando no início
-        if (currentIdx > 0) {
-          AudioManager.getInstance().playClick();
-          navigateTo(activeCategoryItems[currentIdx - 1].id);
-        }
+        // Swipe para a direita (sub-aba anterior, volta pra última ao passar da 1ª)
+        const prevIdx = (currentIdx - 1 + activeCategoryItems.length) % activeCategoryItems.length;
+        navigateTo(activeCategoryItems[prevIdx].id);
       }
     }
   };

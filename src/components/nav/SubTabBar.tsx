@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AudioManager } from '../../core/AudioManager';
 import { TabBadgeDot } from '../TabBadgeDot';
 
@@ -53,11 +53,94 @@ export function SubTabBar<T extends string>({
   }, [activeTab, tabs]);
 
   const activeIndex = tabs.findIndex((t) => t.id === activeTab);
+  // 2 clones de cada lado (não só 1) — necessário pra que, ao centralizar o carrossel EM CIMA
+  // de um clone (durante o loop), os vizinhos dos dois lados desse clone também existam no
+  // array. Com só 1 clone de cada lado, centralizar no clone do fim da fita deixava o vizinho
+  // da direita fora do array (posição inexistente) — a janela de 3 abas ficava com um buraco
+  // vazio durante o deslizar, e só ao "teleportar" pra aba real é que o vizinho aparecia,
+  // dando a impressão de que o ícone/nome "aparecia" de repente em vez de já estar visível
+  // durante o giro.
   const extendedTabs = [
+    tabs[tabs.length - 2],
     tabs[tabs.length - 1],
     ...tabs,
     tabs[0],
+    tabs[1],
   ];
+  // Deslocamento entre o índice real (0..tabs.length-1) e a posição em `extendedTabs`.
+  const PAD = 2;
+
+  // Posição visual do carrossel mobile dentro de `extendedTabs` (PAD..PAD+tabs.length-1 = abas
+  // reais; posições fora desse intervalo são clones, usados só de passagem durante o loop).
+  // Guardado à parte de `activeIndex` porque, ao dar a volta (última → primeira ou vice-versa),
+  // precisamos animar CONTINUANDO na mesma direção até o clone no final/início da fita, e só
+  // depois "teleportar" sem transição para a aba real equivalente — em vez de simplesmente
+  // pular `activeIndex` direto (o que faria o carrossel rebobinar pra trás visualmente).
+  // Precisa bater com a duração de `.tabs-carousel-inner` (`transition: transform 0.4s ...`,
+  // index.css) — usado pra saber quando o "teleporte" pós-loop deve acontecer.
+  const WRAP_TRANSITION_MS = 400;
+
+  const [renderIndex, setRenderIndex] = useState(() => activeIndex + PAD);
+  const [suppressTransition, setSuppressTransition] = useState(false);
+  const prevActiveIndexRef = useRef(activeIndex);
+  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Assinatura estável da lista de sub-abas (por id, não por referência do array) — `tabs`
+  // chega de `activeCategoryItems` em GameUI.tsx, recriado a cada re-render do jogo (que
+  // acontece o tempo todo durante o combate), então comparar por referência disparava a
+  // detecção de "categoria mudou" a cada tick e suprimia a transição quase sempre.
+  const tabsSignature = tabs.map((t) => t.id).join('|');
+  const prevTabsSignatureRef = useRef(tabsSignature);
+
+  useEffect(() => {
+    // Qualquer novo movimento cancela um "teleporte" pendente de um loop anterior — evita
+    // que um snap atrasado sobreponha a posição de um movimento mais recente.
+    if (snapTimerRef.current) {
+      clearTimeout(snapTimerRef.current);
+      snapTimerRef.current = null;
+    }
+
+    if (prevTabsSignatureRef.current !== tabsSignature) {
+      // A lista de sub-abas trocou de verdade (ex.: mudou de categoria) — reposiciona
+      // direto, sem tentar detectar volta/loop entre abas de listas diferentes.
+      prevTabsSignatureRef.current = tabsSignature;
+      prevActiveIndexRef.current = activeIndex;
+      setSuppressTransition(true);
+      setRenderIndex(activeIndex + PAD);
+      return;
+    }
+
+    const prev = prevActiveIndexRef.current;
+    const curr = activeIndex;
+    if (curr === prev) return;
+
+    const wrappedForward = prev === tabs.length - 1 && curr === 0;
+    const wrappedBackward = prev === 0 && curr === tabs.length - 1;
+
+    setSuppressTransition(false);
+    if (wrappedForward) {
+      // Desliza pro clone do 1º, no fim da fita — continuando na mesma direção do gesto —
+      // e agenda o "teleporte" sem transição pra aba real equivalente assim que a animação
+      // termina (as duas posições são visualmente idênticas, o salto é imperceptível).
+      setRenderIndex(tabs.length + PAD);
+      snapTimerRef.current = setTimeout(() => {
+        setSuppressTransition(true);
+        setRenderIndex(PAD);
+      }, WRAP_TRANSITION_MS);
+    } else if (wrappedBackward) {
+      setRenderIndex(PAD - 1); // desliza pro clone do último, no início da fita
+      snapTimerRef.current = setTimeout(() => {
+        setSuppressTransition(true);
+        setRenderIndex(tabs.length + PAD - 1);
+      }, WRAP_TRANSITION_MS);
+    } else {
+      setRenderIndex(curr + PAD);
+    }
+    prevActiveIndexRef.current = curr;
+  }, [activeIndex, tabsSignature]);
+
+  useEffect(() => () => {
+    if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
+  }, []);
 
   const hasNotification = (id: T): boolean => !!getNotification?.(id);
 
@@ -154,7 +237,8 @@ export function SubTabBar<T extends string>({
         <div
           className="tabs-carousel-inner"
           style={{
-            transform: `translateX(calc(33.333% - ${(activeIndex + 1) * 33.333}%))`,
+            transform: `translateX(calc(33.333% - ${renderIndex * 33.333}%))`,
+            transition: suppressTransition ? 'none' : undefined,
           }}
         >
           {extendedTabs.map((tab, idx) => {

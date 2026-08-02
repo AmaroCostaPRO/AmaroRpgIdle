@@ -1,6 +1,8 @@
 import type { Character } from './types';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_IDS, RuneId, RuneFamilyId, PrimordialRuneId } from './runeFormulas';
 import { isFullDepthsUnlocked } from './abyssFormulas';
+import { MAIN_QUESTS_CATALOG } from './quests/mainQuestsData';
+import { STORY_ITEMS_CATALOG } from './quests/storyItemsData';
 
 // ============================================================================
 // CODEX — Enciclopédia de Lore do Ciclo da Alma Partida
@@ -17,7 +19,7 @@ import { isFullDepthsUnlocked } from './abyssFormulas';
 //   `isUnlocked` retorna true; até lá mostra `unlockHint`. Mantém o gancho
 //   de descoberta que já existia no protótipo "Crônicas".
 
-export type CodexCategory = 'cosmology' | 'factions' | 'characters' | 'bestiary' | 'runes' | 'events' | 'locations';
+export type CodexCategory = 'cosmology' | 'factions' | 'characters' | 'bestiary' | 'runes' | 'events' | 'locations' | 'npcs' | 'artifacts';
 
 export const CODEX_CATEGORIES: { id: CodexCategory; label: string; icon: string }[] = [
   { id: 'cosmology', label: 'Cosmologia', icon: '🌌' },
@@ -27,6 +29,8 @@ export const CODEX_CATEGORIES: { id: CodexCategory; label: string; icon: string 
   { id: 'runes', label: 'Runas', icon: '🪬' },
   { id: 'events', label: 'História', icon: '📜' },
   { id: 'locations', label: 'Locais', icon: '🗺️' },
+  { id: 'npcs', label: 'Aliados', icon: '🗣️' },
+  { id: 'artifacts', label: 'Artefatos', icon: '🏺' },
 ];
 
 export interface CodexUnlockContext {
@@ -34,6 +38,8 @@ export interface CodexUnlockContext {
   getClassLevel: (classId: string) => number;
   isClassUnlockedFn: (classId: string) => boolean;
   totalKills: number;
+  completedQuestIds: string[];
+  storyInventory: Record<string, number>;
 }
 
 export interface CodexEntry {
@@ -57,6 +63,9 @@ const always = (): boolean => true;
 const runeObtained = (ctx: CodexUnlockContext, runeId: RuneId): boolean => (ctx.character.runeInventory?.[runeId] ?? 0) > 0;
 const runeFamilyObtained = (ctx: CodexUnlockContext, family: RuneFamilyId): boolean =>
   ([1, 2, 3] as const).some((tier) => runeObtained(ctx, `${family}_t${tier}` as RuneId));
+const npcMet = (ctx: CodexUnlockContext, npcId: string): boolean =>
+  MAIN_QUESTS_CATALOG.some((q) => q.npcId === npcId && ctx.completedQuestIds.includes(q.id));
+const artifactObtained = (ctx: CodexUnlockContext, itemId: string): boolean => (ctx.storyInventory[itemId] ?? 0) > 0;
 
 export const CONVERGENCE_BOSS_IDS = ['boss_what_still_dreams', 'boss_reflection_reaper', 'boss_nameless_hunger', 'boss_empty_throne'];
 
@@ -1872,6 +1881,113 @@ const locationEntries: CodexEntry[] = [
   },
 ];
 
+// ============================================================================
+// 8. ALIADOS (NPCs da Jornada Principal)
+// ============================================================================
+const npcEntries: CodexEntry[] = [
+  {
+    id: 'npc_archivist_valeria',
+    category: 'npcs',
+    icon: '📖',
+    title: 'Valéria, a Arquivista Astral',
+    subtitle: 'Guardiã dos registros da Cidadela',
+    lore:
+      'Valéria catalogou cada versão da queda e do renascimento da Cidadela Astral tantas vezes que já não se surpreende com nenhuma delas — só anota. É ela quem interpreta as ruínas que o Herói encontra pelo caminho, sempre com o mesmo tom calmo de quem já viu esse capítulo da história antes e sabe, mais ou menos, como ele termina.',
+    color: '#38bdf8',
+    tags: ['npc', 'aliado', 'cidadela'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal de Valéria para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'archivist_valeria'),
+  },
+  {
+    id: 'npc_forge_master_vulkan',
+    category: 'npcs',
+    icon: '🔨',
+    title: 'Vulkan, Mestre da Forja',
+    subtitle: 'Ferreiro-chefe da Cidadela Astral',
+    lore:
+      'Vulkan mede o progresso do Herói pelo peso do metal que consegue erguer, não pelos números do painel de status. Comanda a Forja Mística da Cidadela com a mesma paciência de quem já reconstruiu a mesma bigorna incontáveis vezes — e sabe que cada equipamento lendário forjado é, à sua maneira, uma pequena vitória contra o esquecimento.',
+    color: '#f97316',
+    tags: ['npc', 'aliado', 'forja'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal de Vulkan para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'forge_master_vulkan'),
+  },
+  {
+    id: 'npc_void_wanderer',
+    category: 'npcs',
+    icon: '🌀',
+    title: 'O Andarilho do Vazio',
+    subtitle: 'Testemunha do outro lado da Fragmentação',
+    lore:
+      'Ninguém sabe ao certo se o Andarilho ainda é inteiramente humano, ou se atravessou o Vazio vezes demais para que isso continue importando. Fala do Purgatório e do Modo Pandemônio com uma familiaridade desconfortável, como quem descreve a própria casa — e insiste, sempre, que o Vazio nunca parou de vazar: só ninguém mais estava olhando.',
+    color: '#10b981',
+    tags: ['npc', 'aliado', 'vazio', 'pandemonio'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal do Andarilho do Vazio para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'void_wanderer'),
+  },
+  {
+    id: 'npc_avatar_echo',
+    category: 'npcs',
+    icon: '🌟',
+    title: 'O Eco do Avatar',
+    subtitle: 'Reflexo do que o Herói pode se tornar além da Roda',
+    lore:
+      'Surge apenas depois da primeira Transcendência, como um reflexo do Herói que já viu o outro lado do ciclo. Fala pouco sobre o que é a Transcendência e mais sobre o que ela custa — e trata cada retorno ao Rito não como destino repetido, mas como escolha renovada de quem decide continuar mudando.',
+    color: '#ec4899',
+    tags: ['npc', 'aliado', 'transcendencia', 'avatar'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal do Eco do Avatar para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'avatar_echo'),
+  },
+  {
+    id: 'npc_sunken_castellan',
+    category: 'npcs',
+    icon: '🏛️',
+    title: 'O Castelão Afundado',
+    subtitle: 'Guardião silencioso da Cidadela Submersa',
+    lore:
+      'Ficou séculos preso junto com a cidadela que jurou proteger, afundada e esquecida no Abismo. Cada Eco Afogado resgatado devolve um pouco da voz que ele perdeu ao longo do tempo — e, ao final, ele escolhe permanecer no Trono Afundado não por juramento antigo, mas por vontade própria.',
+    color: '#06b6d4',
+    tags: ['npc', 'aliado', 'abismo', 'cidadela-submersa'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal do Castelão Afundado para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'sunken_castellan'),
+  },
+  {
+    id: 'npc_sky_herald',
+    category: 'npcs',
+    icon: '📯',
+    title: 'O Heraldo dos Céus',
+    subtitle: 'Presença que respondeu ao canto do Caco Submerso',
+    lore:
+      'Apareceu só depois que o Leviatã do Ciclo foi silenciado e uma única nota atravessou as nuvens sobre o Trono Afundado. Fala como quem vem de muito longe e muito acima — uma glória distante que decidiu, por algum motivo que ainda não explicou por completo, responder ao chamado de uma cidadela afundada.',
+    color: '#fbbf24',
+    tags: ['npc', 'aliado', 'ceus', 'leviata'],
+    alwaysVisible: false,
+    unlockHint: 'Complete uma missão principal do Heraldo dos Céus para desbloquear.',
+    isUnlocked: (ctx) => npcMet(ctx, 'sky_herald'),
+  },
+];
+
+// ============================================================================
+// 9. ARTEFATOS DE HISTÓRIA
+// ============================================================================
+const artifactEntries: CodexEntry[] = Object.values(STORY_ITEMS_CATALOG).map((item) => ({
+  id: `artifact_${item.id}`,
+  category: 'artifacts' as const,
+  icon: item.icon,
+  title: item.name,
+  subtitle: item.passiveDescription,
+  lore: item.lore,
+  color: '#facc15',
+  tags: ['artefato', 'historia'],
+  alwaysVisible: false,
+  unlockHint: 'Obtenha este Artefato de História completando a missão principal correspondente.',
+  isUnlocked: (ctx: CodexUnlockContext) => artifactObtained(ctx, item.id),
+}));
+
 export const CODEX_ENTRIES: CodexEntry[] = [
   ...cosmologyEntries,
   ...factionEntries,
@@ -1880,4 +1996,6 @@ export const CODEX_ENTRIES: CodexEntry[] = [
   ...runeEntries,
   ...eventEntries,
   ...locationEntries,
+  ...npcEntries,
+  ...artifactEntries,
 ];
