@@ -4202,15 +4202,17 @@ export class CombatFSM {
     {
       const isHighTowerFloor = isTower && useTowerStore.getState().currentFloor >= 100;
       const isHighPandemonium = !!char.activePandemonium && char.currentStage >= 50;
+      // v-next: taxas reduzidas de 2%/3% para 0,15%/0,3% — feedback de playtest de que o drop
+      // original acumulava runas rápido demais para um material de uso único (só o Amuleto).
       if (isHighTowerFloor || isHighPandemonium) {
-        if (Math.random() < 0.02) {
+        if (Math.random() < 0.0015) {
           const tier3Pool: AstralRuneId[] = ['coroaEstelar_t3', 'pulsarVazio_t3', 'graalOraculo_t3'];
           const runeId = tier3Pool[Math.floor(Math.random() * tier3Pool.length)];
           useGameStore.getState().addAstralRunes({ [runeId]: 1 });
           bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Runa Astral rara ressoou em você: ${ASTRAL_RUNE_CATALOG[runeId].name}!` });
         }
       } else if ((char.ascensionCount || 0) >= 1) {
-        if (Math.random() < 0.03) {
+        if (Math.random() < 0.003) {
           const endgamePool: AstralRuneId[] = ['ecoRegen_t1', 'passoLeve_t1', 'olhoAstral_t1', 'marePsiquica_t2', 'chamaInterior_t2', 'veuSombrio_t2'];
           const runeId = endgamePool[Math.floor(Math.random() * endgamePool.length)];
           useGameStore.getState().addAstralRunes({ [runeId]: 1 });

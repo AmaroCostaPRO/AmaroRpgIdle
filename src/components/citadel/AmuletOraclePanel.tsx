@@ -6,7 +6,7 @@ import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 import { AMULET_ORACLE_MAX_LEVEL, AMULET_ORACLE_UPGRADE_COST, AMULET_ORACLE_REROLL_COST, getAmuletOracleBuffValue } from '../../core/citadelFormulas';
 import {
   AstralRuneId, ASTRAL_RUNE_CATALOG, AMULET_TOTAL_SLOTS, getMaxAmuletSlots, getActiveAstralRunewords,
-  RUNE_SHEET_ASTRAL, getAstralRuneSpriteIndex,
+  RUNE_SHEET_ASTRAL, getAstralRuneSpriteIndex, ASTRAL_RUNEWORD_CATALOG,
 } from '../../core/astralRuneFormulas';
 import { statLabels, isPercentStat, getSetVisual } from '../shared/itemVisuals';
 import { IconSprite } from '../shared/IconSprite';
@@ -132,7 +132,12 @@ export const AmuletOraclePanel: React.FC = () => {
   };
 
   // Posições dos 6 espaços em círculo, começando no topo e girando em sentido horário.
-  const RADIUS = 108;
+  // Calibrado por medição direta dos pixels de `amulet_oracle_frame.png` (1024×1024): os 6
+  // encaixes formam um hexágono perfeitamente CENTRADO na imagem (o argolão no canto superior
+  // direito não desloca o centro, ao contrário do que se imaginava antes), com raio de
+  // ≈276px/512px de meia-largura = 53,97% — convertido para o container de 280px (meia-largura
+  // 140px) dá ≈76px. Cada encaixe mede ≈135px de diâmetro em 1024px (≈37px em 280px).
+  const RADIUS = 76;
   const slotPositions = Array.from({ length: AMULET_TOTAL_SLOTS }, (_, i) => {
     const angle = (Math.PI * 2 * i) / AMULET_TOTAL_SLOTS - Math.PI / 2;
     return { x: RADIUS * Math.cos(angle), y: RADIUS * Math.sin(angle) };
@@ -243,8 +248,10 @@ export const AmuletOraclePanel: React.FC = () => {
               )}
               {/* Espaço central — palavra(s) ativa(s) */}
               <div style={{
-                position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                width: '110px', textAlign: 'center', pointerEvents: 'none',
+                position: 'absolute',
+                left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '70px', textAlign: 'center', pointerEvents: 'none',
               }}>
                 {activeWords.length > 0 ? (
                   activeWords.map(w => (
@@ -269,11 +276,11 @@ export const AmuletOraclePanel: React.FC = () => {
                     title={!unlocked ? 'Espaço bloqueado — melhore o Oráculo' : (runeDef ? `${runeDef.name} — clique para remover` : 'Engastar Runa Astral')}
                     style={{
                       position: 'absolute',
-                      left: `calc(50% + ${pos.x}px - 22px)`,
-                      top: `calc(50% + ${pos.y}px - 22px)`,
-                      width: '44px', height: '44px', borderRadius: '50%',
+                      left: `calc(50% + ${pos.x}px - 18px)`,
+                      top: `calc(50% + ${pos.y}px - 18px)`,
+                      width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.2rem', cursor: unlocked ? 'pointer' : 'not-allowed',
+                      fontSize: '1rem', cursor: unlocked ? 'pointer' : 'not-allowed',
                       background: runeDef ? runeDef.color : 'rgba(255,255,255,0.06)',
                       border: unlocked ? '2px solid rgba(192, 132, 252, 0.6)' : '2px dashed rgba(255,255,255,0.2)',
                       color: runeDef ? '#1e1b4b' : 'rgba(255,255,255,0.3)',
@@ -327,6 +334,47 @@ export const AmuletOraclePanel: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Palavras Rúnicas Astrais conhecidas — só informativo (revelação por tentativa e
+                erro ao consultar o Oráculo com sucesso, ou pela Garrafa Perdida). Diferente da
+                Câmara de Gravação, não há botão de gravar/aplicar aqui: o jogador precisa montar
+                a sequência manualmente e na ordem certa nos espaços do círculo acima. */}
+            <div style={{ border: '1px solid rgba(192, 132, 252, 0.3)', borderRadius: '8px', padding: '0.7rem' }}>
+              <p style={{ fontWeight: 700, fontSize: '0.8rem' }}>📜 Palavras Rúnicas Astrais Conhecidas</p>
+              <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.2rem' }}>
+                Revelada ao reconhecer a sequência com sucesso no Oráculo, ou ao abrir uma 🍾 Garrafa Perdida.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
+                {ASTRAL_RUNEWORD_CATALOG.map((rw) => {
+                  const revealed = (character.revealedAstralRunewordIds || []).includes(rw.id);
+                  if (!revealed) {
+                    return (
+                      <p key={rw.id} style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)' }}>
+                        ??? — uma sequência desconhecida ressoa em algum lugar do Oráculo...
+                      </p>
+                    );
+                  }
+                  return (
+                    <div key={rw.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '0.4rem 0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                        {rw.sequence.map((runeId, i) => {
+                          const def = ASTRAL_RUNE_CATALOG[runeId];
+                          return (
+                            <span key={i} style={{ width: '20px', height: '20px', borderRadius: '50%', background: def.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e1b4b', overflow: 'hidden', flexShrink: 0 }}>
+                              <IconSprite src={RUNE_SHEET_ASTRAL} index={getAstralRuneSpriteIndex(runeId)} fallbackIcon={def.glyph} />
+                            </span>
+                          );
+                        })}
+                        <strong style={{ fontSize: '0.72rem', marginLeft: '0.3rem' }}>{rw.name}</strong>
+                      </div>
+                      <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.25rem' }}>
+                        {rw.effectDesc} {rw.minOracleLevel > 1 ? `(requer Oráculo Nível ${rw.minOracleLevel})` : ''}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </>
         )}
       </div>

@@ -44,7 +44,7 @@ import {
 } from '../core/runeFormulas';
 import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST, AMULET_ORACLE_MAX_LEVEL, AMULET_ORACLE_UPGRADE_COST, AMULET_ORACLE_BUFF_POOL, AMULET_ORACLE_REROLL_COST, AmuletOracleBuffKey } from '../core/citadelFormulas';
 import {
-  AstralRuneId, getMaxAmuletSlots, getActiveAstralRunewords, AMULET_TOTAL_SLOTS,
+  AstralRuneId, getMaxAmuletSlots, getActiveAstralRunewords, AMULET_TOTAL_SLOTS, ASTRAL_RUNEWORD_CATALOG,
 } from '../core/astralRuneFormulas';
 import {
   DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
@@ -2659,9 +2659,35 @@ export const useGameStore = create<GameState>((set) => ({
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🜠 A cada 100 acertos perfeitos a linha brilha: você pescou FARO, LÚMEN ABISSAL — uma Runa Primordial! (${totalGrantsDue}ª vez)` });
       }
 
+      // Garrafa Perdida (Oráculo Rúnico): 1 rolagem de 5% por PUXADA (não por captura individual,
+      // então acerto/perfeito não dobra a chance), independente do resultado (erro/acerto/perfeito).
+      // Feito inline no inventário (em vez de chamar `addItemToInventory`) para não aninhar um
+      // segundo `set()` dentro deste `set()` já em andamento.
+      let inventory = char.inventory;
+      let bottleMsg = '';
+      if (Math.random() < 0.05) {
+        if (inventory.length < char.inventorySlots) {
+          const bottleItem: EquipmentItem = {
+            id: `garrafa_perdida-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            name: 'Garrafa Perdida',
+            slot: 'consumable',
+            rarity: 'consumable',
+            stats: {},
+            classId: char.classId,
+            spriteName: 'garrafa_perdida',
+            consumableType: 'garrafa_perdida',
+          };
+          inventory = [...inventory, bottleItem];
+          bottleMsg = ' 🍾 Uma Garrafa Perdida apareceu presa no anzol!';
+        } else {
+          bottleMsg = ' 🍾 Uma Garrafa Perdida quase fisgou, mas seu inventário está cheio!';
+        }
+      }
+
       const updated = {
         ...char,
         ...fields,
+        inventory,
         runeInventory,
         coastal: {
           ...coastal,
@@ -2677,8 +2703,8 @@ export const useGameStore = create<GameState>((set) => ({
       saveToLocalStorage(updated);
       const qualityLabel = quality === 'perfect' ? '✨ FISGADA PERFEITA' : quality === 'hit' ? '🎯 Fisgada certeira (2x)' : '🎣 Fisgada';
       const keyMsg = newKeys > 0 ? ` 🤿 ${newKeys}x CHAVE DE MERGULHO montada!` : '';
-      bridge.emit(GameEvent.LOG_EMITTED, { message: `${qualityLabel}: ${summary}.${keyMsg}` });
-      result = { success: true, message: `${qualityLabel}: ${summary}` };
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${qualityLabel}: ${summary}.${keyMsg}${bottleMsg}` });
+      result = { success: true, message: `${qualityLabel}: ${summary}${bottleMsg}` };
       return { character: updated };
     });
     return result;
@@ -2951,11 +2977,18 @@ export const useGameStore = create<GameState>((set) => ({
       const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
         ...i, activeAstralRunewords: activeWords.map(w => w.id),
       }));
-      saveToLocalStorage(afterUpdate);
+      // Tentativa e erro: toda palavra reconhecida numa consulta bem-sucedida fica revelada
+      // permanentemente na lista da tela do Oráculo, mesmo que o jogador troque as runas depois.
+      const revealedAstralRunewordIds = [...new Set([
+        ...(afterUpdate.revealedAstralRunewordIds || []),
+        ...activeWords.map(w => w.id),
+      ])];
+      const updated = { ...afterUpdate, revealedAstralRunewordIds };
+      saveToLocalStorage(updated);
       result = activeWords.length > 0
         ? { success: true, message: `🔮 O Oráculo reconhece: ${activeWords.map(w => w.name).join(' + ')}!` }
         : { success: false, message: 'Nenhuma palavra rúnica reconhecida.' };
-      return { character: afterUpdate };
+      return { character: updated };
     });
     return result;
   },
@@ -6114,6 +6147,39 @@ export const useGameStore = create<GameState>((set) => ({
         };
         saveToLocalStorage(updated);
         result = { success: true, message: `Baú de Relíquias aberto! +${fragmentsGained} Fragmento(s) de Alma Instável no Altar de Relíquias.` };
+        return { character: updated };
+      }
+
+      if (item.consumableType === 'garrafa_perdida') {
+        const unrevealed = ASTRAL_RUNEWORD_CATALOG.filter(
+          w => !(state.character.revealedAstralRunewordIds || []).includes(w.id)
+        );
+        // 5% de chance de revelar uma Palavra Rúnica Astral ainda desconhecida; se todas já
+        // estiverem reveladas, cai automaticamente no prêmio de material abaixo (nunca desperdiça
+        // a garrafa).
+        if (unrevealed.length > 0 && Math.random() < 0.05) {
+          const revealedWord = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+          const updated = {
+            ...state.character,
+            inventory: nextInventory,
+            revealedAstralRunewordIds: [...(state.character.revealedAstralRunewordIds || []), revealedWord.id],
+          };
+          saveToLocalStorage(updated);
+          result = { success: true, message: `🍾📜 A Garrafa Perdida guardava um segredo do Oráculo: ${revealedWord.name} revelada!` };
+          return { character: updated };
+        }
+
+        const givesPearls = Math.random() < 0.5;
+        const updated = {
+          ...state.character,
+          inventory: nextInventory,
+          pearls: givesPearls ? (state.character.pearls || 0) + 5 : (state.character.pearls || 0),
+          materials: givesPearls
+            ? (state.character.materials || DEFAULT_MATERIALS())
+            : { ...(state.character.materials || DEFAULT_MATERIALS()), coral: ((state.character.materials || DEFAULT_MATERIALS()).coral || 0) + 10 },
+        };
+        saveToLocalStorage(updated);
+        result = { success: true, message: givesPearls ? '🍾 A Garrafa Perdida trazia +5 Pérolas Abissais.' : '🍾 A Garrafa Perdida trazia +10 Coral Vivo.' };
         return { character: updated };
       }
 

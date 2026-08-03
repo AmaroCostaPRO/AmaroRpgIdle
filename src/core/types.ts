@@ -58,7 +58,7 @@ export interface EquipmentItem {
   setName?: string;
   spriteName: string;
   mysticLevel?: number;
-  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen' | 'potion_speed' | 'potion_manaregen' | 'potion_robotclick';
+  consumableType?: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'unstable_soul_fragment' | 'relic_chest' | 'tower_key' | 'tower_key_evolved' | 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal' | 'potion_damage' | 'potion_regen' | 'potion_speed' | 'potion_manaregen' | 'potion_robotclick' | 'garrafa_perdida';
   stage?: number;
   // v9.0.0 "O Que Espera no Pandemônio": Relíquia equipável ativa (slot `activeRelic`). Diferente do
   // equipamento normal, NÃO passa por fusão mística — a habilidade em si é fixa (`activeRelicId`,
@@ -322,6 +322,9 @@ export interface Character {
   revealedRunewordIds?: string[];
   // Oráculo Rúnico: runas astrais soltas empilháveis, FORA do inventário físico (paralelo a runeInventory).
   astralRuneInventory?: Partial<Record<AstralRuneId, number>>;
+  // Oráculo Rúnico: ids de ASTRAL_RUNEWORD_CATALOG (astralRuneFormulas.ts) já revelados — por
+  // tentativa e erro (reconhecida com sucesso ao "Consultar o Oráculo") ou pela Garrafa Perdida.
+  revealedAstralRunewordIds?: string[];
   // Litoral Naufragado (desbloqueia ao completar a Fase 2)
   coastal?: {
     unlocked: boolean;

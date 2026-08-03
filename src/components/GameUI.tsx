@@ -4057,7 +4057,19 @@ const GuidePanel: React.FC = () => {
                       Ao construir o Oráculo, 1 stat (Chance de Drop, Chance de Crítico ou Roubo de Vida) é sorteado permanentemente e só cresce de força com o nível — vale mesmo sem nenhum amuleto equipado. Um botão "🎲 Rerolar Bônus" permite trocar o stat sorteado por um custo alto em Ouro + Pérolas Abissais, sempre garantindo um stat diferente do atual.
                     </p>
                   </div>
-                  <p className="text-gray-500 text-[8px]">Fontes das Runas Astrais: Tiers 1-2 em conteúdo endgame (pós-1ª Ascensão) e produção passiva do Oráculo a partir do Nível 3; Tier 3 exclusivo de Torre 100+ ou Pandemônio (Fase 50+). Amuletos não podem mais ser fundidos na Forja — o valor deles vive nas runas engastadas, não em stats.</p>
+                  <div>
+                    <strong className="text-white block font-semibold">📜 Descobrindo as Palavras Rúnicas Astrais:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      A tela do Oráculo mostra uma lista logo abaixo do seletor de runas com todas as 6 receitas — as ainda não descobertas aparecem como <strong>"???"</strong>. Duas formas de revelar: reconhecer a sequência com sucesso ao clicar em "Consultar o Oráculo" (tentativa e erro — fica revelada pra sempre, mesmo trocando as runas depois), ou abrir uma <strong>🍾 Garrafa Perdida</strong>. A lista é só informativa: a sequência ainda precisa ser montada manualmente e na ordem certa no círculo.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🍾 Garrafa Perdida:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Item raro que dropa da <strong>Pesca Ativa</strong> ("Puxar a Linha", 5% de chance por puxada). Ao abrir: 5% de chance de revelar uma Palavra Rúnica Astral aleatória ainda desconhecida (nunca cai uma repetida); os outros 95% dão +5 Pérolas Abissais ou +10 Coral Vivo (50/50).
+                    </p>
+                  </div>
+                  <p className="text-gray-500 text-[8px]">Fontes das Runas Astrais: Tiers 1-2 em conteúdo endgame (pós-1ª Ascensão, 0,3% por abate) e produção passiva do Oráculo a partir do Nível 3; Tier 3 exclusivo de Torre 100+ ou Pandemônio (Fase 50+, 0,15% por abate). Amuletos não podem mais ser fundidos na Forja — o valor deles vive nas runas engastadas, não em stats.</p>
                 </div>
               </div>
 
@@ -8475,6 +8487,7 @@ export default function GameUI() {
                           const res = useConsumable(selectedItem.id);
                           if (res.success) {
                             setSelectedItem(null);
+                            if (res.message) alert(res.message);
                           } else {
                             alert(res.message);
                           }

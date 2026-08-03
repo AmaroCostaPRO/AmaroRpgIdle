@@ -281,11 +281,6 @@ export type CitadelStructureKey =
 
 export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
   const HOUR = 60 * 60 * 1000;
-  // TEMPORÁRIO (teste do Oráculo Rúnico) — reverter para `nextLevel * HOUR` (igual às demais
-  // construções) assim que os testes de balanceamento terminarem.
-  if (structureKey === 'amuletOracle' && nextLevel === 1) {
-    return 1000;
-  }
   if (structureKey === 'commandCenter') {
     return (5 + (nextLevel - 2) * 2) * HOUR;
   }

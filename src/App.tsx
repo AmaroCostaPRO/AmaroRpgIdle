@@ -464,6 +464,38 @@ const App: React.FC = () => {
                         Amuletos não podem mais ser selecionados para fusão na Forja — como todo o valor do item agora vive nas Runas Astrais engastadas (não em stats), fundir dois amuletos destruiria essas runas silenciosamente, sem devolução ao cofre.
                       </div>
                     </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a3e635', fontSize: '0.72rem' }}>
+                        📜 Lista de Palavras Rúnicas Astrais Conhecidas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Novo bloco na tela do Oráculo, logo abaixo do picker de runas, mostrando as sequências já descobertas (e "???" para as ainda não). Reveladas por tentativa e erro (reconhecer a sequência com sucesso ao consultar o Oráculo) ou pela nova Garrafa Perdida. Sem botão de aplicar automaticamente — a sequência ainda precisa ser montada manualmente e na ordem certa.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#22d3ee', fontSize: '0.72rem' }}>
+                        🍾 Novo Item: Garrafa Perdida
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Dropa da Pesca Ativa do Litoral ("Puxar a Linha") com 5% de chance por puxada. Ao abrir: 5% de chance de revelar uma Palavra Rúnica Astral aleatória ainda desconhecida (nunca repete uma já revelada); os outros 95% dão +5 Pérolas Abissais ou +10 Coral Vivo (50/50).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fb923c', fontSize: '0.72rem' }}>
+                        🎯 Drop de Runas Astrais Reduzido em 10×
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        As taxas de drop de combate (3%/2% por abate) estavam acumulando runas rápido demais para um material de uso único — reduzidas para 0,3% (endgame) e 0,15% (Torre 100+/Pandemônio).
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🐛 Consumíveis Agora Avisam o que Você Ganhou
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Usar qualquer consumível (baús, elixires, poções, Garrafa Perdida) fechava o modal em silêncio no sucesso, sem mostrar o que veio. Agora sempre exibe uma mensagem com o resultado.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
