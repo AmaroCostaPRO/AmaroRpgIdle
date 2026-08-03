@@ -361,6 +361,10 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
 
       const currentStage = char.currentStage || 1;
       const currentLevel = char.level || 1;
+      const citadel = char.citadel as unknown as Record<string, { level?: number } | undefined> | undefined;
+      const anyCitadelBuildingUpgraded = citadel
+        ? Object.entries(citadel).some(([key, building]) => key !== 'commandCenter' && key !== 'unlocked' && (building?.level ?? 0) > 0)
+        : false;
       let changed = false;
 
       const syncList = (quests: QuestDef[]) => {
@@ -377,6 +381,11 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
               currentAmount = currentStage;
             } else if (obj.type === 'level') {
               currentAmount = currentLevel;
+            } else if (obj.type === 'citadel_build') {
+              const builtAmount = obj.targetId
+                ? Math.min(obj.requiredAmount, citadel?.[obj.targetId]?.level ?? 0)
+                : (anyCitadelBuildingUpgraded ? obj.requiredAmount : 0);
+              currentAmount = Math.max(obj.currentAmount, builtAmount);
             }
             if (currentAmount !== obj.currentAmount) questUpdated = true;
             if (currentAmount < obj.requiredAmount) allCompleted = false;
