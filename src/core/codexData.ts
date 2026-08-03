@@ -1,5 +1,6 @@
 import type { Character } from './types';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_IDS, RuneId, RuneFamilyId, PrimordialRuneId } from './runeFormulas';
+import { ASTRAL_RUNE_CATALOG, AstralRuneId } from './astralRuneFormulas';
 import { isFullDepthsUnlocked } from './abyssFormulas';
 import { MAIN_QUESTS_CATALOG } from './quests/mainQuestsData';
 import { STORY_ITEMS_CATALOG } from './quests/storyItemsData';
@@ -66,6 +67,7 @@ const runeFamilyObtained = (ctx: CodexUnlockContext, family: RuneFamilyId): bool
 const npcMet = (ctx: CodexUnlockContext, npcId: string): boolean =>
   MAIN_QUESTS_CATALOG.some((q) => q.npcId === npcId && ctx.completedQuestIds.includes(q.id));
 const artifactObtained = (ctx: CodexUnlockContext, itemId: string): boolean => (ctx.storyInventory[itemId] ?? 0) > 0;
+const astralRuneObtained = (ctx: CodexUnlockContext, runeId: AstralRuneId): boolean => (ctx.character.astralRuneInventory?.[runeId] ?? 0) > 0;
 
 export const CONVERGENCE_BOSS_IDS = ['boss_what_still_dreams', 'boss_reflection_reaper', 'boss_nameless_hunger', 'boss_empty_throne'];
 
@@ -1453,6 +1455,55 @@ const runePrimordialEntries: CodexEntry[] = PRIMORDIAL_RUNE_IDS.map((runeId) => 
 
 const runeEntries: CodexEntry[] = [runeOverviewEntry, ...runeFamilyEntries, ...runePrimordialEntries];
 
+// v12.0.0 "O Oráculo Rúnico": Runas Astrais — catálogo próprio, exclusivo do Amuleto, tema
+// astral/celestial (constelações, luz estelar) em contraste deliberado com o tema aquático/
+// orgânico das Runas Abissais acima.
+const ASTRAL_RUNE_LORE: Record<AstralRuneId, string> = {
+  ecoRegen_t1: 'Um brilho verde-claro que pulsa devagar, no mesmo ritmo de um coração em repouso. O Oráculo diz que ela guarda o instante exato entre um ferimento e a decisão do corpo de continuar vivendo.',
+  passoLeve_t1: 'Não faz som nenhum — nem quando cai no chão, nem quando é engastada. Dizem que foi assim que aprendeu a atravessar o ar sem perturbá-lo, e que empresta esse mesmo silêncio a quem a carrega.',
+  olhoAstral_t1: 'Um glifo roxo-claro em forma de estrela, com um ponto central que parece observar de volta. Quem estuda o Oráculo por tempo demais jura já ter visto essa runa piscar.',
+  marePsiquica_t2: 'Ondas que não existem em água nenhuma — só na mente. A Maré Psíquica sobe e desce num oceano que só existe atrás dos olhos, sincronizando-se com o fluxo de mana de quem a porta.',
+  chamaInterior_t2: 'Uma chama pequena, contida, que nunca cresce além do próprio glifo. Não é fogo pra queimar os outros — é fogo pra nunca deixar o portador esfriar.',
+  veuSombrio_t2: 'Roxo quase preto, ela absorve mais luz do que qualquer outra runa astral — como se soubesse que, às vezes, o melhor jeito de vencer é não ser visto vencendo.',
+  coroaEstelar_t3: 'Só aparece pra quem já subiu alto o bastante — literalmente. Ecoa nos andares mais altos da Torre, como se cada degrau vencido acendesse mais um ponto da coroa.',
+  pulsarVazio_t3: 'Um pulso magenta que bate fora de compasso com tudo ao redor. Ressoa mais forte no Pandemônio, onde a realidade já está esticada o bastante pra deixar esse tipo de eco passar.',
+  graalOraculo_t3: 'A mais rara das Runas Astrais — dizem que não é encontrada, é concedida, como se o próprio Oráculo escolhesse a quem revelar seus segredos mais profundos.',
+};
+
+const astralRuneOverviewEntry: CodexEntry = {
+  id: 'astral_rune_overview',
+  category: 'runes',
+  icon: '🔮',
+  title: 'As Runas Astrais',
+  subtitle: 'Ecos que só o Oráculo Rúnico compreende',
+  lore:
+    'Diferente das Runas Abissais — estilhaços do Caco Submerso, temperados na água e no peso da Fossa —, as Runas Astrais nunca tocaram o oceano. Nasceram no Oráculo Rúnico da Cidadela Astral, voltadas pra cima em vez de pra baixo: constelações, luz estelar, o tipo de instinto que só desperta em quem já venceu andares altos demais da Torre ou sobreviveu tempo demais ao Pandemônio. Uma Runa Astral solta nunca vale nada sozinha — só ganha função ao formar, junto de outras, uma Palavra Rúnica Astral reconhecida no círculo do Amuleto.',
+  color: '#a78bfa',
+  tags: ['runas', 'astral', 'oraculo-runico', 'amuleto'],
+  alwaysVisible: true,
+  isUnlocked: always,
+};
+
+const ASTRAL_RUNE_IDS_FOR_CODEX: AstralRuneId[] = [
+  'ecoRegen_t1', 'passoLeve_t1', 'olhoAstral_t1',
+  'marePsiquica_t2', 'chamaInterior_t2', 'veuSombrio_t2',
+  'coroaEstelar_t3', 'pulsarVazio_t3', 'graalOraculo_t3',
+];
+
+const astralRuneEntries: CodexEntry[] = ASTRAL_RUNE_IDS_FOR_CODEX.map((runeId) => ({
+  id: `astral_rune_${runeId}`,
+  category: 'runes' as const,
+  icon: ASTRAL_RUNE_CATALOG[runeId].glyph,
+  title: ASTRAL_RUNE_CATALOG[runeId].name,
+  subtitle: `Runa Astral — Tier ${ASTRAL_RUNE_CATALOG[runeId].tier}`,
+  lore: ASTRAL_RUNE_LORE[runeId],
+  color: ASTRAL_RUNE_CATALOG[runeId].color,
+  tags: ['runas', 'astral'],
+  alwaysVisible: false,
+  unlockHint: 'Obtenha esta Runa Astral (drop endgame, produção do Oráculo Rúnico, ou Torre 100+/Pandemônio para Runas Tier 3).',
+  isUnlocked: (ctx: CodexUnlockContext) => astralRuneObtained(ctx, runeId),
+}));
+
 // ============================================================================
 // 5. EVENTOS HISTÓRICOS
 // ============================================================================
@@ -1994,6 +2045,8 @@ export const CODEX_ENTRIES: CodexEntry[] = [
   ...characterEntries,
   ...bestiaryEntries,
   ...runeEntries,
+  astralRuneOverviewEntry,
+  ...astralRuneEntries,
   ...eventEntries,
   ...locationEntries,
   ...npcEntries,

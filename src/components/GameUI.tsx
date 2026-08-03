@@ -3854,6 +3854,7 @@ const GuidePanel: React.FC = () => {
                     <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia:</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
                     <li><span className="text-white font-semibold">📜 Santuário de Contratos de Caça:</span> <span className="text-gray-400">gera 2-3 contratos rotativos ("derrote N do inimigo X"), renovados a cada 8h, com recompensas em materiais/ouro e um bônus extra ao completar toda a rotação. Evolução do Bestiário — o bônus passivo por marco de mortes continua funcionando normalmente em paralelo.</span></li>
                     <li><span className="text-white font-semibold">🪬 Câmara de Gravação:</span> <span className="text-gray-400">12ª construção — perfura soquetes em equipamento pesado e engasta Runas Abissais/Palavras Rúnicas dropadas nas Profundezas (veja o detalhamento completo na categoria 🌊 Cidadela Submersa).</span></li>
+                    <li><span className="text-white font-semibold">🔮 Oráculo Rúnico:</span> <span className="text-gray-400">13ª construção — habilita a tela circular de ativação do Amuleto e concede um bônus fixo permanente próprio (veja o detalhamento completo na categoria ⚔️ Equipamento).</span></li>
                   </ul>
                 </div>
               </div>
@@ -4017,13 +4018,46 @@ const GuidePanel: React.FC = () => {
                   </ul>
                   <p className="text-gray-500 text-[8px]">Os valores escalam com a Fase em que o Colar caiu e a raridade do drop, até os tetos listados acima.</p>
                   <div>
-                    <strong className="text-white block font-semibold">🧿 Amuleto (7º slot)</strong>
-                    <p className="text-gray-400 text-[9px] mt-0.5">Slot "leve" de entrada, disponível desde a Fase 1: concede exatamente 1 passivo da mesma pool do Colar acima. Drop fixo de 8%, sem influência da Sorte.</p>
+                    <strong className="text-white block font-semibold">🧿 Amuleto (7º slot) — reformulado na v12.0.0</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">Desde a v12.0.0, o Amuleto <strong>não rola mais nenhum passivo próprio</strong> — ele virou uma "chave" que habilita a tela do 🔮 Oráculo Rúnico, uma nova construção da Cidadela Astral. Todo o valor dele vem de Runas Astrais engastadas num círculo de espaços. Drop fixo de 8% mantido, sem influência da Sorte. Veja o bloco dedicado "Oráculo Rúnico" logo abaixo para o funcionamento completo.</p>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold">💍 Anel (8º slot)</strong>
-                    <p className="text-gray-400 text-[9px] mt-0.5">Ao contrário do Colar/Amuleto, o Anel é um slot "pesado" — concede atributos primários de classe normais (igual a Elmo/Peito/Pernas/Mãos/Arma), participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados.</p>
+                    <strong className="text-white block font-semibold">💍 Anel (8º slot) — reformulado na v12.0.0</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">O Anel é um slot "pesado" — participa de Sets e da Fusão Mística, e cai na mesma rolagem de drop dos demais slots pesados. Desde a v12.0.0, ele rola <strong>1 dos 6 atributos primários (Força, Magia, Destreza, Constituição, Sorte, Toque) independente da sua classe</strong> — antes era restrito ao pool da classe ativa, igual a Elmo/Peito/Pernas/Mãos/Arma. Para compensar ser só 1 stat, o valor sai com o <strong>dobro</strong> da escala normal de peças pesadas. A Fusão Mística só permite combinar dois anéis com o <strong>mesmo atributo</strong> (não dá pra fundir um anel de Força com um de Sorte, por exemplo).</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Oráculo Rúnico e Runas Astrais (v12.0.0) */}
+              <div className="bg-black/30 p-3.5 rounded-lg border border-gray-800/80 flex flex-col gap-2">
+                <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🔮 Oráculo Rúnico e Runas Astrais (v12.0.0)</span>
+                <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
+                  <p>
+                    Nova construção da Cidadela Astral (2ª página do pátio, ao lado da Câmara de Gravação) que habilita a tela de ativação do Amuleto: um círculo com até <strong>6 espaços</strong> ao redor do sprite, liberados conforme o nível da estrutura (Nível 1: 3 espaços · Nível 2: 4 · Nível 3: 5 + produção passiva de Runas Astrais · Nível 4: 6, círculo completo · Nível 5: Palavras Lendárias).
+                  </p>
+                  <div>
+                    <strong className="text-white block font-semibold">Runas Astrais e Palavras Rúnicas Astrais:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Catálogo próprio de 9 Runas Astrais (3 tiers, tema suporte/utilidade), <strong>diferente</strong> das Runas Abissais do sistema de soquetes pesado. Uma runa solta nunca dá bônus sozinha — só ao formar uma <strong>Palavra Rúnica Astral</strong> reconhecida. Engaste livremente e clique em <strong>"Consultar o Oráculo"</strong> para testar a sequência (não consome as runas, ao contrário da gravação do sistema pesado). Dois modos de uso, mutuamente exclusivos:
+                    </p>
+                    <ul style={{ listStyleType: 'disc', paddingLeft: '1.25rem', marginTop: '0.2rem', gap: '0.15rem', display: 'flex', flexDirection: 'column' }}>
+                      <li><span className="text-gray-400">1 palavra única, de 3 a 6 runas, ocupando o círculo inteiro na ordem certa.</span></li>
+                      <li><span className="text-gray-400">2 palavras diferentes de 3 runas cada, uma em cada metade do círculo, ativas simultaneamente (exige os 6 espaços desbloqueados).</span></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">Palavras Lendárias concedem habilidades ativas:</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      As receitas de 6 runas (só reconhecidas no Nível 5 do Oráculo) concedem uma <strong>habilidade ativa nova</strong>, com botão dedicado no painel de Habilidades ao lado da Relíquia Ativa — mesmo sistema de recarga, efeito diferente.
+                    </p>
+                  </div>
+                  <div>
+                    <strong className="text-white block font-semibold">🎁 Bônus fixo da estrutura (não do item):</strong>
+                    <p className="text-gray-400 text-[9px] mt-0.5">
+                      Ao construir o Oráculo, 1 stat (Chance de Drop, Chance de Crítico ou Roubo de Vida) é sorteado permanentemente e só cresce de força com o nível — vale mesmo sem nenhum amuleto equipado. Um botão "🎲 Rerolar Bônus" permite trocar o stat sorteado por um custo alto em Ouro + Pérolas Abissais, sempre garantindo um stat diferente do atual.
+                    </p>
+                  </div>
+                  <p className="text-gray-500 text-[8px]">Fontes das Runas Astrais: Tiers 1-2 em conteúdo endgame (pós-1ª Ascensão) e produção passiva do Oráculo a partir do Nível 3; Tier 3 exclusivo de Torre 100+ ou Pandemônio (Fase 50+). Amuletos não podem mais ser fundidos na Forja — o valor deles vive nas runas engastadas, não em stats.</p>
                 </div>
               </div>
 
