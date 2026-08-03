@@ -3,6 +3,8 @@ export const ENEMIES_PER_STAGE = 20;
 // v10.0.0 "A Cidadela Submersa": imports só de tipos (apagados na compilação — sem ciclo em runtime).
 import type { RuneId } from './runeFormulas';
 import type { BaitType } from './abyssFormulas';
+import type { AstralRuneId } from './astralRuneFormulas';
+import type { AmuletOracleBuffKey } from './citadelFormulas';
 
 export interface BaseStats {
   strength: number;
@@ -75,6 +77,13 @@ export interface EquipmentItem {
   // engraveRuneword — substitui a soma individual das runas engastadas no passo 4.7 do StatEngine
   // enquanto `socketedRunes` continuar batendo com a sequência exata da receita.
   activeRuneword?: string;
+  // Oráculo Rúnico (rework do Amuleto): só usado quando `slot === 'amulet'`. 6 espaços dispostos em
+  // círculo — diferente do sistema de soquetes pesado, runas soltas aqui NUNCA dão bônus sozinhas,
+  // só valem quando fecham uma Palavra Rúnica Astral reconhecida (ver `astralRuneFormulas.ts`).
+  amuletSockets?: (AstralRuneId | null)[];
+  // Ids de ASTRAL_RUNEWORD_CATALOG reconhecidos na última "Consulta ao Oráculo" (0, 1 ou 2 — o
+  // modo de 2 palavras simultâneas de 3 runas cada exige os 6 espaços desbloqueados).
+  activeAstralRunewords?: string[];
 }
 
 export interface EnemyType {
@@ -196,6 +205,11 @@ export interface CitadelState {
   // v10.0.0 "A Cidadela Submersa": Câmara de Gravação — ancora o Sistema de Soquetes/Runas.
   // Opcional para retrocompatibilidade de saves (injetada por mergeLoadedCharacter).
   engravingChamber?: CitadelBuildingState;
+  // Oráculo Rúnico — ancora o sistema de Runas/Palavras Rúnicas Astrais exclusivo do Amuleto.
+  // Opcional para retrocompatibilidade de saves (injetada por mergeLoadedCharacter).
+  // `selectedBuffKey`: bônus de NÍVEL da estrutura (não do item Amuleto), sorteado 1x na 1ª
+  // construção — ver `getAmuletOracleBuffValue` em citadelFormulas.ts.
+  amuletOracle?: CitadelBuildingState & { selectedBuffKey?: AmuletOracleBuffKey };
 }
 
 export interface SkillNode {
@@ -306,6 +320,8 @@ export interface Character {
   // v10.3.0 "O Coração do Abismo": ids de RUNEWORD_CATALOG (runeFormulas.ts) já revelados —
   // Arquivo Submerso, marcos de Ecos, ou 1ª obtenção da runa primordial exigida pela receita.
   revealedRunewordIds?: string[];
+  // Oráculo Rúnico: runas astrais soltas empilháveis, FORA do inventário físico (paralelo a runeInventory).
+  astralRuneInventory?: Partial<Record<AstralRuneId, number>>;
   // Litoral Naufragado (desbloqueia ao completar a Fase 2)
   coastal?: {
     unlocked: boolean;
@@ -392,6 +408,7 @@ export enum GameEvent {
   ACTION_TRIGGERED = 'ACTION_TRIGGERED',
   EQUIP_SKILL = 'EQUIP_SKILL',
   TRIGGER_ACTIVE_RELIC = 'TRIGGER_ACTIVE_RELIC',
+  TRIGGER_AMULET_ABILITY = 'TRIGGER_AMULET_ABILITY',
   ACTIVE_BUFFS_CHANGED = 'ACTIVE_BUFFS_CHANGED',
   START_COMBAT = 'START_COMBAT',
   END_COMBAT = 'END_COMBAT',

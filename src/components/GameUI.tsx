@@ -11,6 +11,7 @@ import { GameEvent, BaseStats, EquipmentItem, EnemyType, PET_POOL } from '../cor
 import { StatEngine, SET_BONUSES } from '../core/StatEngine';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { ENEMY_TYPES, CONVERGENCE_BOSS_TYPES, MerchantOffer, ElixirType, MERCHANT_ELIXIR_COST, isBloodMoonActive, getActiveRelicDefinition, isConvergenceActive, getConvergenceBossOfWeek } from '../core/CombatFSM';
+import { getAstralRunewordById } from '../core/astralRuneFormulas';
 import { AudioManager } from '../core/AudioManager';
 import { calculateMaxMana, getSkillManaCost } from '../core/manaFormulas';
 import { SavesMenu } from './SavesMenu';
@@ -41,6 +42,7 @@ import { DistrictPanel } from './abyss/DistrictPanel';
 import { EchoRosterPanel } from './abyss/EchoRosterPanel';
 import { SunkenCitadelOverview } from './abyss/SunkenCitadelOverview';
 import { EngravingChamberPanel } from './citadel/EngravingChamberPanel';
+import { AmuletOraclePanel } from './citadel/AmuletOraclePanel';
 import { getSocketDots, RuneChip } from './shared/itemVisuals';
 import { RUNE_CATALOG } from '../core/runeFormulas';
 import { QuestLogPanel } from './QuestLogPanel';
@@ -476,6 +478,10 @@ const ActiveSkillsPanel: React.FC = () => {
     bridge.emit(GameEvent.TRIGGER_ACTIVE_RELIC, {});
   };
 
+  const triggerAmuletAbility = (runewordId: string) => {
+    bridge.emit(GameEvent.TRIGGER_AMULET_ABILITY, { runewordId });
+  };
+
   // Filtra apenas as habilidades ativas desbloqueadas do personagem
   const activeSkills = Object.entries(SKILLS_CATALOG).filter(([id, skill]) => {
     const isClassSkill = skill.classId === classId || skill.classId === 'common';
@@ -595,6 +601,42 @@ const ActiveSkillsPanel: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Oráculo Rúnico: habilidade(s) ativa(s) concedida(s) por Palavra Rúnica Astral lendária (N5) */}
+      {(character.equipment.amulet?.activeAstralRunewords || [])
+        .map(id => getAstralRunewordById(id))
+        .filter((w): w is NonNullable<typeof w> => !!w?.grantsActiveAbility)
+        .map((word) => {
+          const ability = word.grantsActiveAbility!;
+          const cooldownKey = `amulet_ability_${word.id}`;
+          const cooldownMs = cooldowns[cooldownKey] || 0;
+          const isOnCooldown = cooldownMs > 0;
+          const cooldownSec = Math.ceil(cooldownMs / 1000);
+          return (
+            <div key={word.id} style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)' }}>
+              <h2 className="section-title" style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>🔮 Habilidade do Oráculo</h2>
+              <button
+                onClick={() => {
+                  if (!isOnCooldown) {
+                    AudioManager.getInstance().playClick();
+                    triggerAmuletAbility(word.id);
+                  }
+                }}
+                disabled={isOnCooldown}
+                className="btn-skill-combat"
+                style={{ position: 'relative', overflow: 'hidden', width: '100%' }}
+              >
+                {isOnCooldown && (
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.65rem', color: '#f87171', zIndex: 10 }}>
+                    RECARGA {cooldownSec}s
+                  </div>
+                )}
+                <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#facc15' }}>{ability.name}</span>
+                <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>{ability.desc}</span>
+              </button>
+            </div>
+          );
+        })}
 
       {/* Seção de Velocidade do Jogo (Aceleração 1x/2x/3x) */}
       <div style={{
@@ -7605,6 +7647,11 @@ export default function GameUI() {
       { icon: '🪸', value: citadelMaterials.coral || 0, color: '#fb7185', label: 'Coral Vivo' },
       { icon: '🦪', value: character.pearls || 0, color: '#a5f3fc', label: 'Pérolas Abissais' },
     ],
+    amuletOracle: [
+      { icon: '🪵', value: citadelMaterials.wood, color: '#d6b98c', label: 'Madeira' },
+      { icon: '🪨', value: citadelMaterials.stone, color: '#9ca3af', label: 'Pedra' },
+      { icon: '🦪', value: character.pearls || 0, color: '#a5f3fc', label: 'Pérolas Abissais' },
+    ],
   }), [citadelMaterials, character.transcendenceEssence, citadelSoulFragments, character.pearls]);
 
   // Recursos do cabeçalho enquanto a Cidadela Submersa está aberta — mesmos em qualquer distrito
@@ -8174,6 +8221,7 @@ export default function GameUI() {
               {citadelSubTab === 'alchemyLab' && <AlchemyLabPanel />}
               {citadelSubTab === 'huntSanctuary' && <HuntSanctuaryPanel />}
               {citadelSubTab === 'engravingChamber' && <EngravingChamberPanel />}
+              {citadelSubTab === 'amuletOracle' && <AmuletOraclePanel />}
             </>
           )}
           {activeTab === 'tower' && <TowerPanel />}

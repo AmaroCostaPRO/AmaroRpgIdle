@@ -4,7 +4,7 @@ import { useRelicStore } from '../../store/useRelicStore';
 import { getCitadelBuildingAffordability } from '../../core/citadelFormulas';
 import { SubTabBar } from '../nav/SubTabBar';
 
-export type CitadelSubTab = 'overview' | 'vault' | 'expeditions' | 'academy' | 'watchTower' | 'forgeWorkshop' | 'cosmicSiphon' | 'synchronyAltar' | 'relicLab' | 'alchemyLab' | 'huntSanctuary' | 'engravingChamber';
+export type CitadelSubTab = 'overview' | 'vault' | 'expeditions' | 'academy' | 'watchTower' | 'forgeWorkshop' | 'cosmicSiphon' | 'synchronyAltar' | 'relicLab' | 'alchemyLab' | 'huntSanctuary' | 'engravingChamber' | 'amuletOracle';
 
 export const CITADEL_SUB_TABS: { id: CitadelSubTab; label: string; icon: string }[] = [
   { id: 'overview', label: 'Visão Geral', icon: '🌌' },
@@ -19,6 +19,7 @@ export const CITADEL_SUB_TABS: { id: CitadelSubTab; label: string; icon: string 
   { id: 'alchemyLab', label: 'Alquimia', icon: '⚗️' },
   { id: 'huntSanctuary', label: 'Santuário', icon: '📜' },
   { id: 'engravingChamber', label: 'Gravação', icon: '🪬' },
+  { id: 'amuletOracle', label: 'Oráculo', icon: '🔮' },
 ];
 
 interface Props {

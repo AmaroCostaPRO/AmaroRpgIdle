@@ -42,7 +42,10 @@ import {
   getFusedRuneId, listSocketedRunes,
   getRunewordById, getRunewordEngraveCost, hasEquippedRuneFlag, RUNEWORD_CATALOG,
 } from '../core/runeFormulas';
-import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST } from '../core/citadelFormulas';
+import { ENGRAVING_CHAMBER_MAX_LEVEL, ENGRAVING_CHAMBER_UPGRADE_COST, AMULET_ORACLE_MAX_LEVEL, AMULET_ORACLE_UPGRADE_COST, AMULET_ORACLE_BUFF_POOL, AMULET_ORACLE_REROLL_COST, AmuletOracleBuffKey } from '../core/citadelFormulas';
+import {
+  AstralRuneId, getMaxAmuletSlots, getActiveAstralRunewords, AMULET_TOTAL_SLOTS,
+} from '../core/astralRuneFormulas';
 import {
   DISTRICT_IDS, DISTRICT_NAMES, DISTRICT_ICONS, DISTRICT_DRAIN_COST, getRestorationCost, getDistrictSlotCount,
   getRestorationDurationMs, DIVE_SUIT_MAX_LEVEL, getDiveSuitUpgradeCost, DIVE_SUIT_UPGRADE_DURATION_MS,
@@ -805,6 +808,7 @@ interface GameState {
   // v10.0.0: apoio aos Mergulhos Rasos (useDiveStore persiste snapshots via estas actions)
   updateAbyssState(patch: Partial<NonNullable<Character['abyss']>>): void;
   addRunes(runes: Partial<Record<RuneId, number>>): void;
+  addAstralRunes(runes: Partial<Record<AstralRuneId, number>>): void;
   spendDiveKey(count?: number): boolean;
   drillSocket(itemId: string): { success: boolean; message: string };
   socketRune(itemId: string, socketIndex: number, runeId: RuneId): { success: boolean; message: string };
@@ -827,6 +831,12 @@ interface GameState {
   engraveRuneword(itemId: string, runewordId: string): { success: boolean; message: string };
   undoRuneword(itemId: string): { success: boolean; message: string };
   revealRuneword(runewordId: string): void;
+  // Oráculo Rúnico: Sistema de Runas/Palavras Rúnicas Astrais exclusivo do Amuleto.
+  buildOrUpgradeAmuletOracle(): { success: boolean; message: string };
+  socketAstralRune(itemId: string, socketIndex: number, runeId: AstralRuneId): { success: boolean; message: string };
+  unsocketAstralRune(itemId: string, socketIndex: number): { success: boolean; message: string };
+  activateAstralRuneword(itemId: string): { success: boolean; message: string };
+  rerollAmuletOracleBuff(): { success: boolean; message: string };
   addXp(amount: number): void;
   upgradeAttribute(stat: keyof BaseStats, amount?: number): void;
   unlockSkill(skillId: string): void;
@@ -1000,6 +1010,8 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   huntSanctuary: { level: 0, lastTick: Date.now(), activeContracts: [] as HuntContract[], rotationId: 0, bonusClaimedForRotation: false },
   // v10.0.0 "A Cidadela Submersa": Câmara de Gravação (Sistema de Soquetes/Runas Abissais)
   engravingChamber: { level: 0, lastTick: Date.now() },
+  // Oráculo Rúnico (Sistema de Runas/Palavras Rúnicas Astrais exclusivo do Amuleto)
+  amuletOracle: { level: 0, lastTick: Date.now() },
 });
 
 const DEFAULT_MATERIALS = () => ({ wood: 0, stone: 0, meat: 0, studyInsignias: 0, coral: 0 });
@@ -1350,6 +1362,7 @@ const mergeLoadedCharacter = (char: Character): Character => {
       alchemyLab: { ...defaults.citadel!.alchemyLab, ...(char.citadel?.alchemyLab || {}) },
       huntSanctuary: { ...defaults.citadel!.huntSanctuary, ...(char.citadel?.huntSanctuary || {}), activeContracts: char.citadel?.huntSanctuary?.activeContracts || [] },
       engravingChamber: { ...defaults.citadel!.engravingChamber!, ...(char.citadel?.engravingChamber || {}) },
+      amuletOracle: { ...defaults.citadel!.amuletOracle!, ...(char.citadel?.amuletOracle || {}) },
     },
     totalXpEarned: char.totalXpEarned !== undefined
       ? char.totalXpEarned
@@ -1741,6 +1754,20 @@ export const useGameStore = create<GameState>((set) => ({
     return { character: updated };
   }),
 
+  // Oráculo Rúnico: Runas Astrais dropadas em combate (Abismo/Cidadela Submersa endgame, Torre
+  // 100+, Pandemônio 50+ — ver `CombatFSM.ts`).
+  addAstralRunes: (runes) => set((state) => {
+    const entries = Object.entries(runes).filter(([, qty]) => (qty || 0) > 0) as [AstralRuneId, number][];
+    if (entries.length === 0) return state;
+    const astralRuneInventory = { ...(state.character.astralRuneInventory || {}) };
+    for (const [runeId, qty] of entries) {
+      astralRuneInventory[runeId] = (astralRuneInventory[runeId] || 0) + qty;
+    }
+    const updated = { ...state.character, astralRuneInventory };
+    saveToLocalStorage(updated);
+    return { character: updated };
+  }),
+
   // v10.1.0: aceita `count` para os checkpoints de zona (26/51/81), que custam 2 Chaves em vez
   // de 1 — falha atomicamente (não gasta nada) se o estoque for insuficiente.
   spendDiveKey: (count = 1) => {
@@ -1951,6 +1978,7 @@ export const useGameStore = create<GameState>((set) => ({
       alchemyLab: 'Laboratório de Alquimia',
       huntSanctuary: 'Santuário de Contratos de Caça',
       engravingChamber: 'Câmara de Gravação',
+      amuletOracle: 'Oráculo Rúnico',
     };
     (Object.keys(structureLabels) as CitadelStructureKey[]).forEach((key) => {
       const building = citadel![key];
@@ -1981,6 +2009,8 @@ export const useGameStore = create<GameState>((set) => ({
     let nextWatchTower = citadel.watchTower;
     let nextForgeWorkshop = citadel.forgeWorkshop;
     let nextAlchemyLab = citadel.alchemyLab;
+    let nextAmuletOracle = citadel.amuletOracle;
+    let astralRuneInventory = state.character.astralRuneInventory || {};
 
     // Quartel de Expedições: materiais e Insígnias de Estudo por hora; cada classe expira 8h após ser alocada
     if (citadel.expeditions.level > 0 && citadel.expeditions.allocatedClasses.length > 0) {
@@ -2119,6 +2149,32 @@ export const useGameStore = create<GameState>((set) => ({
       }
     }
 
+    // Oráculo Rúnico (N3+): produz passivamente 1 Runa Astral T1/T2 a cada 6h de tempo real
+    // (mesmo espírito da Oficina da Forja acima — só avança `lastTick` pelas horas INTEIRAS já
+    // processadas, nunca direto até `now`).
+    if (citadel.amuletOracle && citadel.amuletOracle.level >= 3) {
+      const oracle = citadel.amuletOracle;
+      const HOURS_PER_RUNE = 6;
+      const elapsedHours = (now - oracle.lastTick) / (1000 * 60 * 60);
+      const wholeCycles = Math.floor(elapsedHours / HOURS_PER_RUNE);
+      if (wholeCycles > 0) {
+        const tier2Pool: AstralRuneId[] = ['marePsiquica_t2', 'chamaInterior_t2', 'veuSombrio_t2'];
+        const tier1Pool: AstralRuneId[] = ['ecoRegen_t1', 'passoLeve_t1', 'olhoAstral_t1'];
+        const pool = oracle.level >= 4 ? [...tier1Pool, ...tier2Pool] : tier1Pool;
+        const gained: Partial<Record<AstralRuneId, number>> = {};
+        for (let i = 0; i < wholeCycles; i++) {
+          const runeId = pool[Math.floor(Math.random() * pool.length)];
+          gained[runeId] = (gained[runeId] || 0) + 1;
+        }
+        astralRuneInventory = { ...astralRuneInventory };
+        Object.entries(gained).forEach(([runeId, qty]) => {
+          astralRuneInventory[runeId as AstralRuneId] = (astralRuneInventory[runeId as AstralRuneId] || 0) + (qty || 0);
+        });
+        nextAmuletOracle = { ...oracle, lastTick: oracle.lastTick + wholeCycles * HOURS_PER_RUNE * 60 * 60 * 1000 };
+        changed = true;
+      }
+    }
+
     if (!changed) return state;
     const updated = {
       ...state.character,
@@ -2127,7 +2183,8 @@ export const useGameStore = create<GameState>((set) => ({
       inventory,
       forgeFragments,
       totalMaterialsFarmedByCitadel: farmedByCitadel,
-      citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop, alchemyLab: nextAlchemyLab }
+      astralRuneInventory,
+      citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop, alchemyLab: nextAlchemyLab, amuletOracle: nextAmuletOracle }
     };
     saveToLocalStorage(updated);
     return { character: updated, ...(autoSellCommon !== undefined ? { autoSellCommon, autoSellRare } : {}) };
@@ -2709,6 +2766,196 @@ export const useGameStore = create<GameState>((set) => ({
       saveToLocalStorage(updated);
       result = { success: true, message: `Melhoria da Câmara de Gravação iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
       return { character: updated };
+    });
+    return result;
+  },
+
+  // ── Oráculo Rúnico: Sistema de Runas/Palavras Rúnicas Astrais (Amuleto) ────
+
+  buildOrUpgradeAmuletOracle: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    useGameStore.getState().tickCitadelProduction();
+    set((state) => {
+      const citadel = state.character.citadel || DEFAULT_CITADEL();
+      const materials = state.character.materials || DEFAULT_MATERIALS();
+      const oracle = citadel.amuletOracle || { level: 0, lastTick: Date.now() };
+      const nextLevel = oracle.level + 1;
+
+      if (!citadel.unlocked) {
+        result = { success: false, message: 'A Cidadela ainda não foi desbloqueada.' };
+        return state;
+      }
+      if (oracle.upgradeInProgress) {
+        result = { success: false, message: 'O Oráculo Rúnico já está em melhoria.' };
+        return state;
+      }
+      if (nextLevel > AMULET_ORACLE_MAX_LEVEL) {
+        result = { success: false, message: 'O Oráculo Rúnico já está no nível máximo.' };
+        return state;
+      }
+      if (nextLevel > citadel.commandCenter.level) {
+        result = { success: false, message: `Requer o Centro de Comando no Nível ${nextLevel} primeiro.` };
+        return state;
+      }
+      const cost = AMULET_ORACLE_UPGRADE_COST(nextLevel);
+      if (materials.wood < cost.wood || materials.stone < cost.stone || (state.character.pearls || 0) < cost.pearls) {
+        result = { success: false, message: `Materiais insuficientes: requer ${cost.wood} Madeira, ${cost.stone} Pedra e ${cost.pearls} Pérolas.` };
+        return state;
+      }
+
+      const now = Date.now();
+      const durationMs = getStructureUpgradeDurationMs('amuletOracle', nextLevel);
+      // Bônus de nível (sorteado 1x, na 1ª construção): mesmo pool que o Amuleto dava antes do
+      // rework ("Ecos que Despertam" v7.0.0) — agora é um bônus fixo da ESTRUTURA, não do item.
+      const [selectedBuffKey] = nextLevel === 1 ? StatEngine.pickRandomElements(AMULET_ORACLE_BUFF_POOL, 1) : [oracle.selectedBuffKey];
+      const updated = {
+        ...state.character,
+        materials: { ...materials, wood: materials.wood - cost.wood, stone: materials.stone - cost.stone },
+        pearls: (state.character.pearls || 0) - cost.pearls,
+        citadel: { ...citadel, amuletOracle: { ...oracle, selectedBuffKey, upgradeInProgress: { targetLevel: nextLevel, startedAt: now, completesAt: now + durationMs } } }
+      };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Melhoria do Oráculo Rúnico iniciada! Conclusão em ${Math.round(durationMs / 3600000)}h.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // Rerolar o bônus de nível do Oráculo (custo alto, escala com o nível) — sorteia um stat
+  // DIFERENTE do atual dentre o pool, para que o custo nunca seja "desperdiçado" saindo no mesmo.
+  rerollAmuletOracleBuff: () => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const citadel = state.character.citadel;
+      const oracle = citadel?.amuletOracle;
+      if (!citadel || !oracle || oracle.level < 1) {
+        result = { success: false, message: 'Construa o Oráculo Rúnico primeiro.' };
+        return state;
+      }
+      const cost = AMULET_ORACLE_REROLL_COST(oracle.level);
+      if ((state.character.gold || 0) < cost.gold || (state.character.pearls || 0) < cost.pearls) {
+        result = { success: false, message: `Ouro/Pérolas insuficientes: requer ${formatNumber(cost.gold)} Ouro e ${cost.pearls} Pérolas.` };
+        return state;
+      }
+      const currentKey = oracle.selectedBuffKey;
+      const otherOptions = AMULET_ORACLE_BUFF_POOL.filter(k => k !== currentKey);
+      const [selectedBuffKey] = StatEngine.pickRandomElements(otherOptions.length > 0 ? otherOptions : AMULET_ORACLE_BUFF_POOL, 1);
+
+      const updated = {
+        ...state.character,
+        gold: (state.character.gold || 0) - cost.gold,
+        pearls: (state.character.pearls || 0) - cost.pearls,
+        citadel: { ...citadel, amuletOracle: { ...oracle, selectedBuffKey } },
+      };
+      saveToLocalStorage(updated);
+      const rerollLabels: Record<AmuletOracleBuffKey, string> = {
+        dropChancePct: 'Chance de Drop', critChance: 'Chance de Crítico', lifesteal: 'Roubo de Vida',
+      };
+      result = { success: true, message: `🎲 O Oráculo agora concede: ${rerollLabels[selectedBuffKey]}!` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  // v-next: operam sobre QUALQUER amuleto (equipado, inventário ou Depósito da Cidadela) via
+  // `updateItemEverywhere` — mesmo padrão da Câmara de Gravação (`drillSocket`/`socketRune`).
+  // Antes só era possível gerenciar o amuleto EQUIPADO, obrigando a reequipar o antigo para poder
+  // desengastar as runas dele antes de trocar para um novo.
+  socketAstralRune: (itemId, socketIndex, runeId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const oracleLevel = char.citadel?.amuletOracle?.level || 0;
+      if (oracleLevel < 1) {
+        result = { success: false, message: 'Construa o Oráculo Rúnico na Cidadela primeiro.' };
+        return state;
+      }
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const amulet = probe.item;
+      if (!amulet || amulet.slot !== 'amulet') {
+        result = { success: false, message: 'Amuleto não encontrado.' };
+        return state;
+      }
+      const maxSlots = getMaxAmuletSlots(oracleLevel);
+      if (socketIndex < 0 || socketIndex >= maxSlots) {
+        result = { success: false, message: 'Este espaço ainda não foi desbloqueado pelo Oráculo.' };
+        return state;
+      }
+      if (((char.astralRuneInventory || {})[runeId] || 0) <= 0) {
+        result = { success: false, message: 'Você não possui esta Runa Astral no cofre.' };
+        return state;
+      }
+      const sockets: (AstralRuneId | null)[] = [...(amulet.amuletSockets || [])];
+      while (sockets.length < AMULET_TOTAL_SLOTS) sockets.push(null);
+      const previousRune = sockets[socketIndex];
+      sockets[socketIndex] = runeId;
+
+      const astralRuneInventory = { ...(char.astralRuneInventory || {}) };
+      astralRuneInventory[runeId] = (astralRuneInventory[runeId] || 0) - 1;
+      if (previousRune) astralRuneInventory[previousRune] = (astralRuneInventory[previousRune] || 0) + 1;
+
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i, amuletSockets: sockets, activeAstralRunewords: [],
+      }));
+      const updated = { ...afterUpdate, astralRuneInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: `Runa Astral engastada no espaço ${socketIndex + 1}. Consulte o Oráculo para ativar.` };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  unsocketAstralRune: (itemId, socketIndex) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const amulet = probe.item;
+      if (!amulet || amulet.slot !== 'amulet') {
+        result = { success: false, message: 'Amuleto não encontrado.' };
+        return state;
+      }
+      const sockets = [...(amulet.amuletSockets || [])];
+      const rune = sockets[socketIndex];
+      if (!rune) {
+        result = { success: false, message: 'Este espaço já está vazio.' };
+        return state;
+      }
+      sockets[socketIndex] = null;
+      const astralRuneInventory = { ...(char.astralRuneInventory || {}) };
+      astralRuneInventory[rune] = (astralRuneInventory[rune] || 0) + 1;
+
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i, amuletSockets: sockets, activeAstralRunewords: [],
+      }));
+      const updated = { ...afterUpdate, astralRuneInventory };
+      saveToLocalStorage(updated);
+      result = { success: true, message: 'Runa Astral removida e devolvida ao cofre.' };
+      return { character: updated };
+    });
+    return result;
+  },
+
+  activateAstralRuneword: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+    set((state) => {
+      const char = state.character;
+      const probe = updateItemEverywhere(char, itemId, (i) => i);
+      const amulet = probe.item;
+      if (!amulet || amulet.slot !== 'amulet') {
+        result = { success: false, message: 'Amuleto não encontrado.' };
+        return state;
+      }
+      const oracleLevel = char.citadel?.amuletOracle?.level || 0;
+      const activeWords = getActiveAstralRunewords(amulet).filter(w => w.minOracleLevel <= oracleLevel);
+      const { char: afterUpdate } = updateItemEverywhere(char, itemId, (i) => ({
+        ...i, activeAstralRunewords: activeWords.map(w => w.id),
+      }));
+      saveToLocalStorage(afterUpdate);
+      result = activeWords.length > 0
+        ? { success: true, message: `🔮 O Oráculo reconhece: ${activeWords.map(w => w.name).join(' + ')}!` }
+        : { success: false, message: 'Nenhuma palavra rúnica reconhecida.' };
+      return { character: afterUpdate };
     });
     return result;
   },
@@ -5378,9 +5625,21 @@ export const useGameStore = create<GameState>((set) => ({
         result = { success: false, message: 'Relíquias Ativas não podem ser forjadas.' };
         return state;
       }
+      if (item1.slot === 'amulet' || item2.slot === 'amulet') {
+        result = { success: false, message: 'Amuletos não podem ser fundidos — a evolução dele é feita no Oráculo Rúnico da Cidadela.' };
+        return state;
+      }
       if (item1.slot !== item2.slot) {
         result = { success: false, message: 'Os itens devem ser do mesmo tipo/slot.' };
         return state;
+      }
+      if (item1.slot === 'ring') {
+        const attr1 = Object.keys(item1.stats)[0];
+        const attr2 = Object.keys(item2.stats)[0];
+        if (attr1 !== attr2) {
+          result = { success: false, message: 'Anéis só podem ser fundidos se tiverem o mesmo atributo.' };
+          return state;
+        }
       }
       if (item1.setName !== item2.setName) {
         result = { success: false, message: 'Os itens devem pertencer ao mesmo conjunto (Set).' };
@@ -6157,7 +6416,9 @@ export const useGameStore = create<GameState>((set) => ({
           if (slot === 'necklace') {
             itemStats = StatEngine.generateNecklaceStats(stage, mult, 'legendary');
           } else if (slot === 'amulet') {
-            itemStats = StatEngine.generateAmuletStats(stage, mult, 'legendary');
+            itemStats = {};
+          } else if (slot === 'ring') {
+            itemStats = StatEngine.generateRingStats(stage, mult, 'legendary');
           } else {
             const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
             const numAttributes = 3; // Baú lendário ou ancestral sempre tem 3 atributos

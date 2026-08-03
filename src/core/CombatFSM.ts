@@ -18,6 +18,7 @@ import {
   getLitoralBlockIndexForAscension,
 } from './abyssFormulas';
 import { RUNE_CATALOG, listSocketedRunes, hasActiveRunewordFlag } from './runeFormulas';
+import { AstralRuneId, ASTRAL_RUNE_CATALOG, getAstralRunewordById } from './astralRuneFormulas';
 import {
   getVocationPerkTotal, getTidePhase, TIDE_HIGH_CORAL_DROP_MULT, TIDE_LOW_PRESSURE_MULT,
   sumDistrictEfficacy, calculateEchoEfficacies,
@@ -4195,6 +4196,29 @@ export class CombatFSM {
       }
     }
 
+    // Oráculo Rúnico: Runas Astrais T1/T2 em conteúdo endgame (1ª Ascensão+) e T3 exclusivas de
+    // Torre 100+ / Pandemônio (stage 50+) — dropam mesmo dentro da Torre, ao contrário do sistema
+    // de equipamento normal abaixo (`isTower` bloqueia equipamento, mas não Runas Astrais).
+    {
+      const isHighTowerFloor = isTower && useTowerStore.getState().currentFloor >= 100;
+      const isHighPandemonium = !!char.activePandemonium && char.currentStage >= 50;
+      if (isHighTowerFloor || isHighPandemonium) {
+        if (Math.random() < 0.02) {
+          const tier3Pool: AstralRuneId[] = ['coroaEstelar_t3', 'pulsarVazio_t3', 'graalOraculo_t3'];
+          const runeId = tier3Pool[Math.floor(Math.random() * tier3Pool.length)];
+          useGameStore.getState().addAstralRunes({ [runeId]: 1 });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Runa Astral rara ressoou em você: ${ASTRAL_RUNE_CATALOG[runeId].name}!` });
+        }
+      } else if ((char.ascensionCount || 0) >= 1) {
+        if (Math.random() < 0.03) {
+          const endgamePool: AstralRuneId[] = ['ecoRegen_t1', 'passoLeve_t1', 'olhoAstral_t1', 'marePsiquica_t2', 'chamaInterior_t2', 'veuSombrio_t2'];
+          const runeId = endgamePool[Math.floor(Math.random() * endgamePool.length)];
+          useGameStore.getState().addAstralRunes({ [runeId]: 1 });
+          bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 Uma Runa Astral ressoou em você: ${ASTRAL_RUNE_CATALOG[runeId].name}!` });
+        }
+      }
+    }
+
     // === SISTEMA DE DROP DE EQUIPAMENTOS === (nunca dropa dentro da Torre Infinita — só Fragmentos de Forja)
     if (!isTower) {
     const luck = this.playerFinalStats.luck || 0;
@@ -4344,7 +4368,12 @@ export class CombatFSM {
       if (slot === 'necklace') {
         itemStats = StatEngine.generateNecklaceStats(stage, mult, rarity);
       } else if (slot === 'amulet') {
-        itemStats = StatEngine.generateAmuletStats(stage, mult, rarity);
+        // Amuleto (rework "Oráculo Rúnico"): não rola mais stats intrínsecos — é uma chave que
+        // habilita a tela do Oráculo Rúnico; todo seu valor vem das Runas/Palavras Rúnicas Astrais
+        // socketadas (ver `astralRuneFormulas.ts`).
+        itemStats = {};
+      } else if (slot === 'ring') {
+        itemStats = StatEngine.generateRingStats(stage, mult, rarity);
       } else {
         const possibleStats = possibleStatsMap[classId] || ['strength', 'constitution', 'luck'];
         const numAttributes = isCelestialDrop || isBloodMoonDrop || isPandemoniumDrop || isAncestralDrop || rarity === 'legendary' ? 3 : (rarity === 'rare' ? 2 : 1);
@@ -4967,6 +4996,59 @@ export class CombatFSM {
         this.activeRelicGoldBuffDuration = dur;
         this.activeRelicGoldBuffTotalDuration = dur;
         bridge.emit(GameEvent.LOG_EMITTED, { message: `💰 ${relicDef.name} ativado! +${rolledValue}% de Ouro por ${Math.round(dur / 1000)}s!` });
+        break;
+      }
+    }
+  }
+
+  // Oráculo Rúnico: habilidade ativa concedida por uma Palavra Rúnica Astral lendária (N5,
+  // `grantsActiveAbility`). Reaproveita os MESMOS flags de buff da Relíquia Ativa (mesma
+  // apresentação no HUD/`getActiveBuffs`) em vez de criar um sistema de efeito paralelo — a fonte
+  // (amuleto em vez de relíquia) não muda a mecânica de buff em si.
+  public triggerAmuletAbility(runewordId: string): void {
+    if (useGameStore.getState().gameSpeed === 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
+
+    const amulet = this.characterData?.equipment?.amulet;
+    const active = (amulet?.activeAstralRunewords || []).includes(runewordId);
+    const wordDef = getAstralRunewordById(runewordId);
+    if (!active || !wordDef?.grantsActiveAbility) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: 'Esta habilidade do Oráculo não está ativa no momento.' });
+      return;
+    }
+    const ability = wordDef.grantsActiveAbility;
+
+    const cooldownKey = `amulet_ability_${runewordId}`;
+    const activeCooldown = this.skillCooldowns[cooldownKey] || 0;
+    if (activeCooldown > 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `${ability.name} em recarga! (${Math.ceil(activeCooldown / 1000)}s)` });
+      return;
+    }
+
+    this.skillCooldowns[cooldownKey] = ability.cooldownMs;
+    bridge.emit(GameEvent.COOLDOWNS_CHANGED, { cooldowns: { ...this.skillCooldowns } });
+
+    const rolledValue = ability.paramValue * 100;
+    switch (ability.param) {
+      case 'damageBonusPct': {
+        const dur = 8000;
+        this.isActiveRelicDamageBuffActive = true;
+        this.activeRelicDamageBuffPct = ability.paramValue;
+        this.activeRelicDamageBuffDuration = dur;
+        this.activeRelicDamageBuffTotalDuration = dur;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 ${ability.name} ativado! +${rolledValue}% de Dano por ${Math.round(dur / 1000)}s!` });
+        break;
+      }
+      case 'healPct': {
+        const dur = 5000;
+        this.isActiveRelicHealBuffActive = true;
+        this.activeRelicHealBuffPctPerSecond = rolledValue;
+        this.activeRelicHealBuffDuration = dur;
+        this.activeRelicHealBuffTotalDuration = dur;
+        if (this.scene && typeof this.scene.animateHealEffect === 'function') {
+          this.scene.animateHealEffect();
+        }
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `🔮 ${ability.name} ativado! Curando ${rolledValue}% do HP máximo por segundo, por ${Math.round(dur / 1000)}s!` });
         break;
       }
     }

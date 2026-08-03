@@ -375,7 +375,7 @@ export const sumDistrictEfficacy = (breakdowns: EchoEfficacyBreakdown[], distric
 // Ancestral em CombatFSM.handleEnemyDefeat) — as Profundezas nunca usam aquele pipeline (pureza
 // econômica: só moeda, nunca equipamento normal). O Set Abissal é o único equipamento que quebra
 // essa regra, então tem seu próprio gerador aqui, chamado só por `useDiveStore.completeDepth`
-// quando a Zona é 4. Reaproveita `StatEngine.generateNecklaceStats`/`generateAmuletStats`/
+// quando a Zona é 4. Reaproveita `StatEngine.generateNecklaceStats`/`generateRingStats`/
 // `pickRandomElements` (mesmas fórmulas de item da campanha); duplica as tabelas de nome por
 // classe/slot (mesmo padrão de `HUNT_CONTRACT_ENEMY_POOL`, que já duplica `ENEMY_TYPES` para
 // evitar import circular com CombatFSM.ts).
@@ -428,7 +428,9 @@ export const rollAbyssalSetDrop = (classId: string, stage: number): EquipmentIte
   if (slot === 'necklace') {
     stats = StatEngine.generateNecklaceStats(stage, ABYSSAL_SET_MULT, 'legendary');
   } else if (slot === 'amulet') {
-    stats = StatEngine.generateAmuletStats(stage, ABYSSAL_SET_MULT, 'legendary');
+    stats = {};
+  } else if (slot === 'ring') {
+    stats = StatEngine.generateRingStats(stage, ABYSSAL_SET_MULT, 'legendary');
   } else {
     stats = {};
     const pool = ABYSSAL_POSSIBLE_STATS[classId] || ['strength', 'constitution', 'luck'];

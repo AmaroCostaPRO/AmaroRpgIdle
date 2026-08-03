@@ -220,6 +220,47 @@ export const ENGRAVING_CHAMBER_UPGRADE_COST = (nextLevel: number): { wood: numbe
   coral: Math.round(200 * Math.pow(1.6, nextLevel - 1)),
 });
 
+// Oráculo Rúnico — 13ª construção. Ancora o sistema de Runas/Palavras Rúnicas Astrais exclusivo do
+// Amuleto: N1 3 espaços (Astrais T1) | N2 4 espaços (T2) | N3 5 espaços + produção passiva de
+// Runas Astrais T1-2 | N4 6 espaços (círculo completo, libera o modo de 2 palavras de 3 runas +
+// Runas Astrais T3, exclusivas de Torre 100+/Pandemônio 50+) | N5 Palavras lendárias (concedem
+// habilidade ativa) + custo/tempo reduzido de "Consulta ao Oráculo".
+export const AMULET_ORACLE_MAX_LEVEL = 5;
+export const AMULET_ORACLE_UPGRADE_COST = (nextLevel: number): { wood: number; stone: number; pearls: number } => ({
+  wood: Math.round(1000 * Math.pow(1.7, nextLevel - 1)),
+  stone: Math.round(1000 * Math.pow(1.7, nextLevel - 1)),
+  pearls: Math.round(20 * Math.pow(1.8, nextLevel - 1)),
+});
+
+// Bônus de NÍVEL da estrutura (não do item Amuleto) — traz de volta o antigo pool de 3 stats que o
+// Amuleto dava antes do rework ("Ecos que Despertam" v7.0.0), agora como um bônus fixo e permanente
+// do Oráculo Rúnico, incentivando investir na construção mesmo sem caçar Runas Astrais. Sorteado
+// UMA VEZ na 1ª construção (nível 0→1, ver `buildOrUpgradeAmuletOracle` em useGameStore.ts) e
+// gravado em `CitadelState.amuletOracle.selectedBuffKey` — nos níveis seguintes o mesmo stat só
+// cresce, sem re-sorteio, do mesmo jeito que uma pesquisa da Academia escala com o nível.
+export type AmuletOracleBuffKey = 'dropChancePct' | 'critChance' | 'lifesteal';
+export const AMULET_ORACLE_BUFF_POOL: AmuletOracleBuffKey[] = ['dropChancePct', 'critChance', 'lifesteal'];
+const AMULET_ORACLE_BUFF_CAPS: Record<AmuletOracleBuffKey, number> = {
+  dropChancePct: 0.08,
+  critChance: 0.05,
+  lifesteal: 0.025,
+};
+// Cresce linearmente do nível 1 (20% do teto) até o nível máximo (100% do teto).
+export const getAmuletOracleBuffValue = (statKey: AmuletOracleBuffKey, level: number): number => {
+  if (level <= 0) return 0;
+  const cap = AMULET_ORACLE_BUFF_CAPS[statKey];
+  const raw = cap * (0.2 + 0.8 * (Math.min(level, AMULET_ORACLE_MAX_LEVEL) - 1) / (AMULET_ORACLE_MAX_LEVEL - 1));
+  return Math.round(Math.min(cap, raw) * 1000) / 1000;
+};
+
+// Rerolar o bônus da estrutura: custo alto e cobrado em Ouro + Pérolas Abissais (o mesmo recurso
+// raro já usado nos upgrades do Oráculo), escalando com o nível — o bônus fica mais valioso a cada
+// nível, então rerolar também deve ficar mais caro, desincentivando trocar de stat a esmo.
+export const AMULET_ORACLE_REROLL_COST = (level: number): { gold: number; pearls: number } => ({
+  gold: Math.round(200_000 * level),
+  pearls: Math.round(100 * level),
+});
+
 // Tempo real de construção/melhoria de cada estrutura da Cidadela.
 // Centro de Comando (já começa no Nível 1): Nível 2 leva 5h, +2h por upgrade seguinte (2→3=7h, 3→4=9h, 4→5=11h).
 // Demais estruturas (começam no Nível 0/não construídas): Nível 1 leva 1h, +1h por nível (1→2=2h ... 4→5=5h).
@@ -235,10 +276,16 @@ export type CitadelStructureKey =
   | 'relicLab'
   | 'alchemyLab'
   | 'huntSanctuary'
-  | 'engravingChamber';
+  | 'engravingChamber'
+  | 'amuletOracle';
 
 export const getStructureUpgradeDurationMs = (structureKey: CitadelStructureKey, nextLevel: number): number => {
   const HOUR = 60 * 60 * 1000;
+  // TEMPORÁRIO (teste do Oráculo Rúnico) — reverter para `nextLevel * HOUR` (igual às demais
+  // construções) assim que os testes de balanceamento terminarem.
+  if (structureKey === 'amuletOracle' && nextLevel === 1) {
+    return 1000;
+  }
   if (structureKey === 'commandCenter') {
     return (5 + (nextLevel - 2) * 2) * HOUR;
   }
@@ -290,7 +337,7 @@ export const getCitadelBuildingAffordability = (
   const result: Record<CitadelStructureKey, boolean> = {
     commandCenter: false, vault: false, expeditions: false, academy: false, watchTower: false,
     forgeWorkshop: false, cosmicSiphon: false, synchronyAltar: false, relicLab: false,
-    alchemyLab: false, huntSanctuary: false, engravingChamber: false,
+    alchemyLab: false, huntSanctuary: false, engravingChamber: false, amuletOracle: false,
   };
   if (!citadel) return result;
 
@@ -378,6 +425,14 @@ export const getCitadelBuildingAffordability = (
       (() => {
         const cost = ENGRAVING_CHAMBER_UPGRADE_COST(citadel.engravingChamber!.level + 1);
         return materials.wood >= cost.wood && materials.stone >= cost.stone && (materials.coral || 0) >= cost.coral;
+      })());
+  }
+
+  if (citadel.amuletOracle) {
+    check('amuletOracle', citadel.amuletOracle.level, AMULET_ORACLE_MAX_LEVEL, citadel.amuletOracle.upgradeInProgress,
+      (() => {
+        const cost = AMULET_ORACLE_UPGRADE_COST(citadel.amuletOracle!.level + 1);
+        return materials.wood >= cost.wood && materials.stone >= cost.stone && (character.pearls || 0) >= cost.pearls;
       })());
   }
 

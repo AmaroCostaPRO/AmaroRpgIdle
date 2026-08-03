@@ -3,6 +3,8 @@ import { useRelicStore } from '../store/useRelicStore';
 import { useQuestStore } from '../store/useQuestStore';
 import { SKILLS_CATALOG } from '../store/useGameStore';
 import { RUNE_CATALOG, RUNE_FAMILIES, RUNE_FAMILY_CAPS, RuneFamilyId, getActiveRuneword } from './runeFormulas';
+import { getActiveAstralRunewords } from './astralRuneFormulas';
+import { getAmuletOracleBuffValue } from './citadelFormulas';
 import type { RuneMultiplierStatKey } from '../core/types';
 import { BESTIARY_PHASE_GROUPS, getBestiaryRequiredKills } from './bestiaryFormulas';
 import { getEquippedTitleBonus } from './titleFormulas';
@@ -788,6 +790,29 @@ export class StatEngine {
       }
     }
 
+    // 4.8. Oráculo Rúnico — Palavras Rúnicas Astrais ativas no Amuleto (reconhecidas ao "Consultar
+    // o Oráculo", ver `astralRuneFormulas.getActiveAstralRunewords`). Aditivas ao pool comum (não
+    // entram em `runeMultiplierPct` — são conteúdo de habilidade, não a mesma camada das Runas
+    // Abissais). Pode haver até 2 palavras simultâneas (modo de 2 palavras de 3 runas).
+    if (character.equipment?.amulet) {
+      const activeAstralWords = getActiveAstralRunewords(character.equipment.amulet);
+      activeAstralWords.forEach((word) => {
+        if (!word.statBonuses) return;
+        (Object.keys(word.statBonuses) as Array<keyof BaseStats>).forEach((key) => {
+          (finalStats[key] as number) = ((finalStats[key] as number) || 0) + (word.statBonuses![key] as number);
+        });
+      });
+    }
+
+    // 4.9. Oráculo Rúnico — bônus de NÍVEL da estrutura (não do item Amuleto). Sorteado 1x na 1ª
+    // construção (ver `buildOrUpgradeAmuletOracle`); vale mesmo sem amuleto equipado, pois é um
+    // bônus permanente da Cidadela, não do item.
+    const oracle = character.citadel?.amuletOracle;
+    if (oracle && oracle.level > 0 && oracle.selectedBuffKey) {
+      const bonus = getAmuletOracleBuffValue(oracle.selectedBuffKey, oracle.level);
+      (finalStats[oracle.selectedBuffKey] as number) = ((finalStats[oracle.selectedBuffKey] as number) || 0) + bonus;
+    }
+
     // 5. Aplicar o multiplicador do Modo de Teste (God Mode / 5x Atributos)
     if (character.testMode) {
       finalStats.strength *= 5;
@@ -901,23 +926,17 @@ export class StatEngine {
     return stats;
   }
 
-  // Amuleto (v7.0.0 "Ecos que Despertam"): item de entrada com exatamente 1 bônus passivo simples,
-  // ao contrário do Colar (1-3 bônus) — reforça a primeira lição de itemização no early game.
-  static generateAmuletStats(stage: number, mult: number, _rarity: string): Partial<BaseStats> {
-    const pool: Array<keyof BaseStats> = ['dropChancePct', 'critChance', 'lifesteal'];
+  // Anel (rework "Oráculo Rúnico"): rola exatamente 1 dos 6 atributos primários, independente de
+  // classe — pool universal, ao contrário das demais peças pesadas que seguem `possibleStatsMap`
+  // por classe. Para compensar ser só 1 stat, o valor sai com o DOBRO da escala normal (mesma
+  // fórmula de `CombatFSM.ts`/`sunkenCitadelFormulas.ts` para peças pesadas, só que ×2).
+  static generateRingStats(stage: number, mult: number, _rarity: string): Partial<BaseStats> {
+    const pool: Array<keyof BaseStats> = ['strength', 'magic', 'dexterity', 'constitution', 'luck', 'touch'];
     const [key] = StatEngine.pickRandomElements(pool, 1);
 
     const stats: Partial<BaseStats> = {};
-    if (key === 'dropChancePct') {
-      const raw = 0.01 * (1 + stage * 0.01) * mult;
-      stats[key] = Math.round(Math.min(0.08, raw) * 100) / 100;
-    } else if (key === 'critChance') {
-      const raw = 0.01 * (1 + stage * 0.01) * mult;
-      stats[key] = Math.round(Math.min(0.05, raw) * 1000) / 1000;
-    } else if (key === 'lifesteal') {
-      const raw = 0.004 * (1 + stage * 0.01) * mult;
-      stats[key] = Math.round(Math.min(0.025, raw) * 1000) / 1000;
-    }
+    const val = Math.max(1, Math.round(stage * mult * (0.8 + Math.random() * 0.4))) * 2;
+    stats[key] = val;
 
     return stats;
   }

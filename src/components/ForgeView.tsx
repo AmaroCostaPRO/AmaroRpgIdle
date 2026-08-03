@@ -156,8 +156,10 @@ export const ForgeView: React.FC = () => {
   // faz .filter() sobre o inventário inteiro (até ~100 itens) e antes rodava a cada render
   // do ForgeView enquanto o modal de seleção estava aberto, mesmo sem o inventário mudar.
   const eligibleItems = useMemo((): EquipmentItem[] => {
-    // Exclui consumíveis e Relíquias Ativas da lista de itens elegíveis para a forja
-    const inv = (character.inventory || []).filter(item => item.slot !== 'consumable' && item.slot !== 'activeRelic');
+    // Exclui consumíveis, Relíquias Ativas e Amuletos da lista de itens elegíveis para a forja —
+    // o Amuleto não tem stats fundíveis (seu valor vive em `amuletSockets`, evoluído no Oráculo
+    // Rúnico da Cidadela, não na Forja); fundi-lo destruiria silenciosamente as Runas Astrais.
+    const inv = (character.inventory || []).filter(item => item.slot !== 'consumable' && item.slot !== 'activeRelic' && item.slot !== 'amulet');
 
     // Se for o slot 1, permite selecionar qualquer item
     if (activeSelectionSlot === 1) {

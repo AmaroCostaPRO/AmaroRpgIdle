@@ -35,7 +35,7 @@ const PAGE_BACKGROUNDS = [BACKGROUND_SRC, BACKGROUND_SRC_PAGE_2];
 // v8.0.0 "O Espelho Faminto": sub-abas que vivem na 2ª página do pátio (ver `buildingsPage2`
 // abaixo) — usado para sincronizar a página exibida quando a troca de sub-aba vem de fora do
 // pátio (ex: `CitadelTabsBar`), não só do clique direto num marcador.
-const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab', 'huntSanctuary', 'engravingChamber'];
+const PAGE_2_SUB_TABS: CitadelSubTab[] = ['alchemyLab', 'huntSanctuary', 'engravingChamber', 'amuletOracle'];
 
 interface BuildingData {
   id: CitadelSubTab;
@@ -230,7 +230,8 @@ export const CitadelSpriteStage: React.FC = () => {
     { id: 'huntSanctuary', icon: '📜', label: 'Santuário de Contratos', level: citadel?.huntSanctuary.level || 0, maxLevel: 5, built: (citadel?.huntSanctuary.level || 0) > 0, top: 20, left: 50 },
     // v10.0.0 "A Cidadela Submersa": Câmara de Gravação — 3ª vaga da página 2
     { id: 'engravingChamber', icon: '🪬', label: 'Câmara de Gravação', level: citadel?.engravingChamber?.level || 0, maxLevel: 5, built: (citadel?.engravingChamber?.level || 0) > 0, top: 20, left: 80 },
-    null,
+    // v12.0.0 "O Oráculo Rúnico" — 4ª vaga da página 2
+    { id: 'amuletOracle', icon: '🔮', label: 'Oráculo Rúnico', level: citadel?.amuletOracle?.level || 0, maxLevel: 5, built: (citadel?.amuletOracle?.level || 0) > 0, top: 50, left: 20 },
     null,
     null,
     null,

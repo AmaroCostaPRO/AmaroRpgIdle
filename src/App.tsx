@@ -17,6 +17,7 @@ import { BUILDING_SPRITE_SRC } from './components/citadel/citadelBuildingSprites
 import { SUNKEN_BUILDING_SPRITE_SRC } from './components/citadel/sunkenBuildingSprites';
 import { getTransparentImageUrl } from './core/imageBackgroundStrip';
 import { RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL } from './components/shared/itemVisuals';
+import { RUNE_SHEET_ASTRAL } from './core/astralRuneFormulas';
 import { NPC_FACTION_COLORS } from './store/useQuestStore';
 import { STORY_ITEMS_CATALOG } from './core/quests/storyItemsData';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal';
@@ -139,6 +140,21 @@ const App: React.FC = () => {
   // flash do glifo de fallback ao abrir detalhes de item/soquete com runa engastada.
   useEffect(() => {
     [RUNE_SHEET_BASE, RUNE_SHEET_PRIMORDIAL].forEach((src) => {
+      getTransparentImageUrl(src).catch(() => {});
+    });
+  }, []);
+
+  // Mesmo pré-processamento acima, para a spritesheet das Runas Astrais (Oráculo Rúnico,
+  // v12.0.0) — evita o flash do glifo de fallback ao abrir a tela do Oráculo pela 1ª vez.
+  useEffect(() => {
+    getTransparentImageUrl(RUNE_SHEET_ASTRAL).catch(() => {});
+  }, []);
+
+  // Mesmo pré-processamento acima, para os 2 sprites do Amuleto (Oráculo Rúnico, v12.0.0) — foram
+  // gerados com fundo em chroma key (não alpha real), então também precisam do mesmo pipeline de
+  // remoção de fundo, senão apareceriam com o fundo vermelho visível na 1ª renderização.
+  useEffect(() => {
+    ['/assets/amulet_oracle_frame.png', '/assets/amulet_oracle_frame_active.png'].forEach((src) => {
       getTransparentImageUrl(src).catch(() => {});
     });
   }, []);
@@ -386,7 +402,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v11.5.0 — Títulos com Propósito!
+              🔔 Atualização v12.0.0 — O Oráculo Rúnico Desperta!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -396,9 +412,64 @@ const App: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v12.0.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.0.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>
+                        🔮 Nova Construção: Oráculo Rúnico
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        13ª construção da Cidadela Astral. Habilita a tela circular de ativação do Amuleto: 6 espaços dispostos em círculo ao redor do item, liberados progressivamente pelo nível da estrutura (N1: 3 · N2: 4 · N3: 5 · N4+: 6), com produção passiva de Runas Astrais a partir do Nível 3.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        ✦ Amuleto Reformulado: Runas e Palavras Rúnicas Astrais
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Amuleto deixa de rolar um stat aleatório e vira uma "chave" que habilita o Oráculo: engaste Runas Astrais (novo catálogo de 9, exclusivo do sistema) nos espaços do círculo e clique em "Consultar o Oráculo" para reconhecer uma Palavra Rúnica Astral — ou uma única sequência de 3 a 6 runas, ou 2 palavras diferentes de 3 runas simultâneas (com os 6 espaços desbloqueados). Palavras lendárias (Nível 5 do Oráculo) concedem uma habilidade ativa nova, com botão dedicado no HUD de combate.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#fde047', fontSize: '0.72rem' }}>
+                        🎁 Bônus Permanente de Nível + Reroll
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Oráculo também concede um bônus fixo da ESTRUTURA (Chance de Drop, Chance de Crítico ou Roubo de Vida — sorteado 1x na construção e escalando com o nível), que vale mesmo sem amuleto equipado. Um botão "Rerolar Bônus" permite trocar o stat sorteado por um custo alto em Ouro + Pérolas Abissais, sempre garantindo um stat diferente do atual.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        💍 Anel Reformulado: Pool Universal de Atributos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Anel agora rola 1 dos 6 atributos primários (Força, Magia, Destreza, Constituição, Sorte, Toque) independente da classe, com o dobro da escala normal para compensar ser só 1 stat. A Forja só permite fundir dois anéis com o mesmo atributo.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#10b981', fontSize: '0.72rem' }}>
+                        🛠️ Gerenciamento de Runas em Qualquer Amuleto
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A tela do Oráculo passa a gerenciar o amuleto equipado, do inventário OU do Depósito da Cidadela (mesmo padrão da Câmara de Gravação) — não é mais preciso reequipar um amuleto antigo só para resgatar as Runas Astrais dele antes de trocar para um novo.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🐛 Amuleto Bloqueado na Forja
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Amuletos não podem mais ser selecionados para fusão na Forja — como todo o valor do item agora vive nas Runas Astrais engastadas (não em stats), fundir dois amuletos destruiria essas runas silenciosamente, sem devolução ao cofre.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v11.5.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.5.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 11.5.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
