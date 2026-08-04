@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
-import { FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_FRAGMENT_YIELD, FORGE_ORDER_HOURS } from '../../core/citadelFormulas';
+import { FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_CRYSTAL_YIELD, FORGE_ORDER_HOURS } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useForgeOrderProgress } from '../../hooks/useForgeOrderProgress';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 
+const NON_REROLLABLE_SLOTS = new Set(['consumable', 'activeRelic', 'amulet']);
+
 export const ForgeWorkshopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
   const buildOrUpgradeForgeWorkshop = useGameStore((state) => state.buildOrUpgradeForgeWorkshop);
+  const rerollItemStats = useGameStore((state) => state.rerollItemStats);
+  const improveOrDestroyItem = useGameStore((state) => state.improveOrDestroyItem);
+  const [selectedItemId, setSelectedItemId] = useState<string>('');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const citadel = character.citadel;
   const materials = character.materials || { wood: 0, stone: 0, meat: 0, studyInsignias: 0 };
@@ -30,11 +36,33 @@ export const ForgeWorkshopPanel: React.FC = () => {
     buildOrUpgradeForgeWorkshop();
   };
 
+  const rerollableItems = character.inventory.filter(i => !NON_REROLLABLE_SLOTS.has(i.slot) && Object.keys(i.stats).length > 0);
+  const selectedItem = rerollableItems.find(i => i.id === selectedItemId) || null;
+  const rerollCost = selectedItem ? 100 + 100 * (selectedItem.mysticLevel || 0) : 0;
+  const improveCost = selectedItem ? 200 + 200 * (selectedItem.mysticLevel || 0) : 0;
+  const attemptAlreadyUsed = !!selectedItem && selectedItem.forgeAttemptUsedAtLevel === (selectedItem.mysticLevel || 0);
+
+  const handleReroll = () => {
+    if (!selectedItem) return;
+    AudioManager.getInstance().playClick();
+    const res = rerollItemStats(selectedItem.id);
+    setFeedback({ type: res.success ? 'success' : 'error', message: res.message });
+  };
+
+  const handleImproveOrDestroy = () => {
+    if (!selectedItem) return;
+    if (!confirm(`Atenção: 1/3 de chance de Melhoria Lendária (+50%), 1/3 de nada acontecer, 1/3 de DESTRUIR "${selectedItem.name}" permanentemente. Custo: ${improveCost} Cristal Rúnico. Deseja prosseguir?`)) return;
+    AudioManager.getInstance().playClick();
+    const res = improveOrDestroyItem(selectedItem.id);
+    setFeedback({ type: res.success ? 'success' : 'error', message: res.message });
+    if (res.outcome === 'destroyed') setSelectedItemId('');
+  };
+
   return (
     <CitadelBuildingPanel
       icon="🛠️"
       title="Oficina de Automação da Forja"
-      subtitle="Converte Ouro e Madeira excedentes em Fragmentos de Forja através de ordens de serviço automáticas."
+      subtitle="Converte Ouro e Madeira excedentes em Cristal Rúnico através de ordens de serviço automáticas — a moeda da Forja Mística avançada (fusões +3 em diante) e das funções ativas da Oficina."
       isBuilt={isBuilt}
       level={forgeWorkshop.level}
       maxLevel={FORGE_WORKSHOP_MAX_LEVEL}
@@ -51,7 +79,10 @@ export const ForgeWorkshopPanel: React.FC = () => {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <p style={{ fontSize: '0.85rem' }}>
-          Cada ordem de serviço (1h): consome 🪙 {FORGE_ORDER_GOLD_COST} + 🪵 {FORGE_ORDER_WOOD_COST}, produz +{FORGE_ORDER_FRAGMENT_YIELD} Fragmentos de Forja.
+          Cada ordem de serviço (1h): consome 🪙 {FORGE_ORDER_GOLD_COST} + 🪵 {FORGE_ORDER_WOOD_COST}, produz +{FORGE_ORDER_CRYSTAL_YIELD} 🔮 Cristal Rúnico.
+        </p>
+        <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+          🔮 Cristal Rúnico atual: {character.runicCrystals || 0}
         </p>
         <p style={{ fontSize: '0.85rem' }}>Ordens paralelas por hora no nível atual: {forgeWorkshop.level}</p>
         {isBuilt && (
@@ -75,6 +106,60 @@ export const ForgeWorkshopPanel: React.FC = () => {
           <p style={{ fontSize: '0.85rem', color: 'var(--gold-300)' }}>
             ⚙️ Desmonte Automatizado ativo: equipamentos Comuns e Raros "puros" dropados em combate são convertidos direto em Fragmentos de Forja, sem passar pelo inventário.
           </p>
+        )}
+
+        {isBuilt && (
+          <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-300, #f59e0b)', margin: 0 }}>
+              🔮 Funções Ativas da Oficina
+            </h4>
+
+            <select
+              value={selectedItemId}
+              onChange={(e) => { setSelectedItemId(e.target.value); setFeedback(null); }}
+              style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid var(--border-dim)', borderRadius: '4px' }}
+            >
+              <option value="">Selecione um item do inventário...</option>
+              {rerollableItems.map(i => (
+                <option key={i.id} value={i.id}>
+                  {i.name} {i.mysticLevel ? `+${i.mysticLevel}` : ''} ({i.rarity})
+                </option>
+              ))}
+            </select>
+
+            {selectedItem && (
+              <>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleReroll}
+                    disabled={(character.runicCrystals || 0) < rerollCost}
+                    className="btn btn-sm"
+                    style={{ flex: 1, fontSize: '0.7rem', opacity: (character.runicCrystals || 0) < rerollCost ? 0.5 : 1 }}
+                  >
+                    🎲 Rerolar Atributos ({rerollCost} 🔮)
+                  </button>
+                  <button
+                    onClick={handleImproveOrDestroy}
+                    disabled={(character.runicCrystals || 0) < improveCost || attemptAlreadyUsed}
+                    className="btn btn-sm btn-danger"
+                    style={{ flex: 1, fontSize: '0.7rem', opacity: ((character.runicCrystals || 0) < improveCost || attemptAlreadyUsed) ? 0.5 : 1 }}
+                  >
+                    ⚠️ Melhorar/Destruir ({improveCost} 🔮)
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: 0 }}>
+                  Rerolagem: sorteia uma fase efetiva entre {Math.max(1, (character.currentStage || 1) - 5)} e {(character.currentStage || 1) + 5} e regera os atributos (pode melhorar ou piorar). Melhorar/Destruir: 1/3 Melhoria Lendária (+50%), 1/3 nada acontece, 1/3 destrói o item — limitado a 1 tentativa por nível de fusão.
+                  {attemptAlreadyUsed && ' Você já usou a tentativa de Melhoria/Destruição neste nível de fusão.'}
+                </p>
+              </>
+            )}
+
+            {feedback && (
+              <p style={{ fontSize: '0.7rem', color: feedback.type === 'success' ? '#4ade80' : '#f87171', margin: 0 }}>
+                {feedback.message}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </CitadelBuildingPanel>

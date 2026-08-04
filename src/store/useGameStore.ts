@@ -15,7 +15,7 @@ import {
   EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
   ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST, getAcademyResearchDurationMs, ResearchKey,
   WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY,
-  FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_HOURS, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_FRAGMENT_YIELD,
+  FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_HOURS, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_CRYSTAL_YIELD,
   COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST,
   SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST,
   RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST,
@@ -787,6 +787,8 @@ interface GameState {
   collectWatchTowerKeys(): { success: boolean; message: string };
   buildOrUpgradeForgeWorkshop(): { success: boolean; message: string };
   buildOrUpgradeCosmicSiphon(): { success: boolean; message: string };
+  addCosmicCharge(amount: number): void;
+  spendCosmicCharge(): void;
   buildOrUpgradeSynchronyAltar(): { success: boolean; message: string };
   buildOrUpgradeRelicLab(): { success: boolean; message: string };
   overheatRelic(relicId: string): { success: boolean; message: string };
@@ -896,6 +898,10 @@ interface GameState {
   // Reforja de itens (v2.0.0)
   reforgeItems(item1Id: string, item2Id: string): { success: boolean; message: string; newItem?: EquipmentItem };
 
+  // v12.1.0 "Oficina Reforjada": funções ativas da Oficina, pagas em Cristal Rúnico.
+  rerollItemStats(itemId: string): { success: boolean; message: string };
+  improveOrDestroyItem(itemId: string): { success: boolean; message: string; outcome?: 'legendary' | 'nothing' | 'destroyed' };
+
   // Loja e Consumíveis (v3.0.0)
   buyConsumable(type: 'chest_legendary' | 'chest_ancestral' | 'boost_touch' | 'boost_touch_x3' | 'relic_chest' | 'inventory_slot' | 'speed_unlock_3x'): { success: boolean; message: string };
   buyTranscendenceConsumable(type: 'elixir_transcendental' | 'cristal_forja_eterna' | 'chave_fenda_temporal'): { success: boolean; message: string };
@@ -1003,7 +1009,7 @@ const DEFAULT_CITADEL = (): CitadelState => ({
   },
   watchTower: { level: 0, lastTick: Date.now(), storedKeys: 0 },
   forgeWorkshop: { level: 0, lastTick: Date.now() },
-  cosmicSiphon: { level: 0, lastTick: Date.now() },
+  cosmicSiphon: { level: 0, lastTick: Date.now(), cosmicCharge: 0 },
   synchronyAltar: { level: 0, lastTick: Date.now() },
   relicLab: { level: 0, lastTick: Date.now(), overheatedRelicIds: [] as string[] },
   alchemyLab: { level: 0, lastTick: Date.now(), pendingBrews: [] as AlchemyPendingBrew[] },
@@ -1230,6 +1236,7 @@ const DEFAULT_CHARACTER = (classId: string = 'warrior', name?: string): Characte
     runStartTime: Date.now(),
     purgatoryCompleted: false,
     forgeFragments: 0,
+    runicCrystals: 0,
     ascensionNotified: false,
     transcendencePoints: 0,
     transcendenceUpgrades: {},
@@ -1305,6 +1312,8 @@ const mergeLoadedCharacter = (char: Character): Character => {
     inventory: char.inventory || defaults.inventory,
     inventorySlots: char.inventorySlots || defaults.inventorySlots,
     forgeFragments: char.forgeFragments !== undefined ? char.forgeFragments : 0,
+    runicCrystals: char.runicCrystals !== undefined ? char.runicCrystals : 0,
+    lastTranscendencePPUsed: char.lastTranscendencePPUsed !== undefined ? char.lastTranscendencePPUsed : 0,
     transcendencePoints: char.transcendencePoints !== undefined ? char.transcendencePoints : 0,
     transcendenceUpgrades: char.transcendenceUpgrades || {},
     transcendenceCount: char.transcendenceCount !== undefined ? char.transcendenceCount : 0,
@@ -1959,6 +1968,7 @@ export const useGameStore = create<GameState>((set) => ({
     let gold = state.character.gold;
     let inventory = state.character.inventory;
     let forgeFragments = state.character.forgeFragments || 0;
+    let runicCrystals = state.character.runicCrystals || 0;
     let farmedByCitadel = state.character.totalMaterialsFarmedByCitadel || DEFAULT_MATERIALS();
     let changed = false;
     let autoSellCommon: boolean | undefined;
@@ -2162,8 +2172,9 @@ export const useGameStore = create<GameState>((set) => ({
       }
     }
 
-    // Oficina de Automação da Forja: converte Ouro e Madeira em Fragmentos de Forja por ordens de serviço de 1h.
-    // Só avança `lastTick` pelas horas INTEIRAS já processadas (nunca até `now`) — do contrário, o tick
+    // v12.1.0 "Oficina Reforjada": converte Ouro e Madeira em Cristal Rúnico por ordens de serviço de
+    // 1h (Fragmentos de Forja não são mais produzidos aqui — vêm da Torre Infinita). Só avança
+    // `lastTick` pelas horas INTEIRAS já processadas (nunca até `now`) — do contrário, o tick
     // periódico de 60s da UI (GameUI.tsx) resetaria o relógio antes de completar 1h e a Oficina nunca
     // produziria nada durante uma sessão contínua, só em retornos após ficar fechada por 1h+.
     if (citadel.forgeWorkshop.level > 0) {
@@ -2178,7 +2189,7 @@ export const useGameStore = create<GameState>((set) => ({
         if (orders > 0) {
           gold -= orders * FORGE_ORDER_GOLD_COST;
           materials = { ...materials, wood: materials.wood - orders * FORGE_ORDER_WOOD_COST };
-          forgeFragments += orders * FORGE_ORDER_FRAGMENT_YIELD;
+          runicCrystals += orders * FORGE_ORDER_CRYSTAL_YIELD;
         }
         nextForgeWorkshop = { ...citadel.forgeWorkshop, lastTick: citadel.forgeWorkshop.lastTick + wholeHours * 60 * 60 * 1000 };
         changed = true;
@@ -2218,6 +2229,7 @@ export const useGameStore = create<GameState>((set) => ({
       materials,
       inventory,
       forgeFragments,
+      runicCrystals,
       totalMaterialsFarmedByCitadel: farmedByCitadel,
       astralRuneInventory,
       citadel: { ...citadel, expeditions: nextExpeditions, watchTower: nextWatchTower, forgeWorkshop: nextForgeWorkshop, alchemyLab: nextAlchemyLab, amuletOracle: nextAmuletOracle }
@@ -4227,6 +4239,21 @@ export const useGameStore = create<GameState>((set) => ({
     return result;
   },
 
+  // v12.1.0 "Oficina Reforjada": Carga Cósmica do Sifão — acumulada por segundo de combate em
+  // Ecoterra ativa (ver CombatFSM.ts), teto de 100, consumida integralmente pelo Pulso Cósmico.
+  addCosmicCharge: (amount) => set((state) => {
+    const citadel = state.character.citadel || DEFAULT_CITADEL();
+    const current = citadel.cosmicSiphon.cosmicCharge || 0;
+    const next = Math.min(100, current + amount);
+    if (next === current) return state;
+    return { character: { ...state.character, citadel: { ...citadel, cosmicSiphon: { ...citadel.cosmicSiphon, cosmicCharge: next } } } };
+  }),
+
+  spendCosmicCharge: () => set((state) => {
+    const citadel = state.character.citadel || DEFAULT_CITADEL();
+    return { character: { ...state.character, citadel: { ...citadel, cosmicSiphon: { ...citadel.cosmicSiphon, cosmicCharge: 0 } } } };
+  }),
+
   buildOrUpgradeSynchronyAltar: () => {
     let result: { success: boolean; message: string } = { success: false, message: '' };
     set((state) => {
@@ -4552,6 +4579,7 @@ export const useGameStore = create<GameState>((set) => ({
       totalXpEarned: 0,
       gold: 0,
       forgeFragments: 0,
+      runicCrystals: 0,
       attributePoints: 5,
       skillPoints: 1,
       unlockedSkills: [...config.initialSkills],
@@ -4652,6 +4680,7 @@ export const useGameStore = create<GameState>((set) => ({
       totalXpEarned: 0,
       gold: 0,
       forgeFragments: 0,
+      runicCrystals: 0,
       attributePoints: 5,
       skillPoints: 1,
       unlockedSkills: [...config.initialSkills],
@@ -4724,7 +4753,12 @@ export const useGameStore = create<GameState>((set) => ({
     const totalPP = Math.max(state.character.lifetimePrestigePointsAccumulated || 0, currentPP + spentPP);
     const pointsEarned = Math.floor(Math.pow(totalPP / 500, 0.75));
 
-    const isEligible = state.character.pandemoniumUnlocked && state.character.highestStageReached >= 50 && pointsEarned > 0;
+    // Gate anti-abuso: a partir da 2ª transcendência, o PP usado precisa ser ao menos 25% maior
+    // que o usado na transcendência anterior (lastTranscendencePPUsed = 0/undefined na 1ª, sem gate).
+    const minRequiredPP = (state.character.lastTranscendencePPUsed || 0) * 1.25;
+    const meetsGrowthGate = totalPP >= minRequiredPP;
+
+    const isEligible = state.character.pandemoniumUnlocked && state.character.highestStageReached >= 50 && pointsEarned > 0 && meetsGrowthGate;
     if (!isEligible) return state;
 
     const currentClassId = state.character.classId;
@@ -4738,6 +4772,7 @@ export const useGameStore = create<GameState>((set) => ({
       totalXpEarned: 0,
       gold: 0,
       forgeFragments: 0,
+      runicCrystals: 0,
       baseStats: { ...config.baseStats },
       growthRates: { ...config.growthRates },
       unlockedSkills: [...config.initialSkills],
@@ -4762,6 +4797,7 @@ export const useGameStore = create<GameState>((set) => ({
       ascensionNotified: false,
       transcendencePoints: (state.character.transcendencePoints || 0) + pointsEarned,
       lifetimePrestigePointsAccumulated: 0,
+      lastTranscendencePPUsed: totalPP,
       transcendenceCount: (state.character.transcendenceCount || 0) + 1,
       transcendenceLoreShown: true,
       // Diferente da Ascensão, a Transcendência zera o Depósito da Cidadela: os itens guardados não sobrevivem a este reset mais profundo.
@@ -5746,6 +5782,7 @@ export const useGameStore = create<GameState>((set) => ({
 
       let cost = 500;
       let fragmentCost = 250;
+      let crystalCost = 0;
       let targetMysticLevel = 1;
 
       if (isBothMystic) {
@@ -5765,6 +5802,7 @@ export const useGameStore = create<GameState>((set) => ({
         const fusionCost = getMysticFusionCost(lvl1);
         cost = fusionCost.cost;
         fragmentCost = fusionCost.fragmentCost;
+        crystalCost = fusionCost.crystalCost;
       }
 
       if ((state.character.gold || 0) < cost) {
@@ -5774,6 +5812,11 @@ export const useGameStore = create<GameState>((set) => ({
 
       if ((state.character.forgeFragments || 0) < fragmentCost) {
         result = { success: false, message: `Fragmentos de Forja insuficientes. Requer ${fragmentCost} Fragmentos.` };
+        return state;
+      }
+
+      if ((state.character.runicCrystals || 0) < crystalCost) {
+        result = { success: false, message: `Cristal Rúnico insuficiente. Requer ${crystalCost} Cristais.` };
         return state;
       }
 
@@ -5994,6 +6037,7 @@ export const useGameStore = create<GameState>((set) => ({
         ...state.character,
         gold: (state.character.gold || 0) - cost,
         forgeFragments: (state.character.forgeFragments || 0) - fragmentCost,
+        runicCrystals: (state.character.runicCrystals || 0) - crystalCost,
         inventory: [...filteredInventory, newItem],
         runeInventory: runeInventoryAfterFusion,
         totalGoldSpentInForge: (state.character.totalGoldSpentInForge || 0) + cost,
@@ -6009,6 +6053,176 @@ export const useGameStore = create<GameState>((set) => ({
       result = { success: true, message: successMsg, newItem };
       useQuestStore.getState().updateObjectiveProgress('forge', undefined, 1);
       return { character: updated };
+    });
+
+    return result;
+  },
+
+  // v12.1.0 "Oficina Reforjada": rerola os atributos de um item (equipado ou no inventário) dentro de
+  // um range de fase efetiva [currentStage-5, currentStage+5] em relação à fase do jogador no momento
+  // da rerolagem — o resultado pode ficar melhor ou pior que o item atual. Custo escala com mysticLevel.
+  rerollItemStats: (itemId) => {
+    let result: { success: boolean; message: string } = { success: false, message: '' };
+
+    set((state) => {
+      const char = state.character;
+      let item = char.inventory.find(i => i.id === itemId) || null;
+      let equippedSlot: keyof typeof char.equipment | null = null;
+      if (!item) {
+        for (const slotKey of Object.keys(char.equipment) as (keyof typeof char.equipment)[]) {
+          if (char.equipment[slotKey]?.id === itemId) {
+            item = char.equipment[slotKey]!;
+            equippedSlot = slotKey;
+            break;
+          }
+        }
+      }
+
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado.' };
+        return state;
+      }
+      if (item.slot === 'consumable' || item.slot === 'activeRelic' || item.slot === 'amulet') {
+        result = { success: false, message: 'Este tipo de item não pode ser rerolado.' };
+        return state;
+      }
+      if (Object.keys(item.stats).length === 0) {
+        result = { success: false, message: 'Este item não possui atributos para rerolar.' };
+        return state;
+      }
+
+      const crystalCost = 100 + 100 * (item.mysticLevel || 0);
+      if ((char.runicCrystals || 0) < crystalCost) {
+        result = { success: false, message: `Cristal Rúnico insuficiente. Requer ${crystalCost} Cristais.` };
+        return state;
+      }
+
+      const REROLL_DECIMAL_STAT_CAPS: Partial<Record<keyof BaseStats, number>> = {
+        damageMultiplierPct: 1.20,
+        maxHpPct: 1.00,
+        maxManaPct: 1.00,
+        attackSpeedPct: 0.60,
+        lifesteal: 0.30,
+        touchDamageMult: 4.00,
+        dropChancePct: 1.00,
+        damageReductionPct: 0.40,
+        frenzyChancePct: 0.30,
+      };
+
+      const currentStage = char.currentStage || 1;
+      const effectiveStage = Math.max(1, currentStage - 5 + Math.floor(Math.random() * 11));
+      const referenceStage = Math.max(1, item.stage || currentStage);
+      const stageRatio = effectiveStage / referenceStage;
+
+      const rerolledStats: Partial<BaseStats> = {};
+      (Object.keys(item.stats) as (keyof BaseStats)[]).forEach((key) => {
+        const original = item!.stats[key] || 0;
+        const isDecimal = key in REROLL_DECIMAL_STAT_CAPS;
+        const variance = 0.8 + Math.random() * 0.4;
+        const raw = original * stageRatio * variance;
+        let merged = isDecimal ? Math.round(raw * 1000) / 1000 : Math.max(1, Math.round(raw));
+        const cap = REROLL_DECIMAL_STAT_CAPS[key];
+        if (cap !== undefined) merged = Math.min(merged, cap);
+        rerolledStats[key] = merged;
+      });
+
+      const updatedItem: EquipmentItem = { ...item, stats: rerolledStats };
+      const updatedChar = {
+        ...char,
+        runicCrystals: (char.runicCrystals || 0) - crystalCost,
+        inventory: equippedSlot ? char.inventory : char.inventory.map(i => i.id === itemId ? updatedItem : i),
+        equipment: equippedSlot ? { ...char.equipment, [equippedSlot]: updatedItem } : char.equipment,
+      };
+
+      saveToLocalStorage(updatedChar);
+      result = { success: true, message: `🔮 ${item.name} rerolado! (fase efetiva: ${effectiveStage})` };
+      return { character: updatedChar };
+    });
+
+    return result;
+  },
+
+  // v12.1.0 "Oficina Reforjada": ação de risco — 1/3 melhoria lendária, 1/3 nada acontece, 1/3
+  // destruição do item. Limitada a 1 tentativa por nível de fusão mística do item (o contador nasce
+  // "zerado" a cada nova fusão, já que reforgeItems sempre cria um objeto de item novo).
+  improveOrDestroyItem: (itemId) => {
+    let result: { success: boolean; message: string; outcome?: 'legendary' | 'nothing' | 'destroyed' } = { success: false, message: '' };
+
+    set((state) => {
+      const char = state.character;
+      let item = char.inventory.find(i => i.id === itemId) || null;
+      let equippedSlot: keyof typeof char.equipment | null = null;
+      if (!item) {
+        for (const slotKey of Object.keys(char.equipment) as (keyof typeof char.equipment)[]) {
+          if (char.equipment[slotKey]?.id === itemId) {
+            item = char.equipment[slotKey]!;
+            equippedSlot = slotKey;
+            break;
+          }
+        }
+      }
+
+      if (!item) {
+        result = { success: false, message: 'Item não encontrado.' };
+        return state;
+      }
+      if (item.slot === 'consumable' || item.slot === 'activeRelic' || item.slot === 'amulet') {
+        result = { success: false, message: 'Este tipo de item não pode ser melhorado/destruído.' };
+        return state;
+      }
+
+      const mysticLevel = item.mysticLevel || 0;
+      if (item.forgeAttemptUsedAtLevel === mysticLevel) {
+        result = { success: false, message: 'Você já usou sua tentativa de Melhoria/Destruição neste nível de fusão. Funda o item para liberar uma nova tentativa.' };
+        return state;
+      }
+
+      const crystalCost = 200 + 200 * mysticLevel;
+      if ((char.runicCrystals || 0) < crystalCost) {
+        result = { success: false, message: `Cristal Rúnico insuficiente. Requer ${crystalCost} Cristais.` };
+        return state;
+      }
+
+      const roll = Math.random();
+      const outcome: 'legendary' | 'nothing' | 'destroyed' = roll < 1 / 3 ? 'legendary' : roll < 2 / 3 ? 'nothing' : 'destroyed';
+
+      const afterCrystals = (char.runicCrystals || 0) - crystalCost;
+
+      if (outcome === 'destroyed') {
+        const updatedChar = {
+          ...char,
+          runicCrystals: afterCrystals,
+          inventory: char.inventory.filter(i => i.id !== itemId),
+          equipment: equippedSlot ? { ...char.equipment, [equippedSlot]: null } : char.equipment,
+        };
+        saveToLocalStorage(updatedChar);
+        result = { success: true, message: `💥 ${item.name} foi destruído!`, outcome };
+        return { character: updatedChar };
+      }
+
+      let updatedItem = { ...item, forgeAttemptUsedAtLevel: mysticLevel };
+      if (outcome === 'legendary') {
+        const boostedStats: Partial<BaseStats> = {};
+        (Object.keys(item.stats) as (keyof BaseStats)[]).forEach((key) => {
+          boostedStats[key] = Math.ceil((item!.stats[key] || 0) * 1.5);
+        });
+        updatedItem = { ...updatedItem, stats: boostedStats };
+      }
+
+      const updatedChar = {
+        ...char,
+        runicCrystals: afterCrystals,
+        inventory: equippedSlot ? char.inventory : char.inventory.map(i => i.id === itemId ? updatedItem : i),
+        equipment: equippedSlot ? { ...char.equipment, [equippedSlot]: updatedItem } : char.equipment,
+      };
+
+      saveToLocalStorage(updatedChar);
+      result = {
+        success: true,
+        message: outcome === 'legendary' ? `⚡ Melhoria Lendária! ${item.name} ganhou +50% de poder!` : `😐 Nada aconteceu com ${item.name}. Cristal Rúnico consumido.`,
+        outcome
+      };
+      return { character: updatedChar };
     });
 
     return result;

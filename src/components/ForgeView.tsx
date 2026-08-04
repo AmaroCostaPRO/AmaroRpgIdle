@@ -200,18 +200,19 @@ export const ForgeView: React.FC = () => {
 
   // Verifica se a fusão é possível e calcula custos
   const checkReforgeValidity = () => {
-    if (!slot1 || !slot2) return { valid: false, reason: 'Selecione dois itens.', cost: 0, fragmentCost: 0, nextLevel: 1 };
-    if (slot1.slot !== slot2.slot) return { valid: false, reason: 'Os itens devem ser do mesmo slot.', cost: 0, fragmentCost: 0, nextLevel: 1 };
-    if (slot1.setName !== slot2.setName) return { valid: false, reason: 'Os itens devem pertencer ao mesmo conjunto (Set).', cost: 0, fragmentCost: 0, nextLevel: 1 };
+    if (!slot1 || !slot2) return { valid: false, reason: 'Selecione dois itens.', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
+    if (slot1.slot !== slot2.slot) return { valid: false, reason: 'Os itens devem ser do mesmo slot.', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
+    if (slot1.setName !== slot2.setName) return { valid: false, reason: 'Os itens devem pertencer ao mesmo conjunto (Set).', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
 
     const isBothMystic = slot1.rarity === 'mystic' && slot2.rarity === 'mystic';
     const isBothNormal = slot1.rarity !== 'mystic' && slot2.rarity !== 'mystic';
 
     if (!isBothMystic && !isBothNormal) {
-      return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+      return { valid: false, reason: 'Fusão indisponível: misture dois itens normais ou dois místicos.', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
     }
     let cost = 500;
     let fragmentCost = 250;
+    let crystalCost = 0;
     let nextLevel = 1;
 
     if (isBothMystic) {
@@ -219,30 +220,35 @@ export const ForgeView: React.FC = () => {
       const lvl2 = slot2.mysticLevel || 1;
 
       if (lvl1 !== lvl2) {
-        return { valid: false, reason: 'Itens Místicos devem ter o mesmo nível para fusão.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+        return { valid: false, reason: 'Itens Místicos devem ter o mesmo nível para fusão.', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
       }
       if (lvl1 >= 8) {
-        return { valid: false, reason: 'O nível máximo de item Místico é +8.', cost: 0, fragmentCost: 0, nextLevel: 1 };
+        return { valid: false, reason: 'O nível máximo de item Místico é +8.', cost: 0, fragmentCost: 0, crystalCost: 0, nextLevel: 1 };
       }
 
       nextLevel = lvl1 + 1;
       const fusionCost = getMysticFusionCost(lvl1);
       cost = fusionCost.cost;
       fragmentCost = fusionCost.fragmentCost;
+      crystalCost = fusionCost.crystalCost;
     }
 
     const hasGold = (character.gold || 0) >= cost;
     const hasFragments = (character.forgeFragments || 0) >= fragmentCost;
+    const hasCrystals = (character.runicCrystals || 0) >= crystalCost;
 
     return {
-      valid: hasGold && hasFragments,
-      reason: !hasGold 
-        ? `Você precisa de ${cost} Ouro para esta fusão.` 
-        : !hasFragments 
-        ? `Você precisa de ${fragmentCost} Fragmentos de Forja para esta fusão.` 
+      valid: hasGold && hasFragments && hasCrystals,
+      reason: !hasGold
+        ? `Você precisa de ${cost} Ouro para esta fusão.`
+        : !hasFragments
+        ? `Você precisa de ${fragmentCost} Fragmentos de Forja para esta fusão.`
+        : !hasCrystals
+        ? `Você precisa de ${crystalCost} Cristal Rúnico para esta fusão.`
         : '',
       cost,
       fragmentCost,
+      crystalCost,
       nextLevel
     };
   };
@@ -497,6 +503,14 @@ export const ForgeView: React.FC = () => {
                       🔩 {formatNumber(reforgeState.fragmentCost || 0, abbreviateNumbers)} Fragmentos
                     </span>
                   </div>
+                  {(reforgeState.crystalCost || 0) > 0 && (
+                    <div className="flex justify-between w-full text-sm">
+                      <span className="forge-cost-label text-gray-400">Custo de Cristal Rúnico:</span>
+                      <span className={`font-bold ${(character.runicCrystals || 0) >= (reforgeState.crystalCost || 0) ? 'text-cyan-400' : 'text-red-500'}`}>
+                        🔮 {formatNumber(reforgeState.crystalCost || 0, abbreviateNumbers)} Cristais
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {reforgeState.reason && (

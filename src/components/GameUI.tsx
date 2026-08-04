@@ -638,6 +638,36 @@ const ActiveSkillsPanel: React.FC = () => {
           );
         })}
 
+      {/* v12.1.0: Pulso Cósmico do Sifão Cósmico — só visível durante a Ecoterra com o Sifão construído */}
+      {character.activeEcoterra && (character.citadel?.cosmicSiphon?.level || 0) > 0 && (() => {
+        const siphonLevel = character.citadel!.cosmicSiphon.level;
+        const charge = character.citadel!.cosmicSiphon.cosmicCharge || 0;
+        const chargePct = Math.min(100, charge);
+        const isReady = charge >= 100;
+        const dmgBonusPct = Math.round((0.5 + siphonLevel * 0.05) * 100);
+        const durSec = 10 + siphonLevel * 2;
+        return (
+          <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-dim)' }}>
+            <h2 className="section-title" style={{ marginBottom: '0.4rem', fontSize: '0.75rem' }}>🌌 Pulso Cósmico</h2>
+            <button
+              onClick={() => {
+                if (isReady) {
+                  AudioManager.getInstance().playClick();
+                  bridge.emit(GameEvent.TRIGGER_COSMIC_SIPHON, {});
+                }
+              }}
+              disabled={!isReady}
+              className="btn-skill-combat"
+              style={{ position: 'relative', overflow: 'hidden', width: '100%' }}
+            >
+              <div style={{ position: 'absolute', bottom: 0, left: 0, height: '3px', width: `${chargePct}%`, background: '#22d3ee', transition: 'width 0.3s linear' }} />
+              <span className="font-heading" style={{ fontSize: '0.68rem', fontWeight: 700, color: '#22d3ee' }}>🌌 Sincronia Cósmica ({Math.floor(chargePct)}/100)</span>
+              <span className="font-mono" style={{ fontSize: '0.5rem', color: '#94a3b8' }}>+{dmgBonusPct}% Dano e Invulnerabilidade Total por {durSec}s</span>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Seção de Velocidade do Jogo (Aceleração 1x/2x/3x) */}
       <div style={{
         marginTop: '0.6rem',
@@ -3847,8 +3877,8 @@ const GuidePanel: React.FC = () => {
                     <li><span className="text-white font-semibold">Quartel de Expedições:</span> <span className="text-gray-400">aloca classes desbloqueadas para farmar materiais passivamente, com +15% de produção por nível do Quartel. Cada alocação dura no máximo 8 horas, depois retorna automaticamente ao Quartel. Alocar (gasta Ouro) e retirar antes do prazo (perde o tempo restante) exigem confirmação.</span></li>
                     <li><span className="text-white font-semibold">Academia Militar:</span> <span className="text-gray-400">pesquisas permanentes que aumentam Dano, Vida, Velocidade, Dano de Toque e Dano Crítico (vale para toque, ataque básico e habilidades) globais, além da chance de drop de Chave da Torre e de Fragmento de Alma Instável.</span></li>
                     <li><span className="text-white font-semibold">Torre de Vigia Astral:</span> <span className="text-gray-400">produz passivamente Chaves da Torre, usadas para tentar subir andares na Torre Infinita.</span></li>
-                    <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">automatiza a auto-venda/auto-desmonte de equipamentos comuns e raros conforme evolui de nível.</span></li>
-                    <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga a drenagem de mana e a erosão de recarga causadas pela Ecoterra, até neutralizá-las por completo no nível máximo.</span></li>
+                    <li><span className="text-white font-semibold">Oficina da Forja:</span> <span className="text-gray-400">produz passivamente Cristal Rúnico (Ouro + Madeira → Cristais por hora) e libera duas funções ativas: Reroll de Atributos (rerola os stats de um item numa fase entre 5 acima/abaixo da atual, pode melhorar ou piorar) e Melhoria/Destruição (1/3 de chance de +50% nos atributos, 1/3 de nada acontecer, 1/3 de destruir o item — 1 tentativa por nível de fusão). No Nível 5 "Mestre Forjador", também converte automaticamente drops Comuns/Raros "puros" em Fragmentos de Forja.</span></li>
+                    <li><span className="text-white font-semibold">Sifão de Essência Cósmica:</span> <span className="text-gray-400">mitiga por completo (até neutralizar no nível máximo) as 4 penalidades da Ecoterra — dreno de mana, erosão de recarga, velocidade de ataque inimiga e dano recebido — e concede um bônus ofensivo próprio de Dano durante ela. Acumula Carga Cósmica lutando na Ecoterra para disparar a habilidade ativa Pulso Cósmico: dano bônus + invulnerabilidade total por tempo limitado.</span></li>
                     <li><span className="text-white font-semibold">Altar de Sincronia Elemental:</span> <span className="text-gray-400">construção de suporte à sinergia entre sistemas de fim de jogo.</span></li>
                     <li><span className="text-white font-semibold">Laboratório de Relíquias:</span> <span className="text-gray-400">permite processar Relíquias com risco de "superaquecimento" (a relíquia fica temporariamente indisponível se usada em excesso).</span></li>
                     <li><span className="text-white font-semibold">⚗️ Laboratório de Alquimia:</span> <span className="text-gray-400">consome Madeira/Pedra/Carne para preparar, sob demanda, Poções de Fúria Alquímica (+25% de Dano por 3min) ou de Regeneração (regeneração de HP acelerada por 2min) — o rendimento por preparo aumenta com o nível do laboratório.</span></li>
@@ -3873,7 +3903,8 @@ const GuidePanel: React.FC = () => {
                       <li><span className="text-gray-400">Mesma raridade/categoria</span> — dois normais (comuns a lendários) <em>ou</em> dois Místicos. Não é possível misturar.</li>
                       <li><span className="text-gray-400">Místicos do mesmo nível</span> — para fundir Místicos, ambos precisam ter exatamente o mesmo nível (ex: +2 com +2).</li>
                       <li><span className="text-gray-400">Nível máximo</span> — um item Místico só pode chegar até <strong>+8</strong>.</li>
-                      <li><span className="text-gray-400">Todas as fusões custam Fragmentos de Forja além de Ouro</span> — inclusive a primeira fusão (Convencional → Místico +1). Fragmentos são obtidos desmontando equipamentos sobressalentes (1 por item desmontado).</li>
+                      <li><span className="text-gray-400">Todas as fusões custam Fragmentos de Forja além de Ouro</span> — inclusive a primeira fusão (Convencional → Místico +1). Fragmentos são obtidos desmontando equipamentos sobressalentes (1 por item desmontado) ou farmando a Torre Infinita.</li>
+                      <li><span className="text-gray-400">Fusões de +3 em diante também exigem Cristal Rúnico</span> — moeda produzida pela Oficina da Forja da Cidadela (veja a categoria 🏰 Cidadela), em cima do custo normal de Ouro + Fragmentos.</li>
                     </ul>
                   </div>
                   <div>
@@ -3898,21 +3929,21 @@ const GuidePanel: React.FC = () => {
                     </code>
                   </div>
                   <div>
-                    <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷):</strong>
+                    <strong className="text-white block font-semibold">Custo de Fusão (Ouro 🪙 + Fragmentos de Forja 🔷 + Cristal Rúnico 🔮 de +3 em diante):</strong>
                     <div className="mt-1 space-y-0.5">
                       {[
-                        { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '250' },
-                        { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '625' },
-                        { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '1.250' },
-                        { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '2.500' },
-                        { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '6.250' },
-                        { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '12.500' },
-                        { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '25.000' },
-                        { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '50.000' },
+                        { origem: 'Convencional + Convencional', resultado: 'Místico +1', ouro: '500', frag: '250', cristal: '' },
+                        { origem: 'Místico +1 + Místico +1', resultado: 'Místico +2', ouro: '1.000', frag: '625', cristal: '' },
+                        { origem: 'Místico +2 + Místico +2', resultado: 'Místico +3', ouro: '2.500', frag: '1.250', cristal: '' },
+                        { origem: 'Místico +3 + Místico +3', resultado: 'Místico +4', ouro: '12.500', frag: '2.500', cristal: '50' },
+                        { origem: 'Místico +4 + Místico +4', resultado: 'Místico +5', ouro: '62.500', frag: '6.250', cristal: '150' },
+                        { origem: 'Místico +5 + Místico +5', resultado: 'Místico +6', ouro: '312.500', frag: '12.500', cristal: '400' },
+                        { origem: 'Místico +6 + Místico +6', resultado: 'Místico +7', ouro: '1.562.500', frag: '25.000', cristal: '1.000' },
+                        { origem: 'Místico +7 + Místico +7', resultado: 'Místico +8', ouro: '7.812.500', frag: '50.000', cristal: '2.500' },
                       ].map((row) => (
                         <div key={row.resultado} className="flex justify-between items-center text-[9px] bg-black/20 rounded px-1.5 py-0.5">
                           <span className="text-gray-400">{row.origem} → <strong className="text-fuchsia-300">{row.resultado}</strong></span>
-                          <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.ouro} Ouro + {row.frag} 🔷</span>
+                          <span className="text-yellow-400 font-bold shrink-0 ml-2">{row.ouro} Ouro + {row.frag} 🔷{row.cristal ? ` + ${row.cristal} 🔮` : ''}</span>
                         </div>
                       ))}
                     </div>
@@ -4140,7 +4171,7 @@ const GuidePanel: React.FC = () => {
                 <span className="text-[9px] font-semibold text-fuchsia-400 uppercase tracking-widest block">🌌 Transcendência, Ecoterra e Loja Celestial</span>
                 <div className="text-[10px] space-y-2 leading-relaxed text-gray-300">
                   <p>
-                    O <strong>Segundo Ciclo</strong>, desbloqueado após o Modo Pandemônio. Requer ter o <strong>Pandemônio ativo</strong> e ter alcançado a <strong>Fase 50</strong> para realizar o Rito de Transcendência pela primeira vez.
+                    O <strong>Segundo Ciclo</strong>, desbloqueado após o Modo Pandemônio. Requer ter o <strong>Pandemônio ativo</strong> e ter alcançado a <strong>Fase 50</strong> para realizar o Rito de Transcendência pela primeira vez. A partir da 2ª Transcendência, é exigido também que o <strong>PP Vitalício usado seja pelo menos 25% maior</strong> que o usado na Transcendência anterior, para evitar transcender repetidamente sem progredir.
                   </p>
                   <div>
                     <strong className="text-white block font-semibold">Fórmula de Pontos de Transcendência (PT):</strong>
@@ -4152,7 +4183,7 @@ const GuidePanel: React.FC = () => {
                   <div>
                     <strong className="text-white block font-semibold">🌌 Espelho da Ecoterra:</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
-                      Modo opcional que substitui o combate normal nas Fases 1 a 20 por versões espelhadas e fortalecidas dos monstros (<strong>+30% Vida, +20% Velocidade</strong>). Em troca, esses monstros derrubam <strong>Essência de Transcendência (ET)</strong> ao morrer.
+                      Modo opcional que substitui o combate normal nas Fases 1 a 20 por versões espelhadas e fortalecidas dos monstros (<strong>+50% Vida, +35% Velocidade de Ataque</strong>), além de drenar Mana, corroer a recarga de habilidades e conceder <strong>+25% de Dano Recebido</strong> ao jogador. Em troca, esses monstros derrubam <strong>Essência de Transcendência (ET)</strong> ao morrer, e o combate acumula <strong>Carga Cósmica</strong> para o Sifão Cósmico. O <strong>Sifão Cósmico</strong> (Cidadela) mitiga todas as penalidades por nível até neutralizá-las no nível máximo, além de conceder um bônus ofensivo próprio e a habilidade ativa Pulso Cósmico — é a válvula de escape se a Ecoterra estiver difícil demais.
                     </p>
                   </div>
                   <div>
@@ -4176,7 +4207,7 @@ const GuidePanel: React.FC = () => {
                   <div>
                     <strong className="text-white block font-semibold" style={{ color: '#67e8f9' }}>✨ Bônus Permanente de Transcendência</strong>
                     <p className="text-gray-400 text-[9px] mt-0.5">
-                      Cada Transcendência realizada concede, para sempre, +5% multiplicativo de Dano, Vida Máxima e Mana Máxima — empilhando a cada ciclo (2 Transcendências = +10%, 3 = +15%...), por fora de qualquer outro bônus e nunca perdido nos ciclos seguintes.
+                      Cada Transcendência realizada concede, para sempre, +20% multiplicativo de Dano, Vida Máxima e Mana Máxima — empilhando a cada ciclo (2 Transcendências = +40%, 3 = +60%...), por fora de qualquer outro bônus e nunca perdido nos ciclos seguintes.
                     </p>
                   </div>
                 </div>
@@ -4894,7 +4925,9 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
   const totalPP = Math.max(character.lifetimePrestigePointsAccumulated || 0, currentPP + spentPP);
   const transcendenceEarnedOnReset = Math.floor(Math.pow(totalPP / 500, 0.75));
   const isInTowerOrChallenge = useTowerStore((state) => state.towerActive) || !!character.activeDailyChallenge;
-  const canTranscend = character.pandemoniumUnlocked && character.highestStageReached >= 50 && transcendenceEarnedOnReset > 0 && !isInTowerOrChallenge;
+  const minRequiredPPForNextTranscendence = (character.lastTranscendencePPUsed || 0) * 1.25;
+  const meetsGrowthGate = totalPP >= minRequiredPPForNextTranscendence;
+  const canTranscend = character.pandemoniumUnlocked && character.highestStageReached >= 50 && transcendenceEarnedOnReset > 0 && meetsGrowthGate && !isInTowerOrChallenge;
   const transcendenceCount = character.transcendenceCount || 0;
   
   const currentPT = character.transcendencePoints || 0;
@@ -5038,10 +5071,10 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                   Reseta todo o progresso da Ascensão (PP, ouro, equipamentos e upgrades de PP), mas concede Pontos de Transcendência (PT) permanentes com base nos seus PP acumulados ao longo do tempo.
                 </p>
                 <p style={{ margin: 0, fontSize: '0.65rem', color: '#67e8f9', lineHeight: '1.3' }}>
-                  ✨ Cada Transcendência também concede um bônus <strong>permanente e cumulativo</strong> de +5% de Dano, Vida Máxima e Mana Máxima — multiplicativo, por fora de qualquer outro bônus, e nunca perdido nas Transcendências seguintes.
+                  ✨ Cada Transcendência também concede um bônus <strong>permanente e cumulativo</strong> de +20% de Dano, Vida Máxima e Mana Máxima — multiplicativo, por fora de qualquer outro bônus, e nunca perdido nas Transcendências seguintes.
                 </p>
                 <div style={{ fontSize: '0.6rem', color: '#fbbf24', fontWeight: 'bold' }}>
-                  Requisitos: Modo Pandemônio Ativo + Alcançar Fase 50 no Loop Infinito.
+                  Requisitos: Modo Pandemônio Ativo + Alcançar Fase 50 no Loop Infinito + PP Vitalício ≥ 25% acima do usado na Transcendência anterior.
                 </div>
               </div>
             </div>
@@ -5051,6 +5084,12 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                 <span>PP Vitalícios Acumulados:</span>
                 <span className="font-semibold text-white font-mono">{totalPP} PP</span>
               </div>
+              {minRequiredPPForNextTranscendence > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: meetsGrowthGate ? '#4ade80' : '#f87171' }}>
+                  <span>PP Mínimo p/ Próxima Transcendência (+25%):</span>
+                  <span className="font-semibold font-mono">{Math.ceil(minRequiredPPForNextTranscendence)} PP</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#9ca3af' }}>
                 <span>Transcendências Realizadas:</span>
                 <span className="font-semibold text-white font-mono">{transcendenceCount}</span>
@@ -5094,7 +5133,9 @@ const TranscendencePanel: React.FC<TranscendencePanelProps> = ({ onPrestige }) =
                     ? '🔒 Saia da Torre/Desafio Diário para Transcender'
                     : !character.pandemoniumUnlocked || character.highestStageReached < 50
                       ? '🔒 Requer Pandemônio e Fase 50 no Loop Infinito'
-                      : `🔒 Requer mais PP Vitalícios (Ganho atual: 0 PT)`
+                      : !meetsGrowthGate
+                        ? `🔒 Requer ${Math.ceil(minRequiredPPForNextTranscendence)} PP Vitalícios (+25% da última Transcendência)`
+                        : `🔒 Requer mais PP Vitalícios (Ganho atual: 0 PT)`
                   }
                 </button>
               )}

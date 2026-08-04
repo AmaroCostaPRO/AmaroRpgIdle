@@ -84,6 +84,11 @@ export interface EquipmentItem {
   // Ids de ASTRAL_RUNEWORD_CATALOG reconhecidos na última "Consulta ao Oráculo" (0, 1 ou 2 — o
   // modo de 2 palavras simultâneas de 3 runas cada exige os 6 espaços desbloqueados).
   activeAstralRunewords?: string[];
+  // v12.1.0 "Oficina Reforjada": nível de fusão mística em que a última tentativa de Melhoria/
+  // Destruição foi usada neste item. Como cada fusão mística gera um objeto de item novo, este
+  // contador nasce implicitamente "zerado" a cada novo mysticLevel — só bloqueia uma 2ª tentativa
+  // no MESMO nível de fusão.
+  forgeAttemptUsedAtLevel?: number;
 }
 
 export interface EnemyType {
@@ -192,7 +197,10 @@ export interface CitadelState {
   };
   watchTower: CitadelBuildingState & { storedKeys: number };
   forgeWorkshop: CitadelBuildingState;
-  cosmicSiphon: CitadelBuildingState;
+  // v12.1.0 "Oficina Reforjada": Carga Cósmica acumulada por segundo de combate em Ecoterra ativa,
+  // consumida integralmente ao disparar a habilidade ativa "Pulso Cósmico" (ver triggerCosmicSiphon
+  // em CombatFSM.ts). Teto de 100, escala de acúmulo por nível do Sifão.
+  cosmicSiphon: CitadelBuildingState & { cosmicCharge: number };
   synchronyAltar: CitadelBuildingState;
   relicLab: CitadelBuildingState & { overheatedRelicIds: string[] };
   // v8.0.0 "O Espelho Faminto": destila materiais das Expedições em poções de efeito temporário
@@ -302,6 +310,8 @@ export interface Character {
   transcendenceLoreShown?: boolean;
   activeEcoterra?: boolean;
   transcendenceEssence?: number;
+  lastTranscendencePPUsed?: number; // PP total usado na última transcendência — gate anti-abuso exige +25% na próxima
+  runicCrystals?: number; // Cristal Rúnico — moeda da Oficina da Forja, usada em fusões místicas +3 e nas funções ativas da Oficina
   speedUnlock3xPurchased?: boolean;
   totalXpEarned?: number; // Contador vitalício de XP bruto ganho, nunca decresce exceto na Ascensão.
   materials?: { wood: number; stone: number; meat: number; studyInsignias: number; coral?: number };
@@ -413,6 +423,7 @@ export enum GameEvent {
   EQUIP_SKILL = 'EQUIP_SKILL',
   TRIGGER_ACTIVE_RELIC = 'TRIGGER_ACTIVE_RELIC',
   TRIGGER_AMULET_ABILITY = 'TRIGGER_AMULET_ABILITY',
+  TRIGGER_COSMIC_SIPHON = 'TRIGGER_COSMIC_SIPHON',
   ACTIVE_BUFFS_CHANGED = 'ACTIVE_BUFFS_CHANGED',
   START_COMBAT = 'START_COMBAT',
   END_COMBAT = 'END_COMBAT',

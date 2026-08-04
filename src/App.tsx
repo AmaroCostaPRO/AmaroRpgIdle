@@ -402,7 +402,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v12.0.0 — O Oráculo Rúnico Desperta!
+              🔔 Atualização v12.1.0 — Oficina Reforjada!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -412,9 +412,64 @@ const App: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v12.1.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.1.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>
+                        ⚡ Bônus de Transcendência 5% → 20%
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Cada Transcendência agora concede +20% permanente de Dano/Vida/Mana (antes +5%). Para evitar abuso, a partir da 2ª Transcendência o PP vitalício usado no Rito precisa ser pelo menos 25% maior que o usado no ciclo anterior.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        🛠️ Oficina Reformulada: Nova Moeda Cristal Rúnico
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        A Oficina parou de produzir Fragmentos de Forja (agora exclusivos da Torre Infinita) e passou a produzir Cristal Rúnico, usado nas fusões místicas +3 em diante e nas duas novas funções ativas abaixo.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f97316', fontSize: '0.72rem' }}>
+                        🎲 Nova Função: Reroll de Atributos
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Na Oficina, gaste Cristal Rúnico para rerolar os atributos de qualquer item — sorteia uma fase efetiva entre 5 fases acima e abaixo da fase atual, podendo deixar o item melhor ou pior.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        ⚠️ Nova Função: Melhoria/Destruição
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Ação de risco na Oficina: 1/3 de chance de Melhoria Lendária (+50% nos atributos), 1/3 de nada acontecer, 1/3 de destruir o item — limitada a 1 tentativa por nível de fusão mística.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#22d3ee', fontSize: '0.72rem' }}>
+                        🌌 Sifão Cósmico: Pulso Cósmico e Mitigação Total
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        O Sifão agora mitiga todas as penalidades da Ecoterra (incluindo velocidade de ataque inimiga, antes não mitigada) e concede um bônus ofensivo próprio de dano. Acumule Carga Cósmica lutando na Ecoterra e ative o Pulso Cósmico: dano bônus + invulnerabilidade total por tempo limitado.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a3e635', fontSize: '0.72rem' }}>
+                        ⚖️ Ecoterra Mais Desafiadora
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        HP inimigo, dreno de mana, velocidade de ataque e erosão de cooldown aumentados, e um novo debuff: +25% de dano recebido enquanto a Ecoterra está ativa. O Sifão Cósmico é a válvula de escape para quem achar difícil demais.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v12.0.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.0.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.0.0:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>

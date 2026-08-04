@@ -1136,6 +1136,14 @@ export class CombatFSM {
   private activeRelicHealBuffPctPerSecond: number = 0;
   private activeRelicHealBuffDuration: number = 0;
   private activeRelicHealBuffTotalDuration: number = 0;
+  // v10.7.0 "Oficina Reforjada": habilidade ativa "Pulso Cósmico" do Sifão Cósmico — mesmo padrão
+  // flag+duração das Relíquias Ativas, mas alimentada pela Carga Cósmica (citadel.cosmicSiphon.cosmicCharge)
+  // em vez de cooldown. Concede dano bônus + invulnerabilidade total simultaneamente.
+  public isCosmicSiphonBuffActive: boolean = false;
+  private cosmicSiphonBuffDamagePct: number = 0;
+  private cosmicSiphonBuffDuration: number = 0;
+  private cosmicSiphonBuffTotalDuration: number = 0;
+  private cosmicChargeAccumMs: number = 0;
   public comboCount: number = 0;
   public comboTimer: number = 0;
   private lastTapTimestamp: number = 0;
@@ -1736,10 +1744,10 @@ export class CombatFSM {
       return;
     }
 
-    // Modificadores da Ecoterra (+30% HP)
+    // v10.7.0: Modificadores da Ecoterra (+50% HP, aumentado de +30%)
     const isEcoterra = !isTower && char?.activeEcoterra && stage <= 20;
     if (isEcoterra) {
-      this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.3);
+      this.enemyMaxHP = Math.floor(this.enemyMaxHP * 1.5);
       this.enemyHP = this.enemyMaxHP;
     }
   }
@@ -2018,6 +2026,18 @@ export class CombatFSM {
   // v10.2.0: também aplica a Bênção da Maré "+10% Dano" (Templo da Maré, escolhida na Maré Alta).
   // v10.3.0: Palavras Rúnicas CANÇÃO DA CARPIDEIRA (+35% vs. [ENCHARCADO], substitui o +20% base
   // de gelo/raio) e OLHAR DO VAZIO (+100% "execute" contra inimigos abaixo de 15% de HP).
+  // v12.1.0 "Oficina Reforjada": bônus ofensivo do Sifão Cósmico durante a Ecoterra — diferente da
+  // mitigação de penalidade, é um bônus positivo de dano por cima do combate normal, escalando com
+  // o nível do Sifão (+3%/nível, até +15% no nível 5).
+  private getCosmicSiphonOffensiveMult(): number {
+    const isTower = useTowerStore.getState().towerActive;
+    const char = this.characterData;
+    const isEcoterraActive = !isTower && char?.activeEcoterra && (char?.currentStage || 1) <= 20;
+    if (!isEcoterraActive) return 1;
+    const siphonLevel = char?.citadel?.cosmicSiphon?.level || 0;
+    return 1 + 0.03 * siphonLevel;
+  }
+
   private getRuneConditionalDamageMultiplier(): number {
     let mult = 1;
     // v-next: bônus de Dano das runas Kar (família), agora camada multiplicativa separada do pool
@@ -2570,6 +2590,13 @@ export class CombatFSM {
         bridge.emit(GameEvent.LOG_EMITTED, { message: `O efeito da Relíquia Ativa de Ouro acabou.` });
       }
     }
+    if (this.isCosmicSiphonBuffActive) {
+      this.cosmicSiphonBuffDuration -= delta;
+      if (this.cosmicSiphonBuffDuration <= 0) {
+        this.isCosmicSiphonBuffActive = false;
+        bridge.emit(GameEvent.LOG_EMITTED, { message: `A Sincronia Cósmica do Sifão acabou.` });
+      }
+    }
     // Cura ao Longo do Tempo da Relíquia Ativa (v9.0.0): aplica a cura a cada frame, proporcional
     // ao tempo decorrido (mesmo padrão de tick já usado pela Poção de Regeneração Alquímica).
     if (this.isActiveRelicHealBuffActive) {
@@ -2644,11 +2671,20 @@ export class CombatFSM {
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
     if (isEcoterraActive) {
-      // Sifão de Essência Cósmica da Cidadela: mitiga a drenagem de mana ambiental de 1.5%/s (Nível 0) até 0%/s (Nível 5, Sincronia Perfeita)
+      // v12.1.0: Sifão Cósmico mitiga a drenagem de mana ambiental de 2.5%/s (Nível 0) até 0%/s (Nível 5, Sincronia Perfeita)
       const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
-      const manaDrainPct = Math.max(0, 0.015 - siphonLevel * 0.003);
+      const manaDrainPct = Math.max(0, 0.025 - siphonLevel * 0.005);
       const manaDrain = this.playerMaxMana * manaDrainPct * (delta / 1000);
       this.playerMana = Math.max(0, this.playerMana - manaDrain);
+
+      // v12.1.0: acúmulo de Carga Cósmica (2 + nível do Sifão por segundo de combate em Ecoterra),
+      // consumida pela habilidade ativa "Pulso Cósmico" (ver triggerCosmicSiphon).
+      this.cosmicChargeAccumMs += delta;
+      if (this.cosmicChargeAccumMs >= 1000) {
+        const wholeSeconds = Math.floor(this.cosmicChargeAccumMs / 1000);
+        this.cosmicChargeAccumMs -= wholeSeconds * 1000;
+        useGameStore.getState().addCosmicCharge((2 + siphonLevel) * wholeSeconds);
+      }
     }
 
     // Processamento do afixo diário Veneno Rastejante (perde 1% do HP máximo a cada 1.5s)
@@ -2781,7 +2817,10 @@ export class CombatFSM {
       const char = useGameStore.getState().character;
       const isEcoterra = !isTower && char?.activeEcoterra && this.enemyLevel <= 20;
       if (isEcoterra) {
-        speedMult *= 1.2;
+        // v12.1.0: +35% de velocidade de ataque (aumentado de +20%), agora mitigável pelo Sifão Cósmico
+        const siphonLevel = char?.citadel?.cosmicSiphon?.level || 0;
+        const atkSpeedBoostPct = Math.max(0, 0.35 - siphonLevel * 0.07);
+        speedMult *= 1 + atkSpeedBoostPct;
       }
       // v10.0.0: [ENCHARCADO] no inimigo (espelha o mesmo modificador de enemyAttack)
       if (this.enemyEffects.some(e => e.id === 'soaked')) {
@@ -3088,7 +3127,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * (this.isCosmicSiphonBuffActive ? (1 + this.cosmicSiphonBuffDamagePct) : 1) * this.getCosmicSiphonOffensiveMult() * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     const touchDamageMult = this.playerFinalStats.touchDamageMult || 1;
     let finalTouchDmg = Math.floor(baseTouchDmg * comboMultiplier * critMultiplier * bestiaryMult * (1 + relicDmgBonus) * armorPenMult * touchDamageMult * setDamageMultiplier);
     if (this.characterData.testMode) {
@@ -3247,7 +3286,7 @@ export class CombatFSM {
     const relicDmgBonus = useRelicStore.getState().getRelicEffectBonus('luz_alma');
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * (this.isCosmicSiphonBuffActive ? (1 + this.cosmicSiphonBuffDamagePct) : 1) * this.getCosmicSiphonOffensiveMult() * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     let damage = Math.floor(((primaryStatVal + secondaryBoost) * 3.0 + Math.random() * 3) * exposedMultiplier * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * armorPenMult * setDamageMultiplier);
     if (this.characterData.testMode) {
       damage *= 5;
@@ -3283,7 +3322,7 @@ export class CombatFSM {
     // Elixir do Defensor (v7.0.0) / Relíquia Ativa "Bastião Intangível" (v9.0.0): imunidade total a
     // dano — bloqueia o ataque antes de qualquer cálculo de dano/esquiva, mas ainda anima o inimigo
     // atacando para não parecer travado.
-    if (this.isElixirDefensorActive || this.isActiveRelicInvulnActive) {
+    if (this.isElixirDefensorActive || this.isActiveRelicInvulnActive || this.isCosmicSiphonBuffActive) {
       this.scene.animateEnemyAttack();
       this.scene.spawnDamageText(this.scene.getPlayerX(), this.scene.getPlayerY() - 30, 'IMUNE!', '#a78bfa');
       return;
@@ -3315,10 +3354,12 @@ export class CombatFSM {
       }
     }
 
-    // Aplicar bônus de velocidade da Ecoterra (+20% velocidade de ataque)
+    // v12.1.0: Aplicar bônus de velocidade da Ecoterra (+35%, aumentado de +20%), mitigável pelo Sifão Cósmico
     const isEcoterra = !isTower && this.characterData?.activeEcoterra && this.enemyLevel <= 20;
     if (isEcoterra) {
-      speedMult *= 1.2;
+      const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
+      const atkSpeedBoostPct = Math.max(0, 0.35 - siphonLevel * 0.07);
+      speedMult *= 1 + atkSpeedBoostPct;
     }
 
     // v10.0.0: [ENCHARCADO] no inimigo — −15% de Velocidade de Ataque enquanto durar
@@ -3381,8 +3422,17 @@ export class CombatFSM {
       const dmgScale = Math.pow(1.18, this.enemyLevel - 1);
       
       damage = Math.floor((10 + this.enemyLevel * 4.0 + Math.random() * 2) * dmgScale * this.currentEnemy.damageMultiplier * dmgBoost * weaknessMultiplier * constitutionReduction);
+
+      // v12.1.0: Ecoterra — jogador recebe +25% de dano, mitigado pelo Sifão Cósmico (-5%/nível,
+      // chegando a 0% extra no nível 5 "Sincronia Perfeita"). É o debuff que dá risco real de morte;
+      // desativar a Ecoterra ou fazer upgrade do Sifão são as válvulas de escape.
+      if (isEcoterra) {
+        const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
+        const ecoterraDamageTakenPct = Math.max(0, 0.25 - siphonLevel * 0.05);
+        damage = Math.floor(damage * (1 + ecoterraDamageTakenPct));
+      }
     }
-    
+
     // Inimigos Elite causam 1.5x de dano base (reduzido de 3.0x para evitar hitkills)
     if (this.isElite) {
       damage = Math.floor(damage * 1.5);
@@ -4913,6 +4963,10 @@ export class CombatFSM {
       if (this.isActiveRelicHealBuffActive) buffs.push({ id: 'relic_heal', icon: relicIcon, label: relicLabel, remainingMs: this.activeRelicHealBuffDuration, totalMs: this.activeRelicHealBuffTotalDuration });
     }
 
+    if (this.isCosmicSiphonBuffActive) {
+      buffs.push({ id: 'cosmic_siphon', icon: '🌌', label: 'Sincronia Cósmica', remainingMs: this.cosmicSiphonBuffDuration, totalMs: this.cosmicSiphonBuffTotalDuration });
+    }
+
     bridge.emit(GameEvent.ACTIVE_BUFFS_CHANGED, { buffs });
   }
 
@@ -5001,6 +5055,36 @@ export class CombatFSM {
         break;
       }
     }
+  }
+
+  // v12.1.0 "Oficina Reforjada": habilidade ativa "Pulso Cósmico" do Sifão Cósmico — exige Carga
+  // Cósmica cheia (100, acumulada durante combate em Ecoterra), consome tudo ao ativar e concede
+  // "Sincronia Cósmica": dano bônus + invulnerabilidade total por 10s + 2s por nível do Sifão.
+  public triggerCosmicSiphon(): void {
+    if (useGameStore.getState().gameSpeed === 0) return;
+    if (this.currentState === CombatState.DEAD || this.currentState === CombatState.MOVING || this.currentState === CombatState.TRANSITION || this.currentState === CombatState.MERCHANT_ENCOUNTER || this.currentState === CombatState.AIR_POCKET || this.currentState === CombatState.CONVERGENCE_ENCOUNTER) return;
+
+    const char = useGameStore.getState().character;
+    const siphonLevel = char.citadel?.cosmicSiphon?.level || 0;
+    if (siphonLevel <= 0) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `O Sifão Cósmico ainda não foi construído!` });
+      return;
+    }
+
+    const charge = char.citadel?.cosmicSiphon?.cosmicCharge || 0;
+    if (charge < 100) {
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `Carga Cósmica insuficiente! (${Math.floor(charge)}/100)` });
+      return;
+    }
+
+    useGameStore.getState().spendCosmicCharge();
+
+    const dur = 10000 + siphonLevel * 2000;
+    this.isCosmicSiphonBuffActive = true;
+    this.cosmicSiphonBuffDamagePct = 0.5 + siphonLevel * 0.05;
+    this.cosmicSiphonBuffDuration = dur;
+    this.cosmicSiphonBuffTotalDuration = dur;
+    bridge.emit(GameEvent.LOG_EMITTED, { message: `🌌 Sincronia Cósmica ativada! +${Math.round(this.cosmicSiphonBuffDamagePct * 100)}% de Dano e Invulnerabilidade Total por ${Math.round(dur / 1000)}s!` });
   }
 
   // Oráculo Rúnico: habilidade ativa concedida por uma Palavra Rúnica Astral lendária (N5,
@@ -5112,9 +5196,9 @@ export class CombatFSM {
 
     const isEcoterraActive = !useTowerStore.getState().towerActive && this.characterData?.activeEcoterra && (this.characterData?.currentStage || 1) <= 20;
     if (isEcoterraActive) {
-      // Sifão de Essência Cósmica da Cidadela: reduz a erosão de recarga de +15% (Nível 0) até 0% (Nível 5, Sincronia Perfeita)
+      // v12.1.0: Sifão Cósmico reduz a erosão de recarga de +25% (Nível 0, aumentado de +15%) até 0% (Nível 5, Sincronia Perfeita)
       const siphonLevel = this.characterData?.citadel?.cosmicSiphon?.level || 0;
-      const cooldownErosionPct = Math.max(0, 0.15 - siphonLevel * 0.03);
+      const cooldownErosionPct = Math.max(0, 0.25 - siphonLevel * 0.05);
       cooldownTime = Math.floor(cooldownTime * (1 + cooldownErosionPct));
     }
 
@@ -5283,7 +5367,7 @@ export class CombatFSM {
     }
     const gemaVontadeLvl = useRelicStore.getState().relics['gema_vontade']?.level || 0;
     const armorPenMult = gemaVontadeLvl === 5 ? (this.isRelicOverheated('gema_vontade') ? 1.25 : 1.10) : 1.0;
-    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
+    const setDamageMultiplier = (1 + (this.playerFinalStats.damageMultiplierPct || 0)) * (this.isElixirCombatenteActive ? 1.3 : 1) * (this.isPotionDamageActive ? 1.25 : 1) * (this.isActiveRelicDamageBuffActive ? (1 + this.activeRelicDamageBuffPct) : 1) * ((this.isActiveRelicEliteBuffActive && (this.isElite || this.currentEnemy.id.startsWith('boss_'))) ? (1 + this.activeRelicEliteBuffPct) : 1) * (this.isCosmicSiphonBuffActive ? (1 + this.cosmicSiphonBuffDamagePct) : 1) * this.getCosmicSiphonOffensiveMult() * this.getRuneConditionalDamageMultiplier() * StatEngine.getTranscendenceBoost(this.characterData || {});
     dmg = Math.floor(dmg * damageBoost * critMultiplier * strengthMult * (1 + relicDmgBonus) * luckMult * armorPenMult * setDamageMultiplier);
 
     // Se o Guerreiro desferir Executar em alvo com < 35% HP, causa 50% extra de dano

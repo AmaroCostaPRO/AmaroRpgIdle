@@ -46,6 +46,7 @@ export class CombatScene extends Phaser.Scene {
   private unsubscribeSkill?: () => void;
   private unsubscribeActiveRelic?: () => void;
   private unsubscribeAmuletAbility?: () => void;
+  private unsubscribeCosmicSiphon?: () => void;
   private unsubscribeFrenzyBoost?: () => void;
   private unsubscribeElixirActivated?: () => void;
   private unsubscribeAlchemyPotionActivated?: () => void;
@@ -494,6 +495,10 @@ export class CombatScene extends Phaser.Scene {
 
     this.unsubscribeAmuletAbility = bridge.subscribe(GameEvent.TRIGGER_AMULET_ABILITY, (payload: any) => {
       this.fsm.triggerAmuletAbility(payload.runewordId);
+    });
+
+    this.unsubscribeCosmicSiphon = bridge.subscribe(GameEvent.TRIGGER_COSMIC_SIPHON, () => {
+      this.fsm.triggerCosmicSiphon();
     });
 
     this.unsubscribeFrenzyBoost = bridge.subscribe('ACTIVATE_FRENZY_BOOST' as any, (payload) => {
@@ -1863,6 +1868,10 @@ export class CombatScene extends Phaser.Scene {
     if (this.unsubscribeActiveRelic) {
       this.unsubscribeActiveRelic();
       this.unsubscribeActiveRelic = undefined;
+    }
+    if (this.unsubscribeCosmicSiphon) {
+      this.unsubscribeCosmicSiphon();
+      this.unsubscribeCosmicSiphon = undefined;
     }
     if (this.unsubscribeFrenzyBoost) {
       this.unsubscribeFrenzyBoost();

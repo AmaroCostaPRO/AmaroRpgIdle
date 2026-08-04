@@ -310,7 +310,7 @@ const factionEntries: CodexEntry[] = [
     title: 'A Oficina da Forja e o Sifão Cósmico',
     subtitle: 'Onde o metal e a energia se dobram à vontade',
     lore:
-      'A Oficina da Forja é onde fragmentos de forja se tornam poder bruto — não fabrica equipamentos do zero, mas aprimora os que já sobreviveram ao combate, fundindo raridades umas nas outras até que um item comum se torne uma relíquia mística. O Sifão Cósmico, por sua vez, é a ala mais estranha da Cidadela: um dispositivo que suga energia residual do próprio Vazio quando ele se aproxima demais das muralhas, convertendo o que seria uma ameaça em combustível utilizável. Poucos entendem completamente como o Sifão funciona — nem mesmo quem o opera —, mas todos concordam que desligá-lo seria um erro.',
+      'A Oficina da Forja destila Ouro e Madeira excedentes em Cristal Rúnico, um pó cristalizado denso o bastante para reescrever a sorte de um item: rerolar seus atributos numa fase que ainda não chegou, ou arriscar tudo numa única tentativa de melhoria — que tanto pode elevar a peça a algo lendário quanto reduzi-la a pó, sem meio-termo. O Sifão Cósmico, por sua vez, é a ala mais estranha da Cidadela: um dispositivo que suga energia residual do próprio Vazio quando ele se aproxima demais das muralhas pela Ecoterra, convertendo o que seria uma ameaça em combustível utilizável — e, quando a carga acumulada transborda, num pulso capaz de tornar o Herói momentaneamente intocável. Poucos entendem completamente como o Sifão funciona — nem mesmo quem o opera —, mas todos concordam que desligá-lo seria um erro.',
     color: '#f97316',
     tags: ['cidadela', 'faccao', 'forja', 'sifao'],
     alwaysVisible: true,

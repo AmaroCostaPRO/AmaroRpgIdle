@@ -94,11 +94,14 @@ export const FORGE_WORKSHOP_UPGRADE_COST = (nextLevel: number): { wood: number; 
   stone: Math.round(800 * Math.pow(1.6, nextLevel - 1)),
   studyInsignias: Math.round(150 * Math.pow(1.6, nextLevel - 1)),
 });
-// Cada ordem de serviço consome 1h + recursos e converte em Fragmentos de Forja; o nível permite mais ordens paralelas por hora
+// v12.1.0 "Oficina Reforjada": cada ordem de serviço consome 1h + recursos e converte em Cristal
+// Rúnico (moeda de endgame da Forja Mística, fusões +3 em diante e funções ativas da Oficina) —
+// substitui a antiga produção de Fragmentos de Forja, que agora só vêm da Torre Infinita.
+// O nível permite mais ordens paralelas por hora.
 export const FORGE_ORDER_HOURS = 1;
 export const FORGE_ORDER_GOLD_COST = 50000;
 export const FORGE_ORDER_WOOD_COST = 50;
-export const FORGE_ORDER_FRAGMENT_YIELD = 15;
+export const FORGE_ORDER_CRYSTAL_YIELD = 5;
 
 export const COSMIC_SIPHON_MAX_LEVEL = 5;
 export const COSMIC_SIPHON_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; transcendenceEssence: number } => ({
@@ -300,19 +303,25 @@ export const computeClassExpeditionProduction = (classId: string, expeditionLeve
 };
 
 // Custo de fusão de dois itens Místicos de mesmo nível (compartilhado entre a mutação real e a validação/preview da UI)
-export const getMysticFusionCost = (currentMysticLevel: number): { cost: number; fragmentCost: number } => {
+// v12.1.0 "Oficina Reforjada": fusões de +3 em diante (currentMysticLevel >= 3) passam a exigir também
+// Cristal Rúnico, além de gold/fragmentCost inalterados — gold e fragmentCost NÃO mudaram de valor.
+export const getMysticFusionCost = (currentMysticLevel: number): { cost: number; fragmentCost: number; crystalCost: number } => {
   if (currentMysticLevel < 5) {
     const costs = [0, 1000, 2500, 12500, 62500];
     const fragmentCosts = [0, 625, 1250, 2500, 6250];
+    const crystalCosts = [0, 0, 0, 50, 150];
     return {
       cost: costs[currentMysticLevel] || 500,
       fragmentCost: fragmentCosts[currentMysticLevel] || 625,
+      crystalCost: crystalCosts[currentMysticLevel] || 0,
     };
   }
   const extraFragmentCosts: Record<number, number> = { 5: 12500, 6: 25000, 7: 50000 };
+  const extraCrystalCosts: Record<number, number> = { 5: 400, 6: 1000, 7: 2500 };
   return {
     cost: 100 * Math.pow(5, currentMysticLevel),
     fragmentCost: extraFragmentCosts[currentMysticLevel] || 50000,
+    crystalCost: extraCrystalCosts[currentMysticLevel] || 2500,
   };
 };
 
