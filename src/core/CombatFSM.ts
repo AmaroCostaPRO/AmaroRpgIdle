@@ -3019,7 +3019,7 @@ export class CombatFSM {
 
     if (this.isFrenzyActive) return;
 
-    const frenzyChance = this.playerFinalStats.frenzyChancePct || 0;
+    const frenzyChance = Math.min(1, this.playerFinalStats.frenzyChancePct || 0);
     if (Math.random() < frenzyChance) {
       this.frenzyEnergy = 100;
       bridge.emit(GameEvent.LOG_EMITTED, { message: `⚡ Sorte do Colar: Frenesi ativado instantaneamente!` });

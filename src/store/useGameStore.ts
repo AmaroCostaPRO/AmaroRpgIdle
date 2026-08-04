@@ -5733,6 +5733,22 @@ export const useGameStore = create<GameState>((set) => ({
       //
       // Exemplo: Força 50 + Força 5  →  50 + ceil(5 × 0.50) = 50 + 3 = 53
       // Exemplo: Sorte  0 + Sorte 12 →  12 (único portador, preservado inteiro)
+      // Teto absoluto por stat percentual, igual ao limite do tier mais alto do jogo (celestial em
+      // TIER_LIMITS, GameUI.tsx). Sem isso a fusão mística (× 1.5 a cada nível, até +8) cresce sem
+      // limite e pode ultrapassar 100% em stats de chance (ex.: frenzyChancePct), quebrando checagens
+      // do tipo `Math.random() < chance` que passam a ser sempre verdadeiras.
+      const DECIMAL_STAT_CAPS: Partial<Record<keyof BaseStats, number>> = {
+        damageMultiplierPct: 1.20,
+        maxHpPct: 1.00,
+        maxManaPct: 1.00,
+        attackSpeedPct: 0.60,
+        lifesteal: 0.30,
+        touchDamageMult: 4.00,
+        dropChancePct: 1.00,
+        damageReductionPct: 0.40,
+        frenzyChancePct: 0.30,
+      };
+
       const mergedStats: Partial<BaseStats> = {};
       const allStatKeys = new Set([
         ...Object.keys(item1.stats),
@@ -5743,30 +5759,24 @@ export const useGameStore = create<GameState>((set) => ({
         const val1 = item1.stats[key] || 0;
         const val2 = item2.stats[key] || 0;
 
-        const isDecimal = [
-          'damageMultiplierPct',
-          'maxHpPct',
-          'maxManaPct',
-          'attackSpeedPct',
-          'lifesteal',
-          'touchDamageMult',
-          'dropChancePct',
-          'damageReductionPct',
-          'frenzyChancePct'
-        ].includes(key);
+        const isDecimal = key in DECIMAL_STAT_CAPS;
 
+        let merged: number;
         if (isLegendaryForge) {
           const raw = (val1 + val2) * 1.5;
-          mergedStats[key] = isDecimal ? Math.round(raw * 1000) / 1000 : Math.ceil(raw);
+          merged = isDecimal ? Math.round(raw * 1000) / 1000 : Math.ceil(raw);
         } else if (val1 === 0 || val2 === 0) {
-          mergedStats[key] = val1 + val2;
+          merged = val1 + val2;
         } else {
           const maior = Math.max(val1, val2);
           const menor = Math.min(val1, val2);
           const rawBonus = isDecimal ? (menor * 0.5) : Math.ceil(menor * 0.5);
           const raw = maior + rawBonus;
-          mergedStats[key] = isDecimal ? Math.round(raw * 1000) / 1000 : raw;
+          merged = isDecimal ? Math.round(raw * 1000) / 1000 : raw;
         }
+
+        const cap = DECIMAL_STAT_CAPS[key];
+        mergedStats[key] = cap !== undefined ? Math.min(merged, cap) : merged;
       });
 
       const slotNamesMap: Record<string, string> = {

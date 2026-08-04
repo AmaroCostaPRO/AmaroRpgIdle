@@ -352,8 +352,8 @@ export const MAIN_QUESTS_CATALOG: QuestDef[] = [
       {
         id: 'obj_act4_siphon',
         type: 'citadel_build',
-        targetId: 'cosmicSiphon',
-        description: 'Aprimore o Sifão de Essência Cósmica',
+        targetId: 'forgeWorkshop',
+        description: 'Aprimore a Oficina da Forja',
         requiredAmount: 1,
         currentAmount: 0,
       },
