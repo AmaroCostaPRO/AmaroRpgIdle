@@ -167,7 +167,26 @@ const loadPersistedQuestStore = (slot: number | null): {
       if (parsed.mainQuests) {
         for (const [id, quest] of Object.entries(parsed.mainQuests)) {
           if (mainMap[id]) {
-            mainMap[id] = { ...mainMap[id], ...(quest as QuestDef) };
+            const savedQuest = quest as QuestDef;
+            const catalogQuest = mainMap[id];
+
+            // Re-mapeia os objetivos mantendo todas as definições estáticas do catálogo
+            // (id, type, targetId, description, requiredAmount) e recuperando apenas o progresso
+            // do jogador (currentAmount)
+            const mergedObjectives = catalogQuest.objectives.map((catObj) => {
+              const savedObj = savedQuest.objectives?.find((o) => o.id === catObj.id);
+              return {
+                ...catObj,
+                currentAmount: savedObj ? savedObj.currentAmount : 0,
+              };
+            });
+
+            mainMap[id] = {
+              ...catalogQuest,
+              isCompleted: savedQuest.isCompleted,
+              isClaimed: savedQuest.isClaimed,
+              objectives: mergedObjectives,
+            };
           }
         }
       }
@@ -575,6 +594,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
     reloadForActiveSlot: () => {
       const reloaded = loadPersistedQuestStore(getActiveSlot());
       set({ ...reloaded, activeDialog: null, activeArtifactReveal: null, pendingActCutscene: null, activeActCutscene: null });
+      get().syncQuestObjectives();
     },
   };
 });

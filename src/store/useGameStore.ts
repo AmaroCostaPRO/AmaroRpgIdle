@@ -6556,3 +6556,6 @@ useGameStore.subscribe((state) => {
   useTowerStore.getState().reloadForActiveSlot();
   useQuestStore.getState().reloadForActiveSlot();
 });
+
+// Sincronização inicial do Diário de Jornada ao carregar o jogo
+useQuestStore.getState().syncQuestObjectives();
