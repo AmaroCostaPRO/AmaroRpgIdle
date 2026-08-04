@@ -13,7 +13,7 @@ import {
   EXPEDITIONS_MAX_LEVEL, ACADEMY_MAX_LEVEL,
   EXPEDITION_ALLOCATION_GOLD_COST, EXPEDITION_ALLOCATION_DURATION_MS,
   EXPEDITIONS_UPGRADE_COST, EXPEDITIONS_MAX_SLOTS,
-  ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST,
+  ACADEMY_UPGRADE_COST, ACADEMY_MAX_RESEARCH_LEVEL, RESEARCH_COST, getAcademyResearchDurationMs, ResearchKey,
   WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY,
   FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_HOURS, FORGE_ORDER_GOLD_COST, FORGE_ORDER_WOOD_COST, FORGE_ORDER_FRAGMENT_YIELD,
   COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST,
@@ -2005,6 +2005,42 @@ export const useGameStore = create<GameState>((set) => ({
       }
     });
 
+    // Conclusão de pesquisas da Academia Militar
+    if (citadel.academy && citadel.academy.researchInProgress && now >= citadel.academy.researchInProgress.completesAt) {
+      const { key, targetLevel } = citadel.academy.researchInProgress;
+      const levelKeyMap: Record<ResearchKey, keyof CitadelState['academy']> = {
+        dmg: 'researchDmgLevel',
+        hp: 'researchHpLevel',
+        speed: 'researchSpeedLevel',
+        touchDmg: 'researchTouchDmgLevel',
+        critDmg: 'researchCritDmgLevel',
+        towerKey: 'researchTowerKeyLevel',
+        soulFragment: 'researchSoulFragmentLevel',
+      };
+      const researchLabels: Record<ResearchKey, string> = {
+        dmg: 'Táticas de Combate Avançadas',
+        hp: 'Condicionamento Físico Extremo',
+        speed: 'Exercícios de Agilidade',
+        touchDmg: 'Precisão de Toque',
+        critDmg: 'Fúria Crítica',
+        towerKey: 'Cartografia da Torre',
+        soulFragment: 'Ressonância de Almas',
+      };
+      const levelKey = levelKeyMap[key];
+      const currentLvl = (citadel.academy[levelKey] as number) || 0;
+      const nextLvl = Math.max(currentLvl + 1, targetLevel);
+      citadel = {
+        ...citadel,
+        academy: {
+          ...citadel.academy,
+          [levelKey]: nextLvl,
+          researchInProgress: undefined,
+        },
+      };
+      changed = true;
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `🎓 Pesquisa Concluída! ${researchLabels[key]} alcançou o Nível ${nextLvl}.` });
+    }
+
     let nextExpeditions = citadel.expeditions;
     let nextWatchTower = citadel.watchTower;
     let nextForgeWorkshop = citadel.forgeWorkshop;
@@ -2370,6 +2406,11 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      if (academy.researchInProgress) {
+        result = { success: false, message: 'Já existe uma pesquisa em andamento na Academia Militar!' };
+        return state;
+      }
+
       const levelKey = type === 'dmg' ? 'researchDmgLevel'
         : type === 'hp' ? 'researchHpLevel'
         : type === 'speed' ? 'researchSpeedLevel'
@@ -2391,13 +2432,29 @@ export const useGameStore = create<GameState>((set) => ({
         return state;
       }
 
+      const now = Date.now();
+      const durationMs = getAcademyResearchDurationMs(nextLevel);
+
       const updated = {
         ...state.character,
         materials: { ...materials, studyInsignias: materials.studyInsignias - cost },
-        citadel: { ...citadel, academy: { ...academy, [levelKey]: nextLevel } }
+        citadel: {
+          ...citadel,
+          academy: {
+            ...academy,
+            researchInProgress: {
+              key: type,
+              targetLevel: nextLevel,
+              startedAt: now,
+              completesAt: now + durationMs,
+            },
+          },
+        },
       };
       saveToLocalStorage(updated);
-      result = { success: true, message: `Pesquisa melhorada para o Nível ${nextLevel}!` };
+      const minutes = Math.round(durationMs / 60000);
+      result = { success: true, message: `Pesquisa iniciada! Conclusão em ${minutes} min.` };
+      bridge.emit(GameEvent.LOG_EMITTED, { message: `📜 Academia: Pesquisa iniciada (Nível ${nextLevel}). Conclusão em ${minutes}m.` });
       return { character: updated };
     });
     return result;

@@ -4,7 +4,7 @@ export const ENEMIES_PER_STAGE = 20;
 import type { RuneId } from './runeFormulas';
 import type { BaitType } from './abyssFormulas';
 import type { AstralRuneId } from './astralRuneFormulas';
-import type { AmuletOracleBuffKey } from './citadelFormulas';
+import type { AmuletOracleBuffKey, ResearchKey } from './citadelFormulas';
 
 export interface BaseStats {
   strength: number;
@@ -188,6 +188,7 @@ export interface CitadelState {
     researchCritDmgLevel: number;
     researchTowerKeyLevel: number;
     researchSoulFragmentLevel: number;
+    researchInProgress?: { key: ResearchKey; targetLevel: number; startedAt: number; completesAt: number };
   };
   watchTower: CitadelBuildingState & { storedKeys: number };
   forgeWorkshop: CitadelBuildingState;

@@ -56,6 +56,7 @@ export const ACADEMY_UPGRADE_COST = (nextLevel: number): { wood: number; stone: 
 
 export const ACADEMY_MAX_RESEARCH_LEVEL = (academyLevel: number): number => academyLevel * 5;
 export const RESEARCH_COST = (nextLevel: number): number => 20 * nextLevel;
+export const getAcademyResearchDurationMs = (nextLevel: number): number => nextLevel * 10 * 60 * 1000;
 
 export type ResearchKey = 'dmg' | 'hp' | 'speed' | 'touchDmg' | 'critDmg' | 'towerKey' | 'soulFragment';
 

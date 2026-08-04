@@ -43,6 +43,12 @@ export const AcademyPanel: React.FC = () => {
   const upgrading = academy.upgradeInProgress;
   const countdown = useCountdown(upgrading?.completesAt);
 
+  const activeResearch = academy.researchInProgress;
+  const researchCountdown = useCountdown(activeResearch?.completesAt);
+  const activeResearchType = activeResearch
+    ? RESEARCH_TYPES.find((r) => r.key === activeResearch.key)
+    : null;
+
   const handleUpgrade = () => {
     AudioManager.getInstance().playClick();
     buildOrUpgradeAcademy();
@@ -80,6 +86,39 @@ export const AcademyPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {activeResearch && activeResearchType && (
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--gold-500)',
+                background: 'rgba(217, 119, 6, 0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--gold-300)' }}>
+                  🔬 Pesquisa em Andamento: <span style={{ color: '#fff' }}>{activeResearchType.label} (Nível {activeResearch.targetLevel})</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--gold-400)' }}>
+                  ⏳ {researchCountdown || 'Concluindo...'}
+                </div>
+              </div>
+              <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.4)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, Math.max(0, ((Date.now() - activeResearch.startedAt) / (activeResearch.completesAt - activeResearch.startedAt)) * 100))}%`,
+                    background: 'linear-gradient(to right, #f59e0b, #eab308)',
+                    transition: 'width 1s linear',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
             Pesquisas (limite atual: Nível {researchCap})
           </h3>
@@ -89,6 +128,20 @@ export const AcademyPanel: React.FC = () => {
             const researchCost = RESEARCH_COST(nextResearchLevel);
             const atCap = nextResearchLevel > researchCap;
             const canAfford = materials.studyInsignias >= researchCost;
+            const isThisResearching = activeResearch?.key === key;
+            const isAnyResearching = !!activeResearch;
+
+            let buttonText = `Pesquisar — 📜 ${researchCost}`;
+            if (atCap) {
+              buttonText = 'Limite da Academia';
+            } else if (isThisResearching) {
+              buttonText = `Em Pesquisa (${researchCountdown || 'Concluindo...'})`;
+            } else if (isAnyResearching) {
+              buttonText = 'Pesquisa em Andamento';
+            } else if (confirmResearchKey === key) {
+              buttonText = 'Confirmar?';
+            }
+
             return (
               <div
                 key={key}
@@ -98,8 +151,8 @@ export const AcademyPanel: React.FC = () => {
                   alignItems: 'center',
                   padding: '0.75rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-subtle)',
-                  background: 'var(--surface-2)',
+                  border: isThisResearching ? '1px solid var(--gold-400)' : '1px solid var(--border-subtle)',
+                  background: isThisResearching ? 'rgba(245, 158, 11, 0.08)' : 'var(--surface-2)',
                   gap: '0.75rem',
                   flexWrap: 'wrap',
                 }}
@@ -115,7 +168,7 @@ export const AcademyPanel: React.FC = () => {
                 </div>
                 <button
                   onClick={() => handleResearch(key)}
-                  disabled={atCap || !canAfford}
+                  disabled={atCap || !canAfford || isAnyResearching}
                   className="btn btn-sm btn-gold"
                   style={{
                     whiteSpace: 'nowrap',
@@ -124,7 +177,7 @@ export const AcademyPanel: React.FC = () => {
                     color: confirmResearchKey === key ? '#fff' : undefined,
                   }}
                 >
-                  {atCap ? 'Limite da Academia' : confirmResearchKey === key ? 'Confirmar?' : `Pesquisar — 📜 ${researchCost}`}
+                  {buttonText}
                 </button>
               </div>
             );
