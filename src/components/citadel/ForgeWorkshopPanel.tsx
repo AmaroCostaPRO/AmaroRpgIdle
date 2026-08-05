@@ -5,6 +5,7 @@ import { FORGE_WORKSHOP_MAX_LEVEL, FORGE_WORKSHOP_UPGRADE_COST, FORGE_ORDER_GOLD
 import { useCountdown } from '../../hooks/useCountdown';
 import { useForgeOrderProgress } from '../../hooks/useForgeOrderProgress';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelStatRow, CitadelProgressCard, CitadelListCard } from './shared/CitadelUI';
 
 const NON_REROLLABLE_SLOTS = new Set(['consumable', 'activeRelic', 'amulet']);
 
@@ -78,24 +79,24 @@ export const ForgeWorkshopPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <p style={{ fontSize: '0.85rem' }}>
-          Cada ordem de serviço (1h): consome 🪙 {FORGE_ORDER_GOLD_COST} + 🪵 {FORGE_ORDER_WOOD_COST}, produz +{FORGE_ORDER_CRYSTAL_YIELD} 🔮 Cristal Rúnico.
-        </p>
-        <p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-          🔮 Cristal Rúnico atual: {character.runicCrystals || 0}
-        </p>
-        <p style={{ fontSize: '0.85rem' }}>Ordens paralelas por hora no nível atual: {forgeWorkshop.level}</p>
+        <CitadelStatRow
+          icon="🔮"
+          label="Cada ordem de serviço (1h)"
+          value={`+${FORGE_ORDER_CRYSTAL_YIELD} Cristal`}
+          detail={`consome 🪙 ${FORGE_ORDER_GOLD_COST} + 🪵 ${FORGE_ORDER_WOOD_COST}`}
+          tone="positive"
+        />
+        <CitadelStatRow icon="🔮" label="Cristal Rúnico atual" value={character.runicCrystals || 0} />
+        <CitadelStatRow icon="⚙️" label="Ordens paralelas por hora" value={forgeWorkshop.level} tone="accent" />
+
         {isBuilt && (
           canAffordNextOrder ? (
-            <div style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#94a3b8', marginBottom: '2px' }}>
-                <span>🏗️ Ordem de serviço em andamento</span>
-                <span>Próxima em {remainingLabel}</span>
-              </div>
-              <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: `${progressPct}%`, height: '100%', background: 'var(--gold-300, #f59e0b)', borderRadius: '3px', transition: 'width 1s linear' }} />
-              </div>
-            </div>
+            <CitadelProgressCard
+              icon="🏗️"
+              title="Ordem de serviço em andamento"
+              countdown={remainingLabel}
+              progressPct={progressPct}
+            />
           ) : (
             <p style={{ fontSize: '0.7rem', color: '#f87171', margin: 0 }}>
               ⏸️ Produção pausada: ouro ou madeira insuficientes para a próxima ordem de serviço.
@@ -109,11 +110,10 @@ export const ForgeWorkshopPanel: React.FC = () => {
         )}
 
         {isBuilt && (
-          <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-dim)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold-300, #f59e0b)', margin: 0 }}>
-              🔮 Funções Ativas da Oficina
-            </h4>
-
+          <CitadelListCard
+            icon="🔮"
+            title="Funções Ativas da Oficina"
+          >
             <select
               value={selectedItemId}
               onChange={(e) => { setSelectedItemId(e.target.value); setFeedback(null); }}
@@ -159,7 +159,7 @@ export const ForgeWorkshopPanel: React.FC = () => {
                 {feedback.message}
               </p>
             )}
-          </div>
+          </CitadelListCard>
         )}
       </div>
     </CitadelBuildingPanel>

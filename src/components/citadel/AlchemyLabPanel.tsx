@@ -4,6 +4,7 @@ import { AudioManager } from '../../core/AudioManager';
 import { ALCHEMY_LAB_MAX_LEVEL, ALCHEMY_LAB_UPGRADE_COST, ALCHEMY_POTION_RECIPE, ALCHEMY_POTION_YIELD, ALCHEMY_BREW_DURATION_MS, AlchemyPotionType } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelListCard, CitadelStatRow } from './shared/CitadelUI';
 
 const POTION_LABELS: Record<AlchemyPotionType, { name: string; effect: string; icon: string }> = {
   damage: { name: 'Poção de Fúria Alquímica', effect: '+25% de Dano por 3 minutos', icon: '🔥' },
@@ -78,10 +79,7 @@ export const AlchemyLabPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <p style={{ fontSize: '0.85rem' }}>Rendimento por preparo no nível atual: {yieldCount}x</p>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
-          Cada preparo leva {Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} minutos; a poção é entregue automaticamente ao inventário assim que ficar pronta.
-        </p>
+        <CitadelStatRow icon="⚗️" label="Rendimento por preparo" value={`${yieldCount}x`} detail={`${Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} min por preparo`} tone="accent" />
         {alchemyLab.pendingBrews.map((brew) => (
           <PendingBrewRow key={brew.id} potionType={brew.potionType} completesAt={brew.completesAt} />
         ))}
@@ -90,23 +88,26 @@ export const AlchemyLabPanel: React.FC = () => {
           const label = POTION_LABELS[potionType];
           const canAffordBrew = materials.wood >= recipe.wood && materials.stone >= recipe.stone && materials.meat >= recipe.meat;
           return (
-            <div key={potionType} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{label.icon} {label.name}</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{label.effect}</span>
-              <button
-                onClick={() => handleBrew(potionType)}
-                disabled={!canAffordBrew}
-                className="btn btn-gold"
-                style={{
-                  alignSelf: 'flex-start',
-                  background: confirmBrewType === potionType ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
-                  borderColor: confirmBrewType === potionType ? '#10b981' : undefined,
-                  color: confirmBrewType === potionType ? '#fff' : undefined,
-                }}
-              >
-                {confirmBrewType === potionType ? 'Confirmar?' : `Preparar — 🪵 ${recipe.wood} / 🪨 ${recipe.stone} / 🥩 ${recipe.meat}`}
-              </button>
-            </div>
+            <CitadelListCard
+              key={potionType}
+              icon={label.icon}
+              title={label.name}
+              description={label.effect}
+              action={
+                <button
+                  onClick={() => handleBrew(potionType)}
+                  disabled={!canAffordBrew}
+                  className="btn btn-gold"
+                  style={{
+                    background: confirmBrewType === potionType ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                    borderColor: confirmBrewType === potionType ? '#10b981' : undefined,
+                    color: confirmBrewType === potionType ? '#fff' : undefined,
+                  }}
+                >
+                  {confirmBrewType === potionType ? 'Confirmar?' : `Preparar — 🪵 ${recipe.wood} / 🪨 ${recipe.stone} / 🥩 ${recipe.meat}`}
+                </button>
+              }
+            />
           );
         })}
       </div>

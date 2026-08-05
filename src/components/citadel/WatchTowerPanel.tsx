@@ -4,6 +4,7 @@ import { AudioManager } from '../../core/AudioManager';
 import { WATCH_TOWER_MAX_LEVEL, WATCH_TOWER_UPGRADE_COST, WATCH_TOWER_HOURS_PER_KEY, WATCH_TOWER_KEY_CAPACITY } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelStatRow, CitadelProgressBar } from './shared/CitadelUI';
 
 export const WatchTowerPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -54,19 +55,37 @@ export const WatchTowerPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <p style={{ fontSize: '0.85rem' }}>Produção: 1 🗝️ Chave Evoluída a cada {hoursPerKey}h · Capacidade interna: {capacity} chave{capacity > 1 ? 's' : ''}</p>
-        <p style={{ fontSize: '0.85rem' }}>Chaves aguardando coleta: {watchTower.storedKeys}/{capacity}</p>
-        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
-          A produção pausa quando a capacidade interna está cheia — colete as chaves para liberar espaço e retomar a produção.
-        </p>
-        <button
-          onClick={handleCollect}
-          disabled={watchTower.storedKeys <= 0}
-          className="btn btn-gold"
-          style={{ alignSelf: 'flex-start' }}
+        <CitadelStatRow icon="🗝️" label="Produção" value={`1 chave / ${hoursPerKey}h`} tone="accent" />
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.4rem',
+            padding: '0.75rem 0.9rem',
+            borderRadius: 'var(--radius-sm)',
+            border: `1px solid ${watchTower.storedKeys > 0 ? 'var(--gold-400)' : 'var(--border-subtle)'}`,
+            background: watchTower.storedKeys > 0 ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), var(--surface-2))' : 'var(--surface-2)',
+            boxShadow: watchTower.storedKeys > 0 ? '0 0 12px var(--gold-glow)' : 'none',
+          }}
         >
-          Coletar Chaves
-        </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
+            <span>🔑 Chaves aguardando coleta</span>
+            <span style={{ color: 'var(--gold-300)' }}>{watchTower.storedKeys}/{capacity}</span>
+          </div>
+          <CitadelProgressBar pct={(watchTower.storedKeys / Math.max(1, capacity)) * 100} />
+          <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>
+            A produção pausa quando a capacidade interna está cheia — colete para liberar espaço e retomar.
+          </span>
+          <button
+            onClick={handleCollect}
+            disabled={watchTower.storedKeys <= 0}
+            className="btn btn-gold"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Coletar Chaves
+          </button>
+        </div>
       </div>
     </CitadelBuildingPanel>
   );

@@ -123,7 +123,7 @@ export const CitadelOverview: React.FC = () => {
         )}
       </div>
 
-      <div className="panel" style={{ padding: '0.9rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div className="panel" style={{ padding: '0.9rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         {buildings.map((b) => (
           <div
             key={b.id}
@@ -131,13 +131,28 @@ export const CitadelOverview: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '0.35rem 0.2rem',
-              borderBottom: '1px solid var(--border-dim)',
+              padding: '0.5rem 0.6rem',
+              borderRadius: 'var(--radius-sm)',
+              border: `1px solid ${b.level > 0 ? 'var(--border-subtle)' : 'transparent'}`,
+              background: b.level > 0 ? 'var(--surface-2)' : 'transparent',
               fontSize: '0.85rem',
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ width: '1.4rem', height: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span
+                style={{
+                  width: '1.9rem',
+                  height: '1.9rem',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                  borderRadius: '999px',
+                  background: b.level > 0 ? 'radial-gradient(circle at 35% 30%, rgba(245, 158, 11, 0.22), var(--surface-2) 70%)' : 'var(--surface-2)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
                 <EvolutionSprite
                   src={BUILDING_SPRITE_SRC[b.id]}
                   level={b.level}
@@ -147,7 +162,7 @@ export const CitadelOverview: React.FC = () => {
               </span>
               {b.label}
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', color: b.level > 0 ? 'var(--gold-300)' : 'rgba(255,255,255,0.4)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: b.level > 0 ? 'var(--gold-300)' : 'rgba(255,255,255,0.4)' }}>
               {b.level > 0 ? `Nv.${b.level}` : 'Não construído'}
             </span>
           </div>

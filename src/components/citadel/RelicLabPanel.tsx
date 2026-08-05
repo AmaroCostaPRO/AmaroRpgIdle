@@ -5,6 +5,7 @@ import { AudioManager } from '../../core/AudioManager';
 import { RELIC_LAB_MAX_LEVEL, RELIC_LAB_UPGRADE_COST, RELIC_LAB_OVERHEAT_SLOTS, RELIC_OVERHEAT_GOLD_COST, RELIC_OVERHEAT_SOUL_FRAGMENT_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelListCard } from './shared/CitadelUI';
 
 export const RelicLabPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -73,40 +74,28 @@ export const RelicLabPanel: React.FC = () => {
               const slotsFull = relicLab.overheatedRelicIds.length >= maxSlots;
               const disabled = !isMaxed || isOverheated || slotsFull || character.gold < RELIC_OVERHEAT_GOLD_COST || soulFragments < RELIC_OVERHEAT_SOUL_FRAGMENT_COST;
               return (
-                <div
+                <CitadelListCard
                   key={relic.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0.6rem 0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: `1px solid ${isOverheated ? 'var(--gold-400)' : 'var(--border-subtle)'}`,
-                    background: 'var(--surface-2)',
-                    gap: '0.75rem',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.85rem', color: '#fff' }}>
-                      {relic.name} — Nível {relic.level}/{relic.maxLevel} {isOverheated && '🔥'}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>{relic.description}</div>
-                  </div>
-                  <button
-                    onClick={() => handleOverheat(relic.id)}
-                    disabled={disabled}
-                    className="btn btn-sm btn-gold"
-                    style={{
-                      whiteSpace: 'nowrap',
-                      background: confirmOverheatId === relic.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
-                      borderColor: confirmOverheatId === relic.id ? '#10b981' : undefined,
-                      color: confirmOverheatId === relic.id ? '#fff' : undefined,
-                    }}
-                  >
-                    {isOverheated ? 'Superaquecida' : !isMaxed ? 'Requer Nível 5' : confirmOverheatId === relic.id ? 'Confirmar?' : 'Superaquecer 🔥'}
-                  </button>
-                </div>
+                  icon={isOverheated ? '🔥' : '🧪'}
+                  title={`${relic.name} — Nível ${relic.level}/${relic.maxLevel}`}
+                  description={relic.description}
+                  highlighted={isOverheated}
+                  action={
+                    <button
+                      onClick={() => handleOverheat(relic.id)}
+                      disabled={disabled}
+                      className="btn btn-sm btn-gold"
+                      style={{
+                        whiteSpace: 'nowrap',
+                        background: confirmOverheatId === relic.id ? 'linear-gradient(to right, #10b981, #059669)' : undefined,
+                        borderColor: confirmOverheatId === relic.id ? '#10b981' : undefined,
+                        color: confirmOverheatId === relic.id ? '#fff' : undefined,
+                      }}
+                    >
+                      {isOverheated ? 'Superaquecida' : !isMaxed ? 'Requer Nível 5' : confirmOverheatId === relic.id ? 'Confirmar?' : 'Superaquecer 🔥'}
+                    </button>
+                  }
+                />
               );
             })}
           </div>

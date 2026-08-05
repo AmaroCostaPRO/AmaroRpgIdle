@@ -4,6 +4,7 @@ import { AudioManager } from '../../core/AudioManager';
 import { SYNCHRONY_ALTAR_MAX_LEVEL, SYNCHRONY_ALTAR_UPGRADE_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelStatRow } from './shared/CitadelUI';
 
 export const SynchronyAltarPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -47,9 +48,13 @@ export const SynchronyAltarPanel: React.FC = () => {
       lockedByCommandCenter={lockedByCommandCenter}
       onUpgrade={handleUpgrade}
     >
-      <p style={{ fontSize: '0.85rem' }}>
-        Injeção atual: +{injectionPct}% da soma dos atributos secundários somada ao Maior Atributo Ativo do Avatar.
-      </p>
+      <CitadelStatRow
+        icon="🔯"
+        label="Injeção no Maior Atributo Ativo do Avatar"
+        value={`+${injectionPct}%`}
+        detail="soma dos atributos secundários"
+        tone="accent"
+      />
     </CitadelBuildingPanel>
   );
 };

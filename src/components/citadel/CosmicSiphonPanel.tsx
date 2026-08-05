@@ -4,6 +4,7 @@ import { AudioManager } from '../../core/AudioManager';
 import { COSMIC_SIPHON_MAX_LEVEL, COSMIC_SIPHON_UPGRADE_COST } from '../../core/citadelFormulas';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelStatRow, CitadelProgressCard } from './shared/CitadelUI';
 
 export const CosmicSiphonPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -52,14 +53,28 @@ export const CosmicSiphonPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <p style={{ fontSize: '0.85rem' }}>Drenagem de mana ambiental na Ecoterra: {manaDrainPct.toFixed(1)}%/s (base 2.5%/s)</p>
-        <p style={{ fontSize: '0.85rem' }}>Erosão de recarga de habilidades na Ecoterra: +{cooldownErosionPct.toFixed(0)}% (base +25%)</p>
-        <p style={{ fontSize: '0.85rem' }}>Velocidade de ataque dos inimigos na Ecoterra: +{atkSpeedBoostPct.toFixed(0)}% (base +35%)</p>
-        <p style={{ fontSize: '0.85rem' }}>Dano recebido extra na Ecoterra: +{damageTakenPct.toFixed(0)}% (base +25%)</p>
-        <p style={{ fontSize: '0.85rem', color: '#4ade80' }}>Bônus ofensivo próprio na Ecoterra: +{offensiveBonusPct}% de Dano</p>
-        <p style={{ fontSize: '0.85rem', color: '#22d3ee' }}>
-          🌌 Carga Cósmica atual: {Math.floor(siphon.cosmicCharge || 0)}/100 — acumula {2 + siphon.level}/s em combate na Ecoterra. Ao encher, ative o Pulso Cósmico em combate para +{Math.round((0.5 + siphon.level * 0.05) * 100)}% de Dano e Invulnerabilidade Total por {10 + siphon.level * 2}s.
-        </p>
+        <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
+          Mitigação na Ecoterra
+        </h3>
+        <CitadelStatRow icon="🔷" label="Drenagem de mana ambiental" value={`${manaDrainPct.toFixed(1)}%/s`} detail="base 2.5%/s" tone="negative" />
+        <CitadelStatRow icon="⏱️" label="Erosão de recarga de habilidades" value={`+${cooldownErosionPct.toFixed(0)}%`} detail="base +25%" tone="negative" />
+        <CitadelStatRow icon="⚡" label="Velocidade de ataque dos inimigos" value={`+${atkSpeedBoostPct.toFixed(0)}%`} detail="base +35%" tone="negative" />
+        <CitadelStatRow icon="🩸" label="Dano recebido extra" value={`+${damageTakenPct.toFixed(0)}%`} detail="base +25%" tone="negative" />
+        <CitadelStatRow icon="⚔️" label="Bônus ofensivo próprio na Ecoterra" value={`+${offensiveBonusPct}% Dano`} tone="positive" />
+
+        <CitadelProgressCard
+          icon="🌌"
+          title="Carga Cósmica"
+          countdown={`${Math.floor(siphon.cosmicCharge || 0)}/100`}
+          progressPct={Math.floor(siphon.cosmicCharge || 0)}
+          footer={
+            <>
+              Acumula {2 + siphon.level}/s em combate na Ecoterra. Ao encher, ative o Pulso Cósmico em combate para
+              +{Math.round((0.5 + siphon.level * 0.05) * 100)}% de Dano e Invulnerabilidade Total por {10 + siphon.level * 2}s.
+            </>
+          }
+        />
+
         {siphon.level >= COSMIC_SIPHON_MAX_LEVEL && (
           <p style={{ fontSize: '0.85rem', color: 'var(--gold-300)' }}>🌌 Sincronia Perfeita! Penalidades da Ecoterra neutralizadas.</p>
         )}

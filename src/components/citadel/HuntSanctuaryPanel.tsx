@@ -5,6 +5,7 @@ import { HUNT_SANCTUARY_MAX_LEVEL, HUNT_SANCTUARY_UPGRADE_COST, HUNT_CONTRACT_RO
 import { ENEMY_TYPES } from '../../core/CombatFSM';
 import { useCountdown } from '../../hooks/useCountdown';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
+import { CitadelListCard, CitadelProgressBar } from './shared/CitadelUI';
 
 const REWARD_MATERIAL_ICON: Record<string, string> = { wood: '🪵', stone: '🪨', meat: '🥩', studyInsignias: '📜' };
 
@@ -76,28 +77,32 @@ export const HuntSanctuaryPanel: React.FC = () => {
           const isComplete = contract.currentKills >= contract.requiredKills;
           const progressPct = Math.min(100, Math.round((contract.currentKills / contract.requiredKills) * 100));
           return (
-            <div key={contract.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '0.4rem', opacity: contract.claimed ? 0.5 : 1 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                Derrote {contract.requiredKills}x {enemy?.name || contract.enemyId}
-              </span>
-              <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '999px', height: '0.5rem', overflow: 'hidden' }}>
-                <div style={{ width: `${progressPct}%`, height: '100%', background: isComplete ? 'var(--gold-400)' : 'var(--accent-teal, #38bdf8)' }} />
-              </div>
+            <CitadelListCard
+              key={contract.id}
+              icon="🐾"
+              title={`Derrote ${contract.requiredKills}x ${enemy?.name || contract.enemyId}`}
+              dimmed={contract.claimed}
+              highlighted={isComplete && !contract.claimed}
+              badge={
+                <span style={{ fontSize: '0.75rem' }}>
+                  Recompensa: {REWARD_MATERIAL_ICON[contract.rewardMaterial]} {contract.rewardAmount}
+                </span>
+              }
+              action={
+                <button
+                  onClick={() => handleClaim(contract.id)}
+                  disabled={!isComplete || contract.claimed}
+                  className="btn btn-gold"
+                >
+                  {contract.claimed ? 'Resgatado' : isComplete ? 'Resgatar' : 'Em andamento'}
+                </button>
+              }
+            >
+              <CitadelProgressBar pct={progressPct} color={isComplete ? 'var(--gold-400)' : '#38bdf8'} />
               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                 {Math.min(contract.currentKills, contract.requiredKills)} / {contract.requiredKills}
               </span>
-              <span style={{ fontSize: '0.75rem' }}>
-                Recompensa: {REWARD_MATERIAL_ICON[contract.rewardMaterial]} {contract.rewardAmount}
-              </span>
-              <button
-                onClick={() => handleClaim(contract.id)}
-                disabled={!isComplete || contract.claimed}
-                className="btn btn-gold"
-                style={{ alignSelf: 'flex-start' }}
-              >
-                {contract.claimed ? 'Resgatado' : isComplete ? 'Resgatar' : 'Em andamento'}
-              </button>
-            </div>
+            </CitadelListCard>
           );
         })}
         {allClaimed && (

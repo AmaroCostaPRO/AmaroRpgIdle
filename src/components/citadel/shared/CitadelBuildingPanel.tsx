@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CitadelIconBadge } from './CitadelUI';
 
 interface UpgradeInProgress {
   targetLevel: number;
@@ -61,15 +62,28 @@ export const CitadelBuildingPanel: React.FC<CitadelBuildingPanelProps> = ({
   };
 
   return (
-    <div className="panel" style={{ padding: '1.25rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div
+      className="panel"
+      style={{
+        padding: '1.25rem',
+        color: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.25rem',
+        background: 'linear-gradient(160deg, rgba(245, 158, 11, 0.05), transparent 40%)',
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
-            {icon} {title} {isBuilt ? `— Nível ${level}` : notBuiltLabel}
-          </h2>
-          <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
-            {subtitle}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <CitadelIconBadge icon={icon} />
+          <div>
+            <h2 className="section-title" style={{ border: 'none', paddingBottom: 0, margin: 0 }}>
+              {title} {isBuilt ? `— Nível ${level}` : notBuiltLabel}
+            </h2>
+            <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: '0.2rem 0 0 0' }}>
+              {subtitle}
+            </p>
+          </div>
         </div>
       </div>
 
