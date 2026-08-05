@@ -32,6 +32,7 @@ import { CosmicSiphonPanel } from './citadel/CosmicSiphonPanel';
 import { SynchronyAltarPanel } from './citadel/SynchronyAltarPanel';
 import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
+import { ItemUseToast } from './ItemUseToast';
 import { CodexPanel } from './CodexPanel';
 import { AbyssPanel } from './abyss/AbyssPanel';
 import { LockedTabPanel } from './common/LockedTabPanel';
@@ -7936,6 +7937,7 @@ export default function GameUI() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null);
+  const [itemUseToast, setItemUseToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<'head' | 'chest' | 'legs' | 'gloves' | 'weapon' | 'necklace' | 'amulet' | 'ring' | 'activeRelic' | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [confirmSellItem, setConfirmSellItem] = useState(false);
@@ -8528,9 +8530,9 @@ export default function GameUI() {
                           const res = useConsumable(selectedItem.id);
                           if (res.success) {
                             setSelectedItem(null);
-                            if (res.message) alert(res.message);
+                            if (res.message) setItemUseToast({ message: res.message, type: 'success' });
                           } else {
-                            alert(res.message);
+                            setItemUseToast({ message: res.message, type: 'error' });
                           }
                         }}
                         className="btn btn-sm btn-gold"
@@ -9327,6 +9329,11 @@ export default function GameUI() {
       )}
 
       <ProgressNotifications />
+      <ItemUseToast
+        message={itemUseToast?.message ?? null}
+        type={itemUseToast?.type ?? 'success'}
+        onDismiss={() => setItemUseToast(null)}
+      />
       <NpcDialogOverlay />
       <ArtifactRevealOverlay />
       <ActCutsceneOverlay />
