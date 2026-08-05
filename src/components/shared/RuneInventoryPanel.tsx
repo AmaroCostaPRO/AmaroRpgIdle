@@ -54,14 +54,17 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = React.memo(
       {selectedRuneId && (() => {
         const def = RUNE_CATALOG[selectedRuneId];
         const visual = getRuneVisual(selectedRuneId);
-        // `position: fixed` + portal para `document.body` — mesmo padrão do tooltip de recurso em
-        // GameUI.tsx ("renderizado via portal para não ser cortado pelo overflow:hidden do painel").
-        // Sem isso, este modal herdava `position: absolute` relativo ao `.panel` da aba (que tem
-        // `overflow: hidden`), então rolava junto com o conteúdo em vez de ficar fixo na tela como
-        // os outros modais de equipamento e o do Mercador Ambulante.
+        // Portal para `#ui-modal-root` (o wrapper `position: relative` que embrulha
+        // `.ui-scrollable-content` em GameUI.tsx, do qual o modal de item do Inventário —
+        // Equipamentos/Consumíveis — já é filho direto) + `position: absolute`, no lugar do antigo
+        // `position: fixed` + portal para `document.body`. Aquele padrão ainda deixava o modal preso
+        // ao `.panel` da aba (que tem `backdrop-filter`, quebrando `position: fixed` de descendentes
+        // — mesmo efeito de `transform`) quando não escapava via portal alto o bastante, e cobria a
+        // tela inteira em vez de só a área de conteúdo da aba. Ver
+        // src/components/shared/ItemDetailModal.tsx para o mesmo fix aplicado nos pickers da Cidadela.
         return createPortal(
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
             onClick={() => setSelectedRuneId(null)}
           >
             <div
@@ -87,7 +90,7 @@ export const RuneInventoryPanel: React.FC<RuneInventoryPanelProps> = React.memo(
               </button>
             </div>
           </div>,
-          document.body
+          document.getElementById('ui-modal-root') || document.body
         );
       })()}
     </>

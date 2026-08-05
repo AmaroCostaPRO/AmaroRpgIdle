@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import type { EquipmentItem } from '../../core/types';
 import { getActiveRelicDefinition } from '../../core/CombatFSM';
 import {
@@ -20,6 +21,15 @@ interface ItemDetailModalProps {
 // extraído do modal já usado pelo Depósito da Cidadela (VaultPanel.tsx) para ser reaproveitado
 // em qualquer picker de item que precise mostrar as informações completas antes de confirmar uma
 // seleção (Oficina da Forja, Câmara de Gravação), em vez de escolher às cegas só pelo ícone.
+//
+// Renderizado via `createPortal` para `#ui-modal-root` (o wrapper `position: relative` que embrulha
+// `.ui-scrollable-content` em GameUI.tsx, do qual o modal de item do Inventário — abas Equipamentos/
+// Consumíveis — já era filho direto): os painéis da Cidadela usam a classe `.panel`, que tem
+// `backdrop-filter` (vidro fosco) — isso cria um novo "containing block" para filhos `position:
+// fixed`, então sem o portal o modal ficava preso relativo ao painel rolável em vez de fixo, e se
+// movia junto com o scroll do conteúdo. Portar para `#ui-modal-root` (em vez de `document.body`)
+// também restringe o modal à área de conteúdo da aba, no lugar de cobrir a tela inteira — mesmo
+// comportamento do modal de Equipamentos/Consumíveis.
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   item, originLabel, onClose, confirmLabel, onConfirm, confirmDisabled, errorMessage,
 }) => {
@@ -33,10 +43,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     nameColor = '#38bdf8';
   }
 
-  return (
+  const portalTarget = document.getElementById('ui-modal-root') || document.body;
+
+  return createPortal(
     <div
       style={{
-        position: 'fixed',
+        position: 'absolute',
         inset: 0,
         background: 'rgba(0, 0, 0, 0.75)',
         display: 'flex',
@@ -150,6 +162,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 };

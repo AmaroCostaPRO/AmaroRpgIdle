@@ -8276,8 +8276,11 @@ export default function GameUI() {
         />
       ) : null}
 
-      {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {/* Wrapper relativo para prender os modais locais e impedir que eles rolem junto com a página.
+          Também serve de portal root (id="ui-modal-root") para modais renderizados fora da árvore
+          de `.panel` (que tem `backdrop-filter`, quebrando `position: fixed` de filhos diretos) —
+          ver src/components/shared/ItemDetailModal.tsx. */}
+      <div id="ui-modal-root" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* Conteúdo Dinâmico com rolagem */}
         <div ref={scrollContainerRef} className="animate-tabFade ui-scrollable-content" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {activeTab === 'combat' && (
