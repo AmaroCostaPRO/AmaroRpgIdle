@@ -55,7 +55,7 @@ export const WatchTowerPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <CitadelStatRow icon="🗝️" label="Produção" value={`1 chave / ${hoursPerKey}h`} tone="accent" />
+        <CitadelStatRow icon="🗝️" label="Produção" value={`1 chave / ${hoursPerKey}h`} />
 
         <div
           style={{

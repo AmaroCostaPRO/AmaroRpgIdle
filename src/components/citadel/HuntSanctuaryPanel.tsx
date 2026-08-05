@@ -98,7 +98,7 @@ export const HuntSanctuaryPanel: React.FC = () => {
                 </button>
               }
             >
-              <CitadelProgressBar pct={progressPct} color={isComplete ? 'var(--gold-400)' : '#38bdf8'} />
+              <CitadelProgressBar pct={progressPct} tone={isComplete ? 'gold' : 'copper'} />
               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                 {Math.min(contract.currentKills, contract.requiredKills)} / {contract.requiredKills}
               </span>

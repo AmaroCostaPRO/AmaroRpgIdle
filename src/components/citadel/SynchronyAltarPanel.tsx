@@ -53,7 +53,7 @@ export const SynchronyAltarPanel: React.FC = () => {
         label="Injeção no Maior Atributo Ativo do Avatar"
         value={`+${injectionPct}%`}
         detail="soma dos atributos secundários"
-        tone="accent"
+        tone="mystic"
       />
     </CitadelBuildingPanel>
   );

@@ -79,7 +79,7 @@ export const AlchemyLabPanel: React.FC = () => {
       onUpgrade={handleUpgrade}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <CitadelStatRow icon="⚗️" label="Rendimento por preparo" value={`${yieldCount}x`} detail={`${Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} min por preparo`} tone="accent" />
+        <CitadelStatRow icon="⚗️" label="Rendimento por preparo" value={`${yieldCount}x`} detail={`${Math.round(ALCHEMY_BREW_DURATION_MS / 60000)} min por preparo`} />
         {alchemyLab.pendingBrews.map((brew) => (
           <PendingBrewRow key={brew.id} potionType={brew.potionType} completesAt={brew.completesAt} />
         ))}

@@ -56,15 +56,16 @@ export const CosmicSiphonPanel: React.FC = () => {
         <h3 className="font-heading" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold-400)', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.25rem', margin: 0 }}>
           Mitigação na Ecoterra
         </h3>
-        <CitadelStatRow icon="🔷" label="Drenagem de mana ambiental" value={`${manaDrainPct.toFixed(1)}%/s`} detail="base 2.5%/s" tone="negative" />
-        <CitadelStatRow icon="⏱️" label="Erosão de recarga de habilidades" value={`+${cooldownErosionPct.toFixed(0)}%`} detail="base +25%" tone="negative" />
-        <CitadelStatRow icon="⚡" label="Velocidade de ataque dos inimigos" value={`+${atkSpeedBoostPct.toFixed(0)}%`} detail="base +35%" tone="negative" />
-        <CitadelStatRow icon="🩸" label="Dano recebido extra" value={`+${damageTakenPct.toFixed(0)}%`} detail="base +25%" tone="negative" />
-        <CitadelStatRow icon="⚔️" label="Bônus ofensivo próprio na Ecoterra" value={`+${offensiveBonusPct}% Dano`} tone="positive" />
+        <CitadelStatRow icon="🔷" label="Drenagem de mana ambiental" value={`${manaDrainPct.toFixed(1)}%/s`} detail="base 2.5%/s" tone="copper" />
+        <CitadelStatRow icon="⏱️" label="Erosão de recarga de habilidades" value={`+${cooldownErosionPct.toFixed(0)}%`} detail="base +25%" tone="copper" />
+        <CitadelStatRow icon="⚡" label="Velocidade de ataque dos inimigos" value={`+${atkSpeedBoostPct.toFixed(0)}%`} detail="base +35%" tone="copper" />
+        <CitadelStatRow icon="🩸" label="Dano recebido extra" value={`+${damageTakenPct.toFixed(0)}%`} detail="base +25%" tone="copper" />
+        <CitadelStatRow icon="⚔️" label="Bônus ofensivo próprio na Ecoterra" value={`+${offensiveBonusPct}% Dano`} tone="gold" />
 
         <CitadelProgressCard
           icon="🌌"
           title="Carga Cósmica"
+          tone="mystic"
           countdown={`${Math.floor(siphon.cosmicCharge || 0)}/100`}
           progressPct={Math.floor(siphon.cosmicCharge || 0)}
           footer={

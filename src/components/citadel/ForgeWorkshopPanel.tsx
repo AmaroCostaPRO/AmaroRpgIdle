@@ -6,8 +6,82 @@ import { useCountdown } from '../../hooks/useCountdown';
 import { useForgeOrderProgress } from '../../hooks/useForgeOrderProgress';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 import { CitadelStatRow, CitadelProgressCard, CitadelListCard } from './shared/CitadelUI';
+import { getRarityColor, getSetVisual, slotIcons } from '../shared/itemVisuals';
+import type { EquipmentItem } from '../../core/types';
 
 const NON_REROLLABLE_SLOTS = new Set(['consumable', 'activeRelic', 'amulet']);
+
+// Picker de item no mesmo padrão de grade de cards da Câmara de Gravação/Oráculo Rúnico
+// (itemVisuals.tsx: getSetVisual para borda/glow por raridade/conjunto) — substitui o `<select>`
+// nativo, que abria como um menu de navegador fora do estilo do jogo, por um componente que já é
+// a linguagem visual estabelecida do jogo para "escolher um item".
+const ForgeItemPicker: React.FC<{
+  items: EquipmentItem[];
+  selectedItemId: string;
+  onSelect: (id: string) => void;
+}> = ({ items, selectedItemId, onSelect }) => {
+  const selected = items.find(i => i.id === selectedItemId) || null;
+
+  if (selected) {
+    const visual = getSetVisual(selected);
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.6rem',
+          padding: '0.5rem 0.6rem',
+          borderRadius: 'var(--radius-sm)',
+          background: visual.bg,
+          border: visual.border,
+          boxShadow: visual.shadow,
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', minWidth: 0 }}>
+          <span style={{ fontSize: '1.1rem' }}>{slotIcons[selected.slot] || '❔'}</span>
+          <span style={{ color: getRarityColor(selected.rarity), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {selected.name} {selected.mysticLevel ? `+${selected.mysticLevel}` : ''}
+          </span>
+        </span>
+        <button type="button" className="btn btn-xs" style={{ flexShrink: 0 }} onClick={() => { AudioManager.getInstance().playClick(); onSelect(''); }}>
+          ← Trocar item
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>Escolha um item do inventário:</p>
+      {items.length === 0 && (
+        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>Nenhum item elegível no inventário.</p>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+        {items.map(item => {
+          const visual = getSetVisual(item);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => { AudioManager.getInstance().playClick(); onSelect(item.id); }}
+              title={`${item.name} ${item.mysticLevel ? `+${item.mysticLevel}` : ''} (${item.rarity})`}
+              style={{
+                width: '58px', height: '64px', borderRadius: '8px', cursor: 'pointer',
+                background: visual.bg, border: visual.border, boxShadow: visual.shadow,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px',
+                color: '#fff',
+              }}
+            >
+              <span style={{ fontSize: '1.3rem' }}>{slotIcons[item.slot] || '❔'}</span>
+              {item.mysticLevel ? <span style={{ fontSize: '0.6rem', color: 'var(--gold-300)' }}>+{item.mysticLevel}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export const ForgeWorkshopPanel: React.FC = () => {
   const character = useGameStore((state) => state.character);
@@ -84,10 +158,9 @@ export const ForgeWorkshopPanel: React.FC = () => {
           label="Cada ordem de serviço (1h)"
           value={`+${FORGE_ORDER_CRYSTAL_YIELD} Cristal`}
           detail={`consome 🪙 ${FORGE_ORDER_GOLD_COST} + 🪵 ${FORGE_ORDER_WOOD_COST}`}
-          tone="positive"
         />
         <CitadelStatRow icon="🔮" label="Cristal Rúnico atual" value={character.runicCrystals || 0} />
-        <CitadelStatRow icon="⚙️" label="Ordens paralelas por hora" value={forgeWorkshop.level} tone="accent" />
+        <CitadelStatRow icon="⚙️" label="Ordens paralelas por hora" value={forgeWorkshop.level} />
 
         {isBuilt && (
           canAffordNextOrder ? (
@@ -114,18 +187,11 @@ export const ForgeWorkshopPanel: React.FC = () => {
             icon="🔮"
             title="Funções Ativas da Oficina"
           >
-            <select
-              value={selectedItemId}
-              onChange={(e) => { setSelectedItemId(e.target.value); setFeedback(null); }}
-              style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid var(--border-dim)', borderRadius: '4px' }}
-            >
-              <option value="">Selecione um item do inventário...</option>
-              {rerollableItems.map(i => (
-                <option key={i.id} value={i.id}>
-                  {i.name} {i.mysticLevel ? `+${i.mysticLevel}` : ''} ({i.rarity})
-                </option>
-              ))}
-            </select>
+            <ForgeItemPicker
+              items={rerollableItems}
+              selectedItemId={selectedItemId}
+              onSelect={(id) => { setSelectedItemId(id); setFeedback(null); }}
+            />
 
             {selectedItem && (
               <>
