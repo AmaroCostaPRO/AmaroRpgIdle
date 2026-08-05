@@ -7,6 +7,7 @@ import { useForgeOrderProgress } from '../../hooks/useForgeOrderProgress';
 import { CitadelBuildingPanel } from './shared/CitadelBuildingPanel';
 import { CitadelStatRow, CitadelProgressCard, CitadelListCard } from './shared/CitadelUI';
 import { getRarityColor, getSetVisual, slotIcons } from '../shared/itemVisuals';
+import { ItemDetailModal } from '../shared/ItemDetailModal';
 import type { EquipmentItem } from '../../core/types';
 
 const NON_REROLLABLE_SLOTS = new Set(['consumable', 'activeRelic', 'amulet']);
@@ -14,13 +15,17 @@ const NON_REROLLABLE_SLOTS = new Set(['consumable', 'activeRelic', 'amulet']);
 // Picker de item no mesmo padrão de grade de cards da Câmara de Gravação/Oráculo Rúnico
 // (itemVisuals.tsx: getSetVisual para borda/glow por raridade/conjunto) — substitui o `<select>`
 // nativo, que abria como um menu de navegador fora do estilo do jogo, por um componente que já é
-// a linguagem visual estabelecida do jogo para "escolher um item".
+// a linguagem visual estabelecida do jogo para "escolher um item". Clicar num card abre o
+// `ItemDetailModal` (mesmas informações do inventário) para o jogador conferir os atributos antes
+// de confirmar a seleção, em vez de escolher às cegas só pelo ícone do slot.
 const ForgeItemPicker: React.FC<{
   items: EquipmentItem[];
   selectedItemId: string;
   onSelect: (id: string) => void;
 }> = ({ items, selectedItemId, onSelect }) => {
+  const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const selected = items.find(i => i.id === selectedItemId) || null;
+  const previewItem = items.find(i => i.id === previewItemId) || null;
 
   if (selected) {
     const visual = getSetVisual(selected);
@@ -64,7 +69,7 @@ const ForgeItemPicker: React.FC<{
             <button
               key={item.id}
               type="button"
-              onClick={() => { AudioManager.getInstance().playClick(); onSelect(item.id); }}
+              onClick={() => { AudioManager.getInstance().playClick(); setPreviewItemId(item.id); }}
               title={`${item.name} ${item.mysticLevel ? `+${item.mysticLevel}` : ''} (${item.rarity})`}
               style={{
                 width: '58px', height: '64px', borderRadius: '8px', cursor: 'pointer',
@@ -79,6 +84,16 @@ const ForgeItemPicker: React.FC<{
           );
         })}
       </div>
+
+      {previewItem && (
+        <ItemDetailModal
+          item={previewItem}
+          originLabel="Inventário"
+          onClose={() => setPreviewItemId(null)}
+          confirmLabel="Selecionar para a Oficina"
+          onConfirm={() => { onSelect(previewItem.id); setPreviewItemId(null); }}
+        />
+      )}
     </div>
   );
 };

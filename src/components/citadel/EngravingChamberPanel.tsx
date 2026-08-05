@@ -16,6 +16,7 @@ import type { EquipmentItem } from '../../core/types';
 import {
   getSetVisual, slotIcons, slotLabels, getRuneVisual, getSocketDots, RuneChip, describeRuneEffect,
 } from '../shared/itemVisuals';
+import { ItemDetailModal } from '../shared/ItemDetailModal';
 
 /**
  * v10.0.0 "A Cidadela Submersa" — 🪬 Câmara de Gravação (Anexo 3, §2.5).
@@ -49,6 +50,7 @@ export const EngravingChamberPanel: React.FC = () => {
   const countdown = useCountdown(upgrading?.completesAt);
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [pickerSocketIndex, setPickerSocketIndex] = useState<number | null>(null);
   const [confirmDestroyIndex, setConfirmDestroyIndex] = useState<number | null>(null);
   const [confirmExtractIndex, setConfirmExtractIndex] = useState<number | null>(null);
@@ -71,6 +73,7 @@ export const EngravingChamberPanel: React.FC = () => {
     ...vaultItems.map(item => ({ item, origin: 'Depósito' })),
   ];
   const selected = allItems.find(e => e.item.id === selectedItemId) || null;
+  const preview = allItems.find(e => e.item.id === previewItemId) || null;
 
   const runeEntries = Object.entries(character.runeInventory || {}).filter(([, qty]) => (qty || 0) > 0) as [RuneId, number][];
 
@@ -208,7 +211,7 @@ export const EngravingChamberPanel: React.FC = () => {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => { AudioManager.getInstance().playClick(); setSelectedItemId(item.id); }}
+                    onClick={() => { AudioManager.getInstance().playClick(); setPreviewItemId(item.id); }}
                     title={`${item.name} (${origin})`}
                     style={{
                       width: '58px', height: '64px', borderRadius: '8px', cursor: 'pointer',
@@ -225,6 +228,16 @@ export const EngravingChamberPanel: React.FC = () => {
               })}
             </div>
           </div>
+        )}
+
+        {preview && (
+          <ItemDetailModal
+            item={preview.item}
+            originLabel={preview.origin}
+            onClose={() => setPreviewItemId(null)}
+            confirmLabel="Selecionar para a Câmara"
+            onConfirm={() => { setSelectedItemId(preview.item.id); setPreviewItemId(null); }}
+          />
         )}
 
         {/* Vista 2 — Item selecionado */}
