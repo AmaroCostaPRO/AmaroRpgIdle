@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore, formatNumber } from '../../store/useGameStore';
 import { AudioManager } from '../../core/AudioManager';
 import { useCountdown } from '../../hooks/useCountdown';
@@ -7,12 +8,72 @@ import { AMULET_ORACLE_MAX_LEVEL, AMULET_ORACLE_UPGRADE_COST, AMULET_ORACLE_RERO
 import {
   AstralRuneId, ASTRAL_RUNE_CATALOG, AMULET_TOTAL_SLOTS, getMaxAmuletSlots, getActiveAstralRunewords,
   RUNE_SHEET_ASTRAL, getAstralRuneSpriteIndex, ASTRAL_RUNEWORD_CATALOG,
-  RUNE_WORD_SHEET_ASTRAL, getAstralRunewordSpriteIndex,
+  RUNE_WORD_SHEET_ASTRAL, getAstralRunewordSpriteIndex, AstralRunewordDefinition,
 } from '../../core/astralRuneFormulas';
 import { statLabels, isPercentStat, getSetVisual } from '../shared/itemVisuals';
 import { IconSprite } from '../shared/IconSprite';
+import { ModalCloseButton } from '../shared/ModalCloseButton';
 import { getTransparentImageUrl, peekTransparentImageUrl } from '../../core/imageBackgroundStrip';
 import type { EquipmentItem } from '../../core/types';
+
+// Modal somente-leitura com os detalhes da Palavra Rúnica Astral ativa — aberto ao clicar no
+// sprite do espaço central do amuleto (`AmuletOraclePanel`), já que o selo sozinho não deixa claro
+// qual palavra ele representa. Mesmo padrão de portal/overlay de `ItemDetailModal.tsx`.
+const RunewordDetailModal: React.FC<{ word: AstralRunewordDefinition; onClose: () => void }> = ({ word, onClose }) => {
+  const portalTarget = document.getElementById('ui-modal-root') || document.body;
+  return createPortal(
+    <div
+      style={{
+        position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '1rem',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'linear-gradient(135deg, rgba(15, 10, 25, 0.98), rgba(6, 4, 10, 0.99))',
+          border: '1px solid rgba(250, 204, 21, 0.5)', boxShadow: '0 0 24px rgba(250, 204, 21, 0.25)',
+          borderRadius: 'var(--radius-lg)', padding: '1.25rem', width: '100%', maxWidth: '320px',
+          display: 'flex', flexDirection: 'column', gap: '0.8rem', position: 'relative',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ModalCloseButton onClick={onClose} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+          <span style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)' }}>
+            <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(word.id)} fallbackIcon="✨" />
+          </span>
+          <h4 className="font-heading" style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0, color: '#fde047' }}>{word.name}</h4>
+        </div>
+
+        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.04)' }}>
+          <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Efeito</span>
+          <p style={{ fontSize: '0.7rem', color: '#e2e8f0', marginTop: '0.2rem', lineHeight: 1.4 }}>{word.effectDesc}</p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+          <span className="font-heading" style={{ fontSize: '0.52rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', width: '100%' }}>Sequência</span>
+          {word.sequence.map((runeId, i) => {
+            const def = ASTRAL_RUNE_CATALOG[runeId];
+            return (
+              <span key={i} style={{ width: '24px', height: '24px', borderRadius: '50%', background: def.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e1b4b', overflow: 'hidden', flexShrink: 0 }} title={def.name}>
+                <IconSprite src={RUNE_SHEET_ASTRAL} index={getAstralRuneSpriteIndex(runeId)} fallbackIcon={def.glyph} />
+              </span>
+            );
+          })}
+        </div>
+
+        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)' }}>
+          Requer Oráculo Nível {word.minOracleLevel}{word.grantsActiveAbility ? ` • Concede a habilidade ativa "${word.grantsActiveAbility.name}"` : ''}
+        </span>
+
+        <button onClick={onClose} className="btn btn-sm btn-gold" style={{ width: '100%' }}>Fechar</button>
+      </div>
+    </div>,
+    portalTarget
+  );
+};
 
 const AMULET_FRAME_INERT = '/assets/amulet_oracle_frame.png';
 const AMULET_FRAME_ACTIVE = '/assets/amulet_oracle_frame_active.png';
@@ -52,6 +113,7 @@ export const AmuletOraclePanel: React.FC = () => {
   const [pickerSocketIndex, setPickerSocketIndex] = useState<number | null>(null);
   const [confirmReroll, setConfirmReroll] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [detailWord, setDetailWord] = useState<AstralRunewordDefinition | null>(null);
   const showToast = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 3500);
@@ -250,7 +312,8 @@ export const AmuletOraclePanel: React.FC = () => {
               {/* Espaço central — sprite da(s) palavra(s) ativa(s). 1 palavra = sprite inteiro;
                   2 palavras (modo simultâneo) = cada uma ocupa metade do círculo (esquerda/direita),
                   recorte feito só com CSS (overflow: hidden) sobre o IconSprite de tamanho cheio —
-                  ver Sprites_Necessarios.md, seção 4. */}
+                  ver Sprites_Necessarios.md, seção 4. Cada metade/sprite é clicável e abre um modal
+                  com os detalhes da palavra, já que o selo sozinho não deixa claro qual palavra é. */}
               <div style={{
                 position: 'absolute',
                 left: '50%', top: '50%',
@@ -263,28 +326,44 @@ export const AmuletOraclePanel: React.FC = () => {
                   </div>
                 )}
                 {activeWords.length === 1 && (
-                  <div
-                    title={activeWords[0].name}
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)' }}
+                  <button
+                    type="button"
+                    title={`${activeWords[0].name} — clique para ver detalhes`}
+                    onClick={() => { AudioManager.getInstance().playClick(); setDetailWord(activeWords[0]); }}
+                    style={{
+                      width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', pointerEvents: 'auto',
+                      boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent',
+                    }}
                   >
                     <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[0].id)} fallbackIcon="✨" />
-                  </div>
+                  </button>
                 )}
                 {activeWords.length === 2 && (
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'flex', boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)' }}>
-                    <div title={activeWords[0].name} style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+                    <button
+                      type="button"
+                      title={`${activeWords[0].name} — clique para ver detalhes`}
+                      onClick={() => { AudioManager.getInstance().playClick(); setDetailWord(activeWords[0]); }}
+                      style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative', pointerEvents: 'auto', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent' }}
+                    >
                       <div style={{ position: 'absolute', left: 0, top: 0, width: '68px', height: '68px' }}>
                         <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[0].id)} fallbackIcon="✨" />
                       </div>
-                    </div>
-                    <div title={activeWords[1].name} style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+                    </button>
+                    <button
+                      type="button"
+                      title={`${activeWords[1].name} — clique para ver detalhes`}
+                      onClick={() => { AudioManager.getInstance().playClick(); setDetailWord(activeWords[1]); }}
+                      style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative', pointerEvents: 'auto', border: 'none', padding: 0, cursor: 'pointer', background: 'transparent' }}
+                    >
                       <div style={{ position: 'absolute', right: 0, top: 0, width: '68px', height: '68px' }}>
                         <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[1].id)} fallbackIcon="✨" />
                       </div>
-                    </div>
+                    </button>
                   </div>
                 )}
               </div>
+              {detailWord && <RunewordDetailModal word={detailWord} onClose={() => setDetailWord(null)} />}
               {/* 6 espaços em círculo */}
               {slotPositions.map((pos, i) => {
                 const unlocked = i < maxSlots;
