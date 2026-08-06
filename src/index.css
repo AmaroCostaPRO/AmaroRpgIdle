@@ -2200,3 +2200,14 @@ input, textarea, [contenteditable="true"] {
     transform: translateX(0);
   }
 }
+
+@keyframes itemUseToastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ItemUseToastProps {
   message: string | null;
@@ -7,11 +7,15 @@ interface ItemUseToastProps {
 }
 
 export const ItemUseToast: React.FC<ItemUseToastProps> = ({ message, type, onDismiss }) => {
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(onDismiss, 3500);
+    const t = setTimeout(() => onDismissRef.current(), 3500);
     return () => clearTimeout(t);
-  }, [message, onDismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
 
   if (!message) return null;
 
@@ -40,7 +44,7 @@ export const ItemUseToast: React.FC<ItemUseToastProps> = ({ message, type, onDis
         fontWeight: 700,
         textAlign: 'center',
         cursor: 'pointer',
-        animation: 'fadeInRight 0.25s ease-out',
+        animation: 'itemUseToastFadeIn 0.25s ease-out',
         pointerEvents: 'auto'
       }}
     >
