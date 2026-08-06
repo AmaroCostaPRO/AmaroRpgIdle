@@ -143,6 +143,25 @@ export const EvolutionSprite: React.FC<EvolutionSpriteProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, stripBackground]);
 
+  // Para o recorte por quadrante (abaixo), o crop passa a usar background-image em vez de um
+  // <img> real, então não há onError nativo — confirma o carregamento via probe fora da tela.
+  useEffect(() => {
+    if (!resolvedSrc || singleFrame) return;
+    let cancelled = false;
+    const probe = new Image();
+    probe.onerror = () => {
+      if (!cancelled) {
+        setFailed(true);
+        onResolvedChange?.(false);
+      }
+    };
+    probe.src = resolvedSrc;
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedSrc, singleFrame]);
+
   if (failed || !resolvedSrc) {
     return <Fallback icon={fallbackIcon} className={fallbackClassName} />;
   }
@@ -171,24 +190,25 @@ export const EvolutionSprite: React.FC<EvolutionSpriteProps> = ({
   const imgSizePct = scale * 100;
   const offsetLeftPct = -(col * 50 + QUADRANT_INSET_PCT) * scale;
   const offsetTopPct = -(row * 50 + QUADRANT_INSET_PCT) * scale;
+  // Converte o deslocamento que um <img> absoluto teria (offsetPct% do container) para a
+  // porcentagem de background-position equivalente — ver IconSprite.tsx, mesmo problema/técnica:
+  // recorte via background-* evita empilhar arredondamentos independentes de width/left em
+  // camadas aninhadas, que desalinhava o quadrante em zoom fracionário.
+  const scaleRatio = imgSizePct / 100;
+  const backgroundPositionLeftPct = offsetLeftPct / (1 - scaleRatio);
+  const backgroundPositionTopPct = offsetTopPct / (1 - scaleRatio);
 
   return (
-    <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', pointerEvents: 'none' }}>
-      <img
-        src={resolvedSrc}
-        alt=""
-        draggable={false}
-        onError={() => setFailed(true)}
-        style={{
-          position: 'absolute',
-          width: `${imgSizePct}%`,
-          height: `${imgSizePct}%`,
-          left: `${offsetLeftPct}%`,
-          top: `${offsetTopPct}%`,
-          maxWidth: 'none',
-          objectFit: 'cover',
-        }}
-      />
-    </div>
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        backgroundImage: `url(${resolvedSrc})`,
+        backgroundSize: `${imgSizePct}% ${imgSizePct}%`,
+        backgroundPosition: `${backgroundPositionLeftPct}% ${backgroundPositionTopPct}%`,
+        backgroundRepeat: 'no-repeat',
+      }}
+    />
   );
 };

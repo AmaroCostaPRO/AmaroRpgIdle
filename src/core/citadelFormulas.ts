@@ -101,7 +101,7 @@ export const FORGE_WORKSHOP_UPGRADE_COST = (nextLevel: number): { wood: number; 
 export const FORGE_ORDER_HOURS = 1;
 export const FORGE_ORDER_GOLD_COST = 50000;
 export const FORGE_ORDER_WOOD_COST = 50;
-export const FORGE_ORDER_CRYSTAL_YIELD = 5;
+export const FORGE_ORDER_CRYSTAL_YIELD = 50;
 
 export const COSMIC_SIPHON_MAX_LEVEL = 5;
 export const COSMIC_SIPHON_UPGRADE_COST = (nextLevel: number): { stone: number; wood: number; transcendenceEssence: number } => ({

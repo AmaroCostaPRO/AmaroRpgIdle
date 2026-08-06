@@ -66,6 +66,21 @@ export const IconSprite: React.FC<IconSpriteProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, stripBackground]);
 
+  // Confirma que `resolvedSrc` realmente carrega antes de exibi-lo como background-image —
+  // como não há mais um <img> real no DOM para expor onError, usamos um probe fora da tela.
+  useEffect(() => {
+    if (!resolvedSrc) return;
+    let cancelled = false;
+    const probe = new Image();
+    probe.onerror = () => {
+      if (!cancelled) setFailed(true);
+    };
+    probe.src = resolvedSrc;
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedSrc]);
+
   if (failed || !resolvedSrc) {
     return <Fallback icon={fallbackIcon} className={fallbackClassName} />;
   }
@@ -78,24 +93,26 @@ export const IconSprite: React.FC<IconSpriteProps> = ({
   const imgSizePct = scale * 100;
   const offsetLeftPct = -(col * cellPct + CELL_INSET_PCT) * scale;
   const offsetTopPct = -(row * cellPct + CELL_INSET_PCT) * scale;
+  // Converte o deslocamento que um <img> absoluto teria (offsetPct% do container) para a
+  // porcentagem de background-position equivalente: resolved = (container - bg_size) * pos% / 100,
+  // com bg_size = imgSizePct% do container. Recorte via background-* evita empilhar múltiplos
+  // arredondamentos independentes (width/height/left/top) em camadas aninhadas, que é o que
+  // causava o desalinhamento dos ícones em zoom fracionário (ex: telas mobile com zoom alto).
+  const scaleRatio = imgSizePct / 100;
+  const backgroundPositionLeftPct = offsetLeftPct / (1 - scaleRatio);
+  const backgroundPositionTopPct = offsetTopPct / (1 - scaleRatio);
 
   return (
-    <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', pointerEvents: 'none' }}>
-      <img
-        src={resolvedSrc}
-        alt=""
-        draggable={false}
-        onError={() => setFailed(true)}
-        style={{
-          position: 'absolute',
-          width: `${imgSizePct}%`,
-          height: `${imgSizePct}%`,
-          left: `${offsetLeftPct}%`,
-          top: `${offsetTopPct}%`,
-          maxWidth: 'none',
-          objectFit: 'cover',
-        }}
-      />
-    </div>
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        backgroundImage: `url(${resolvedSrc})`,
+        backgroundSize: `${imgSizePct}% ${imgSizePct}%`,
+        backgroundPosition: `${backgroundPositionLeftPct}% ${backgroundPositionTopPct}%`,
+        backgroundRepeat: 'no-repeat',
+      }}
+    />
   );
 };
