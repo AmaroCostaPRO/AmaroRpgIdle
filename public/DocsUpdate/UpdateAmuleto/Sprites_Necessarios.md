@@ -49,10 +49,36 @@ Hoje as 9 Runas Astrais (ver `src/core/astralRuneFormulas.ts`) renderizam via gl
 
 **Nota de integração do componente**: o recorte por índice (célula → posição) é o mesmo problema já resolvido para as Runas Abissais — reaproveitar o componente trivial `IconSprite.tsx` já proposto (Seção 1.6 de `Assets_UI_e_Cutscene.md`, "primo do `EvolutionSprite`, recorte por índice em vez de por nível") para servir também `runes_astral.png`, sem precisar de um componente novo.
 
-## 4. Notas de integração
+## 4. Sprites das Palavras Rúnicas Astrais (`ASTRAL_RUNEWORD_CATALOG`, 6 palavras)
+
+Hoje o espaço central do amuleto (Seção 2) mostra apenas o nome em texto da(s) Palavra(s) Rúnica(s) Astral(is) ativa(s). Esta seção é a spec de arte para substituir o texto por um sprite, seguindo o MESMO padrão 3×3 já estabelecido na Seção 3 (nenhuma convenção nova é inventada).
+
+- **Arquivo**: `runewords_astral.png` — um único arquivo cobrindo as 6 palavras.
+- **Formato**: 1024×1024, grade 3×3 (9 células de ~341×341px), ordem de leitura em linha (esquerda→direita, cima→baixo). Só as **6 primeiras células são usadas** — a ordem segue exatamente a ordem de declaração de `ASTRAL_RUNEWORD_CATALOG` em `astralRuneFormulas.ts` (mesmo princípio já usado por `runes_astral.png` com `ASTRAL_RUNE_CATALOG`). **As 3 células da última linha (posições 7, 8 e 9) ficam vazias** (chroma key puro, sem desenho) — o código (`IconSprite`) nunca referencia esses índices, então não há necessidade de preenchê-las com nada.
+- **Chroma key**: `#FE0201` (tolerância 50), contorno preto fino ao redor de cada selo — mesmo pipeline `imageBackgroundStrip.ts`/`getTransparentImageUrl` já usado por `runes_astral.png`.
+- **Direção de arte geral**: cada célula deve ler como um **selo/glifo circular composto** (não uma cena ou ilustração larga) — pense em cada palavra rúnica como a "assinatura visual" combinada das runas que a compõem. Isso é importante porque o sprite é exibido de duas formas diferentes no jogo:
+  1. **Inteiro**, preenchendo o círculo central do amuleto, quando só 1 palavra está ativa (modo "palavra única").
+  2. **Cortado ao meio verticalmente** (metade esquerda ou metade direita), quando 2 palavras de 3 runas estão ativas simultaneamente, uma de cada lado do círculo central (modo "2 palavras simultâneas", Oráculo N4+).
+
+  Por isso, **evite detalhes assimétricos essenciais grudados no eixo vertical central** do selo (ex: um rosto ou texto que atravessa o meio) — o desenho deve continuar legível/bonito mesmo quando só a metade esquerda ou só a direita aparece lado a lado com a metade de outra palavra. Composições radiais/mandala ou com simetria vertical (espelhada esquerda-direita) funcionam melhor.
+- **Paleta**: dourado/astral, coerente com o estado "ativado" do amuleto (`amulet_oracle_frame_active.png`) — cada selo deve parecer "aceso", já que só aparece quando a palavra está reconhecida e ativa.
+
+| Célula (linha, col) | Palavra (id) | Runas que a compõem | Nível mín. Oráculo | Direção de arte |
+| :--- | :--- | :--- | :---: | :--- |
+| (1,1) | SOPRO DA VITALIDADE (`sopro_vitalidade`) | Eco da Regeneração ×2 + Passo Leve | 1 | Selo orgânico verde-azulado — pequenas folhas/gotas orbitando um núcleo pulsante, sugerindo regeneração |
+| (1,2) | REFLEXO ESTELAR (`reflexo_estelar`) | Passo Leve + Olho Astral + Passo Leve | 1 | Selo azul-arroxeado — um olho central com duas trilhas espiraladas de vento/velocidade simétricas, uma de cada lado |
+| (1,3) | MARÉ DA MENTE (`mare_da_mente`) | Maré Psíquica ×2 + Olho Astral + Passo Leve | 2 | Selo índigo — ondas concêntricas ao redor de um olho estilizado, tema de foco mental e mana |
+| (2,1) | FÚRIA CONTIDA (`furia_contida`) | Chama Interior ×2 + Passo Leve + Olho Astral + Eco da Regeneração | 3 | Selo laranja-avermelhado — chamas contidas dentro de um anel fechado, sugerindo explosão latente/contida |
+| (2,2) | COROA DO VAZIO (`coroa_do_vazio`) | Coroa Estelar + Pulsar do Vazio + Véu Sombrio + Chama Interior + Olho Astral + Eco da Regeneração | 5 (lendária) | Selo dourado/roxo-escuro — uma coroa estelar sobre um núcleo de vazio pulsante escuro, concede habilidade ativa de explosão de dano |
+| (2,3) | GRAAL REVELADO (`graal_revelado`) | Graal do Oráculo + Coroa Estelar + Pulsar do Vazio + Maré Psíquica + Véu Sombrio + Passo Leve | 5 (lendária) | Selo âmbar/dourado brilhante — um cálice estilizado irradiando luz forte, tema de revelação/cura, concede habilidade ativa de cura |
+
+**Nota de integração do componente**: reaproveitar `IconSprite.tsx` (mesmo componente da Seção 3, sem alterações) via novo par `RUNE_WORD_SHEET_ASTRAL`/`getAstralRunewordSpriteIndex` em `astralRuneFormulas.ts`. O recorte "metade do círculo" (modo 2 palavras) é resolvido só com CSS no componente consumidor (`AmuletOraclePanel.tsx`) — um wrapper de 50% de largura com `overflow: hidden` por cima do `IconSprite` de tamanho cheio — não exige nenhuma mudança no `IconSprite` nem um sprite desenhado "pela metade".
+
+## 5. Notas de integração
 
 - Salvar os arquivos finais em `public/assets/`, seguindo a mesma pasta usada por todos os outros sprites do jogo.
-- Nomenclatura final deve respeitar as convenções já existentes: prefixo `citadel_` para construções da Cidadela Astral, sem prefixo genérico para o sprite de item/tela do amuleto (`amulet_oracle_*`), e `runes_astral.png` para o spritesheet de ícones (paralelo a `runes_base.png`/`runes_primordial.png`).
+- Nomenclatura final deve respeitar as convenções já existentes: prefixo `citadel_` para construções da Cidadela Astral, sem prefixo genérico para o sprite de item/tela do amuleto (`amulet_oracle_*`), `runes_astral.png` para o spritesheet de ícones das runas soltas, e `runewords_astral.png` para o spritesheet das palavras rúnicas (ambos paralelos a `runes_base.png`/`runes_primordial.png`).
 - O grid 2×2 do prédio deve ser entregue como um único arquivo PNG (não 4 arquivos separados), pois é assim que `EvolutionSprite.tsx` espera consumir os demais `citadel_*.png`.
 - Paleta e estilo devem conversar com os assets já existentes da Cidadela Astral para manter consistência visual entre construções.
 - A troca do glifo CSS pelo `runes_astral.png` fica para quando a arte estiver pronta — mesma estratégia em 2 fases já usada pelas Runas Abissais (nenhuma mudança de código é necessária nesta etapa, só a especificação).
+- O código de `runewords_astral.png` (constante `RUNE_WORD_SHEET_ASTRAL` e recorte no `AmuletOraclePanel.tsx`) já está pronto e usando o fallback emoji `✨` — assim que o arquivo `runewords_astral.png` for salvo em `public/assets/`, o sprite passa a aparecer automaticamente, sem mudança de código.

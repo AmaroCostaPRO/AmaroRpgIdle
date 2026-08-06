@@ -7,6 +7,7 @@ import { AMULET_ORACLE_MAX_LEVEL, AMULET_ORACLE_UPGRADE_COST, AMULET_ORACLE_RERO
 import {
   AstralRuneId, ASTRAL_RUNE_CATALOG, AMULET_TOTAL_SLOTS, getMaxAmuletSlots, getActiveAstralRunewords,
   RUNE_SHEET_ASTRAL, getAstralRuneSpriteIndex, ASTRAL_RUNEWORD_CATALOG,
+  RUNE_WORD_SHEET_ASTRAL, getAstralRunewordSpriteIndex,
 } from '../../core/astralRuneFormulas';
 import { statLabels, isPercentStat, getSetVisual } from '../shared/itemVisuals';
 import { IconSprite } from '../shared/IconSprite';
@@ -246,21 +247,42 @@ export const AmuletOraclePanel: React.FC = () => {
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               )}
-              {/* Espaço central — palavra(s) ativa(s) */}
+              {/* Espaço central — sprite da(s) palavra(s) ativa(s). 1 palavra = sprite inteiro;
+                  2 palavras (modo simultâneo) = cada uma ocupa metade do círculo (esquerda/direita),
+                  recorte feito só com CSS (overflow: hidden) sobre o IconSprite de tamanho cheio —
+                  ver Sprites_Necessarios.md, seção 4. */}
               <div style={{
                 position: 'absolute',
                 left: '50%', top: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '70px', textAlign: 'center', pointerEvents: 'none',
+                width: '68px', height: '68px', pointerEvents: 'none',
               }}>
-                {activeWords.length > 0 ? (
-                  activeWords.map(w => (
-                    <div key={w.id} style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fde047', textShadow: '0 0 6px rgba(253, 224, 71, 0.8)', marginBottom: '0.2rem' }}>
-                      {w.name}
+                {activeWords.length === 0 && (
+                  <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', textAlign: 'center', paddingTop: '22px' }}>
+                    Nenhuma palavra reconhecida
+                  </div>
+                )}
+                {activeWords.length === 1 && (
+                  <div
+                    title={activeWords[0].name}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)' }}
+                  >
+                    <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[0].id)} fallbackIcon="✨" />
+                  </div>
+                )}
+                {activeWords.length === 2 && (
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'flex', boxShadow: '0 0 8px rgba(253, 224, 71, 0.7)' }}>
+                    <div title={activeWords[0].name} style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, width: '68px', height: '68px' }}>
+                        <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[0].id)} fallbackIcon="✨" />
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)' }}>Nenhuma palavra reconhecida</div>
+                    <div title={activeWords[1].name} style={{ width: '50%', height: '100%', overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ position: 'absolute', right: 0, top: 0, width: '68px', height: '68px' }}>
+                        <IconSprite src={RUNE_WORD_SHEET_ASTRAL} index={getAstralRunewordSpriteIndex(activeWords[1].id)} fallbackIcon="✨" />
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
               {/* 6 espaços em círculo */}

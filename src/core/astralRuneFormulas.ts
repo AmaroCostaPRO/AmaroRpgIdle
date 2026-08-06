@@ -141,6 +141,13 @@ export const ASTRAL_RUNEWORD_CATALOG: AstralRunewordDefinition[] = [
 export const getAstralRunewordById = (id: string): AstralRunewordDefinition | undefined =>
   ASTRAL_RUNEWORD_CATALOG.find(w => w.id === id);
 
+// Spritesheet 1024×1024, grade 3×3 (mesmo padrão de RUNE_SHEET_ASTRAL) — só as 6 primeiras
+// células são usadas (ordem de declaração de ASTRAL_RUNEWORD_CATALOG acima); as 3 últimas
+// ficam vazias. Ver Sprites_Necessarios.md, seção 4.
+export const RUNE_WORD_SHEET_ASTRAL = '/assets/runewords_astral.png';
+export const getAstralRunewordSpriteIndex = (runewordId: string): number =>
+  ASTRAL_RUNEWORD_CATALOG.findIndex(w => w.id === runewordId);
+
 // Compara uma sequência de espaços do amuleto (com `null` nos vazios) contra a receita.
 const sequenceMatches = (sockets: (AstralRuneId | null)[], sequence: AstralRuneId[]): boolean =>
   sequence.length === sockets.length && sequence.every((runeId, i) => sockets[i] === runeId);

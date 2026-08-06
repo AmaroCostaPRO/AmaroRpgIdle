@@ -225,7 +225,7 @@ export const ForgeWorkshopPanel: React.FC = () => {
                     className="btn btn-sm btn-danger"
                     style={{ flex: 1, fontSize: '0.7rem', opacity: ((character.runicCrystals || 0) < improveCost || attemptAlreadyUsed) ? 0.5 : 1 }}
                   >
-                    ⚠️ Melhorar/Destruir ({improveCost} 🔮)
+                    ⚠️ Melhorar ou Destruir ({improveCost} 🔮)
                   </button>
                 </div>
                 <p style={{ fontSize: '0.62rem', color: '#94a3b8', margin: 0 }}>
