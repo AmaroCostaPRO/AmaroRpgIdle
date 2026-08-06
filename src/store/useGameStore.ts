@@ -2728,13 +2728,13 @@ export const useGameStore = create<GameState>((set) => ({
         bridge.emit(GameEvent.LOG_EMITTED, { message: `🜠 A cada 100 acertos perfeitos a linha brilha: você pescou FARO, LÚMEN ABISSAL — uma Runa Primordial! (${totalGrantsDue}ª vez)` });
       }
 
-      // Garrafa Perdida (Oráculo Rúnico): 1 rolagem de 5% por PUXADA (não por captura individual,
+      // Garrafa Perdida (Oráculo Rúnico): 1 rolagem de 20% por PUXADA (não por captura individual,
       // então acerto/perfeito não dobra a chance), independente do resultado (erro/acerto/perfeito).
       // Feito inline no inventário (em vez de chamar `addItemToInventory`) para não aninhar um
       // segundo `set()` dentro deste `set()` já em andamento.
       let inventory = char.inventory;
       let bottleMsg = '';
-      if (Math.random() < 0.05) {
+      if (Math.random() < 0.20) {
         if (inventory.length < char.inventorySlots) {
           const bottleItem: EquipmentItem = {
             id: `garrafa_perdida-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -6435,10 +6435,10 @@ export const useGameStore = create<GameState>((set) => ({
         const unrevealed = ASTRAL_RUNEWORD_CATALOG.filter(
           w => !(state.character.revealedAstralRunewordIds || []).includes(w.id)
         );
-        // 5% de chance de revelar uma Palavra Rúnica Astral ainda desconhecida; se todas já
+        // 20% de chance de revelar uma Palavra Rúnica Astral ainda desconhecida; se todas já
         // estiverem reveladas, cai automaticamente no prêmio de material abaixo (nunca desperdiça
-        // a garrafa).
-        if (unrevealed.length > 0 && Math.random() < 0.05) {
+        // a garrafa) — o restante (80%) continua dividido meio a meio entre Pérola e Coral.
+        if (unrevealed.length > 0 && Math.random() < 0.20) {
           const revealedWord = unrevealed[Math.floor(Math.random() * unrevealed.length)];
           const updated = {
             ...state.character,
