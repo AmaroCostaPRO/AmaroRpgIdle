@@ -6,6 +6,9 @@ import { useTowerStore, applyCursesToStats, getWeeklySeed } from '../store/useTo
 import { useDiveStore } from '../store/useDiveStore';
 import { useLeviathanStore } from '../store/useLeviathanStore';
 import { useQuestStore } from '../store/useQuestStore';
+import { useTutorialStore } from '../store/useTutorialStore';
+import { useTransitionStore } from '../store/useTransitionStore';
+import { BIOME_TRANSITIONS, DIFFICULTY_TRANSITIONS, TOWER_TRANSITIONS, ABYSS_BOSS_TRANSITIONS } from './transitionDefinitions';
 import { StatEngine } from './StatEngine';
 import { COMMAND_CENTER_MATERIAL_DROP_BONUS } from './citadelFormulas';
 import { getXpNeededForLevel } from './XpEngine';
@@ -2210,6 +2213,10 @@ export class CombatFSM {
   }
 
   public update(delta: number): void {
+    // Pausa do loop de combate durante passos ativos do Tutorial Guiado Interativo ou Vinheta Full Mode
+    if (useTutorialStore.getState().isTutorialActive) return;
+    const currentTrans = useTransitionStore.getState().activeTransition;
+    if (currentTrans && !currentTrans.isFast) return;
     // v10.0.0: dreno de Fôlego dos Mergulhos Rasos — ANTES do early-return de estados, porque o
     // modelo de tempo do Anexo (§1.5) conta os ~4s de transição vertical no dreno. Pausa apenas:
     // em Bolsões de Ar, com o herói morto, e durante a luta do Guardião (prof. 25 — "a adrenalina

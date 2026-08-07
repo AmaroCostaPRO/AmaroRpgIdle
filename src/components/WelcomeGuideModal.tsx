@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTutorialStore } from '../store/useTutorialStore';
 import { AudioManager } from '../core/AudioManager';
 
 interface GuideItem {
@@ -153,11 +154,17 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({ onClose })
 
   const handleFinish = () => {
     AudioManager.getInstance().playClick();
+    if (!useTutorialStore.getState().completed) {
+      useTutorialStore.getState().startTutorial();
+    }
     onClose(dontShowAgain);
   };
 
   const handleSkip = () => {
     AudioManager.getInstance().playClick();
+    if (!useTutorialStore.getState().completed) {
+      useTutorialStore.getState().startTutorial();
+    }
     onClose(dontShowAgain);
   };
 

@@ -183,6 +183,7 @@ export function SubTabBar<T extends string>({
           {tabs.slice(desktopStartIndex, desktopStartIndex + desktopWindowSize).map((tab) => (
             <button
               key={tab.id}
+              data-tutorial-target={`btn-tab-${tab.id}`}
               onClick={() => {
                 if (tab.disabled) return;
                 AudioManager.getInstance().playClick();
@@ -246,6 +247,7 @@ export function SubTabBar<T extends string>({
             return (
               <button
                 key={`${tab.id}-${idx}`}
+                data-tutorial-target={`btn-tab-${tab.id}`}
                 onClick={() => {
                   if (tab.disabled) return;
                   AudioManager.getInstance().playClick();

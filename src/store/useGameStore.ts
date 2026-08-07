@@ -4,6 +4,9 @@ import { bridge } from '../bridge/GameBridge';
 import { useRelicStore } from './useRelicStore';
 import { useTowerStore } from './useTowerStore';
 import { useQuestStore } from './useQuestStore';
+import { useTutorialStore } from './useTutorialStore';
+import { useTransitionStore } from './useTransitionStore';
+import { BIOME_TRANSITIONS } from '../core/transitionDefinitions';
 import { StatEngine } from '../core/StatEngine';
 import { getBestiaryRequiredKills } from '../core/bestiaryFormulas';
 import { getXpNeededForLevel, legacyReconstructTotalXp, getTotalXpEarned, calculatePrestigePointsFromTotalXp } from '../core/XpEngine';
@@ -4510,6 +4513,7 @@ export const useGameStore = create<GameState>((set) => ({
       }
     };
     saveToLocalStorage(updated);
+    useTutorialStore.getState().completeAction('ALLOCATED_STAT');
     return { character: updated };
   }),
 
@@ -4944,6 +4948,7 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     saveToLocalStorage(updated);
+    useTutorialStore.getState().completeAction('EQUIPPED_SKILL');
     return { character: updated };
   }),
 
@@ -5094,6 +5099,11 @@ export const useGameStore = create<GameState>((set) => ({
       ascensionNotified: ascensionNotifiedVal
     };
     saveToLocalStorage(updated);
+    if (BIOME_TRANSITIONS[nextStage]) {
+      setTimeout(() => {
+        useTransitionStore.getState().triggerTransition(BIOME_TRANSITIONS[nextStage]);
+      }, 500);
+    }
     return { character: updated };
     });
     // Cruzar um `unlockedAtStage` também pode desbloquear o próximo capítulo — reavalia
@@ -5528,6 +5538,7 @@ export const useGameStore = create<GameState>((set) => ({
     };
 
     saveToLocalStorage(updated);
+    useTutorialStore.getState().completeAction('EQUIPPED_ITEM');
     return { character: updated };
   }),
 
@@ -5601,6 +5612,7 @@ export const useGameStore = create<GameState>((set) => ({
       bridge.emit(GameEvent.LOG_EMITTED, { message: `Você vendeu [${item.name}] por +${goldEarned} Ouro!${reclaimed > 0 ? ` (${reclaimed} runa(s) devolvida(s) ao cofre)` : ''}` });
     }
 
+    useTutorialStore.getState().completeAction('SOLD_ITEM');
     return { character: updated };
   }),
 
