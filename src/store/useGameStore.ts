@@ -1176,7 +1176,7 @@ const updateItemEverywhere = (
 
 // Todas as runas engastadas do personagem (equipamento + inventário + Depósito) — usado para a
 // regra "1 Runa Primordial por personagem" no engaste.
-const listAllSocketedRunes = (char: Character): RuneId[] => [
+export const listAllSocketedRunes = (char: Character): RuneId[] => [
   ...listSocketedRunes(Object.values(char.equipment || {})),
   ...listSocketedRunes(char.inventory || []),
   ...listSocketedRunes(char.citadel?.vault?.storedItems || []),
@@ -3753,6 +3753,7 @@ export const useGameStore = create<GameState>((set) => ({
       let runeInventory = char.runeInventory;
       let milestoneMsg = '';
       let pearlsBonus = 0;
+      const ownsEcoh = ((char.runeInventory?.['ecoh'] || 0) > 0) || listAllSocketedRunes(char).includes('ecoh');
       if (newLifetime === 3) {
         pearlsBonus = 50;
         milestoneMsg = ' 🏅 Marco de 3 resgates: título "Pastor de Ecos" (+50 Pérolas)!';
@@ -3760,7 +3761,7 @@ export const useGameStore = create<GameState>((set) => ({
         milestoneMsg = ' 🕍 Marco de 6 resgates: +1 slot de Bênção guardada no Templo!';
       } else if (newLifetime === 9) {
         milestoneMsg = ' 📜 Marco de 9 resgates: a receita da Palavra Rúnica MARÉ VIVA ressoa no Arquivo!';
-      } else if (newLifetime === 12) {
+      } else if (newLifetime === 12 || (newLifetime > 12 && !ownsEcoh)) {
         runeInventory = { ...(char.runeInventory || {}) };
         runeInventory['ecoh'] = (runeInventory['ecoh'] || 0) + 1;
         milestoneMsg = ' 🝮 Marco de 12 resgates: Runa Primordial ECOH, A VOZ AFOGADA foi adicionada ao seu inventário de runas!';
@@ -3901,7 +3902,8 @@ export const useGameStore = create<GameState>((set) => ({
       const isFirstKillEver = (char.leviathanKillCountLifetime || 0) <= 0;
       let updated: Character = { ...char, leviathanKillCountLifetime: (char.leviathanKillCountLifetime || 0) + 1 };
 
-      if (isFirstKillEver) {
+      const ownsLevh = ((char.runeInventory?.['levh'] || 0) > 0) || listAllSocketedRunes(char).includes('levh');
+      if (isFirstKillEver || !ownsLevh) {
         updated.runeInventory = { ...(updated.runeInventory || {}), levh: (updated.runeInventory?.levh || 0) + 1 };
         updated.revealedRunewordIds = updated.revealedRunewordIds?.includes('coracao_leviata')
           ? updated.revealedRunewordIds
@@ -4814,12 +4816,19 @@ export const useGameStore = create<GameState>((set) => ({
       batisphereFragments: 0,
       runeInventory: {},
       materials: { ...(state.character.materials || DEFAULT_MATERIALS()), coral: 0 },
+      coastal: state.character.coastal ? {
+        ...state.character.coastal,
+        faroPerfectCatches: 0,
+        faroGranted: false,
+        faroGrantedCount: 0,
+      } : undefined,
       abyss: {
         ...(state.character.abyss || DEFAULT_ABYSS()),
         currentDepth: 0,
         breath: 100,
         bankedRewards: { pearls: 0, coral: 0, runes: {} },
         airPocketPearlBonus: 0,
+        guardiansDefeated: {},
         // divingSuitLevel SOBREVIVE: é infraestrutura da Doca Batial (como historicalMaxDepth),
         // não poder de personagem — mesma lógica de nível de construção da Cidadela Astral.
       },

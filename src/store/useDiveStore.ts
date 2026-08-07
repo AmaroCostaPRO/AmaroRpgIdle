@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { bridge } from '../bridge/GameBridge';
 import { GameEvent } from '../core/types';
-import { useGameStore } from './useGameStore';
+import { useGameStore, listAllSocketedRunes } from './useGameStore';
 import { useTowerStore } from './useTowerStore';
 import { useQuestStore } from './useQuestStore';
 import { hasEquippedRuneFlag, isPrimordialRune, type RuneId } from '../core/runeFormulas';
@@ -240,10 +240,12 @@ export const useDiveStore = create<DiveStoreState>((set, get) => ({
       coral += guardian?.coralReward ?? 0;
       const runeId = rollRuneForZone(zone, Math.random(), Math.random());
       runes[runeId] = (runes[runeId] || 0) + 1; // runa garantida do Guardião
-      const abyss = useGameStore.getState().character.abyss;
+      const char = useGameStore.getState().character;
+      const abyss = char.abyss;
       const alreadyDefeated = !!abyss?.guardiansDefeated?.[opts.guardianZone];
-      if (!alreadyDefeated && guardian) {
-        const primordialId = guardian.primordialRuneId;
+      const primordialId = guardian?.primordialRuneId;
+      const ownsPrimordial = primordialId ? (((char.runeInventory?.[primordialId] || 0) > 0) || listAllSocketedRunes(char).includes(primordialId)) : false;
+      if ((!alreadyDefeated || !ownsPrimordial) && guardian && primordialId) {
         runes[primordialId] = (runes[primordialId] || 0) + 1;
         useGameStore.getState().updateAbyssState({
           guardiansDefeated: { ...abyss?.guardiansDefeated, [opts.guardianZone]: true },
