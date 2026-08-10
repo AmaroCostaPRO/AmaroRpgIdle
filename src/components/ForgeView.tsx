@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '../store/useGameStore';
-import { useTutorialStore } from '../store/useTutorialStore';
 import { EquipmentItem, BaseStats } from '../core/types';
 import { getMysticFusionCost } from '../core/citadelFormulas';
 import { getRarityColor, getSetVisual } from './shared/itemVisuals';
@@ -267,7 +266,6 @@ export const ForgeView: React.FC = () => {
       setIsLegendarySuccess(legendary);
       setSuccessItem(result.newItem);
       showToast(result.message, 'success');
-      useTutorialStore.getState().completeAction('FUSED_ITEMS');
       setSlot1(null);
       setSlot2(null);
     } else {
@@ -522,7 +520,6 @@ export const ForgeView: React.FC = () => {
                 )}
 
                 <button
-                  data-tutorial-target="btn-confirm-fusion"
                   onClick={handleForge}
                   disabled={!reforgeState.valid}
                   className={`forge-forge-button w-full py-2.5 rounded-lg font-bold text-sm transition-all shadow-md ${

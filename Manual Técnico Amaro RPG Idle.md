@@ -188,6 +188,13 @@ Para que o jogador não precise entrar em cada aba só pra descobrir se há algo
 *   **Sub-abas de Cidadela e Cidadela Submersa**: `CitadelTabsBar.tsx` e `SunkenCitadelTabsBar.tsx` chamam localmente as mesmas funções acima para acender a bolinha só na construção/distrito específico com pendência.
 *   Abas ainda bloqueadas (ícone 🔒) nunca exibem bolinha, independentemente do valor interno da condição.
 
+### K. Sistema de Transição Narrativa Evolutiva (v12.2.0)
+Para enriquecer a atmosfera e dar peso dramático à evolução do herói pelas diferentes regiões e patamares do jogo, foi implementado o **Sistema de Transição Narrativa Evolutiva** (`src/store/useTransitionStore.ts`, `src/core/transitionDefinitions.ts`, `src/components/TransitionBannerOverlay.tsx`):
+*   **Transições entre Biomas/Fases**: Ao avançar para uma nova fase da campanha (ex: Floresta Sussurrante → Deserto das Sombras → Caverna de Cristais → etc.), dispara uma vinheta temática completa com banner estilizado, iluminação personalizada, partículas, introdução de lore e citação narrativa contextualizada.
+*   **Transições de Dificuldade**: Mudanças para os patamares Pesadelo (Carmim), Inferno (Vermelho Escuro) e Pandemônio (Roxo Profundo) acionam vinhetas com esquemas de cores dramáticos e mensagens de alerta sobre os perigos da nova dificuldade.
+*   **Andares da Torre Infinita & Abismo**: Transições narrativas curtas e marcantes nos andares chave da Torre (10, 25, 50, 75, 100) e abates de Bosses dos Mergulhos e Abismo Profundo.
+*   **Modo Rápido (Skip/Speed)**: O sistema permite avançar as mensagens instantaneamente via clique/toque, garantindo que a repetição de fases no combate *idle* continue veloz sem atrasar a simulação.
+
 ---
 
 ## 4. Sistema de Classes e Maestria

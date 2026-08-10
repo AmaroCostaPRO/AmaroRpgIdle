@@ -34,7 +34,6 @@ import { RelicLabPanel } from './citadel/RelicLabPanel';
 import { ProgressNotifications } from './ProgressNotifications';
 import { ItemUseToast } from './ItemUseToast';
 import { TransitionBannerOverlay } from './TransitionBannerOverlay';
-import { TutorialSpotlightOverlay } from './tutorial/TutorialSpotlightOverlay';
 import { CodexPanel } from './CodexPanel';
 import { AbyssPanel } from './abyss/AbyssPanel';
 import { LockedTabPanel } from './common/LockedTabPanel';
@@ -1126,7 +1125,6 @@ const AttributePanel: React.FC = () => {
                 <span style={{ fontSize: '0.58rem', color: '#94a3b8', marginTop: '0.15rem', opacity: 0.95, lineHeight: 1.2 }}>{getAttrDetails(attr, character.classId)}</span>
               </span>
               <HoldButton
-                data-tutorial-target={attr === 'strength' ? 'btn-add-stat-str' : `btn-add-stat-${attr}`}
                 onRepeat={() => handleUpgradeAttribute(attr)}
                 disabled={availablePoints <= 0}
                 className={`btn btn-sm ${availablePoints > 0 ? 'btn-gold' : 'btn-ghost'}`}
@@ -2242,7 +2240,6 @@ const SkillsTreePanel: React.FC = () => {
               return (
                 <button
                   key={id}
-                  data-tutorial-target={id === classSkills[0]?.[0] ? 'btn-equip-first-skill' : undefined}
                   onClick={() => {
                     setSelectedSkillId(id);
                     setShowSkillModal(true);
@@ -9345,7 +9342,6 @@ export default function GameUI() {
       <ArtifactRevealOverlay />
       <ActCutsceneOverlay />
       <TransitionBannerOverlay />
-      <TutorialSpotlightOverlay activeTab={activeCategory || 'combat'} />
       {activeCutsceneId && <LoreCutscene onClose={() => setActiveCutsceneId(null)} choirComplete={cutsceneChoirComplete} />}
       </div>
       <CategorySidebar

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useGameStore, formatNumber, getInventorySlotCost } from '../store/useGameStore';
-import { useTutorialStore } from '../store/useTutorialStore';
 import { AudioManager } from '../core/AudioManager';
 
 export const ShopPanel: React.FC = () => {
@@ -96,7 +95,6 @@ export const ShopPanel: React.FC = () => {
     
     if (result.success) {
       setFeedback({ type: 'success', message: result.message });
-      useTutorialStore.getState().completeAction('BOUGHT_CHEST');
       setTimeout(() => setFeedback(null), 3000);
     } else {
       setFeedback({ type: 'error', message: result.message });
@@ -204,7 +202,6 @@ export const ShopPanel: React.FC = () => {
                 </div>
 
                 <button
-                  data-tutorial-target={item.id === 'chest_legendary' ? 'btn-buy-starter-chest' : undefined}
                   onClick={() => {
                     if (confirmBuyId === item.id) {
                       handleBuy(item.id);

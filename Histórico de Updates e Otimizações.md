@@ -2,7 +2,15 @@
 
 Esta seção consolida as principais melhorias técnicas, balanceamentos e correções aplicados ao longo do ciclo de desenvolvimento do jogo:
 
-### Versão 12.1.0 "Oficina Reforjada" (Atual)
+### Versão 12.2.0 "Jornada Narrativa" (Atual)
+Evolução do sistema narrativo do jogo com o desenvolvimento do **Sistema de Transição Narrativa Evolutiva**, introduzindo momentos de pausa poética, vinhetas visuais e diálogos imersivos ao avançar por fases, biomas, patamares de dificuldade e desafios das profundezas.
+
+*   **📜 Vinhetas de Transição de Bioma/Fase**: Ao progredir da Floresta Sussurrante (Fase 1) para o Deserto das Sombras (Fase 2) e demais biomas da campanha, o jogo aciona automaticamente o componente `TransitionBannerOverlay.tsx` (`useTransitionStore.ts`, `transitionDefinitions.ts`), apresentando animações de revelação, iluminação ambiente temática, efeitos visuais de partículas e trechos narrativos contextualizados sobre a nova região.
+*   **🔥 Mudanças de Patamar de Dificuldade (Pesadelo, Inferno, Pandemônio)**: Transições cromáticas estilizadas (Carmim para Pesadelo, Vermelho Escuro para Inferno, Roxo Profundo para Pandemônio) destacam a elevação de nível dos perigos do mundo e o aumento na força dos inimigos.
+*   **🏯 Diálogos nos Andares Decisivos da Torre e Abismo**: Andares da Torre Infinita (10, 25, 50, 75, 100) e encontros com Guardiões e Bosses do Abismo/Mergulhos ganharam falas marcantes e revelações narrativas.
+*   **⚡ Otimização do Fluxo Idle**: O módulo possui suporte a clique para avanço rápido e skip em execuções repetidas, garantindo que o combate e a progressão idle continuem velozes.
+
+### Versão 12.1.0 "Oficina Reforjada"
 Rodada de balanceamento e integração entre sistemas pedida pelo usuário depois de perceber o jogo "muito completo" e testar os limites de três mecânicas específicas: o bônus de Transcendência estava fraco demais frente à perda que o Rito impõe, a Oficina de Automação da Forja da Cidadela era inútil (produzia Fragmentos de Forja centenas de vezes mais devagar que a Torre Infinita), e o Sifão Cósmico era uma estrutura rasa (só mitigava 2 das 3 penalidades da Ecoterra, sem nenhuma função ativa, e a própria Ecoterra não representava desafio perceptível).
 
 *   **⚡ Bônus de Transcendência 5% → 20%, com gate anti-abuso**: `StatEngine.getTranscendenceBoost` (`StatEngine.ts`) passou o multiplicador por ciclo de $0.05$ para $0.20$ — cada Transcendência agora concede +20% permanente e cumulativo de Dano/Vida/Mana. Para não permitir transcender repetidamente com pouco progresso e abusar do bônus maior, `performTranscendence` (`useGameStore.ts`) ganhou um gate de crescimento mínimo: a partir da 2ª Transcendência, o PP vitalício usado no Rito precisa ser **pelo menos 25% maior** que o usado no ciclo anterior, guardado no novo campo `Character.lastTranscendencePPUsed`. A 1ª Transcendência da conta não tem esse requisito (campo ausente/zero). `TranscendencePanel` (`GameUI.tsx`) exibe o PP mínimo necessário para a próxima Transcendência e troca a mensagem de bloqueio do botão quando é especificamente o gate (e não Pandemônio/Fase 50) o fator impeditivo.

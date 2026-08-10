@@ -402,7 +402,7 @@ const App: React.FC = () => {
             boxShadow: '0 10px 25px rgba(0,0,0,0.6)'
           }}>
             <h3 className="font-heading" style={{ fontSize: '1.1rem', fontWeight: 800, color: '#a855f7', borderBottom: '1px solid var(--border-dim)', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', textShadow: '0 0 10px rgba(168,85,247,0.3)' }}>
-              🔔 Atualização v12.1.0 — Oficina Reforjada!
+              🔔 Atualização v12.2.0 — Jornada Narrativa!
             </h3>
 
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -412,9 +412,48 @@ const App: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
 
+                {/* v12.2.0 */}
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.6rem' }}>
+                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.2.0 (Atual):</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>
+                        📜 Transições Narrativas entre Biomas
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Avançar da Floresta Sussurrante para o Deserto e novas regiões agora dispara vinhetas narrativas imersivas com lore profunda, descrições do novo ambiente e introdução de perigos.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#f87171', fontSize: '0.72rem' }}>
+                        🔥 Mudanças de Dificuldade (Pesadelo, Inferno, Pandemônio)
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Transições estilizadas de iluminação e avisos narrativos informam a subida de patamar e a intensidade acrescida dos inimigos ao alcançar novas dificuldades.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#38bdf8', fontSize: '0.72rem' }}>
+                        🏯 Andares da Torre Infinita & Chefes do Abismo
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Citações e diálogos curtos em andares decisivos da Torre Infinita (10, 25, 50, 75, 100) e ao derrotar Guardiões dos Mergulhos e Abismo Profundo.
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#a855f7', fontSize: '0.72rem' }}>
+                        ⚡ Fluxo Dinâmico Sem Atraso no Idle
+                      </div>
+                      <div style={{ marginLeft: '1.25rem', marginTop: '0.1rem', color: '#cbd5e1', fontSize: '0.68rem', lineHeight: 1.4 }}>
+                        Suporte a toque/clique para avançar e skip veloz automático em combates repetitivos, mantendo o ritmo da jogabilidade idle.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* v12.1.0 */}
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.6rem', marginBottom: '0.2rem' }}>
-                  <span style={{ fontWeight: 700, color: '#a855f7', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>✨ Novidades da Versão 12.1.0 (Atual):</span>
+                  <span style={{ fontWeight: 700, color: '#94a3b8', display: 'block', fontSize: '0.78rem', marginBottom: '0.5rem' }}>📦 Versão 12.1.0 — Oficina Reforjada:</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#facc15', fontSize: '0.72rem' }}>
