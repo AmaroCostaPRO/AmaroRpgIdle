@@ -101,7 +101,16 @@ export const isMainQuestUnlocked = (quest: QuestDef, mainQuests: Record<string, 
       if (!other.isCompleted && !other.isClaimed) return false;
     }
   }
-  if (quest.unlockedAtStage && currentStage < quest.unlockedAtStage) return false;
+  if (quest.unlockedAtStage) {
+    const char = useGameStore.getState().character;
+    const highestStage = Math.max(currentStage, char?.highestStageReached || 0);
+    const hasTranscended = (char?.transcendenceCount || 0) > 0;
+    const hasAscended = (char?.ascensionCount || 0) > 0;
+
+    if (highestStage < quest.unlockedAtStage && !hasTranscended && !hasAscended) {
+      return false;
+    }
+  }
   return true;
 };
 
@@ -323,14 +332,36 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
             }
 
             if (type === 'stage') {
-              const currentAmount = currentStage;
+              const highestStage = Math.max(currentStage, char?.highestStageReached || 0);
+              const currentAmount = Math.max(obj.currentAmount, highestStage);
               if (currentAmount !== obj.currentAmount) questUpdated = true;
               if (currentAmount < obj.requiredAmount) allCompleted = false;
               return { ...obj, currentAmount };
             }
 
             if (type === 'level') {
-              const currentAmount = char?.level || 1;
+              const currentAmount = Math.max(obj.currentAmount, char?.level || 1);
+              if (currentAmount !== obj.currentAmount) questUpdated = true;
+              if (currentAmount < obj.requiredAmount) allCompleted = false;
+              return { ...obj, currentAmount };
+            }
+
+            if (type === 'transcend') {
+              const currentAmount = Math.max(obj.currentAmount + amount, char?.transcendenceCount || 0);
+              if (currentAmount !== obj.currentAmount) questUpdated = true;
+              if (currentAmount < obj.requiredAmount) allCompleted = false;
+              return { ...obj, currentAmount };
+            }
+
+            if (type === 'ascend') {
+              const currentAmount = Math.max(obj.currentAmount + amount, char?.ascensionCount || 0);
+              if (currentAmount !== obj.currentAmount) questUpdated = true;
+              if (currentAmount < obj.requiredAmount) allCompleted = false;
+              return { ...obj, currentAmount };
+            }
+
+            if (type === 'abyss_echo') {
+              const currentAmount = Math.max(obj.currentAmount + amount, char?.sunkenCitadel?.echoesRescuedLifetime || 0);
               if (currentAmount !== obj.currentAmount) questUpdated = true;
               if (currentAmount < obj.requiredAmount) allCompleted = false;
               return { ...obj, currentAmount };
@@ -379,7 +410,11 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
       if (!char) return;
 
       const currentStage = char.currentStage || 1;
+      const highestStage = Math.max(currentStage, char.highestStageReached || 0);
       const currentLevel = char.level || 1;
+      const ascensionCount = char.ascensionCount || 0;
+      const transcendenceCount = char.transcendenceCount || 0;
+      const echoesRescuedLifetime = char.sunkenCitadel?.echoesRescuedLifetime || 0;
       const citadel = char.citadel as unknown as Record<string, { level?: number } | undefined> | undefined;
       const anyCitadelBuildingUpgraded = citadel
         ? Object.entries(citadel).some(([key, building]) => key !== 'commandCenter' && key !== 'unlocked' && (building?.level ?? 0) > 0)
@@ -397,15 +432,29 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
           const objectives = quest.objectives.map((obj) => {
             let currentAmount = obj.currentAmount;
             if (obj.type === 'stage') {
-              currentAmount = currentStage;
+              currentAmount = Math.max(obj.currentAmount, currentStage, highestStage);
             } else if (obj.type === 'level') {
-              currentAmount = currentLevel;
+              currentAmount = Math.max(obj.currentAmount, currentLevel);
+            } else if (obj.type === 'ascend') {
+              currentAmount = Math.max(obj.currentAmount, ascensionCount);
+            } else if (obj.type === 'transcend') {
+              currentAmount = Math.max(obj.currentAmount, transcendenceCount);
+            } else if (obj.type === 'abyss_echo') {
+              currentAmount = Math.max(obj.currentAmount, echoesRescuedLifetime);
             } else if (obj.type === 'citadel_build') {
               const builtAmount = obj.targetId
                 ? Math.min(obj.requiredAmount, citadel?.[obj.targetId]?.level ?? 0)
                 : (anyCitadelBuildingUpgraded ? obj.requiredAmount : 0);
               currentAmount = Math.max(obj.currentAmount, builtAmount);
+            } else if (obj.type === 'runeword') {
+              const hasRuneword = obj.targetId
+                ? (char.revealedRunewordIds?.includes(obj.targetId) || Object.values(char.equipment || {}).some(item => item?.activeRuneword === obj.targetId))
+                : ((char.revealedRunewordIds?.length || 0) > 0 || Object.values(char.equipment || {}).some(item => !!item?.activeRuneword));
+              if (hasRuneword) {
+                currentAmount = Math.max(obj.currentAmount, obj.requiredAmount);
+              }
             }
+
             if (currentAmount !== obj.currentAmount) questUpdated = true;
             if (currentAmount < obj.requiredAmount) allCompleted = false;
 
@@ -413,7 +462,7 @@ export const useQuestStore = create<QuestStoreState>((set, get) => {
           });
 
           const isCompleted = allCompleted ? true : quest.isCompleted;
-          if (questUpdated) changed = true;
+          if (isCompleted !== quest.isCompleted || questUpdated) changed = true;
           return { ...quest, objectives, isCompleted };
         });
       };

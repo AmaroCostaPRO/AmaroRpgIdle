@@ -4651,6 +4651,7 @@ export const useGameStore = create<GameState>((set) => ({
 
     saveToLocalStorage(updated);
     useQuestStore.getState().updateObjectiveProgress('ascend', undefined, 1);
+    useQuestStore.getState().syncQuestObjectives();
     return { character: updated, gameSpeed: clampGameSpeedToUnlocks(updated, state.gameSpeed) };
   }),
 
@@ -4845,6 +4846,7 @@ export const useGameStore = create<GameState>((set) => ({
 
     saveToLocalStorage(updatedChar);
     useQuestStore.getState().updateObjectiveProgress('transcend', undefined, 1);
+    useQuestStore.getState().syncQuestObjectives();
     return { character: updatedChar, screen: 'playing', gameSpeed: clampGameSpeedToUnlocks(updatedChar, state.gameSpeed) };
   }),
 
